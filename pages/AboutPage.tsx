@@ -7,8 +7,8 @@ const AboutPage: React.FC = () => {
             {/* Hero Section */}
             <section className="py-20 bg-neutral-900 text-white relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none opacity-20">
-                     <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-primary rounded-full blur-[100px]"></div>
-                     <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] bg-secondary rounded-full blur-[120px]"></div>
+                    <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-primary rounded-full blur-[100px]"></div>
+                    <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] bg-secondary rounded-full blur-[120px]"></div>
                 </div>
                 <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
                     <div className="inline-flex items-center justify-center p-3 mb-6 bg-white/10 rounded-full backdrop-blur-sm border border-white/20 animate-fade-in-up">
@@ -27,7 +27,7 @@ const AboutPage: React.FC = () => {
             {/* Main Content */}
             <section className="py-16">
                 <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl">
-                    
+
                     {/* Introduction */}
                     <div className="mb-20 text-center">
                         <p className="text-neutral-600 text-lg leading-relaxed mb-8">
@@ -84,7 +84,7 @@ const AboutPage: React.FC = () => {
                         {/* Background Decoration */}
                         <div className="absolute -right-20 -top-20 w-64 h-64 bg-primary/20 rounded-full blur-3xl"></div>
                         <div className="absolute -left-20 -bottom-20 w-64 h-64 bg-secondary/20 rounded-full blur-3xl"></div>
-                        
+
                         <div className="relative z-10 flex flex-col md:flex-row items-center gap-10">
                             <div className="md:w-1/3 flex justify-center">
                                 <div className="w-32 h-32 bg-white/5 rounded-full flex items-center justify-center backdrop-blur-md border border-white/10 shadow-inner">

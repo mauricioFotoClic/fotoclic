@@ -36,5 +36,6 @@ CREATE POLICY "Users can unlike photos"
     USING (true);
 
 -- Grant permissions
+-- teste
 GRANT SELECT, INSERT, DELETE ON photo_likes TO anon, authenticated;
 GRANT USAGE ON SEQUENCE photo_likes_id_seq TO anon, authenticated;

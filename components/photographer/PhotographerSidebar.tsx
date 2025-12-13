@@ -5,10 +5,10 @@ import { User } from '../../types';
 type PhotographerView = 'dashboard' | 'photos' | 'sales' | 'payouts' | 'profile' | 'portfolio-preview' | 'coupons' | 'abandoned-carts' | 'discounts';
 
 interface PhotographerSidebarProps {
-  user: User;
-  activeView: PhotographerView;
-  setView: (view: PhotographerView) => void;
-  onLogout: () => void;
+    user: User;
+    activeView: PhotographerView;
+    setView: (view: PhotographerView) => void;
+    onLogout: () => void;
 }
 
 const NavLink: React.FC<{
@@ -21,25 +21,26 @@ const NavLink: React.FC<{
     return (
         <button
             onClick={onClick}
-            className={`group relative flex items-center w-full px-4 py-3 mb-1 text-sm font-medium rounded-lg transition-all duration-200 ${
-                isActive
-                ? 'bg-[#F3E8FF] text-[#8A2BE2]' 
-                : 'text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900'
-            }`}
+            className={`group relative flex items-center w-full px-3 py-3 mb-1 text-[13px] font-medium rounded-lg transition-all duration-200 whitespace-nowrap ${isActive
+                    ? 'bg-[#F3E8FF] text-[#8A2BE2]'
+                    : 'text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900'
+                }`}
         >
             {isActive && (
                 <div className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 bg-[#8A2BE2] rounded-r-md"></div>
             )}
-            
-            <span className={`mr-3 transition-colors duration-200 ${isActive ? 'text-[#8A2BE2]' : 'text-neutral-400 group-hover:text-neutral-600'}`}>
+
+            <span className={`mr-2 flex-shrink-0 transition-colors duration-200 ${isActive ? 'text-[#8A2BE2]' : 'text-neutral-400 group-hover:text-neutral-600'}`}>
                 {icon}
             </span>
-            
-            <span>{label}</span>
+
+            <span className="truncate">{label}</span>
 
             {badge && (
-                <span className="ml-auto px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white bg-[#8A2BE2] rounded shadow-sm">
-                    {badge}
+                <span className="ml-auto pl-2 flex-shrink-0">
+                    <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white bg-[#8A2BE2] rounded shadow-sm">
+                        {badge}
+                    </span>
                 </span>
             )}
         </button>
@@ -65,64 +66,64 @@ const CartIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height
 const PercentIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="5" x2="5" y2="19"></line><circle cx="6.5" cy="6.5" r="2.5"></circle><circle cx="17.5" cy="17.5" r="2.5"></circle></svg>;
 
 const PhotographerSidebar: React.FC<PhotographerSidebarProps> = ({ user, activeView, setView, onLogout }) => {
-  return (
-    <aside className="w-full md:w-64 bg-white text-neutral-800 p-4 md:rounded-2xl shadow-lg md:min-h-[600px] flex flex-col border border-neutral-100">
-        {/* Profile Section */}
-        <div className="flex flex-col items-center py-8">
-            <div className="relative mb-4">
-                <div className="relative p-1 bg-white rounded-full border border-neutral-100 shadow-sm">
-                    <img 
-                        src={user.avatar_url} 
-                        alt={user.name} 
-                        className="w-20 h-20 rounded-full object-cover" 
-                    />
+    return (
+        <aside className="w-full md:w-64 bg-white text-neutral-800 p-4 md:rounded-2xl shadow-lg md:min-h-[600px] flex flex-col border border-neutral-100">
+            {/* Profile Section */}
+            <div className="flex flex-col items-center py-8">
+                <div className="relative mb-4">
+                    <div className="relative p-1 bg-white rounded-full border border-neutral-100 shadow-sm">
+                        <img
+                            src={user.avatar_url}
+                            alt={user.name}
+                            className="w-20 h-20 rounded-full object-cover"
+                        />
+                    </div>
+                    <div className={`absolute bottom-1 right-1 w-4 h-4 rounded-full border-2 border-white ${user.is_active ? 'bg-green-500' : 'bg-red-500'}`}></div>
                 </div>
-                <div className={`absolute bottom-1 right-1 w-4 h-4 rounded-full border-2 border-white ${user.is_active ? 'bg-green-500' : 'bg-red-500'}`}></div>
+
+                <h3 className="text-lg font-display font-bold text-neutral-900 text-center">
+                    {user.name}
+                </h3>
+
+                <div className="mt-2 bg-neutral-100 px-3 py-1 rounded-full">
+                    <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">
+                        Fotógrafo Pro
+                    </span>
+                </div>
             </div>
-            
-            <h3 className="text-lg font-display font-bold text-neutral-900 text-center">
-                {user.name}
-            </h3>
-            
-            <div className="mt-2 bg-neutral-100 px-3 py-1 rounded-full">
-                <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">
-                    Fotógrafo Pro
-                </span>
+
+            {/* Navigation */}
+            <nav className="flex-1 px-2">
+                <SectionLabel label="Principal" />
+                <NavLink label="Visão Geral" isActive={activeView === 'dashboard'} onClick={() => setView('dashboard')} icon={<HomeIcon />} />
+                <NavLink label="Portfólio" isActive={activeView === 'photos'} onClick={() => setView('photos')} icon={<ImageIcon />} badge="NOVO" />
+                <NavLink label="Ver Meu Portfólio" isActive={activeView === 'portfolio-preview'} onClick={() => setView('portfolio-preview')} icon={<EyeIcon />} />
+
+                <SectionLabel label="Financeiro" />
+                <NavLink label="Vendas Realizadas" isActive={activeView === 'sales'} onClick={() => setView('sales')} icon={<DollarSignIcon />} />
+                <NavLink label="Carrinhos Abandonados" isActive={activeView === 'abandoned-carts'} onClick={() => setView('abandoned-carts')} icon={<CartIcon />} badge="NEW" />
+                <NavLink label="Central Financeira" isActive={activeView === 'payouts'} onClick={() => setView('payouts')} icon={<ChartIcon />} />
+
+                <SectionLabel label="Marketing" />
+                <NavLink label="Cupons" isActive={activeView === 'coupons'} onClick={() => setView('coupons')} icon={<TicketIcon />} />
+                <NavLink label="Descontos Progressivos" isActive={activeView === 'discounts'} onClick={() => setView('discounts')} icon={<PercentIcon />} />
+
+                <SectionLabel label="Conta" />
+                <NavLink label="Meu Perfil" isActive={activeView === 'profile'} onClick={() => setView('profile')} icon={<UserIcon />} />
+            </nav>
+
+            {/* Logout */}
+            <div className="pt-4 mt-4 border-t border-neutral-100 px-2 pb-4">
+                <button
+                    onClick={onLogout}
+                    className="flex items-center w-full px-4 py-3 text-sm font-medium text-neutral-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
+                >
+                    <span className="mr-3"><LogOutIcon /></span>
+                    <span>Sair</span>
+                </button>
             </div>
-        </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 px-2">
-            <SectionLabel label="Principal" />
-            <NavLink label="Visão Geral" isActive={activeView === 'dashboard'} onClick={() => setView('dashboard')} icon={<HomeIcon />} />
-            <NavLink label="Portfólio" isActive={activeView === 'photos'} onClick={() => setView('photos')} icon={<ImageIcon />} badge="NOVO" />
-            <NavLink label="Ver Meu Portfólio" isActive={activeView === 'portfolio-preview'} onClick={() => setView('portfolio-preview')} icon={<EyeIcon />} />
-
-            <SectionLabel label="Financeiro" />
-            <NavLink label="Vendas Realizadas" isActive={activeView === 'sales'} onClick={() => setView('sales')} icon={<DollarSignIcon />} />
-            <NavLink label="Carrinhos Abandonados" isActive={activeView === 'abandoned-carts'} onClick={() => setView('abandoned-carts')} icon={<CartIcon />} badge="NEW" />
-            <NavLink label="Central Financeira" isActive={activeView === 'payouts'} onClick={() => setView('payouts')} icon={<ChartIcon />} />
-            
-            <SectionLabel label="Marketing" />
-            <NavLink label="Cupons" isActive={activeView === 'coupons'} onClick={() => setView('coupons')} icon={<TicketIcon />} />
-            <NavLink label="Descontos Progressivos" isActive={activeView === 'discounts'} onClick={() => setView('discounts')} icon={<PercentIcon />} />
-
-            <SectionLabel label="Conta" />
-            <NavLink label="Meu Perfil" isActive={activeView === 'profile'} onClick={() => setView('profile')} icon={<UserIcon />} />
-        </nav>
-
-        {/* Logout */}
-        <div className="pt-4 mt-4 border-t border-neutral-100 px-2 pb-4">
-            <button 
-                onClick={onLogout} 
-                className="flex items-center w-full px-4 py-3 text-sm font-medium text-neutral-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
-            >
-                <span className="mr-3"><LogOutIcon /></span>
-                <span>Sair</span>
-            </button>
-        </div>
-    </aside>
-  );
+        </aside>
+    );
 };
 
 export default PhotographerSidebar;
