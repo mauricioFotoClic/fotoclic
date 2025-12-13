@@ -32,13 +32,28 @@ const CustomerDashboardPage: React.FC<CustomerDashboardPageProps> = ({ onNavigat
         loadPurchases();
     }, [currentUser]);
 
-    const handleDownload = (photo: PurchasedPhoto) => {
-        const link = document.createElement('a');
-        link.href = photo.file_url;
-        link.download = `fotoclic-${photo.title.replace(/\s+/g, '-').toLowerCase()}.jpg`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+    const handleDownload = async (photo: PurchasedPhoto) => {
+        if (!currentUser) return;
+
+        try {
+            // Use the secure method to get a signed URL (valid for 1 hour)
+            const secureUrl = await api.getSecureDownloadUrl(photo.id, currentUser.id);
+
+            if (!secureUrl) {
+                alert("Erro ao gerar link seguro. Verifique se você realmente comprou esta foto.");
+                return;
+            }
+
+            const link = document.createElement('a');
+            link.href = secureUrl;
+            link.setAttribute('download', `fotoclic-${photo.title.replace(/\s+/g, '-').toLowerCase()}.jpg`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } catch (error) {
+            console.error("Download failed:", error);
+            alert("Erro ao iniciar download. Tente novamente.");
+        }
     };
 
     if (!currentUser) {
@@ -71,7 +86,7 @@ const CustomerDashboardPage: React.FC<CustomerDashboardPageProps> = ({ onNavigat
                         </div>
                         <h2 className="text-xl font-semibold text-neutral-800 mb-2">Você ainda não comprou nenhuma foto.</h2>
                         <p className="text-neutral-500 mb-6">Explore nossa galeria e encontre a imagem perfeita.</p>
-                        <button 
+                        <button
                             onClick={() => onNavigate({ name: 'home' })}
                             className="px-6 py-2 bg-primary text-white rounded-full font-medium hover:bg-opacity-90 transition-colors"
                         >
@@ -83,9 +98,9 @@ const CustomerDashboardPage: React.FC<CustomerDashboardPageProps> = ({ onNavigat
                         {purchases.map(photo => (
                             <div key={photo.sale_id} className="bg-white border border-neutral-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col">
                                 <div className="h-48 bg-neutral-100 relative">
-                                    <img 
-                                        src={photo.preview_url} 
-                                        alt={photo.title} 
+                                    <img
+                                        src={photo.preview_url}
+                                        alt={photo.title}
                                         className="w-full h-full object-cover"
                                     />
                                     <div className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded backdrop-blur-sm">
@@ -97,15 +112,15 @@ const CustomerDashboardPage: React.FC<CustomerDashboardPageProps> = ({ onNavigat
                                     <p className="text-xs text-neutral-500 mb-4">
                                         Comprado em: {new Date(photo.purchase_date).toLocaleDateString('pt-BR')}
                                     </p>
-                                    
+
                                     <div className="mt-auto pt-4 border-t border-neutral-100 flex items-center justify-between">
-                                        <button 
+                                        <button
                                             onClick={() => onNavigate({ name: 'photo-detail', id: photo.id })}
                                             className="text-sm text-primary font-medium hover:underline"
                                         >
                                             Ver Detalhes
                                         </button>
-                                        <button 
+                                        <button
                                             onClick={() => handleDownload(photo)}
                                             className="flex items-center px-4 py-2 bg-green-600 text-white text-sm font-bold rounded-full hover:bg-green-700 transition-colors"
                                         >

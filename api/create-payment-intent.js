@@ -35,6 +35,10 @@ export default async function handler(req, res) {
             automatic_payment_methods: {
                 enabled: true,
             },
+            metadata: {
+                items: JSON.stringify(req.body.items || []), // Store item IDs for reference
+                // You could also add user_id if passed in body
+            }
         });
 
         console.log("PaymentIntent created:", paymentIntent.id);

@@ -811,6 +811,66 @@ const api = {
       } as PurchasedPhoto;
     }).filter(Boolean) as PurchasedPhoto[];
   },
+  getSecureDownloadUrl: async (photoId: string, userId: string): Promise<string | null> => {
+    // 1. Verify Purchase
+    const purchased = await api.checkIfPurchased(userId, photoId);
+    if (!purchased) {
+      console.warn(`User ${userId} attempted to access photo ${photoId} without purchase.`);
+      return null;
+    }
+
+    // 2. Get Photo Storage Path
+    const photo = await api.getPhotoById(photoId);
+    if (!photo || !photo.file_url) return null;
+
+    try {
+      // Extract path from URL if it's a full Supabase URL, or usage as is if relative
+      // Assumption: file_url might be "https://.../storage/v1/object/public/photos/path/to/file.jpg"
+      // We need just "photos/path/to/file.jpg" or the path relative to bucket.
+
+      // Heuristic: If it contains '/public/', we presume the sensitive bucket would be different or we just sign this path.
+      // But if the bucket is PUBLIC, signing is redundant but harmless. 
+      // ideally the bucket should be PRIVATE 'photos_secure'.
+
+      // For this implementation, we will use the 'createSignedUrl' on the 'photos' bucket 
+      // assuming the file path is extractable.
+
+      // Let's assume the project follows standard Supabase pattern:
+      // .../storage/v1/object/public/[bucket]/[path]
+
+      const urlObj = new URL(photo.file_url);
+      const pathParts = urlObj.pathname.split('/');
+      // pathParts usually: ["", "storage", "v1", "object", "public", "photos", "folder", "file.jpg"]
+
+      const publicIndex = pathParts.indexOf('public');
+      if (publicIndex === -1) {
+        // Fallback: If not standard structure, return original if we can't sign it
+        // OR if it is already a signed url?
+        return photo.file_url;
+      }
+
+      const bucket = pathParts[publicIndex + 1]; // e.g. 'photos'
+      const path = pathParts.slice(publicIndex + 2).join('/'); // e.g. 'folder/file.jpg'
+
+      // Generate Signed URL (valid for 1 hour)
+      const { data, error } = await supabase
+        .storage
+        .from(bucket)
+        .createSignedUrl(path, 3600); // 1 hour
+
+      if (error) {
+        console.error("Error creating signed URL:", error);
+        return null;
+      }
+
+      return data.signedUrl;
+
+    } catch (e) {
+      console.error("Error parsing photo URL for signing:", e);
+      // Fallback to original if parsing fails (likely external url or local mock)
+      return photo.file_url;
+    }
+  },
   validateCoupon: async (code: string): Promise<Coupon | null> => {
     const { data, error } = await supabase.from('coupons').select('*').eq('code', code).single();
     if (error || !data) return null;
