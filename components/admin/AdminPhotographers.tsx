@@ -95,11 +95,15 @@ const AdminPhotographers: React.FC<AdminPhotographersProps> = ({ onNavigate }) =
             if (photographer) {
                 // Dynamically import to avoid circular dependencies if any, although here it's fine
                 const { emailService } = await import('../../services/emailService');
-                await emailService.sendPhotographerStatusEmail(
+                const emailSent = await emailService.sendPhotographerStatusEmail(
                     photographer.email,
                     photographer.name,
                     newStatus ? 'activated' : 'deactivated'
                 );
+
+                if (!emailSent) {
+                    alert('Status atualizado, mas falha ao enviar o e-mail de notificação. Verifique se a chave da API Resend está correta e se o e-mail do destinatário é válido/permitido.');
+                }
             }
 
         } catch (error) {
