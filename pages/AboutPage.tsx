@@ -16,7 +16,7 @@ const AboutPage: React.FC = () => {
                         <span className="text-sm font-bold uppercase tracking-widest text-neutral-200">Nossa História</span>
                     </div>
                     <h1 className="text-4xl md:text-6xl font-display font-bold mb-6 leading-tight animate-fade-in-up">
-                        Sobre Nós — FotoClic
+                        Sobre Nós — FotoClicoooo
                     </h1>
                     <p className="text-lg md:text-xl text-neutral-300 max-w-3xl mx-auto font-light leading-relaxed animate-fade-in-up delay-100">
                         O FotoClic nasceu com um propósito claro: conectar pessoas à força das imagens. Acreditamos que cada fotografia carrega uma história, uma emoção, um instante capaz de inspirar e transformar.
