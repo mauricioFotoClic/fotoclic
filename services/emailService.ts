@@ -1,7 +1,23 @@
 // This service calls the Vercel Serverless Function at /api/send-email
 // It does NOT contain any API keys.
+import api from './api';
+import { EmailTemplates } from '../types';
+
+const replacePlaceholders = (template: string, variables: Record<string, string>) => {
+  return template.replace(/{{(\w+)}}/g, (_, key) => variables[key] || '');
+};
 
 export const emailService = {
+  // Helper to fetch templates (could be cached in a real app context)
+  getTemplates: async (): Promise<EmailTemplates | null> => {
+    try {
+      return await api.getEmailTemplates();
+    } catch (error) {
+      console.error("Failed to fetch email templates", error);
+      return null;
+    }
+  },
+
   sendNewPhotographerNotification: async (photographerName: string, photographerEmail: string) => {
     return emailService.sendEmail(
       'svalmauricio@gmail.com', // Notification to Admin
@@ -17,6 +33,65 @@ export const emailService = {
             <p>Acesse o painel administrativo para revisar e aprovar este cadastro.</p>
         </div>`
     );
+  },
+
+  sendPhotographerStatusEmail: async (photographerEmail: string, photographerName: string, status: 'activated' | 'deactivated') => {
+    const templates = await emailService.getTemplates();
+    if (!templates) return false;
+
+    const template = status === 'activated' ? templates.photographerActivated : templates.photographerDeactivated;
+
+    const subject = replacePlaceholders(template.subject, { nome_fotografo: photographerName });
+    const body = replacePlaceholders(template.body, { nome_fotografo: photographerName });
+
+    // Wrap simple text body in HTML if needed, or assume templates are plain text/simple HTML
+    const htmlBody = `<div style="font-family: sans-serif; color: #333; white-space: pre-wrap;">${body}</div>`;
+
+    return emailService.sendEmail(photographerEmail, subject, htmlBody);
+  },
+
+  sendPhotoRejectionEmail: async (photographerEmail: string, photographerName: string, photoTitle: string, reason: string) => {
+    const templates = await emailService.getTemplates();
+    if (!templates) return false;
+
+    const template = templates.photoRejected;
+
+    const subject = replacePlaceholders(template.subject, {
+      nome_fotografo: photographerName,
+      titulo_foto: photoTitle,
+      motivo_rejeicao: reason
+    });
+    const body = replacePlaceholders(template.body, {
+      nome_fotografo: photographerName,
+      titulo_foto: photoTitle,
+      motivo_rejeicao: reason
+    });
+
+    const htmlBody = `<div style="font-family: sans-serif; color: #333; white-space: pre-wrap;">${body}</div>`;
+
+    return emailService.sendEmail(photographerEmail, subject, htmlBody);
+  },
+
+  sendPayoutProcessedEmail: async (photographerEmail: string, photographerName: string, amount: number, date: string) => {
+    const templates = await emailService.getTemplates();
+    if (!templates) return false;
+
+    const template = templates.payoutProcessed;
+
+    const subject = replacePlaceholders(template.subject, {
+      nome_fotografo: photographerName,
+      valor_pagamento: amount.toFixed(2).replace('.', ','),
+      data_pagamento: date
+    });
+    const body = replacePlaceholders(template.body, {
+      nome_fotografo: photographerName,
+      valor_pagamento: `R$ ${amount.toFixed(2).replace('.', ',')}`,
+      data_pagamento: date
+    });
+
+    const htmlBody = `<div style="font-family: sans-serif; color: #333; white-space: pre-wrap;">${body}</div>`;
+
+    return emailService.sendEmail(photographerEmail, subject, htmlBody);
   },
 
   sendPurchaseConfirmation: async (buyerEmail: string, buyerName: string, orderTotal: number, itemCount: number) => {
@@ -81,3 +156,4 @@ export const emailService = {
     }
   }
 };
+

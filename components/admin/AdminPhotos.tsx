@@ -14,15 +14,15 @@ interface AdminPhotosProps {
 
 const EditIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>;
 const TrashIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>;
-const WarningIcon: React.FC<{className?: string}> = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 3.001-1.742 3.001H4.42c-1.53 0-2.493-1.667-1.743-3.001l5.58-9.92zM10 13a1 1 0 110-2 1 1 0 010 2zm-1-8a1 1 0 00-1 1v3a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>;
+const WarningIcon: React.FC<{ className?: string }> = ({ className }) => <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 3.001-1.742 3.001H4.42c-1.53 0-2.493-1.667-1.743-3.001l5.58-9.92zM10 13a1 1 0 110-2 1 1 0 010 2zm-1-8a1 1 0 00-1 1v3a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>;
 const CheckCircleIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>;
 const FolderIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>;
 const ArrowLeftIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>;
 
 const ToggleSwitch: React.FC<{ checked: boolean; onChange: () => void; }> = ({ checked, onChange }) => (
     <label className="relative inline-flex items-center cursor-pointer">
-      <input type="checkbox" checked={checked} onChange={onChange} className="sr-only peer" />
-      <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-2 peer-focus:ring-primary/50 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+        <input type="checkbox" checked={checked} onChange={onChange} className="sr-only peer" />
+        <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-2 peer-focus:ring-primary/50 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
     </label>
 );
 
@@ -32,14 +32,14 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
     const [categories, setCategories] = useState<Category[]>([]);
     const [emailTemplates, setEmailTemplates] = useState<EmailTemplates | null>(null);
     const [loading, setLoading] = useState(true);
-    
+
     // View State: null = List of Photographers, string = ID of selected Photographer
     const [selectedPhotographerId, setSelectedPhotographerId] = useState<string | null>(null);
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingPhoto, setEditingPhoto] = useState<Photo | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
-    
+
     // Internal filters for the gallery view
     const [filters, setFilters] = useState({
         category: '',
@@ -53,7 +53,7 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
     // State for delete confirmation modal
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
     const [photoToDelete, setPhotoToDelete] = useState<Photo | null>(null);
-    
+
     // State for rejection modal
     const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
     const [photoToReject, setPhotoToReject] = useState<Photo | null>(null);
@@ -92,8 +92,8 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
         setLoading(true);
         fetchData();
     }, [fetchData]);
-    
-     useEffect(() => {
+
+    useEffect(() => {
         if (context?.filterByPhotoId && photos.length > 0) {
             const photoToFind = photos.find(p => p.id === context.filterByPhotoId);
             if (photoToFind) {
@@ -120,7 +120,7 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
         try {
             if (editingPhoto) {
                 const updatedPhoto = await api.updatePhoto(editingPhoto.id, formData);
-                 if (updatedPhoto) {
+                if (updatedPhoto) {
                     setPhotos(prev => prev.map(p => p.id === updatedPhoto.id ? updatedPhoto : p));
                 }
             } else {
@@ -132,7 +132,7 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
             console.error("Failed to save photo", error);
         }
     };
-    
+
     const handleDelete = (photo: Photo) => {
         setPhotoToDelete(photo);
         setIsConfirmModalOpen(true);
@@ -153,7 +153,7 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
             setPhotoToDelete(null);
         }
     };
-    
+
     const handleApprove = async (photoId: string) => {
         // Optimistic update
         setPhotos(prev => prev.map(p => p.id === photoId ? { ...p, moderation_status: 'approved', rejection_reason: undefined } : p));
@@ -178,7 +178,7 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
 
     const performBulkApprove = async () => {
         if (!selectedPhotographerId) return;
-        
+
         const pendingPhotos = photos.filter(p => p.photographer_id === selectedPhotographerId && p.moderation_status === 'pending');
         if (pendingPhotos.length === 0) {
             setIsBulkConfirmOpen(false);
@@ -192,13 +192,13 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
             const pendingIds = pendingPhotos.map(p => p.id);
             // Call the batch API endpoint
             await api.approvePhotosBatch(pendingIds);
-            
+
             // Update local state to reflect changes immediately
             setPhotos(prev => prev.map(p => pendingIds.includes(p.id) ? { ...p, moderation_status: 'approved' as const, rejection_reason: undefined } : p));
-            
+
             // Refresh data from source to be sure
             await fetchData();
-            
+
         } catch (error) {
             console.error("Failed bulk approve", error);
         } finally {
@@ -217,15 +217,27 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
         if (!rejectionReason.trim()) {
             return;
         }
-        
+
         const updatedPhotoData = { moderation_status: 'rejected' as const, rejection_reason: rejectionReason };
         const updatedPhoto = { ...photoToReject, ...updatedPhotoData };
-        
+
         setPhotos(prev => prev.map(p => p.id === photoToReject.id ? updatedPhoto : p));
-        
+
         try {
             await api.updatePhoto(photoToReject.id, updatedPhotoData);
-            await api.notifyPhotographerPhotoRejection(photoToReject.id);
+
+            // Send rejection email
+            const photographer = photographers.find(p => p.id === photoToReject.photographer_id);
+            if (photographer) {
+                const { emailService } = await import('../../services/emailService');
+                await emailService.sendPhotoRejectionEmail(
+                    photographer.email,
+                    photographer.name,
+                    photoToReject.title,
+                    rejectionReason
+                );
+            }
+
         } catch (error) {
             console.error("Failed to reject photo", error);
         } finally {
@@ -233,7 +245,7 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
             setPhotoToReject(null);
         }
     };
-    
+
     const handleToggleFeatured = async (id: string, newStatus: boolean) => {
         // Optimistic update
         setPhotos(prev => prev.map(p => p.id === id ? { ...p, is_featured: newStatus } : p));
@@ -244,7 +256,7 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
             setPhotos(prev => prev.map(p => p.id === id ? { ...p, is_featured: !newStatus } : p));
         }
     };
-    
+
     const handleAnalyze = (photo: Photo) => {
         setPhotoToAnalyze(photo);
         setIsAnalysisModalOpen(true);
@@ -253,12 +265,12 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
 
     const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         setCurrentPage(1);
-        setFilters(prev => ({...prev, [e.target.name]: e.target.value}));
+        setFilters(prev => ({ ...prev, [e.target.name]: e.target.value }));
     }
 
     const clearFilters = () => {
         setCurrentPage(1);
-        setFilters({category: '', status: '', moderation: '', featured: ''});
+        setFilters({ category: '', status: '', moderation: '', featured: '' });
         setSearchTerm('');
     }
 
@@ -312,7 +324,7 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
                 hasPhotos: userPhotos.length > 0
             };
         }).filter(p => p.hasPhotos) // Only show photographers with at least 1 photo uploaded
-        .sort((a, b) => b.pendingCount - a.pendingCount); // Show pending first
+            .sort((a, b) => b.pendingCount - a.pendingCount); // Show pending first
     }, [photographers, photos]);
 
 
@@ -332,7 +344,7 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {photographerGroups.map(group => (
-                        <button 
+                        <button
                             key={group.id}
                             onClick={() => setSelectedPhotographerId(group.id)}
                             className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md border border-neutral-200 transition-all text-left group relative overflow-hidden"
@@ -344,7 +356,7 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
                                     </div>
                                 </div>
                             )}
-                            
+
                             <div className="flex items-center space-x-4 mb-4">
                                 <img src={group.avatar_url} alt={group.name} className="w-16 h-16 rounded-full object-cover border-2 border-neutral-100" />
                                 <div>
@@ -352,7 +364,7 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
                                     <p className="text-sm text-neutral-500">{group.email}</p>
                                 </div>
                             </div>
-                            
+
                             <div className="grid grid-cols-3 gap-2 text-center bg-neutral-50 rounded-lg p-3">
                                 <div>
                                     <div className={`font-bold text-lg ${group.pendingCount > 0 ? 'text-yellow-600' : 'text-neutral-600'}`}>
@@ -389,7 +401,7 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
         <div>
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                 <div className="flex items-center gap-4">
-                    <button 
+                    <button
                         onClick={() => { setSelectedPhotographerId(null); setSearchTerm(''); }}
                         className="p-2 rounded-full bg-white border border-neutral-200 hover:bg-neutral-100 text-neutral-600 transition-colors"
                         title="Voltar para lista"
@@ -404,10 +416,10 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
                         <p className="text-sm text-neutral-500 ml-10">Gerenciando fotos do portfólio</p>
                     </div>
                 </div>
-                
+
                 <div className="flex items-center gap-3">
                     {currentPhotographerPendingCount > 0 && (
-                        <button 
+                        <button
                             onClick={handleBulkApprove}
                             disabled={isBulkApproving}
                             className={`flex items-center px-4 py-2 text-white text-sm font-bold rounded-full shadow-md transition-colors ${isBulkApproving ? 'bg-green-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 animate-pulse'}`}
@@ -425,7 +437,7 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
                             )}
                         </button>
                     )}
-                    <button 
+                    <button
                         onClick={() => handleOpenModal()}
                         className="px-4 py-2 text-sm font-medium text-neutral-700 bg-white border border-neutral-200 rounded-full hover:bg-neutral-50 transition-colors"
                     >
@@ -436,7 +448,7 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
 
             {/* Filters, Table and other UI components remain unchanged but included in the full file content */}
             <div className="mb-4 p-4 bg-white rounded-lg shadow-sm space-y-4">
-                 <div>
+                <div>
                     <label htmlFor="search" className="text-xs text-neutral-500">Pesquisar por Título</label>
                     <input
                         id="search"
@@ -448,7 +460,7 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
                     />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
-                     <div className="lg:col-span-1">
+                    <div className="lg:col-span-1">
                         <label className="text-xs text-neutral-500">Categoria</label>
                         <select name="category" value={filters.category} onChange={handleFilterChange} className="w-full mt-1 p-2 border border-neutral-200 rounded-md bg-white">
                             <option value="">Todas</option>
@@ -481,11 +493,11 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
                         </select>
                     </div>
                     <div className="lg:col-span-1">
-                         <button onClick={clearFilters} className="w-full px-4 py-2 text-sm font-medium text-neutral-700 bg-neutral-100 border border-neutral-200 rounded-full hover:bg-neutral-200 transition-colors">Limpar</button>
+                        <button onClick={clearFilters} className="w-full px-4 py-2 text-sm font-medium text-neutral-700 bg-neutral-100 border border-neutral-200 rounded-full hover:bg-neutral-200 transition-colors">Limpar</button>
                     </div>
                 </div>
             </div>
-            
+
             <div className="bg-white rounded-lg shadow-md overflow-x-auto">
                 <table className="w-full min-w-[1200px]">
                     <thead className="bg-neutral-100">
@@ -524,7 +536,7 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
                                 <td className="p-4 text-center">
                                     {photo.moderation_status === 'pending' && (
                                         <div className="flex justify-center items-center gap-2">
-                                            <button 
+                                            <button
                                                 onClick={() => handleAnalyze(photo)}
                                                 className="p-1.5 text-purple-600 bg-purple-50 rounded-full hover:bg-purple-100 transition-colors"
                                                 title="Análise IA"
@@ -555,15 +567,15 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
                                 </td>
                                 <td className="p-4 text-right">
                                     <div className="flex items-center justify-end gap-2">
-                                        <button 
-                                            onClick={() => handleOpenModal(photo)} 
+                                        <button
+                                            onClick={() => handleOpenModal(photo)}
                                             className="flex items-center justify-center w-9 h-9 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-full transition-colors"
                                             title="Editar"
                                         >
                                             <EditIcon />
                                         </button>
-                                        <button 
-                                            onClick={() => handleDelete(photo)} 
+                                        <button
+                                            onClick={() => handleDelete(photo)}
                                             className="flex items-center justify-center w-9 h-9 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-full transition-colors"
                                             title="Excluir"
                                         >
@@ -573,7 +585,7 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
                                 </td>
                             </tr>
                         ))}
-                         {filteredPhotos.length === 0 && (
+                        {filteredPhotos.length === 0 && (
                             <tr>
                                 <td colSpan={7} className="text-center p-8 text-neutral-500">Nenhuma foto encontrada com os filtros atuais.</td>
                             </tr>
@@ -604,12 +616,12 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
                 </div>
             )}
 
-            <Modal 
+            <Modal
                 isOpen={isModalOpen}
                 onClose={handleCloseModal}
                 title={editingPhoto ? "Editar Foto" : "Nova Foto"}
             >
-                <PhotoForm 
+                <PhotoForm
                     onSubmit={handleFormSubmit}
                     onCancel={handleCloseModal}
                     initialData={editingPhoto}
@@ -617,8 +629,8 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
                     categories={categories}
                 />
             </Modal>
-            
-            <QualityAnalysisModal 
+
+            <QualityAnalysisModal
                 isOpen={isAnalysisModalOpen}
                 onClose={() => setIsAnalysisModalOpen(false)}
                 photo={photoToAnalyze}
@@ -632,7 +644,7 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
                 }}
             />
 
-             <Modal
+            <Modal
                 isOpen={isConfirmModalOpen}
                 onClose={() => setIsConfirmModalOpen(false)}
                 title="Confirmar Exclusão"
@@ -642,7 +654,7 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
                         <p className="text-neutral-600 mb-4">
                             Tem certeza que deseja excluir a foto <strong>"{photoToDelete.title}"</strong>?
                         </p>
-                        
+
                         <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-4">
                             <div className="flex">
                                 <div className="flex-shrink-0">
@@ -686,13 +698,13 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
                 {photoToReject && emailTemplates && (() => {
                     const photographer = photographers.find(p => p.id === photoToReject.photographer_id);
                     const template = emailTemplates.photoRejected;
-                    
+
                     if (!photographer || !template) return <p>Erro ao carregar dados do modelo.</p>;
 
                     const subject = template.subject
                         .replace('{{nome_fotografo}}', photographer.name)
                         .replace('{{titulo_foto}}', photoToReject.title);
-                    
+
                     const bodyPreview = template.body
                         .replace('{{nome_fotografo}}', photographer.name)
                         .replace('{{titulo_foto}}', photoToReject.title)
@@ -704,13 +716,13 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
                             <p className="text-sm text-neutral-600 mb-4">
                                 A mensagem abaixo será enviada ao fotógrafo. Por favor, preencha o motivo da rejeição.
                             </p>
-                            
+
                             <div className="p-3 bg-neutral-50 rounded-md border text-xs text-neutral-700 mb-4">
                                 <p><strong>Assunto:</strong> {subject}</p>
                                 <hr className="my-2" />
-                                <div 
+                                <div
                                     className="space-y-1"
-                                    dangerouslySetInnerHTML={{ __html: bodyPreview }} 
+                                    dangerouslySetInnerHTML={{ __html: bodyPreview }}
                                 />
                             </div>
 
@@ -725,7 +737,7 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
                                     placeholder="Ex: Baixa resolução, violação de direitos autorais, fora do escopo do site, etc."
                                 />
                             </div>
-                            
+
                             <div className="flex justify-end space-x-2 mt-4">
                                 <button
                                     type="button"
@@ -757,7 +769,7 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
                     <p className="text-neutral-600 mb-6 text-lg">
                         Tem certeza que deseja aprovar <strong>todas as fotos pendentes</strong> deste fotógrafo?
                     </p>
-                    
+
                     <div className="flex justify-end space-x-3">
                         <button
                             onClick={() => setIsBulkConfirmOpen(false)}

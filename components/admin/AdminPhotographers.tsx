@@ -89,10 +89,23 @@ const AdminPhotographers: React.FC<AdminPhotographersProps> = ({ onNavigate }) =
         setPhotographers(prev => prev.map(p => p.id === id ? { ...p, is_active: newStatus } : p));
         try {
             await api.updatePhotographer(id, { is_active: newStatus });
-            await api.notifyPhotographerStatusChange(id, newStatus);
+
+            // Send email notification
+            const photographer = photographers.find(p => p.id === id);
+            if (photographer) {
+                // Dynamically import to avoid circular dependencies if any, although here it's fine
+                const { emailService } = await import('../../services/emailService');
+                await emailService.sendPhotographerStatusEmail(
+                    photographer.email,
+                    photographer.name,
+                    newStatus ? 'activated' : 'deactivated'
+                );
+            }
+
         } catch (error) {
             // Revert on error
             setPhotographers(prev => prev.map(p => p.id === id ? { ...p, is_active: !newStatus } : p));
+            console.error("Failed to update photographer status:", error);
             alert('Falha ao atualizar o status do fotógrafo.');
         }
     };

@@ -54,9 +54,18 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginS
 
             if (newUser) {
                 onClose();
+                // Se for fotógrafo, enviar notificação por email para o admin
                 if (newUser.role === UserRole.PHOTOGRAPHER) {
+                    try {
+                        const { emailService } = await import('../services/emailService');
+                        await emailService.sendNewPhotographerNotification(newUser.name, newUser.email);
+                    } catch (emailError) {
+                        console.error("Failed to send notification email:", emailError);
+                        // Não bloquear o fluxo se o email falhar
+                    }
                     onNavigate({ name: 'pending-approval' });
                 } else {
+                    // Cliente
                     onLoginSuccess(newUser);
                     onNavigate({ name: 'home' });
                 }

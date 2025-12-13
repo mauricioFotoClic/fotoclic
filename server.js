@@ -47,6 +47,7 @@ app.all('/api/:functionName', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-    console.log(`- Stripe Mode: ${process.env.STRIPE_SECRET_KEY ? 'Active' : 'Missing Key'}`);
+    console.log(`[Server] Server running on http://localhost:${PORT}`);
+    console.log(`[Server] - Stripe Mode: ${process.env.STRIPE_SECRET_KEY ? 'Active' : 'Missing Key'}`);
+    console.log(`[Server] - Resend Mode: ${process.env.RESEND_API_KEY ? 'Active' : 'Missing Key'}`);
 });

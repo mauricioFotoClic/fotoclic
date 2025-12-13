@@ -11,7 +11,7 @@ const AdminPayouts: React.FC = () => {
     const [payouts, setPayouts] = useState<(Payout & { photographer_name: string, bank_info?: BankInfo })[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<Tab>('pending');
-    
+
     // Process Payment Modal
     const [selectedPayout, setSelectedPayout] = useState<(Payout & { photographer_name: string, bank_info?: BankInfo }) | null>(null);
     const [isProcessModalOpen, setIsProcessModalOpen] = useState(false);
@@ -43,9 +43,33 @@ const AdminPayouts: React.FC = () => {
         setIsApproving(true);
         try {
             await api.approvePayout(selectedPayout.id);
+
+            // Send email notification
+            const { emailService } = await import('../../services/emailService');
+            // Assuming photographer_email is available, if not we might need to fetch it or ensure it's in the joined data
+            // Since we only have photographer_name in the state, we might need a way to get email.
+            // However, the previous 'getAllPayouts' (not shown in full view) usually joins user data. 
+            // If email is missing, we skip or fetch. adminPayouts state definition suggests custom object.
+            // Let's check api.getAllPayouts return type or assume we need to fetch user if email isn't there.
+            // For now, I will try to use 'selectedPayout.photographer_email' if it existed, but type def above says:
+            // Payout & { photographer_name: string, bank_info?: BankInfo }
+            // So we need to fetch the email or rely on api to return it.
+
+            // To be safe, let's fetch the user to get the email:
+            const user = await api.getPhotographerById(selectedPayout.photographer_id);
+            if (user) {
+                await emailService.sendPayoutProcessedEmail(
+                    user.email,
+                    user.name,
+                    selectedPayout.amount,
+                    new Date().toLocaleDateString('pt-BR')
+                );
+            }
+
             setIsProcessModalOpen(false);
             fetchPayouts();
         } catch (error) {
+            console.error("Error confirming payment:", error);
             alert("Erro ao confirmar pagamento.");
         } finally {
             setIsApproving(false);
@@ -62,15 +86,15 @@ const AdminPayouts: React.FC = () => {
     return (
         <div>
             <h1 className="text-3xl font-display font-bold text-primary-dark mb-6">Gestão de Pagamentos</h1>
-            
+
             <div className="flex space-x-4 mb-6 border-b border-neutral-200">
-                <button 
+                <button
                     onClick={() => setActiveTab('pending')}
                     className={`pb-2 px-4 font-medium transition-colors border-b-2 ${activeTab === 'pending' ? 'border-primary text-primary' : 'border-transparent text-neutral-500 hover:text-neutral-700'}`}
                 >
                     Solicitações Pendentes ({payouts.filter(p => p.status === 'pending').length})
                 </button>
-                <button 
+                <button
                     onClick={() => setActiveTab('history')}
                     className={`pb-2 px-4 font-medium transition-colors border-b-2 ${activeTab === 'history' ? 'border-primary text-primary' : 'border-transparent text-neutral-500 hover:text-neutral-700'}`}
                 >
@@ -92,35 +116,35 @@ const AdminPayouts: React.FC = () => {
                     </thead>
                     <tbody>
                         {filteredPayouts.map((payout, index) => (
-                           <tr key={payout.id} className={`border-t ${index % 2 === 0 ? 'bg-white' : 'bg-neutral-50'}`}>
-                               <td className="p-4 text-sm font-medium text-neutral-800">{payout.photographer_name}</td>
-                               <td className="p-4 text-sm text-neutral-500">{new Date(payout.request_date).toLocaleDateString('pt-BR')}</td>
-                               <td className="p-4 text-sm text-neutral-800 font-medium">
-                                   {new Date(payout.scheduled_date).toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'numeric' })}
-                               </td>
-                               <td className="p-4 text-sm text-green-600 font-bold text-right">
-                                   {payout.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                               </td>
-                               <td className="p-4 text-sm text-neutral-500 text-center">
-                                   {payout.bank_info ? `${payout.bank_info.pixKey} (${payout.bank_info.pixKeyType})` : <span className="text-red-500">Não cadastrada</span>}
-                               </td>
-                               <td className="p-4 text-center">
-                                   {payout.status === 'pending' ? (
-                                        <button 
-                                           onClick={() => handleOpenProcessModal(payout)}
-                                           className="px-3 py-1 text-xs font-medium text-white bg-blue-600 rounded-full hover:bg-blue-700 transition-colors shadow-sm"
-                                       >
-                                           Processar
-                                       </button>
-                                   ) : (
-                                       <span className={`px-2 py-1 text-xs font-bold rounded-full ${payout.status === 'paid' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                                           {payout.status === 'paid' ? 'Pago' : 'Rejeitado'}
-                                       </span>
-                                   )}
-                               </td>
-                           </tr>
+                            <tr key={payout.id} className={`border-t ${index % 2 === 0 ? 'bg-white' : 'bg-neutral-50'}`}>
+                                <td className="p-4 text-sm font-medium text-neutral-800">{payout.photographer_name}</td>
+                                <td className="p-4 text-sm text-neutral-500">{new Date(payout.request_date).toLocaleDateString('pt-BR')}</td>
+                                <td className="p-4 text-sm text-neutral-800 font-medium">
+                                    {new Date(payout.scheduled_date).toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'numeric' })}
+                                </td>
+                                <td className="p-4 text-sm text-green-600 font-bold text-right">
+                                    {payout.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                </td>
+                                <td className="p-4 text-sm text-neutral-500 text-center">
+                                    {payout.bank_info ? `${payout.bank_info.pixKey} (${payout.bank_info.pixKeyType})` : <span className="text-red-500">Não cadastrada</span>}
+                                </td>
+                                <td className="p-4 text-center">
+                                    {payout.status === 'pending' ? (
+                                        <button
+                                            onClick={() => handleOpenProcessModal(payout)}
+                                            className="px-3 py-1 text-xs font-medium text-white bg-blue-600 rounded-full hover:bg-blue-700 transition-colors shadow-sm"
+                                        >
+                                            Processar
+                                        </button>
+                                    ) : (
+                                        <span className={`px-2 py-1 text-xs font-bold rounded-full ${payout.status === 'paid' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                            {payout.status === 'paid' ? 'Pago' : 'Rejeitado'}
+                                        </span>
+                                    )}
+                                </td>
+                            </tr>
                         ))}
-                         {filteredPayouts.length === 0 && (
+                        {filteredPayouts.length === 0 && (
                             <tr>
                                 <td colSpan={6} className="text-center p-8 text-neutral-500">Nenhum registro encontrado.</td>
                             </tr>
@@ -160,13 +184,13 @@ const AdminPayouts: React.FC = () => {
                         </div>
 
                         <div className="flex justify-end space-x-3 pt-4 border-t">
-                            <button 
+                            <button
                                 onClick={() => setIsProcessModalOpen(false)}
                                 className="px-4 py-2 text-neutral-600 hover:bg-neutral-100 rounded-lg transition-colors"
                             >
                                 Cancelar
                             </button>
-                            <button 
+                            <button
                                 onClick={handleConfirmPayment}
                                 disabled={isApproving}
                                 className="px-6 py-2 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 shadow-md flex items-center"
