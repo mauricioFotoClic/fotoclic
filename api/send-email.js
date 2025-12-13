@@ -34,7 +34,7 @@ export default async function handler(request, response) {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                from: 'onboarding@resend.dev', // Or your verified domain
+                from: 'nao-responda@fotoclic.com.br', // Verified domain
                 to: to,
                 subject: subject,
                 html: html,
