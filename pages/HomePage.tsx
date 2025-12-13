@@ -195,7 +195,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
               onClick={() => onNavigate({ name: 'featured-photos' })}
               className="group flex items-center text-white font-medium hover:text-primary transition-colors px-6 py-3 rounded-full border border-neutral-700 hover:border-primary"
             >
-              Ver coleção completa
+              Ver coleção completallll
               <svg className="w-5 h-5 ml-2 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
             </button>
           </div>
