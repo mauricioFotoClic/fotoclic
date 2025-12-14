@@ -878,30 +878,21 @@ const api = {
     return data;
   },
   syncCart: async (userId: string, itemIds: string[]): Promise<void> => {
-    console.log(`[SyncCart] Attempting to sync cart for User ID: ${userId}`);
+    // console.log(`[SyncCart] Attempting to sync cart for User ID: ${userId}`);
     try {
-      // Check if cart exists
-      const { data: existingCart } = await supabase
+      // Use UPSERT for atomic update/create, avoiding race conditions (409) and manual checks
+      const { error } = await supabase
         .from('carts')
-        .select('id')
-        .eq('user_id', userId)
-        .maybeSingle();
+        .upsert({
+          user_id: userId,
+          items: itemIds,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id'
+        });
 
-      if (existingCart) {
-        // Update existing
-        const { error } = await supabase
-          .from('carts')
-          .update({ items: itemIds, updated_at: new Date() })
-          .eq('user_id', userId);
-
-        if (error) console.warn("Error updating cart:", error);
-      } else {
-        // Create new
-        const { error } = await supabase
-          .from('carts')
-          .insert({ user_id: userId, items: itemIds });
-
-        if (error) console.warn("Error creating cart:", error);
+      if (error) {
+        console.warn("Error syncing cart (upsert):", error);
       }
     } catch (e) {
       console.error("Sync cart failed:", e);
