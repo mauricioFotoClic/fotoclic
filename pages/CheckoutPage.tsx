@@ -246,13 +246,20 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
                                     </button>
                                 </div>
                             ) : clientSecret ? (
-                                <Elements options={options as any} stripe={stripePromise}>
-                                    <CheckoutForm
-                                        onSuccess={handleSuccess}
-                                        amount={total}
-                                        onClose={() => { }} // Not needed here as it's not a modal
-                                    />
-                                </Elements>
+                                <>
+                                    <Elements options={options as any} stripe={stripePromise}>
+                                        <CheckoutForm
+                                            onSuccess={handleSuccess}
+                                            amount={total}
+                                            onClose={() => { }} // Not needed here as it's not a modal
+                                        />
+                                    </Elements>
+                                    <div className="mt-4 p-2 bg-gray-100 text-xs text-gray-500 rounded border border-gray-200">
+                                        <p><strong>Debug Info:</strong></p>
+                                        <p>Publishable Key Set: {import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ? 'Yes ✅' : 'No ❌'}</p>
+                                        <p>Client Secret: {clientSecret ? 'Present ✅' : 'Missing ❌'}</p>
+                                    </div>
+                                </>
                             ) : (
                                 <div className="flex flex-col items-center justify-center h-64 text-neutral-500">
                                     <Spinner />
