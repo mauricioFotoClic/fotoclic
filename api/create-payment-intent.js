@@ -20,7 +20,13 @@ export default async function handler(req, res) {
         const availableKeys = Object.keys(process.env).filter(key => !key.startsWith('npm_') && !key.startsWith('__'));
         return res.status(500).json({
             error: "Server configuration error: STRIPE_SECRET_KEY is missing",
-            debug_available_env_vars: availableKeys
+            debug_available_env_vars: availableKeys,
+            debug_metadata: {
+                project_name: process.env.VERCEL_PROJECT_NAME,
+                environment: process.env.VERCEL_ENV,
+                commit_message: process.env.VERCEL_GIT_COMMIT_MESSAGE,
+                commit_sha: process.env.VERCEL_GIT_COMMIT_SHA
+            }
         });
     }
 
