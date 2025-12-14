@@ -1,8 +1,5 @@
 import Stripe from 'stripe';
 
-// Initialize Stripe with the secret key
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-
 export default async function handler(req, res) {
     console.log("Create Payment Intent API called");
 
@@ -20,15 +17,19 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    if (!process.env.STRIPE_SECRET_KEY) {
+    const apiKey = process.env.STRIPE_SECRET_KEY;
+    if (!apiKey) {
         console.error("STRIPE_SECRET_KEY is missing! Make sure .env.local is loaded.");
         return res.status(500).json({ error: "Server configuration error: STRIPE_SECRET_KEY is missing" });
     }
 
-    const { amount, currency = 'brl' } = req.body;
-    console.log(`Creating PaymentIntent for amount: ${amount} ${currency} `);
-
     try {
+        // Initialize Stripe lazily to avoid startup crashes if key is missing
+        const stripe = new Stripe(apiKey);
+
+        const { amount, currency = 'brl' } = req.body;
+        console.log(`Creating PaymentIntent for amount: ${amount} ${currency} `);
+
         const paymentIntent = await stripe.paymentIntents.create({
             amount,
             currency,
@@ -37,7 +38,6 @@ export default async function handler(req, res) {
             },
             metadata: {
                 items: JSON.stringify(req.body.items || []), // Store item IDs for reference
-                // You could also add user_id if passed in body
             }
         });
 
