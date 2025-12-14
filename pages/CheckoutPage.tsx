@@ -118,59 +118,36 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
     const totalDiscount = couponDiscount + bulkDiscountTotal;
     const total = Math.max(0, subtotal - totalDiscount);
 
+    const [paymentError, setPaymentError] = useState<string | null>(null);
+
     // Create Payment Intent when Total is ready
     useEffect(() => {
         if (total > 0 && currentUser && !clientSecret) {
+            setPaymentError(null); // Reset error on retry
             fetch("/api/create-payment-intent", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ items: cartItemIds, amount: total * 100 }), // Amount in cents
             })
-                .then((res) => {
-                    if (!res.ok) throw new Error(res.statusText);
+                .then(async (res) => {
+                    if (!res.ok) {
+                        const errData = await res.json().catch(() => ({}));
+                        throw new Error(errData.error || res.statusText || "Erro ao conectar com servidor de pagamento");
+                    }
                     return res.json();
                 })
                 .then((data) => {
                     console.log("Payment Intent Created:", data);
                     setClientSecret(data.clientSecret);
                 })
-                .catch((error) => console.error("Error creating payment intent:", error));
+                .catch((error) => {
+                    console.error("Error creating payment intent:", error);
+                    setPaymentError(error.message || "Erro desconhecido ao iniciar pagamento.");
+                });
         }
     }, [total, currentUser, cartItemIds, clientSecret]);
 
-    const handleSuccess = async () => {
-        try {
-            // Process all purchases in parallel via our API (Supabase)
-            const promises = photos.map(p => api.purchasePhoto(p.id, currentUser?.id));
-            const results = await Promise.all(promises);
-
-            // Validate if all purchases were successful
-            const failures = results.filter(r => !r.success);
-            if (failures.length > 0) {
-                throw new Error(failures[0].error || "Falha ao registrar a compra no banco de dados.");
-            }
-
-            // Send Confirmation Email
-            if (currentUser && currentUser.email) {
-                import('../services/emailService').then(({ emailService }) => {
-                    emailService.sendPurchaseConfirmation(
-                        currentUser.email,
-                        currentUser.name || 'Cliente',
-                        total,
-                        photos.length
-                    ).catch(err => console.error("Failed to send confirmation email:", err));
-                });
-            }
-
-            localStorage.removeItem('appliedCoupon');
-            onPurchaseComplete();
-
-        } catch (error) {
-            console.error("Purchase recording failed", error);
-            const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
-            alert(`Pagamento processado no Stripe, mas houve erro ao salvar no banco: ${errorMessage}. Entre em contato com o suporte.`);
-        }
-    };
+    // ... (keep handleSuccess) ...
 
     if (loading) return <div className="py-20"><Spinner /></div>;
 
@@ -219,7 +196,23 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
                                 </div>
                             </div>
 
-                            {clientSecret ? (
+                            {paymentError ? (
+                                <div className="flex flex-col items-center justify-center h-64 text-center px-4">
+                                    <div className="text-red-500 mb-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    </div>
+                                    <p className="text-neutral-800 font-bold mb-2">Erro ao iniciar pagamento</p>
+                                    <p className="text-red-600 text-sm bg-red-50 p-3 rounded border border-red-100">{paymentError}</p>
+                                    <button
+                                        onClick={() => window.location.reload()}
+                                        className="mt-4 px-4 py-2 bg-neutral-900 text-white rounded-lg text-sm hover:bg-neutral-800"
+                                    >
+                                        Tentar Novamente
+                                    </button>
+                                </div>
+                            ) : clientSecret ? (
                                 <Elements options={options as any} stripe={stripePromise}>
                                     <CheckoutForm
                                         onSuccess={handleSuccess}
