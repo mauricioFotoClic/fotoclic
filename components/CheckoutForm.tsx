@@ -39,7 +39,11 @@ export const CheckoutForm = ({ amount, onSuccess, onClose }: { amount: number, o
     return (
         <form onSubmit={handleSubmit} className="space-y-6">
             <div className="min-h-[200px]">
-                <PaymentElement options={{ layout: "tabs" }} />
+                <PaymentElement
+                    options={{ layout: "tabs" }}
+                    onReady={() => console.log("Payment Element is Ready and Mounted")}
+                    onChange={(event) => console.log("Payment Element Change:", event)}
+                />
             </div>
             <button
                 disabled={!stripe || loading}
