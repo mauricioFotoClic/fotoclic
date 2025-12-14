@@ -38,7 +38,9 @@ export const CheckoutForm = ({ amount, onSuccess, onClose }: { amount: number, o
 
     return (
         <form onSubmit={handleSubmit} className="space-y-6">
-            <PaymentElement />
+            <div className="min-h-[200px]">
+                <PaymentElement options={{ layout: "tabs" }} />
+            </div>
             <button
                 disabled={!stripe || loading}
                 className="w-full py-4 bg-primary text-white font-bold rounded-xl shadow-lg hover:bg-opacity-90 transition-all transform hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center mt-6 text-lg"
