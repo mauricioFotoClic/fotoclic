@@ -13,9 +13,9 @@ export default async function handler(req, res) {
         return res.status(200).end();
     }
 
-    const apiKey = process.env.STRIPE_SECRET_KEY;
+    const apiKey = process.env.STRIPE_SECRET_KEY || process.env.CHAVE_SECRETA_NOVA;
     if (!apiKey) {
-        console.error("STRIPE_SECRET_KEY is missing!");
+        console.error("STRIPE_SECRET_KEY (and fallback CHAVE_SECRETA_NOVA) is missing!");
         // DEBUG: Return available keys to help user/admin diagnose
         const availableKeys = Object.keys(process.env).filter(key => !key.startsWith('npm_') && !key.startsWith('__'));
         return res.status(500).json({
