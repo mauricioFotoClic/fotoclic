@@ -132,7 +132,12 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
                 .then(async (res) => {
                     if (!res.ok) {
                         const errData = await res.json().catch(() => ({}));
-                        throw new Error(errData.error || res.statusText || "Erro ao conectar com servidor de pagamento");
+                        const errorMsg = errData.error || res.statusText || "Erro ao conectar com servidor de pagamento";
+                        // If debug info is present, append it to the error message for visibility
+                        if (errData.debug_available_env_vars) {
+                            throw new Error(`${errorMsg} (Available Env Vars: ${errData.debug_available_env_vars.join(', ')})`);
+                        }
+                        throw new Error(errorMsg);
                     }
                     return res.json();
                 })
