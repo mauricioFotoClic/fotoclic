@@ -257,6 +257,7 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
                                     <div className="mt-4 p-2 bg-gray-100 text-xs text-gray-500 rounded border border-gray-200">
                                         <p><strong>Debug Info:</strong></p>
                                         <p>Publishable Key Set: {import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ? 'Yes ✅' : 'No ❌'}</p>
+                                        <p>Key Mode: <strong>{import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY?.substring(0, 8)}...</strong></p>
                                         <p>Client Secret: {clientSecret ? 'Present ✅' : 'Missing ❌'}</p>
                                     </div>
                                 </>
