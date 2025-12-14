@@ -147,7 +147,39 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
         }
     }, [total, currentUser, cartItemIds, clientSecret]);
 
-    // ... (keep handleSuccess) ...
+    const handleSuccess = async () => {
+        try {
+            // Process all purchases in parallel via our API (Supabase)
+            const promises = photos.map(p => api.purchasePhoto(p.id, currentUser?.id));
+            const results = await Promise.all(promises);
+
+            // Validate if all purchases were successful
+            const failures = results.filter(r => !r.success);
+            if (failures.length > 0) {
+                throw new Error(failures[0].error || "Falha ao registrar a compra no banco de dados.");
+            }
+
+            // Send Confirmation Email
+            if (currentUser && currentUser.email) {
+                import('../services/emailService').then(({ emailService }) => {
+                    emailService.sendPurchaseConfirmation(
+                        currentUser.email,
+                        currentUser.name || 'Cliente',
+                        total,
+                        photos.length
+                    ).catch(err => console.error("Failed to send confirmation email:", err));
+                });
+            }
+
+            localStorage.removeItem('appliedCoupon');
+            onPurchaseComplete();
+
+        } catch (error) {
+            console.error("Purchase recording failed", error);
+            const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
+            alert(`Pagamento processado no Stripe, mas houve erro ao salvar no banco: ${errorMessage}. Entre em contato com o suporte.`);
+        }
+    };
 
     if (loading) return <div className="py-20"><Spinner /></div>;
 
