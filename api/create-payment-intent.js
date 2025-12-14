@@ -13,14 +13,15 @@ export default async function handler(req, res) {
         return res.status(200).end();
     }
 
-    if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
-    }
-
     const apiKey = process.env.STRIPE_SECRET_KEY;
     if (!apiKey) {
-        console.error("STRIPE_SECRET_KEY is missing! Make sure .env.local is loaded.");
-        return res.status(500).json({ error: "Server configuration error: STRIPE_SECRET_KEY is missing" });
+        console.error("STRIPE_SECRET_KEY is missing!");
+        // DEBUG: Return available keys to help user/admin diagnose
+        const availableKeys = Object.keys(process.env).filter(key => !key.startsWith('npm_') && !key.startsWith('__'));
+        return res.status(500).json({
+            error: "Server configuration error: STRIPE_SECRET_KEY is missing",
+            debug_available_env_vars: availableKeys
+        });
     }
 
     try {
