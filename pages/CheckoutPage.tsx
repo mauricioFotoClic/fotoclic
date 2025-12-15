@@ -151,7 +151,14 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
     const handleSuccess = async () => {
         try {
             // Process all purchases in parallel via our API (Supabase)
-            const promises = photos.map(p => api.purchasePhoto(p.id, currentUser?.id));
+            // Calculate discount ratio correctly handling floating point precision
+            const discountRatio = subtotal > 0 ? (total / subtotal) : 1;
+
+            const promises = photos.map(p => {
+                // Effective price = Original Price * Ratio (e.g. 0.75 for 25% off)
+                const effectivePrice = p.price * discountRatio;
+                return api.purchasePhoto(p.id, currentUser?.id, effectivePrice);
+            });
             const results = await Promise.all(promises);
 
             // Validate if all purchases were successful

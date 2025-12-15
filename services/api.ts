@@ -760,7 +760,7 @@ const api = {
     return mapUser(newUser);
   },
 
-  purchasePhoto: async (photoId: string, userId: string = 'guest-id'): Promise<{ success: boolean, error?: string }> => {
+  purchasePhoto: async (photoId: string, userId: string = 'guest-id', paidPrice?: number): Promise<{ success: boolean, error?: string }> => {
     try {
       // 1. Get Photo Details
       const photo = await api.getPhotoById(photoId);
@@ -775,14 +775,18 @@ const api = {
         rate = settings.customRates[photo.photographer_id];
       }
 
-      const commissionValue = photo.price * rate;
+      // 3. Determine Final Price (Net vs Gross)
+      // If paidPrice is provided (from Checkout), use it. Otherwise fallback to list price.
+      const finalPrice = paidPrice !== undefined ? paidPrice : photo.price;
 
-      // 3. Record Sale
+      const commissionValue = finalPrice * rate;
+
+      // 4. Record Sale
       const { error } = await supabase.from('sales').insert({
         photo_id: photoId,
         buyer_id: userId,
-        price: photo.price,
-        commission: commissionValue,
+        price: finalPrice,          // Record the ACTUAL paid amount
+        commission: commissionValue, // Calculate commission on the ACTUAL amount
         photographer_id: photo.photographer_id,
         commission_rate: rate,
         sale_date: new Date()
