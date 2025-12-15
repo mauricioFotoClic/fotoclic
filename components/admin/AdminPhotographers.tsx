@@ -176,6 +176,7 @@ const AdminPhotographers: React.FC<AdminPhotographersProps> = ({ onNavigate }) =
                             <th className="p-4 text-left text-sm font-semibold text-neutral-600">Email</th>
                             <th className="p-4 text-center text-sm font-semibold text-neutral-600">Fotos</th>
                             <th className="p-4 text-center text-sm font-semibold text-neutral-600">Vendas</th>
+                            <th className="p-4 text-center text-sm font-semibold text-neutral-600">Comissão (%)</th>
                             <th className="p-4 text-left text-sm font-semibold text-neutral-600">Comissão Gerada</th>
                             <th className="p-4 text-center text-sm font-semibold text-neutral-600">Status</th>
                             <th className="p-4 text-center text-sm font-semibold text-neutral-600">Portfólio</th>
@@ -194,6 +195,7 @@ const AdminPhotographers: React.FC<AdminPhotographersProps> = ({ onNavigate }) =
                                 <td className="p-4 text-sm text-neutral-500">{user.email}</td>
                                 <td className="p-4 text-sm text-neutral-500 text-center">{user.photoCount}</td>
                                 <td className="p-4 text-sm text-neutral-500 text-center">{user.salesCount}</td>
+                                <td className="p-4 text-sm text-neutral-800 font-bold text-center">{(user.commissionRate * 100).toFixed(0)}%</td>
                                 <td className="p-4 text-sm text-green-600 font-medium">{user.commissionValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
                                 <td className="p-4 text-center">
                                     <div className="flex flex-col items-center">
