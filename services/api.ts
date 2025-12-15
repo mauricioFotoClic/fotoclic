@@ -587,7 +587,8 @@ const api = {
   },
   deletePhotographer: async (id: string): Promise<boolean> => { return true; },
   getCustomers: async (): Promise<(User & { purchaseCount: number; totalSpent: number })[]> => {
-    const { data, error } = await supabase
+    // 1. Fetch Customers
+    const { data: users, error } = await supabase
       .from('users')
       .select('*')
       .eq('role', 'customer')
@@ -598,11 +599,37 @@ const api = {
       return [];
     }
 
-    return data ? data.map(u => ({
-      ...mapUser(u),
-      purchaseCount: 0,
-      totalSpent: 0
-    })) : [];
+    if (!users || users.length === 0) return [];
+
+    // 2. Fetch Sales for these customers to calculate stats
+    const userIds = users.map(u => u.id);
+    const { data: sales, error: salesError } = await supabase
+      .from('sales')
+      .select('buyer_id, price')
+      .in('buyer_id', userIds);
+
+    if (salesError) {
+      console.warn("Error fetching customer sales stats:", salesError);
+      // Fallback: return users with 0 stats
+      return users.map(u => ({
+        ...mapUser(u),
+        purchaseCount: 0,
+        totalSpent: 0
+      }));
+    }
+
+    // 3. Aggregate Stats
+    return users.map(u => {
+      const userSales = sales?.filter(s => s.buyer_id === u.id) || [];
+      const totalSpent = userSales.reduce((sum, s) => sum + Number(s.price), 0);
+      const purchaseCount = userSales.length;
+
+      return {
+        ...mapUser(u),
+        purchaseCount,
+        totalSpent
+      };
+    });
   },
   createCustomer: async (data: { name: string; email: string }): Promise<User> => { return { id: 'cust-new', role: UserRole.CUSTOMER, ...data, avatar_url: '', is_active: true }; },
   updateCustomer: async (id: string, data: Partial<Pick<User, 'name' | 'email'>>): Promise<User | undefined> => {
