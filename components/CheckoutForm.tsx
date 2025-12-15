@@ -41,8 +41,6 @@ export const CheckoutForm = ({ amount, onSuccess, onClose }: { amount: number, o
             <div className="min-h-[200px]">
                 <PaymentElement
                     options={{ layout: "tabs" }}
-                    onReady={() => console.log("Payment Element is Ready and Mounted")}
-                    onChange={(event) => console.log("Payment Element Change:", event)}
                 />
             </div>
             <button
