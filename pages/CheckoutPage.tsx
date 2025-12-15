@@ -2,10 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Photo, User, Page, Coupon, BulkDiscountRule } from '../types';
 import api from '../services/api';
 import Spinner from '../components/Spinner';
-import { loadStripe } from '@stripe/stripe-js';
-import { Elements } from '@stripe/react-stripe-js';
-import { CheckoutForm } from '../components/CheckoutForm';
-import { stripePromise } from '../lib/stripe';
+import { StripeContainer } from '../components/StripeContainer';
 
 interface CheckoutPageProps {
     cartItemIds: string[];
@@ -184,19 +181,7 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
 
     if (loading) return <div className="py-20"><Spinner /></div>;
 
-    const appearance = {
-        theme: 'stripe',
-        variables: {
-            colorPrimary: '#2563eb',
-            borderRadius: '12px',
-        },
-    };
 
-    // Pass options to Elements
-    const options = {
-        clientSecret,
-        appearance,
-    };
 
     return (
         <div className="bg-neutral-50 min-h-screen py-12">
@@ -246,13 +231,11 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
                                     </button>
                                 </div>
                             ) : clientSecret ? (
-                                <Elements options={options as any} stripe={stripePromise}>
-                                    <CheckoutForm
-                                        onSuccess={handleSuccess}
-                                        amount={total}
-                                        onClose={() => { }} // Not needed here as it's not a modal
-                                    />
-                                </Elements>
+                                <StripeContainer
+                                    clientSecret={clientSecret}
+                                    amount={total}
+                                    onSuccess={handleSuccess}
+                                />
                             ) : (
                                 <div className="flex flex-col items-center justify-center h-64 text-neutral-500">
                                     <Spinner />

@@ -13,14 +13,23 @@ export default async function handler(req, res) {
         return res.status(200).end();
     }
 
-    const apiKey = process.env.STRIPE_SECRET_KEY || process.env.CHAVE_SECRETA_NOVA;
-    if (!apiKey) {
-        console.error("STRIPE_SECRET_KEY is missing (checked legacy and new keys)");
-        return res.status(500).json({ error: "Configuration Error: Payment gateway keys missing." });
+    const rawApiKey = process.env.STRIPE_SECRET_KEY || process.env.CHAVE_SECRETA_NOVA;
+
+    // Debug: Log key status (masked)
+    if (rawApiKey) {
+        console.log(`[Backend] Loading Stripe Key: ${rawApiKey.substring(0, 8)}... (Length: ${rawApiKey.length})`);
+    } else {
+        console.error("[Backend] CRITICAL: STRIPE_SECRET_KEY is missing in process.env");
     }
 
+    if (!rawApiKey) {
+        return res.status(500).json({ error: "Configuration Error: Payment gateway keys missing from server environment." });
+    }
+
+    const apiKey = rawApiKey.trim();
+
     try {
-        // Initialize Stripe lazily to avoid startup crashes if key is missing
+        // Initialize Stripe
         const stripe = new Stripe(apiKey);
 
         const { amount, currency = 'brl' } = req.body;

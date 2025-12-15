@@ -1,18 +1,12 @@
 import { loadStripe } from '@stripe/stripe-js';
 
 const rawKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
-console.log(`[Stripe Config] Raw Key Type: ${typeof rawKey}`);
-console.log(`[Stripe Config] Key Length: ${rawKey ? rawKey.length : 0}`);
-if (rawKey && typeof rawKey === 'string') {
-    console.log(`[Stripe Config] Key Start: ${rawKey.substring(0, 5)}...`);
-}
+const publishableKey = rawKey ? rawKey.trim() : '';
 
-const publishableKey = (rawKey && rawKey.startsWith('pk_'))
-    ? rawKey
-    : '';
+console.log(`[Stripe Config] Loading Stripe with key: ${publishableKey ? publishableKey.substring(0, 8) + '...' : 'UNDEFINED'}`);
 
 if (!publishableKey) {
-    console.error(`[Stripe Config] CRITICAL: Invalid Publishable Key. Value received: "${rawKey}"`);
+    console.error("[Stripe Config] CRITICAL: VITE_STRIPE_PUBLISHABLE_KEY is missing!");
 }
 
 export const stripePromise = loadStripe(publishableKey);
