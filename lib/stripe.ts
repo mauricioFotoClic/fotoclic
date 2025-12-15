@@ -1,12 +1,18 @@
 import { loadStripe } from '@stripe/stripe-js';
 
-// FALLBACK KEY ADDED FOR DEBUGGING - Vercel Env Var is persisting the variable name instead of value
-const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY.startsWith('pk_')
-    ? import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
+const rawKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+console.log(`[Stripe Config] Raw Key Type: ${typeof rawKey}`);
+console.log(`[Stripe Config] Key Length: ${rawKey ? rawKey.length : 0}`);
+if (rawKey && typeof rawKey === 'string') {
+    console.log(`[Stripe Config] Key Start: ${rawKey.substring(0, 5)}...`);
+}
+
+const publishableKey = (rawKey && rawKey.startsWith('pk_'))
+    ? rawKey
     : '';
 
 if (!publishableKey) {
-    console.error("VITE_STRIPE_PUBLISHABLE_KEY is not set in .env");
+    console.error(`[Stripe Config] CRITICAL: Invalid Publishable Key. Value received: "${rawKey}"`);
 }
 
 export const stripePromise = loadStripe(publishableKey);
