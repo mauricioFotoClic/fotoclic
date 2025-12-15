@@ -15,8 +15,6 @@ export const StripeContainer: React.FC<StripeContainerProps> = ({ clientSecret, 
     // 1. Validate Keys immediately
     const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
 
-    console.log("[StripeContainer] Rendered. Key available:", !!publishableKey);
-
     if (!publishableKey) {
         return (
             <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">

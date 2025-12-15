@@ -37,7 +37,7 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
                 const promises = cartItemIds.map(id => api.getPhotoById(id));
                 const results = await Promise.all(promises);
                 const validPhotos = results.filter((p): p is Photo => !!p);
-                setPhotos(validPhotos);
+                // setPhotos moved to after grouping logic to prevent race condition in price calculation
 
                 // Group photos by photographer and calculate bulk discounts
                 if (validPhotos.length > 0) {
@@ -64,6 +64,9 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
                     }
                     setGroupedCart(groupedData);
                 }
+
+                // Set photos AFTER calculating groups/discounts to ensure atomic render of Total
+                setPhotos(validPhotos);
 
                 // Try to retrieve applied coupon from localStorage (if user came from cart)
                 const savedCoupon = localStorage.getItem('appliedCoupon');
@@ -117,9 +120,9 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
 
     const [paymentError, setPaymentError] = useState<string | null>(null);
 
-    // Create Payment Intent when Total is ready
+    // Create Payment Intent when Total is ready and Loading is finished
     useEffect(() => {
-        if (total > 0 && currentUser && !clientSecret) {
+        if (!loading && total > 0 && currentUser && !clientSecret) {
             setPaymentError(null); // Reset error on retry
             fetch("/api/create-payment-intent", {
                 method: "POST",
@@ -143,7 +146,7 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
                     setPaymentError(error.message || "Erro desconhecido ao iniciar pagamento.");
                 });
         }
-    }, [total, currentUser, cartItemIds, clientSecret]);
+    }, [loading, total, currentUser, cartItemIds, clientSecret]);
 
     const handleSuccess = async () => {
         try {
