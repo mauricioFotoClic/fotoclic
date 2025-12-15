@@ -26,5 +26,21 @@
     },
     "allowImportingTsExtensions": true,
     "noEmit": true
-  }
+  },
+  "include": [
+    "src/**/*",
+    "api/**/*",
+    "lib/**/*",
+    "services/**/*",
+    "pages/**/*",
+    "components/**/*",
+    "types/**/*",
+    "*.ts",
+    "*.tsx",
+    "*.js"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
 }
