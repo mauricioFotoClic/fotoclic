@@ -127,7 +127,7 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
             fetch("/api/create-payment-intent", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ items: cartItemIds, amount: total * 100 }), // Amount in cents
+                body: JSON.stringify({ items: cartItemIds, amount: Math.round(total * 100) }), // Amount in cents (must be integer)
             })
                 .then(async (res) => {
                     if (!res.ok) {
@@ -138,7 +138,7 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
                     return res.json();
                 })
                 .then((data) => {
-                    console.log("Payment Intent Created:", data);
+                    // console.log("Payment Intent Created:", data);
                     setClientSecret(data.clientSecret);
                 })
                 .catch((error) => {
