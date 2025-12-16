@@ -29,10 +29,38 @@ export const faceRecognitionService = {
         }
     },
 
+    resizeImage(image: HTMLImageElement, maxWidth = 800): HTMLCanvasElement {
+        const canvas = document.createElement('canvas');
+        const scale = maxWidth / Math.max(image.width, 1);
+
+        // Only resize if image is larger than maxWidth
+        if (scale >= 1) {
+            canvas.width = image.width;
+            canvas.height = image.height;
+            const ctx = canvas.getContext('2d');
+            ctx?.drawImage(image, 0, 0);
+            return canvas;
+        }
+
+        canvas.width = image.width * scale;
+        canvas.height = image.height * scale;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+            ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+        }
+        return canvas;
+    },
+
     async getFaceDescriptor(image: HTMLImageElement | HTMLVideoElement): Promise<Float32Array | null> {
         await this.loadModels();
 
-        const detection = await faceapi.detectSingleFace(image)
+        // Resize image if it's an HTMLImageElement (video not supported for resize here yet)
+        let input = image;
+        if (image instanceof HTMLImageElement) {
+            input = this.resizeImage(image);
+        }
+
+        const detection = await faceapi.detectSingleFace(input)
             .withFaceLandmarks()
             .withFaceDescriptor();
 
