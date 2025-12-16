@@ -6,6 +6,7 @@ import api from './services/api';
 import PhotoDetailModal from './components/PhotoDetailModal';
 import LoginModal from './components/LoginModal';
 import RegisterModal from './components/RegisterModal';
+import FaceSearchModal from './components/FaceSearchModal';
 import Toast from './components/Toast';
 import Spinner from './components/Spinner';
 
@@ -46,6 +47,7 @@ const App: React.FC = () => {
     const [currentPage, setCurrentPage] = useState<Page>({ name: 'home' });
     const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
     const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
+    const [isFaceSearchModalOpen, setIsFaceSearchModalOpen] = useState(false);
     const [selectedPhotoId, setSelectedPhotoId] = useState<string | null>(null);
     const [cartItems, setCartItems] = useState<string[]>([]);
 
@@ -138,6 +140,11 @@ const App: React.FC = () => {
         if (page.name === 'photo-detail') {
             setCurrentPage(page);
             window.scrollTo(0, 0);
+            return;
+        }
+
+        if (page.name === 'face-search') {
+            setIsFaceSearchModalOpen(true);
             return;
         }
 
@@ -354,6 +361,15 @@ const App: React.FC = () => {
                     onClose={() => setIsRegisterModalOpen(false)}
                     onLoginSuccess={handleLoginSuccess}
                     onNavigate={handleNavigate}
+                />
+            )}
+            {isFaceSearchModalOpen && (
+                <FaceSearchModal
+                    isOpen={isFaceSearchModalOpen}
+                    onClose={() => setIsFaceSearchModalOpen(false)}
+                    onNavigate={handleNavigate}
+                    onAddToCart={handleAddToCart}
+                    onShowToast={showToast}
                 />
             )}
             {selectedPhotoId && (

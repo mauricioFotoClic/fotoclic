@@ -17,6 +17,7 @@
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "face-api.js": "^0.22.2",
+    "lucide-react": "^0.561.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "stripe": "^20.0.0"

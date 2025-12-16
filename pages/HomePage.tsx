@@ -185,7 +185,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
           <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-4">
             <div className="max-w-2xl">
               <h2 className="text-4xl md:text-5xl font-display font-bold text-white mb-4">
-                Fotos em Destaqueeee
+                Fotos em Destaque
               </h2>
               <p className="text-neutral-400 text-lg font-light">
                 Uma seleção semanal das imagens mais impressionantes e técnicas da nossa comunidade de elite.

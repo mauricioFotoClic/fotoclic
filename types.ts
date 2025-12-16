@@ -199,4 +199,5 @@ export type Page =
   { name: 'photographers' } |
   { name: 'cart' } |
   { name: 'checkout' } |
-  { name: 'test-stripe' };
+  { name: 'test-stripe' } |
+  { name: 'face-search' };

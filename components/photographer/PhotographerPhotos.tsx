@@ -6,13 +6,14 @@ import Spinner from '../Spinner';
 import Modal from '../Modal';
 import PhotoUploadForm from './PhotoUploadForm';
 import PhotoLikesModal from './PhotoLikesModal';
+import { faceRecognitionService } from '../../services/faceRecognition';
 
 const EditIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>;
 const TrashIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>;
 const SearchIcon: React.FC<{ className?: string }> = ({ className }) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>;
 const WarningIcon: React.FC<{ className?: string }> = ({ className }) => <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 3.001-1.742 3.001H4.42c-1.53 0-2.493-1.667-1.743-3.001l5.58-9.92zM10 13a1 1 0 110-2 1 1 0 010 2zm-1-8a1 1 0 00-1 1v3a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>;
 const HeartIcon: React.FC<{ className?: string }> = ({ className }) => <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>;
-
+const FaceScanIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><path d="M9 9h.01"></path><path d="M15 9h.01"></path></svg>;
 
 interface PhotographerPhotosProps {
     user: User;
@@ -153,6 +154,29 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user }) => {
             } else {
                 // Create logic (novas fotos sempre pendentes)
                 const newPhoto = await api.createPhoto(formData);
+
+                // Start indexing immediately if there is a preview (image data)
+                if (formData.preview_url) {
+                    try {
+                        const img = new Image();
+                        img.src = formData.preview_url;
+                        // Determine if it is base64 or url (it should be base64 from the form)
+                        await new Promise((resolve) => { img.onload = resolve; });
+
+                        // Async index, don't block
+                        faceRecognitionService.indexPhoto(newPhoto.id, img).then(() => {
+                            console.log("Photo indexed successfully:", newPhoto.id);
+                            // Optional: notify user it's ready for search
+                            // alert("Foto indexada para busca facial com sucesso!"); 
+                        }).catch(e => {
+                            console.error("Failed to index photo:", e);
+                            alert("Atenção: A foto foi salva, mas ocorreu um erro ao indexar o rosto para busca.");
+                        });
+                    } catch (e) {
+                        console.error("Error setting up indexing:", e);
+                    }
+                }
+
                 setPhotos(prev => [newPhoto, ...prev]);
                 setCurrentPage(1);
             }
@@ -189,6 +213,26 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user }) => {
         } finally {
             setIsConfirmModalOpen(false);
             setPhotoToDelete(null);
+        }
+    };
+
+    const handleManualIndex = async (photo: Photo) => {
+        if (!confirm(`Re-indexar rostos para a foto "${photo.title}"?`)) return;
+
+        try {
+            const img = new Image();
+            img.crossOrigin = "anonymous";
+            img.src = photo.preview_url;
+            await new Promise((resolve, reject) => {
+                img.onload = resolve;
+                img.onerror = reject;
+            });
+
+            await faceRecognitionService.indexPhoto(photo.id, img);
+            alert("Sucesso! Rostos detectados e indexados.");
+        } catch (error: any) {
+            console.error("Index error:", error);
+            alert(`Erro ao indexar: ${error.message || "Erro desconhecido"}`);
         }
     };
 
@@ -296,6 +340,13 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user }) => {
                                             title="Editar Foto"
                                         >
                                             <EditIcon />
+                                        </button>
+                                        <button
+                                            onClick={() => handleManualIndex(photo)}
+                                            className="text-purple-600 hover:text-purple-800 hover:bg-purple-100 p-2 rounded-full transition-colors mr-2"
+                                            title="Indexar Rostos Manualmente"
+                                        >
+                                            <FaceScanIcon />
                                         </button>
                                         <button
                                             onClick={() => handleDelete(photo)}

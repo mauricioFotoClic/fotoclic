@@ -144,6 +144,17 @@ const api = {
     return mapPhoto(data);
   },
 
+  getPhotosByIds: async (ids: string[]): Promise<Photo[]> => {
+    if (ids.length === 0) return [];
+    const { data, error } = await supabase
+      .from('photos')
+      .select('*, photo_likes(user_id)')
+      .in('id', ids);
+
+    if (error) throw error;
+    return data ? data.map(mapPhoto) : [];
+  },
+
   getPhotosByPhotographerId: async (photographerId: string): Promise<Photo[]> => {
     const { data, error } = await supabase
       .from('photos')
