@@ -87,7 +87,7 @@ const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({ user, set
             <h1 className="text-3xl font-display font-bold text-primary-dark mb-2">Bem-vindo, {user.name}!</h1>
             <p className="text-neutral-500 mb-6">Este é o resumo da sua atividade na plataforma.</p>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
                 <StatCard title="Total de Fotos" value={balance.photoCount} icon={<ImageIcon />} colorClass="bg-blue-100 text-blue-600" />
                 <StatCard title="Total de Vendas" value={balance.salesCount} icon={<ShoppingCartIcon />} colorClass="bg-purple-100 text-purple-600" />
                 <StatCard title="Total de Curtidas" value={balance.likesCount || 0} icon={<HeartIcon />} colorClass="bg-red-100 text-red-600" />
