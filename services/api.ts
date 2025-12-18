@@ -433,10 +433,74 @@ const api = {
     if (error) throw error;
     return data;
   },
-  createCategory: async (data: { name: string; image_url: string }): Promise<Category> => { return { id: `cat-new-${Date.now()}`, slug: 'new', sort_order: 99, ...data }; },
-  updateCategory: async (id: string, data: { name: string; image_url: string }): Promise<Category | undefined> => { return { id, slug: 'updated', sort_order: 1, ...data }; },
-  updateCategoriesOrder: async (categories: Category[]): Promise<boolean> => { return true; },
-  deleteCategory: async (id: string): Promise<boolean> => { return true; },
+  createCategory: async (data: { name: string; image_url: string }): Promise<Category> => {
+    // Generate a simple slug from name
+    const slug = data.name
+      .toLowerCase()
+      .normalize('NFD') // decompose accents
+      .replace(/[\u0300-\u036f]/g, '') // remove accents
+      .replace(/[^a-z0-9]+/g, '-') // replace non-alphanum with dash
+      .replace(/^-+|-+$/g, ''); // remove leading/trailing dashes
+
+    const { data: newCategory, error } = await supabase
+      .from('categories')
+      .insert({ ...data, slug })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return newCategory;
+  },
+  updateCategory: async (id: string, data: { name: string; image_url: string }): Promise<Category | undefined> => {
+    // Regenerate slug on update? Usually better to keep stable unless explicitly requested, 
+    // but for simple cats syncing slug to name is often expected.
+    const slug = data.name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+
+    const { data: updatedCategory, error } = await supabase
+      .from('categories')
+      .update({ ...data, slug })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return updatedCategory;
+  },
+  updateCategoriesOrder: async (categories: Category[]): Promise<boolean> => {
+    // We use upsert to update multiple records. 
+    // We map to match the DB columns exactly.
+    const updates = categories.map((cat, index) => ({
+      id: cat.id,
+      name: cat.name,
+      slug: cat.slug,
+      image_url: cat.image_url,
+      sort_order: index // Update the order based on array position
+    }));
+
+    const { error } = await supabase
+      .from('categories')
+      .upsert(updates);
+
+    if (error) {
+      console.error("Error reordering categories:", error);
+      throw error;
+    }
+    return true;
+  },
+  deleteCategory: async (id: string): Promise<boolean> => {
+    const { error } = await supabase
+      .from('categories')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+    return true;
+  },
   getPhotographers: async (): Promise<PhotographerWithStats[]> => {
     // 1. Get all photographers
     const { data: users, error } = await supabase.from('users').select('*').eq('role', 'photographer');
