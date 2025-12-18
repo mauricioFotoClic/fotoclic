@@ -1,6 +1,6 @@
-
 import React from 'react';
 import { createRoot } from 'react-dom/client';
+import { HelmetProvider } from 'react-helmet-async';
 import './src/index.css';
 import App from './App';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -16,7 +16,9 @@ const root = createRoot(container);
 root.render(
   <React.StrictMode>
     <ErrorBoundary>
+      <HelmetProvider>
         <App />
+      </HelmetProvider>
     </ErrorBoundary>
   </React.StrictMode>
 );

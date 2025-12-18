@@ -5,6 +5,7 @@ import api from '../services/api';
 import PhotoCard from '../components/PhotoCard';
 import Spinner from '../components/Spinner';
 import WatermarkedImage from '../components/WatermarkedImage';
+import SEO from '../components/SEO';
 
 interface HomePageProps {
   onNavigate: (page: Page) => void;
@@ -117,8 +118,12 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
 
   return (
     <div>
+      <SEO
+        title="Home | FotoClic"
+        description="Encontre e compre fotos esportivas profissionais de alta qualidade. Cobertura de eventos, maratonas, surf e muito mais."
+      />
       {/* Hero Section */}
-      <section className="relative h-[60vh] bg-cover bg-center text-white flex items-center justify-center" style={{ backgroundImage: "url('https://picsum.photos/seed/hero/1920/1080')" }}>
+      <section className="relative h-[60vh] bg-cover bg-center text-white flex items-center justify-center" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1461896836934-ffe607ba8211?q=80&w=1920&auto=format&fit=crop')" }}>
         <div className="absolute inset-0 bg-neutral-900/60 backdrop-blur-[2px]"></div>
         <div className="relative z-10 text-center p-4 max-w-4xl mx-auto animate-fade-in-up">
           <h1 className="text-4xl md:text-7xl font-display font-bold mb-6 leading-tight">
@@ -153,21 +158,55 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
       </section>
 
       {/* Categories Section */}
-      <section className="py-16 bg-white">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-end mb-8">
-            <h2 className="text-3xl font-display font-bold text-neutral-900">Categorias</h2>
+      {/* Categories Section - Redesigned */}
+      <section className="py-24 bg-neutral-50 relative overflow-hidden">
+        {/* Background decoration */}
+        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-primary/5 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-96 h-96 bg-secondary/5 rounded-full blur-3xl"></div>
+
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="flex flex-col items-center justify-center mb-16 text-center">
+            <span className="text-primary font-bold text-sm uppercase tracking-widest mb-2">Navegue por Temas</span>
+            <h2 className="text-4xl md:text-5xl font-display font-bold text-neutral-900">Categorias</h2>
+            <div className="w-24 h-1 bg-gradient-to-r from-primary to-secondary rounded-full mt-6"></div>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {categories.map(category => (
+
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+            {categories.map((category, index) => (
               <button
                 key={category.id}
                 onClick={() => onNavigate({ name: 'category', id: category.id })}
-                className="group block w-full text-center overflow-hidden rounded-xl relative aspect-[4/3] shadow-sm hover:shadow-lg transition-all"
+                className="group relative h-64 md:h-80 w-full overflow-hidden rounded-2xl shadow-md hover:shadow-xl transition-all duration-500 ease-out transform hover:-translate-y-2"
+                style={{ transitionDelay: `${index * 50}ms` }}
               >
-                <img src={category.image_url} alt={category.name} className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                <div className="absolute inset-0 bg-black/40 group-hover:bg-black/50 transition-colors flex items-center justify-center">
-                  <span className="font-display font-bold text-white text-lg tracking-wide group-hover:scale-105 transition-transform">{category.name}</span>
+                {/* Image with zoom effect */}
+                <div className="absolute inset-0 w-full h-full overflow-hidden">
+                  <img
+                    src={category.image_url}
+                    alt={category.name}
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                  />
+                </div>
+
+                {/* Gradient Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-80 group-hover:opacity-90 transition-opacity duration-300"></div>
+
+                {/* Border effect */}
+                <div className="absolute inset-0 border-2 border-transparent group-hover:border-white/20 rounded-2xl transition-colors duration-300 pointer-events-none"></div>
+
+                {/* Content */}
+                <div className="absolute inset-0 flex flex-col justify-end p-6 text-left">
+                  <div className="transform translate-y-2 group-hover:translate-y-0 transition-transform duration-500">
+                    <span className="block w-8 h-1 bg-primary mb-3 transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500 delay-100"></span>
+                    <h3 className="font-display font-bold text-white text-xl md:text-2xl tracking-wide drop-shadow-lg">
+                      {category.name}
+                    </h3>
+                    <div className="h-0 group-hover:h-6 overflow-hidden transition-[height] duration-500 ease-in-out opacity-0 group-hover:opacity-100">
+                      <span className="text-xs text-neutral-300 font-medium uppercase tracking-wider mt-2 block">
+                        Explorar coleção
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </button>
             ))}
