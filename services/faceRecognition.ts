@@ -55,8 +55,10 @@ export const faceRecognitionService = {
                 console.timeEnd('LoadModels');
                 console.log('FaceAPI models loaded');
 
-                // Trigger warmup immediately after loading
-                warmupModels();
+                // Trigger warmup with a delay to avoid blocking UI during modal open (improves INP)
+                setTimeout(() => {
+                    warmupModels();
+                }, 1000);
 
             } catch (error) {
                 console.error('Error loading FaceAPI models:', error);
