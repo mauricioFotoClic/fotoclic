@@ -7,29 +7,38 @@ const FACE_LANDMARK_68 = 'face_landmark_68';
 const FACE_RECOGNITION = 'face_recognition';
 
 let modelsLoaded = false;
+let loadingPromise: Promise<void> | null = null;
 
 export const faceRecognitionService = {
 
     async loadModels() {
         if (modelsLoaded) return;
+        if (loadingPromise) return loadingPromise;
 
         const modelUrl = '/models';
 
-        try {
-            console.time('LoadModels');
-            await Promise.all([
-                faceapi.nets.ssdMobilenetv1.loadFromUri(modelUrl),
-                faceapi.nets.tinyFaceDetector.loadFromUri(modelUrl), // Load TinyFace
-                faceapi.nets.faceLandmark68Net.loadFromUri(modelUrl),
-                faceapi.nets.faceRecognitionNet.loadFromUri(modelUrl)
-            ]);
-            modelsLoaded = true;
-            console.timeEnd('LoadModels');
-            console.log('FaceAPI models loaded');
-        } catch (error) {
-            console.error('Error loading FaceAPI models:', error);
-            throw new Error('Falha ao carregar modelos de reconhecimento facial');
-        }
+        loadingPromise = (async () => {
+            try {
+                console.time('LoadModels');
+                await Promise.all([
+                    faceapi.nets.ssdMobilenetv1.loadFromUri(modelUrl), // Fallback
+                    faceapi.nets.tinyFaceDetector.loadFromUri(modelUrl), // Primary
+                    faceapi.nets.faceLandmark68Net.loadFromUri(modelUrl),
+                    faceapi.nets.faceRecognitionNet.loadFromUri(modelUrl)
+                ]);
+                modelsLoaded = true;
+                console.timeEnd('LoadModels');
+                console.log('FaceAPI models loaded');
+            } catch (error) {
+                console.error('Error loading FaceAPI models:', error);
+                modelsLoaded = false;
+                throw new Error('Falha ao carregar modelos de reconhecimento facial');
+            } finally {
+                loadingPromise = null;
+            }
+        })();
+
+        return loadingPromise;
     },
 
     resizeImage(image: HTMLImageElement, maxWidth = 1280): HTMLCanvasElement | HTMLImageElement {

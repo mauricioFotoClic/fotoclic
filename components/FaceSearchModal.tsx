@@ -49,6 +49,7 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({ isOpen, onClose, onNa
 
         setIsProcessing(true);
         setHasSearched(false);
+        const startTime = performance.now();
 
         try {
             // Create an image element from the data URL
@@ -68,6 +69,9 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({ isOpen, onClose, onNa
             // 2. Search matches
             const matchedIds = await faceRecognitionService.searchMatches(descriptor);
 
+            const endTime = performance.now();
+            const duration = ((endTime - startTime) / 1000).toFixed(1);
+
             if (matchedIds.length === 0) {
                 setResults([]);
             } else {
@@ -75,9 +79,9 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({ isOpen, onClose, onNa
                 const photos = await api.getPhotosByIds(matchedIds);
                 setResults(photos);
                 if (photos.length > 0) {
-                    onShowToast(`${photos.length} fotos encontradas!`, 'success');
+                    onShowToast(`${photos.length} fotos encontradas em ${duration}s!`, 'success');
                 } else {
-                    onShowToast("Nenhuma foto correspondente encontrada.", 'info');
+                    onShowToast(`Nenhuma foto correspondente encontrada (${duration}s).`, 'info');
                 }
             }
 
