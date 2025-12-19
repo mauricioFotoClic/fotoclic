@@ -86,6 +86,7 @@ export interface Photo {
   quality_analysis?: PhotoQualityAnalysis;
   likes: number;
   liked_by_users: string[];
+  is_face_indexed?: boolean;
 }
 
 export interface CartItem {

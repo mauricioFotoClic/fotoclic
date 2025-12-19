@@ -50,7 +50,8 @@ const mapPhoto = (dbPhoto: any): Photo => {
     is_featured: dbPhoto.is_featured,
     likes: dbPhoto.likes_count || 0,
     liked_by_users: likedByUsers,
-    quality_analysis: dbPhoto.quality_analysis || undefined
+    quality_analysis: dbPhoto.quality_analysis || undefined,
+    is_face_indexed: dbPhoto.is_face_indexed
   };
 };
 

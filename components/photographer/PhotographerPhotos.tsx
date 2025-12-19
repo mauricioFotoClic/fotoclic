@@ -1,12 +1,21 @@
 
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { User, Photo, Category } from '../../types';
 import api from '../../services/api';
 import Spinner from '../Spinner';
 import Modal from '../Modal';
 import PhotoUploadForm from './PhotoUploadForm';
 import PhotoLikesModal from './PhotoLikesModal';
+import Toast from '../Toast';
+
+// import { faceRecognitionService } from '../../services/faceRecognition';
 import { faceRecognitionService } from '../../services/faceRecognition';
+
+// TEMP DEBUG: Mock service to isolate crash
+// const faceRecognitionService = {
+//     indexPhoto: async (id: string, img: any) => { console.log("Mock indexing", id); },
+//     getFaceDescriptor: async () => null
+// };
 
 const EditIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>;
 const TrashIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>;
@@ -23,6 +32,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user }) => {
     const [photos, setPhotos] = useState<Photo[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
     const [loading, setLoading] = useState(true);
+    const stopBulkRef = useRef(false);
 
     // Estado para Modais
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -33,6 +43,22 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user }) => {
     // Estado para Modal de Likes
     const [isLikesModalOpen, setIsLikesModalOpen] = useState(false);
     const [selectedPhotoForLikes, setSelectedPhotoForLikes] = useState<Photo | null>(null);
+
+    // Estado para Modal de Confirmação de Indexação
+    const [isIndexConfirmModalOpen, setIsIndexConfirmModalOpen] = useState(false);
+    const [photoToIndex, setPhotoToIndex] = useState<Photo | null>(null);
+
+    // Estado para Bulk Indexing
+    const [isBulkIndexing, setIsBulkIndexing] = useState(false);
+    const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0, successes: 0, failures: 0 });
+    const [isBulkStopRequested, setIsBulkStopRequested] = useState(false);
+    const [isBulkStartConfirmOpen, setIsBulkStartConfirmOpen] = useState(false);
+    const [isBulkStopConfirmOpen, setIsBulkStopConfirmOpen] = useState(false);
+
+    // Estado para Toast
+    const [showToast, setShowToast] = useState(false);
+    const [toastMessage, setToastMessage] = useState('');
+    const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('success');
 
     // Estado para Filtro e Busca
     const [searchTerm, setSearchTerm] = useState('');
@@ -137,6 +163,12 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user }) => {
         }
     };
 
+    const showToastNotification = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
+        setToastMessage(message);
+        setToastType(type);
+        setShowToast(true);
+    };
+
     const handleFormSubmit = async (formData: Omit<Photo, 'id' | 'upload_date' | 'moderation_status' | 'rejection_reason' | 'likes' | 'liked_by_users'>) => {
         try {
             if (editingPhoto) {
@@ -170,7 +202,11 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user }) => {
                             // alert("Foto indexada para busca facial com sucesso!"); 
                         }).catch(e => {
                             console.error("Failed to index photo:", e);
-                            alert("Atenção: A foto foi salva, mas ocorreu um erro ao indexar o rosto para busca.");
+                            // Optional: notify user it's ready for search
+                            // showToastNotification("Foto indexada para busca facial com sucesso!", 'success'); 
+                        }).catch(e => {
+                            console.error("Failed to index photo:", e);
+                            showToastNotification("Atenção: A foto foi salva, mas ocorreu um erro ao indexar o rosto.", 'error');
                         });
                     } catch (e) {
                         console.error("Error setting up indexing:", e);
@@ -183,7 +219,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user }) => {
             handleCloseModal();
         } catch (error) {
             console.error("Failed to save photo", error);
-            alert("Ocorreu um erro ao salvar a foto.");
+            showToastNotification("Ocorreu um erro ao salvar a foto.", 'error');
         }
     };
 
@@ -205,35 +241,109 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user }) => {
                     return updatedList;
                 });
             } else {
-                alert('Erro: A foto não foi encontrada ou não pôde ser excluída.');
+                showToastNotification('Erro: A foto não foi encontrada ou não pôde ser excluída.', 'error');
             }
         } catch (error) {
             console.error("Falha ao excluir foto", error);
-            alert('Ocorreu um erro ao tentar excluir a foto.');
+            showToastNotification('Ocorreu um erro ao tentar excluir a foto.', 'error');
         } finally {
             setIsConfirmModalOpen(false);
             setPhotoToDelete(null);
         }
     };
 
-    const handleManualIndex = async (photo: Photo) => {
-        if (!confirm(`Re-indexar rostos para a foto "${photo.title}"?`)) return;
+    const handleManualIndex = (photo: Photo) => {
+        setPhotoToIndex(photo);
+        setIsIndexConfirmModalOpen(true);
+    };
+
+    const confirmManualIndex = async () => {
+        if (!photoToIndex) return;
+        setIsIndexConfirmModalOpen(false); // Close modal first
 
         try {
             const img = new Image();
             img.crossOrigin = "anonymous";
-            img.src = photo.preview_url;
+            img.src = photoToIndex.preview_url;
             await new Promise((resolve, reject) => {
                 img.onload = resolve;
                 img.onerror = reject;
             });
 
-            await faceRecognitionService.indexPhoto(photo.id, img);
-            alert("Sucesso! Rostos detectados e indexados.");
+            await faceRecognitionService.indexPhoto(photoToIndex.id, img);
+
+            // Update local state to show the green badge immediately
+            setPhotos(prev => prev.map(p => p.id === photoToIndex.id ? { ...p, is_face_indexed: true } : p));
+            showToastNotification("Sucesso! Rostos detectados e indexados.", 'success');
         } catch (error: any) {
             console.error("Index error:", error);
-            alert(`Erro ao indexar: ${error.message || "Erro desconhecido"}`);
+            showToastNotification(`Erro ao indexar: ${error.message || "Erro desconhecido"}`, 'error');
+        } finally {
+            setPhotoToIndex(null);
         }
+    };
+
+    const handleBulkIndexClick = () => {
+        const unindexedPhotos = photos.filter(p => !p.is_face_indexed);
+        if (unindexedPhotos.length === 0) {
+            showToastNotification("Todas as fotos já estão indexadas!", 'info');
+            return;
+        }
+        setIsBulkStartConfirmOpen(true);
+    };
+
+    const confirmBulkIndex = async () => {
+        setIsBulkStartConfirmOpen(false);
+        const unindexedPhotos = photos.filter(p => !p.is_face_indexed);
+
+        setIsBulkIndexing(true);
+        setIsBulkStopRequested(false);
+        stopBulkRef.current = false;
+        setBulkProgress({ current: 0, total: unindexedPhotos.length, successes: 0, failures: 0 });
+
+        let successes = 0;
+        let failures = 0;
+
+        for (let i = 0; i < unindexedPhotos.length; i++) {
+            if (stopBulkRef.current) break;
+
+            setBulkProgress(prev => ({ ...prev, current: i + 1 }));
+            const photo = unindexedPhotos[i];
+
+            try {
+                const img = new Image();
+                img.crossOrigin = "anonymous";
+                img.src = photo.preview_url;
+                await new Promise((resolve, reject) => {
+                    img.onload = resolve;
+                    img.onerror = reject;
+                });
+
+                await faceRecognitionService.indexPhoto(photo.id, img);
+
+                // Mark locally as indexed
+                setPhotos(prev => prev.map(p => p.id === photo.id ? { ...p, is_face_indexed: true } : p));
+                successes++;
+            } catch (error) {
+                console.error(`Failed to bulk index photo ${photo.id}:`, error);
+                failures++;
+            }
+            // Small delay to let UI breathe
+            await new Promise(r => setTimeout(r, 100));
+        }
+
+        setIsBulkIndexing(false);
+        showToastNotification(`Processo finalizado: ${successes} indexadas, ${failures} falhas.`, failures > 0 ? 'info' : 'success');
+    };
+
+    const handleStopBulkIndexClick = () => {
+        setIsBulkStopConfirmOpen(true);
+    };
+
+    const confirmStopBulkIndex = () => {
+        setIsBulkStopRequested(true);
+        stopBulkRef.current = true;
+        setIsBulkStopConfirmOpen(false);
     };
 
     if (loading) return <Spinner />;
@@ -242,12 +352,22 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user }) => {
         <div>
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-display font-bold text-primary-dark">Minhas Fotos</h1>
-                <button
-                    onClick={() => handleOpenModal()}
-                    className="px-4 py-2 text-sm font-medium text-white bg-primary rounded-full hover:bg-opacity-90 transition-colors shadow-sm"
-                >
-                    Enviar Nova Foto
-                </button>
+                <div className="flex gap-2">
+                    <button
+                        onClick={handleBulkIndexClick}
+                        disabled={isBulkIndexing}
+                        className={`px-4 py-2 text-sm font-medium text-white rounded-full transition-colors shadow-sm ${isBulkIndexing ? 'bg-neutral-400 cursor-not-allowed' : 'bg-purple-600 hover:bg-purple-700'}`}
+                        title="Indexar automaticamente todas as fotos pendentes"
+                    >
+                        {isBulkIndexing ? 'Indexando...' : 'Indexar Pendentes'}
+                    </button>
+                    <button
+                        onClick={() => handleOpenModal()}
+                        className="px-4 py-2 text-sm font-medium text-white bg-primary rounded-full hover:bg-opacity-90 transition-colors shadow-sm"
+                    >
+                        Enviar Nova Foto
+                    </button>
+                </div>
             </div>
 
             {/* Filtros e Busca */}
@@ -341,13 +461,23 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user }) => {
                                         >
                                             <EditIcon />
                                         </button>
-                                        <button
-                                            onClick={() => handleManualIndex(photo)}
-                                            className="text-purple-600 hover:text-purple-800 hover:bg-purple-100 p-2 rounded-full transition-colors mr-2"
-                                            title="Indexar Rostos Manualmente"
-                                        >
-                                            <FaceScanIcon />
-                                        </button>
+                                        <div className="relative inline-block mr-2">
+                                            <button
+                                                onClick={() => handleManualIndex(photo)}
+                                                className={`p-2 rounded-full transition-colors ${photo.is_face_indexed ? 'text-green-600 bg-green-50 hover:bg-green-100' : 'text-purple-600 hover:text-purple-800 hover:bg-purple-100'}`}
+                                                title={photo.is_face_indexed ? "Rostos Indexados (Clique para refazer)" : "Indexar Rostos para Busca"}
+                                            >
+                                                <FaceScanIcon />
+                                            </button>
+                                            {photo.is_face_indexed && (
+                                                <div className="absolute top-0 right-0 -mt-1 -mr-1">
+                                                    <span className="flex h-3 w-3">
+                                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                                        <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </div>
                                         <button
                                             onClick={() => handleDelete(photo)}
                                             className="text-red-600 hover:text-red-800 hover:bg-red-100 p-2 rounded-full transition-colors"
@@ -368,27 +498,29 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user }) => {
                 </div>
             </div>
 
-            {totalPages > 1 && (
-                <div className="flex justify-between items-center mt-4">
-                    <button
-                        onClick={goToPreviousPage}
-                        disabled={currentPage === 1}
-                        className="px-4 py-2 text-sm font-medium text-neutral-700 bg-white border border-neutral-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-neutral-50 transition-colors"
-                    >
-                        Anterior
-                    </button>
-                    <span className="text-sm text-neutral-500">
-                        Página {currentPage} de {totalPages}
-                    </span>
-                    <button
-                        onClick={goToNextPage}
-                        disabled={currentPage === totalPages}
-                        className="px-4 py-2 text-sm font-medium text-neutral-700 bg-white border border-neutral-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-neutral-50 transition-colors"
-                    >
-                        Próxima
-                    </button>
-                </div>
-            )}
+            {
+                totalPages > 1 && (
+                    <div className="flex justify-between items-center mt-4">
+                        <button
+                            onClick={goToPreviousPage}
+                            disabled={currentPage === 1}
+                            className="px-4 py-2 text-sm font-medium text-neutral-700 bg-white border border-neutral-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-neutral-50 transition-colors"
+                        >
+                            Anterior
+                        </button>
+                        <span className="text-sm text-neutral-500">
+                            Página {currentPage} de {totalPages}
+                        </span>
+                        <button
+                            onClick={goToNextPage}
+                            disabled={currentPage === totalPages}
+                            className="px-4 py-2 text-sm font-medium text-neutral-700 bg-white border border-neutral-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-neutral-50 transition-colors"
+                        >
+                            Próxima
+                        </button>
+                    </div>
+                )
+            }
 
             <Modal
                 isOpen={isModalOpen}
@@ -455,6 +587,147 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user }) => {
                     </div>
                 )}
             </Modal>
+            <Modal
+                isOpen={isIndexConfirmModalOpen}
+                onClose={() => setIsIndexConfirmModalOpen(false)}
+                title="Confirmar Indexação"
+            >
+                {photoToIndex && (
+                    <div>
+                        <p className="text-neutral-600 mb-6">
+                            Deseja processar a foto <strong>"{photoToIndex.title}"</strong> para reconhecimento facial?
+                            Isso permitirá que clientes encontrem esta foto através de selfies.
+                        </p>
+
+                        <div className="flex justify-end space-x-2">
+                            <button
+                                type="button"
+                                onClick={() => setIsIndexConfirmModalOpen(false)}
+                                className="px-4 py-2 text-sm font-medium text-neutral-700 bg-neutral-100 border border-neutral-200 rounded-full hover:bg-neutral-200 transition-colors"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                type="button"
+                                onClick={confirmManualIndex}
+                                className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-full hover:bg-purple-700 transition-colors"
+                            >
+                                Confirmar e Indexar
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+            </Modal>
+
+            {/* Bulk Indexing Progress Modal */}
+            <Modal
+                isOpen={isBulkIndexing}
+                onClose={() => { }} // Disable closing by background click
+                title="Indexando Fotos em Massa"
+            >
+                <div className="text-center">
+                    <div className="mb-4">
+                        <FaceScanIcon /> {/* Reuse icon or make larger */}
+                        <div className="mx-auto h-12 w-12 text-purple-600 animate-pulse mb-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><path d="M9 9h.01"></path><path d="M15 9h.01"></path></svg>
+                        </div>
+                        <p className="text-lg font-semibold text-neutral-800">Processando fotos...</p>
+                        <p className="text-sm text-neutral-500">Por favor, não feche esta janela.</p>
+                    </div>
+
+                    <div className="w-full bg-neutral-200 rounded-full h-4 mb-2 overflow-hidden">
+                        <div
+                            className="bg-purple-600 h-4 rounded-full transition-all duration-300"
+                            style={{ width: `${bulkProgress.total > 0 ? (bulkProgress.current / bulkProgress.total) * 100 : 0}%` }}
+                        ></div>
+                    </div>
+
+                    <div className="flex justify-between text-sm text-neutral-600 mb-6">
+                        <span>Progresso: {bulkProgress.current} / {bulkProgress.total}</span>
+                        <span>{bulkProgress.total > 0 ? Math.round((bulkProgress.current / bulkProgress.total) * 100) : 0}%</span>
+                    </div>
+
+                    <button
+                        onClick={handleStopBulkIndexClick}
+                        className="px-4 py-2 text-sm font-medium text-red-600 border border-red-200 bg-red-50 rounded-full hover:bg-red-100 transition-colors"
+                    >
+                        Cancelar
+                    </button>
+                </div>
+
+            </Modal>
+
+            {/* Modal de Confirmação de Início de Bulk Index */}
+            <Modal
+                isOpen={isBulkStartConfirmOpen}
+                onClose={() => setIsBulkStartConfirmOpen(false)}
+                title="Iniciar Indexação em Massa"
+            >
+                <div>
+                    <p className="text-neutral-600 mb-6">
+                        Existem <strong>{photos.filter(p => !p.is_face_indexed).length}</strong> fotos pendentes de indexação.
+                        <br /><br />
+                        Deseja iniciar o processo agora? Isso pode levar alguns minutos. Mantenha esta janela aberta até o fim.
+                    </p>
+                    <div className="flex justify-end space-x-2">
+                        <button
+                            type="button"
+                            onClick={() => setIsBulkStartConfirmOpen(false)}
+                            className="px-4 py-2 text-sm font-medium text-neutral-700 bg-neutral-100 border border-neutral-200 rounded-full hover:bg-neutral-200 transition-colors"
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            type="button"
+                            onClick={confirmBulkIndex}
+                            className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-full hover:bg-purple-700 transition-colors"
+                        >
+                            Iniciar Processo
+                        </button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* Modal de Confirmação de Parada */}
+            <Modal
+                isOpen={isBulkStopConfirmOpen}
+                onClose={() => setIsBulkStopConfirmOpen(false)}
+                title="Parar Indexação"
+            >
+                <div>
+                    <p className="text-neutral-600 mb-6">
+                        Tem certeza que deseja parar o processo? <br />
+                        Todo o progresso feito até agora será salvo automaticamente.
+                    </p>
+                    <div className="flex justify-end space-x-2">
+                        <button
+                            type="button"
+                            onClick={() => setIsBulkStopConfirmOpen(false)}
+                            className="px-4 py-2 text-sm font-medium text-neutral-700 bg-neutral-100 border border-neutral-200 rounded-full hover:bg-neutral-200 transition-colors"
+                        >
+                            Continuar Indexando
+                        </button>
+                        <button
+                            type="button"
+                            onClick={confirmStopBulkIndex}
+                            className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-full hover:bg-red-700 transition-colors"
+                        >
+                            Parar Agora
+                        </button>
+                    </div>
+                </div>
+            </Modal>
+
+            {
+                showToast && (
+                    <Toast
+                        message={toastMessage}
+                        type={toastType}
+                        onClose={() => setShowToast(false)}
+                    />
+                )
+            }
         </div>
     );
 };
