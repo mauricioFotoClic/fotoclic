@@ -1,5 +1,5 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { X, Upload, Search, Camera } from 'lucide-react';
 import { faceRecognitionService } from '../services/faceRecognition';
 import api from '../services/api';
@@ -21,6 +21,13 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({ isOpen, onClose, onNa
     const [hasSearched, setHasSearched] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const cameraInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        if (isOpen) {
+            // Preload models as soon as the modal opens to save time
+            faceRecognitionService.loadModels().catch(err => console.error("Failed to preload models", err));
+        }
+    }, [isOpen]);
 
     if (!isOpen) return null;
 

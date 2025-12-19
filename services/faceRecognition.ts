@@ -16,12 +16,15 @@ export const faceRecognitionService = {
         const modelUrl = '/models';
 
         try {
+            console.time('LoadModels');
             await Promise.all([
                 faceapi.nets.ssdMobilenetv1.loadFromUri(modelUrl),
+                faceapi.nets.tinyFaceDetector.loadFromUri(modelUrl), // Load TinyFace
                 faceapi.nets.faceLandmark68Net.loadFromUri(modelUrl),
                 faceapi.nets.faceRecognitionNet.loadFromUri(modelUrl)
             ]);
             modelsLoaded = true;
+            console.timeEnd('LoadModels');
             console.log('FaceAPI models loaded');
         } catch (error) {
             console.error('Error loading FaceAPI models:', error);
@@ -52,16 +55,28 @@ export const faceRecognitionService = {
         await this.loadModels();
 
         let input: any = image;
+        // Resize if it's an image, to ensure we don't process 4k images on CPU
         if (image instanceof HTMLImageElement) {
-            input = this.resizeImage(image, 1280);
+            input = this.resizeImage(image, 800); // Reduced to 800 for even faster mobile performance
         }
 
-        const detection = await faceapi.detectSingleFace(input)
+        console.time('DetectFace');
+        // Use TinyFaceDetector for speed (much faster on mobile/web)
+        // Adjust scoreThreshold as needed (0.5 is default)
+        const detection = await faceapi.detectSingleFace(input, new faceapi.TinyFaceDetectorOptions({ inputSize: 512, scoreThreshold: 0.5 }))
             .withFaceLandmarks()
             .withFaceDescriptor();
+        console.timeEnd('DetectFace');
 
         if (!detection) {
-            return null;
+            // Fallback: If TinyFace fails, try SSD MobileNet (slower but more accurate)
+            console.log("TinyFace failed, trying SSD MobileNet...");
+            console.time('DetectFaceRetry');
+            const retryDetection = await faceapi.detectSingleFace(input)
+                .withFaceLandmarks()
+                .withFaceDescriptor();
+            console.timeEnd('DetectFaceRetry');
+            return retryDetection ? retryDetection.descriptor : null;
         }
 
         return detection.descriptor;
@@ -130,12 +145,14 @@ export const faceRecognitionService = {
     async searchMatches(descriptor: Float32Array, threshold = 0.6): Promise<string[]> {
         // Server-side vector search using pgvector
         // We use the RPC function 'match_faces' created in the migration
+        console.time('SupabaseVectorSearch');
         const { data: matches, error } = await supabase
             .rpc('match_faces', {
                 query_embedding: Array.from(descriptor), // Convert to regular array
                 match_threshold: threshold,
                 match_count: 20 // Limit results for performance
             });
+        console.timeEnd('SupabaseVectorSearch');
 
         if (error) {
             console.error("Error in server-side face search:", error);
