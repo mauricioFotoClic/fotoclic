@@ -9,6 +9,24 @@ const FACE_RECOGNITION = 'face_recognition';
 let modelsLoaded = false;
 let loadingPromise: Promise<void> | null = null;
 
+// Warmup function to compile shaders in the background
+async function warmupModels() {
+    console.time('Warmup');
+    try {
+        const dummyCanvas = document.createElement('canvas');
+        dummyCanvas.width = 1;
+        dummyCanvas.height = 1;
+        // Run a dummy detection to initialize shaders
+        await faceapi.detectSingleFace(dummyCanvas, new faceapi.TinyFaceDetectorOptions({ inputSize: 128, scoreThreshold: 0.1 }))
+            .withFaceLandmarks()
+            .withFaceDescriptor();
+        console.log('Warmup complete');
+    } catch (e) {
+        console.warn('Warmup failed (non-critical):', e);
+    }
+    console.timeEnd('Warmup');
+}
+
 export const faceRecognitionService = {
 
     async loadModels() {
@@ -20,15 +38,26 @@ export const faceRecognitionService = {
         loadingPromise = (async () => {
             try {
                 console.time('LoadModels');
+
+                // Ensure backend is ready (try WebGL for performance)
+                await faceapi.tf.setBackend('webgl').catch(() => console.log('WebGL not available, using CPU'));
+                await faceapi.tf.ready();
+                console.log(`FaceAPI using backend: ${faceapi.tf.getBackend()}`);
+
                 await Promise.all([
                     faceapi.nets.ssdMobilenetv1.loadFromUri(modelUrl), // Fallback
                     faceapi.nets.tinyFaceDetector.loadFromUri(modelUrl), // Primary
                     faceapi.nets.faceLandmark68Net.loadFromUri(modelUrl),
                     faceapi.nets.faceRecognitionNet.loadFromUri(modelUrl)
                 ]);
+
                 modelsLoaded = true;
                 console.timeEnd('LoadModels');
                 console.log('FaceAPI models loaded');
+
+                // Trigger warmup immediately after loading
+                warmupModels();
+
             } catch (error) {
                 console.error('Error loading FaceAPI models:', error);
                 modelsLoaded = false;
@@ -66,7 +95,7 @@ export const faceRecognitionService = {
         let input: any = image;
         // Resize if it's an image, to ensure we don't process 4k images on CPU
         if (image instanceof HTMLImageElement) {
-            input = this.resizeImage(image, 800); // Reduced to 800 for even faster mobile performance
+            input = this.resizeImage(image, 600); // Reduced to 600 for optimal performance
         }
 
         console.time('DetectFace');
