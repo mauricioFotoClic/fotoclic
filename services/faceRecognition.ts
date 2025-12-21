@@ -11,7 +11,6 @@ let loadingPromise: Promise<void> | null = null;
 
 // Warmup function to compile shaders in the background
 async function warmupModels() {
-    console.time('Warmup');
     try {
         const dummyCanvas = document.createElement('canvas');
         dummyCanvas.width = 1;
@@ -20,11 +19,9 @@ async function warmupModels() {
         await faceapi.detectSingleFace(dummyCanvas, new faceapi.TinyFaceDetectorOptions({ inputSize: 128, scoreThreshold: 0.1 }))
             .withFaceLandmarks()
             .withFaceDescriptor();
-        console.log('Warmup complete');
     } catch (e) {
         console.warn('Warmup failed (non-critical):', e);
     }
-    console.timeEnd('Warmup');
 }
 
 export const faceRecognitionService = {
@@ -37,12 +34,9 @@ export const faceRecognitionService = {
 
         loadingPromise = (async () => {
             try {
-                console.time('LoadModels');
-
                 // Ensure backend is ready (try WebGL for performance)
                 await faceapi.tf.setBackend('webgl').catch(() => console.log('WebGL not available, using CPU'));
                 await faceapi.tf.ready();
-                console.log(`FaceAPI using backend: ${faceapi.tf.getBackend()}`);
 
                 await Promise.all([
                     faceapi.nets.ssdMobilenetv1.loadFromUri(modelUrl), // Fallback
@@ -52,8 +46,6 @@ export const faceRecognitionService = {
                 ]);
 
                 modelsLoaded = true;
-                console.timeEnd('LoadModels');
-                console.log('FaceAPI models loaded');
 
                 // Trigger warmup with a delay to avoid blocking UI during modal open (improves INP)
                 setTimeout(() => {
@@ -100,22 +92,18 @@ export const faceRecognitionService = {
             input = this.resizeImage(image, 600); // Reduced to 600 for optimal performance
         }
 
-        console.time('DetectFace');
         // Use TinyFaceDetector for speed (much faster on mobile/web)
         // Adjust scoreThreshold as needed (0.5 is default)
         const detection = await faceapi.detectSingleFace(input, new faceapi.TinyFaceDetectorOptions({ inputSize: 512, scoreThreshold: 0.5 }))
             .withFaceLandmarks()
             .withFaceDescriptor();
-        console.timeEnd('DetectFace');
 
         if (!detection) {
             // Fallback: If TinyFace fails, try SSD MobileNet (slower but more accurate)
             console.log("TinyFace failed, trying SSD MobileNet...");
-            console.time('DetectFaceRetry');
             const retryDetection = await faceapi.detectSingleFace(input)
                 .withFaceLandmarks()
                 .withFaceDescriptor();
-            console.timeEnd('DetectFaceRetry');
             return retryDetection ? retryDetection.descriptor : null;
         }
 
@@ -185,14 +173,12 @@ export const faceRecognitionService = {
     async searchMatches(descriptor: Float32Array, threshold = 0.6): Promise<string[]> {
         // Server-side vector search using pgvector
         // We use the RPC function 'match_faces' created in the migration
-        console.time('SupabaseVectorSearch');
         const { data: matches, error } = await supabase
             .rpc('match_faces', {
                 query_embedding: Array.from(descriptor), // Convert to regular array
                 match_threshold: threshold,
                 match_count: 20 // Limit results for performance
             });
-        console.timeEnd('SupabaseVectorSearch');
 
         if (error) {
             console.error("Error in server-side face search:", error);
