@@ -124,6 +124,11 @@ const App: React.FC = () => {
     };
 
     const handleNavigate = (page: Page) => {
+        // Show toast if provided in navigation
+        if (page.toastMessage) {
+            showToast(page.toastMessage, page.toastType || 'info');
+        }
+
         // Intercept navigation to Auth pages and open Modals instead
         if (page.name === 'login') {
             setIsLoginModalOpen(true);

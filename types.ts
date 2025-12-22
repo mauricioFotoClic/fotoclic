@@ -179,7 +179,7 @@ export interface Review {
   created_at: string;
 }
 
-export type Page =
+export type PageRoute =
   { name: 'home' } |
   { name: 'login' } |
   { name: 'register' } |
@@ -202,3 +202,8 @@ export type Page =
   { name: 'checkout' } |
   { name: 'test-stripe' } |
   { name: 'face-search' };
+
+export type Page = PageRoute & {
+  toastMessage?: string;
+  toastType?: 'success' | 'error' | 'info';
+};

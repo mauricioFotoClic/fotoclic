@@ -65,8 +65,12 @@ const PhotoCard: React.FC<PhotoCardProps> = ({ photo, photographer, onNavigate, 
         e.stopPropagation();
 
         if (!currentUser) {
-            alert("Você precisa estar logado para curtir fotos.");
-            if (onNavigate) onNavigate({ name: 'login' });
+            // alert("Você precisa estar logado para curtir fotos.");
+            if (onNavigate) onNavigate({
+                name: 'login',
+                toastMessage: "Faça login para curtir esta foto.",
+                toastType: 'info'
+            });
             return;
         }
 
