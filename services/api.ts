@@ -778,10 +778,10 @@ const api = {
   },
   resetPassword: async (email: string): Promise<boolean> => {
     try {
-      // 1. Check if user exists in OUR custom table
+      // 1. Check if user exists
       const { data: user, error } = await supabase
         .from('users')
-        .select('name, password')
+        .select('id, name')
         .ilike('email', email)
         .single();
 
@@ -790,25 +790,80 @@ const api = {
         return false;
       }
 
-      // 2. Send email with the password
+      // 2. Generate Token
+      const token = crypto.randomUUID();
+      const expiresAt = new Date(Date.now() + 3600000).toISOString(); // 1 hour
+
+      // 3. Store Token in DB
+      const { error: tokenError } = await supabase
+        .from('password_reset_tokens')
+        .insert({
+          user_id: user.id,
+          token: token,
+          expires_at: expiresAt
+        });
+
+      if (tokenError) {
+        console.error('Error creating reset token:', tokenError);
+        return false;
+      }
+
+      // 4. Send Email with Link
       const { emailService } = await import('./emailService');
+      const resetLink = `${window.location.origin}/reset-password?token=${token}`;
 
-      const subject = 'Recuperação de Senha - FotoClic';
-      const htmlBody = `
-        <div style="font-family: sans-serif; color: #333;">
-          <h2>Olá, ${user.name}!</h2>
-          <p>Recebemos uma solicitação para recuperar sua senha no FotoClic.</p>
-          <p>Sua senha atual é: <strong>${user.password}</strong></p>
-          <hr />
-          <p>Recomendamos que você anote sua senha em um local seguro.</p>
-          <p>Se você não solicitou isso, pode ignorar este e-mail.</p>
-        </div>
-      `;
+      return await emailService.sendPasswordResetEmail(email, user.name, resetLink);
 
-      return await emailService.sendEmail(email, subject, htmlBody);
+    } catch (error) {
+      console.error('Error in resetPassword:', error);
+      return false;
+    }
+  },
 
-    } catch (e) {
-      console.error('Error in custom resetPassword:', e);
+  verifyResetToken: async (token: string): Promise<{ valid: boolean, userId?: string }> => {
+    try {
+      const { data, error } = await supabase
+        .from('password_reset_tokens')
+        .select('user_id, expires_at, used')
+        .eq('token', token)
+        .single();
+
+      if (error || !data) return { valid: false };
+
+      if (data.used) return { valid: false };
+
+      if (new Date(data.expires_at) < new Date()) return { valid: false };
+
+      return { valid: true, userId: data.user_id };
+    } catch (error) {
+      console.error('Error validating token:', error);
+      return { valid: false };
+    }
+  },
+
+  completePasswordReset: async (token: string, newPassword: string): Promise<boolean> => {
+    try {
+      // 1. Validate again
+      const { valid, userId } = await api.verifyResetToken(token);
+      if (!valid || !userId) return false;
+
+      // 2. Update User Password
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({ password: newPassword }) // In a real app, hash this!
+        .eq('id', userId);
+
+      if (updateError) throw updateError;
+
+      // 3. Mark Token as Used
+      await supabase
+        .from('password_reset_tokens')
+        .update({ used: true })
+        .eq('token', token);
+
+      return true;
+    } catch (error) {
+      console.error('Error completing reset:', error);
       return false;
     }
   },
@@ -982,7 +1037,7 @@ const api = {
     return data;
   },
   syncCart: async (userId: string, itemIds: string[]): Promise<void> => {
-    // console.log(`[SyncCart] Attempting to sync cart for User ID: ${userId}`);
+    // console.log(`[SyncCart] Attempting to sync cart for User ID: ${ userId } `);
     try {
       // Use UPSERT for atomic update/create, avoiding race conditions (409) and manual checks
       const { error } = await supabase
@@ -1168,7 +1223,7 @@ const api = {
       const template = status ? templates.photographerActivated : templates.photographerDeactivated;
 
       if (!template) {
-        console.warn(`Template de e-mail para ${status ? 'ativação' : 'desativação'} não encontrado.`);
+        console.warn(`Template de e - mail para ${status ? 'ativação' : 'desativação'} não encontrado.`);
         return;
       }
 
@@ -1181,20 +1236,20 @@ const api = {
 
       // Wrap in a nice template structure
       const htmlBody = `
-          <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
-              <h2 style="color: #2563EB;">FotoClic</h2>
-              <div style="margin: 20px 0;">
-                  ${bodyContent}
-              </div>
-              <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-              <p style="font-size: 12px; color: #888;">Este é um e-mail automático, por favor não responda.</p>
+      < div style = "font-family: Arial, sans-serif; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;" >
+        <h2 style="color: #2563EB;" > FotoClic </h2>
+          < div style = "margin: 20px 0;" >
+            ${bodyContent}
+    </div>
+      < hr style = "border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+        <p style="font-size: 12px; color: #888;" > Este é um e - mail automático, por favor não responda.</p>
           </div>
-      `;
+            `;
 
       // Dynamically import emailService to avoid circular dependencies if any
       const { emailService } = await import('./emailService');
       await emailService.sendEmail(user.email, subject, htmlBody);
-      console.log(`E-mail de ${status ? 'ativação' : 'desativação'} enviado para ${user.email}`);
+      console.log(`E - mail de ${status ? 'ativação' : 'desativação'} enviado para ${user.email} `);
 
     } catch (error) {
       console.error("Falha ao enviar notificação de status", error);
@@ -1231,20 +1286,20 @@ const api = {
 
       // Wrap in a nice template structure
       const htmlBody = `
-          <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
-              <h2 style="color: #DC2626;">FotoClic - Foto Rejeitada</h2>
-              <div style="margin: 20px 0;">
-                  ${bodyContent}
-              </div>
-              <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-              <p style="font-size: 12px; color: #888;">Este é um e-mail automático, por favor não responda.</p>
+      < div style = "font-family: Arial, sans-serif; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;" >
+        <h2 style="color: #DC2626;" > FotoClic - Foto Rejeitada </h2>
+          < div style = "margin: 20px 0;" >
+            ${bodyContent}
+    </div>
+      < hr style = "border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+        <p style="font-size: 12px; color: #888;" > Este é um e - mail automático, por favor não responda.</p>
           </div>
-      `;
+            `;
 
       // Dynamically import emailService to avoid circular dependencies if any
       const { emailService } = await import('./emailService');
       await emailService.sendEmail(user.email, subject, htmlBody);
-      console.log(`E-mail de rejeição enviado para ${user.email}`);
+      console.log(`E - mail de rejeição enviado para ${user.email} `);
 
     } catch (error) {
       console.error("Falha ao enviar notificação de rejeição", error);
@@ -1300,19 +1355,19 @@ const api = {
           bodyContent = bodyContent.replace(/\n/g, '<br />');
 
           const htmlBody = `
-                  <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
-                      <h2 style="color: #059669;">FotoClic - Pagamento Processado</h2>
-                      <div style="margin: 20px 0;">
-                          ${bodyContent}
-                      </div>
-                      <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-                      <p style="font-size: 12px; color: #888;">Este é um e-mail automático, por favor não responda.</p>
-                  </div>
-              `;
+      < div style = "font-family: Arial, sans-serif; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;" >
+        <h2 style="color: #059669;" > FotoClic - Pagamento Processado </h2>
+          < div style = "margin: 20px 0;" >
+            ${bodyContent}
+    </div>
+      < hr style = "border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+        <p style="font-size: 12px; color: #888;" > Este é um e - mail automático, por favor não responda.</p>
+          </div>
+            `;
 
           const { emailService } = await import('./emailService');
           await emailService.sendEmail(photographer.email, subject, htmlBody);
-          console.log(`E-mail de pagamento enviado para ${photographer.email}`);
+          console.log(`E - mail de pagamento enviado para ${photographer.email} `);
         }
       }
     } catch (e) {

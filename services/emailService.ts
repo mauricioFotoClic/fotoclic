@@ -129,6 +129,27 @@ export const emailService = {
     );
   },
 
+  sendPasswordResetEmail: async (to: string, name: string, resetLink: string) => {
+    return emailService.sendEmail(
+      to,
+      'Recuperação de Senha - FotoClic',
+      `<div style="font-family: sans-serif; color: #333;">
+            <h2>Olá, ${name}!</h2>
+            <p>Recebemos uma solicitação para recuperar sua senha no FotoClic.</p>
+            <p>Clique no botão abaixo para criar uma nova senha:</p>
+            <div style="text-align: center; margin: 32px 0;">
+                <a href="${resetLink}" style="background-color: #2563EB; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+                    Redefinir Senha
+                </a>
+            </div>
+            <p>Ou copie e cole o link abaixo no seu navegador:</p>
+            <p><a href="${resetLink}">${resetLink}</a></p>
+            <hr />
+            <p style="font-size: 12px; color: #666;">Se você não solicitou isso, ignore este e-mail. O link expira em 1 hora.</p>
+        </div>`
+    );
+  },
+
   sendEmail: async (to: string, subject: string, html: string) => {
     try {
       const response = await fetch('/api/send-email', {

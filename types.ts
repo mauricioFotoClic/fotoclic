@@ -201,7 +201,8 @@ export type PageRoute =
   { name: 'cart' } |
   { name: 'checkout' } |
   { name: 'test-stripe' } |
-  { name: 'face-search' };
+  { name: 'face-search' } |
+  { name: 'reset-password', token?: string };
 
 export type Page = PageRoute & {
   toastMessage?: string;

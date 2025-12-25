@@ -22,6 +22,7 @@ const FeaturedPhotosPage = React.lazy(() => import('./pages/FeaturedPhotosPage')
 const PhotographerPage = React.lazy(() => import('./pages/PhotographerPage'));
 const PhotographerPortfolioPage = React.lazy(() => import('./pages/PhotographerPortfolioPage'));
 const DiscoverPage = React.lazy(() => import('./pages/DiscoverPage'));
+const ResetPasswordPage = React.lazy(() => import('./pages/ResetPasswordPage'));
 const PhotographersPage = React.lazy(() => import('./pages/PhotographersPage'));
 const CartPage = React.lazy(() => import('./pages/CartPage'));
 const LoginPage = React.lazy(() => import('./pages/LoginPage'));
@@ -305,6 +306,8 @@ const App: React.FC = () => {
                 return <CheckoutPage cartItemIds={cartItems} currentUser={currentUser} onPurchaseComplete={handlePurchaseComplete} onNavigate={handleNavigate} />;
             case 'test-stripe':
                 return <TestStripePage />;
+            case 'reset-password':
+                return <ResetPasswordPage token={currentPage.token} onNavigate={handleNavigate} />;
             default:
                 return <HomePage onNavigate={handleNavigate} onAddToCart={handleAddToCart} currentUser={currentUser} />;
         }
