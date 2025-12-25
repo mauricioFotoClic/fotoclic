@@ -776,7 +776,7 @@ const api = {
 
     return mapUser(data);
   },
-  resetPassword: async (email: string): Promise<boolean> => {
+  requestPasswordReset: async (email: string): Promise<boolean> => {
     try {
       // 1. Check if user exists
       const { data: user, error } = await supabase

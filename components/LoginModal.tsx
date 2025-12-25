@@ -54,9 +54,10 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess
         }
 
         setLoading(true);
+        console.log("Initiating Password Reset Secure Flow");
 
         try {
-            const success = await api.resetPassword(email);
+            const success = await api.requestPasswordReset(email);
             if (success) {
                 setSuccessMessage('E-mail de recuperação enviado! Verifique sua caixa de entrada.');
             } else {
