@@ -1,5 +1,7 @@
+
 import { User, Photo, Category, UserRole, PhotographerWithStats, Sale, Payout, PhotographerBalance, CommissionSettings, EmailTemplates, Coupon, PhotoQualityAnalysis, PurchasedPhoto, AbandonedCart, BulkDiscountRule, BankInfo, PayoutStatus, Review } from '../types';
 import { supabase } from './supabaseClient';
+import bcrypt from 'bcryptjs';
 
 // --- HELPER FUNCTIONS ---
 
@@ -65,7 +67,7 @@ const shuffleArray = <T,>(array: T[]): T[] => {
 };
 
 
-const api = {
+export const api = {
   // --- PHOTOS ---
   getFeaturedPhotos: async (): Promise<Photo[]> => {
     const { data, error } = await supabase
@@ -749,16 +751,33 @@ const api = {
 
     return { success: true };
   },
+
   login: async (email: string, password?: string): Promise<User | undefined> => {
     const { data, error } = await supabase.from('users').select('*').ilike('email', email).single();
     if (error && error.code !== 'PGRST116') throw error;
 
     if (!data) return undefined;
 
-    // Simple password check (In production, use bcrypt/hashing)
-    // If user has no password (legacy), we might allow or block. Here we block if password is provided but doesn't match.
-    if (password && data.password && data.password !== password) {
-      return undefined;
+    // Password Check
+    if (password && data.password) {
+      let match = false;
+      const isHashed = data.password.startsWith('$2');
+
+      if (isHashed) {
+        match = await bcrypt.compare(password, data.password);
+      } else {
+        // Fallback or Legacy Plain Text
+        match = data.password === password;
+
+        // If matched and was plain text, migrate to hash immediately
+        if (match) {
+          console.log("Migrating user password to hash...");
+          const hashedPassword = await bcrypt.hash(password, 10);
+          await supabase.from('users').update({ password: hashedPassword }).eq('id', data.id);
+        }
+      }
+
+      if (!match) return undefined;
     }
 
     // If user has a password but none provided, fail
@@ -768,9 +787,6 @@ const api = {
 
     // Check if user is active
     if (data.role === 'photographer' && !data.is_active) {
-      // We can return undefined or throw a specific error, finding the best way:
-      // Since the signature returns User | undefined, we return undefined.
-      // Ideally we would want to signal WHY, but for now this blocks access.
       return undefined;
     }
 
@@ -847,15 +863,18 @@ const api = {
       const { valid, userId } = await api.verifyResetToken(token);
       if (!valid || !userId) return false;
 
-      // 2. Update User Password
+      // 2. Hash Password
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+      // 3. Update User Password
       const { error: updateError } = await supabase
         .from('users')
-        .update({ password: newPassword }) // In a real app, hash this!
+        .update({ password: hashedPassword })
         .eq('id', userId);
 
       if (updateError) throw updateError;
 
-      // 3. Mark Token as Used
+      // 4. Mark Token as Used
       await supabase
         .from('password_reset_tokens')
         .update({ used: true })
@@ -869,10 +888,14 @@ const api = {
   },
   register: async (data: { name: string, email: string, role: UserRole, password?: string }): Promise<User | undefined> => {
     // Photographers start as inactive (pending approval), Customers start as active
-    const userData = {
+    const userData: any = {
       ...data,
       is_active: data.role !== UserRole.PHOTOGRAPHER
     };
+
+    if (data.password) {
+      userData.password = await bcrypt.hash(data.password, 10);
+    }
 
     const { data: newUser, error } = await supabase.from('users').insert(userData).select().single();
     if (error) throw error;

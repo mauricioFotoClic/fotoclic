@@ -70,6 +70,19 @@ const App: React.FC = () => {
         }
     }, []);
 
+    // Handle URL routing on initial load
+    useEffect(() => {
+        const path = window.location.pathname;
+        const searchParams = new URLSearchParams(window.location.search);
+
+        if (path === '/reset-password') {
+            const token = searchParams.get('token');
+            if (token) {
+                setCurrentPage({ name: 'reset-password', token });
+            }
+        }
+    }, []);
+
     // Sync Cart with LocalStorage (Client) and Backend (User) when it changes
     useEffect(() => {
         // 1. Save to LocalStorage (client persistence for current session)

@@ -23,11 +23,22 @@ export function ResetPasswordPage({ token, onNavigate }: ResetPasswordPageProps)
         }
 
         const validateToken = async () => {
-            const { valid } = await api.verifyResetToken(token);
-            if (valid) {
-                setStatus('valid');
-            } else {
-                setStatus('invalid');
+            try {
+                if (!api || !api.verifyResetToken) {
+                    console.error("API not initialized");
+                    setStatus('error');
+                    return;
+                }
+                const response = await api.verifyResetToken(token);
+                if (response && response.valid) {
+                    setStatus('valid');
+                } else {
+                    setStatus('invalid');
+                }
+            } catch (err) {
+                console.error("Token validation error:", err);
+                setStatus('error'); // Or 'invalid' if we want to be safe
+                setErrorDetails("Erro ao conectar com o serviço.");
             }
         };
 
