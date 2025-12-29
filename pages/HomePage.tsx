@@ -33,6 +33,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
           api.getRecentPhotos(8), // Limit DB query to 8
         ]);
 
+
         // Try fallback if featured photos are empty
         let finalFeatured = featuredPhotos;
         if (finalFeatured.length === 0 && recent.length > 0) {

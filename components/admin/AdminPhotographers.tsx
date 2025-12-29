@@ -179,6 +179,7 @@ const AdminPhotographers: React.FC<AdminPhotographersProps> = ({ onNavigate }) =
                             <th className="p-4 text-center text-sm font-semibold text-neutral-600">Comissão (%)</th>
                             <th className="p-4 text-left text-sm font-semibold text-neutral-600">Comissão Gerada</th>
                             <th className="p-4 text-center text-sm font-semibold text-neutral-600">Status</th>
+                            <th className="p-4 text-center text-sm font-semibold text-neutral-600">Termo</th>
                             <th className="p-4 text-center text-sm font-semibold text-neutral-600">Portfólio</th>
                             <th className="p-4 text-right text-sm font-semibold text-neutral-600">Ações</th>
                         </tr>
@@ -206,6 +207,29 @@ const AdminPhotographers: React.FC<AdminPhotographersProps> = ({ onNavigate }) =
                                         <span className={`mt-1 text-xs font-semibold ${user.is_active ? 'text-green-700' : 'text-red-700'}`}>
                                             {user.is_active ? 'Ativo' : 'Inativo'}
                                         </span>
+                                    </div>
+                                </td>
+                                <td className="p-4 text-center">
+                                    <div className="flex justify-center">
+                                        {user.liability_waiver_accepted_at ? (
+                                            <div className="group relative">
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                                                    Aceito em: {new Date(user.liability_waiver_accepted_at).toLocaleDateString('pt-BR')}
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="group relative">
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                                </svg>
+                                                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                                                    Pendente
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </td>
                                 <td className="p-4 text-center">

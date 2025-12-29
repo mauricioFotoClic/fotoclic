@@ -4,14 +4,17 @@ import { Eye, EyeOff } from 'lucide-react';
 import api from '../services/api';
 import Modal from './Modal';
 
+import LiabilityWaiverModal from './LiabilityWaiverModal';
+
 interface RegisterModalProps {
     isOpen: boolean;
     onClose: () => void;
     onLoginSuccess: (user: User) => void;
     onNavigate: (page: Page) => void;
+    onShowToast: (message: string, type?: 'success' | 'error' | 'info') => void;
 }
 
-const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginSuccess, onNavigate }) => {
+const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginSuccess, onNavigate, onShowToast }) => {
     const [formData, setFormData] = useState({
         name: '',
         email: '',
@@ -23,6 +26,11 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginS
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+    // Liability Modal State
+    const [showLiabilityModal, setShowLiabilityModal] = useState(false);
+    const [pendingUser, setPendingUser] = useState<User | null>(null);
+    const [acceptingLiability, setAcceptingLiability] = useState(false);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value, type, checked } = e.target;
@@ -55,30 +63,68 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginS
                 password: formData.password
             });
 
-            if (newUser) {
-                onClose();
-                // Se for fotógrafo, enviar notificação por email para o admin
-                if (newUser.role === UserRole.PHOTOGRAPHER) {
+            if (newUser && newUser.user) {
+                // Check if session exists (email confirmed or not required)
+                if (!newUser.session) {
+                    setLoading(false);
+                    // Show "Check Email" state instead of modal
+                    setError(''); // Clear errors
+                    setFormData(prev => ({ ...prev, name: '' })); // Reset form logic if needed, or just return early
+
+                    // Force a UI update to show success message
+                    onShowToast(`Enviamos um link de confirmação para ${formData.email}. Verifique seu e-mail.`, 'success');
+                    onClose();
+                    onNavigate({ name: 'login' }); // or just close
+                    return;
+                }
+
+                const user = newUser.user;
+
+                // Se for fotógrafo, mostrar o termo de responsabilidade
+                if (user.role === UserRole.PHOTOGRAPHER) {
                     try {
                         const { emailService } = await import('../services/emailService');
-                        await emailService.sendNewPhotographerNotification(newUser.name, newUser.email);
+                        await emailService.sendNewPhotographerNotification(user.name, user.email);
                     } catch (emailError) {
                         console.error("Failed to send notification email:", emailError);
-                        // Não bloquear o fluxo se o email falhar
                     }
-                    onNavigate({ name: 'pending-approval' });
+                    setPendingUser(user);
+                    setShowLiabilityModal(true);
                 } else {
-                    // Cliente
-                    onLoginSuccess(newUser);
+                    // Cliente - Fluxo normal
+                    onClose();
+                    onLoginSuccess(user);
                     onNavigate({ name: 'home' });
                 }
             } else {
                 setError('Este e-mail já está cadastrado.');
             }
-        } catch (err) {
-            setError('Ocorreu um erro ao criar a conta. Tente novamente.');
+        } catch (err: any) {
+            console.error("Registration error:", err);
+            setError(err.message || 'Ocorreu um erro ao criar a conta. Tente novamente.');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleLiabilityAccept = async () => {
+        if (!pendingUser) return;
+
+        setAcceptingLiability(true);
+        try {
+            const success = await api.updateUserLiabilityWaiver(pendingUser.id);
+            if (success) {
+                onClose();
+                onLoginSuccess(pendingUser);
+                onNavigate({ name: 'photographer' }); // Ir para dashboard
+            } else {
+                alert("Erro ao salvar aceitação do termo. Tente novamente.");
+            }
+        } catch (error) {
+            console.error("Error accepting liability:", error);
+            alert("Erro ao processar. Tente novamente.");
+        } finally {
+            setAcceptingLiability(false);
         }
     };
 
@@ -91,6 +137,17 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginS
         onClose();
         onNavigate({ name: 'login' });
     };
+
+    if (showLiabilityModal && pendingUser) {
+        return (
+            <LiabilityWaiverModal
+                isOpen={isOpen}
+                photographerName={pendingUser.name}
+                onAccept={handleLiabilityAccept}
+                loading={acceptingLiability}
+            />
+        );
+    }
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="" size="md" noPadding>

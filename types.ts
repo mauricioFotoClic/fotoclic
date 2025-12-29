@@ -33,6 +33,7 @@ export interface User {
   is_active: boolean;
   bulkDiscountRules?: BulkDiscountRule[];
   bank_info?: BankInfo;
+  liability_waiver_accepted_at?: string;
 }
 
 export interface PhotographerWithStats extends User {
@@ -87,6 +88,19 @@ export interface Photo {
   likes: number;
   liked_by_users: string[];
   is_face_indexed?: boolean;
+  event_id?: string;
+}
+
+export interface PhotoEvent {
+  id: string;
+  photographer_id: string;
+  category_id: string;
+  name: string;
+  description?: string;
+  location?: string;
+  event_date: string;
+  cover_photo_url?: string;
+  created_at: string;
 }
 
 export interface CartItem {
@@ -203,6 +217,11 @@ export type PageRoute =
   { name: 'test-stripe' } |
   { name: 'face-search' } |
   { name: 'reset-password', token?: string };
+
+export interface RegisterResponse {
+  user: User | null;
+  session: any | null; // Supabase Session
+}
 
 export type Page = PageRoute & {
   toastMessage?: string;

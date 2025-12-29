@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { User, Photo, Page, Category } from '../../types';
+import { User, Photo, Page, Category, PhotoEvent } from '../../types';
 import api from '../../services/api';
 import Spinner from '../Spinner';
 import PhotoCard from '../PhotoCard';
@@ -24,6 +24,8 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
     const [photos, setPhotos] = useState<Photo[]>([]);
     const [displayUser, setDisplayUser] = useState<User>(user);
     const [categories, setCategories] = useState<Category[]>([]);
+    const [events, setEvents] = useState<PhotoEvent[]>([]);
+    const [selectedEvent, setSelectedEvent] = useState<PhotoEvent | null>(null);
     const [loading, setLoading] = useState(true);
 
     // Edit/Delete State
@@ -43,7 +45,12 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
                     setDisplayUser(freshUserData);
                 }
 
-                const allPhotos = await api.getPhotosByPhotographerId(user.id);
+                const [allPhotos, allEvents] = await Promise.all([
+                    api.getPhotosByPhotographerId(user.id),
+                    api.getPhotographerEvents(user.id)
+                ]);
+
+                setEvents(allEvents);
 
                 if (editable) {
                     setPhotos(allPhotos);
@@ -208,74 +215,154 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
             {/* Gallery Section */}
             <div className="px-6 md:px-12 py-8 bg-neutral-50">
                 <div className="flex justify-between items-center mb-8">
-                    <h3 className="text-2xl font-display font-bold text-primary-dark">Galeria</h3>
+                    <div className="flex items-center gap-4">
+                        {selectedEvent && (
+                            <button
+                                onClick={() => setSelectedEvent(null)}
+                                className="p-2 -ml-2 text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 rounded-full transition-colors"
+                                title="Voltar para Eventos"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                            </button>
+                        )}
+                        <h3 className="text-2xl font-display font-bold text-primary-dark">
+                            {selectedEvent ? selectedEvent.name : 'Eventos'}
+                        </h3>
+                    </div>
                     <span className="text-sm text-neutral-500 italic">
                         {editable ? 'Modo de Gerenciamento' : 'Visualização Pública'}
                     </span>
                 </div>
 
-                {photos.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                        {photos.map(photo => (
-                            editable ? (
-                                // Editable CRUD Card
-                                <div key={photo.id} className="bg-white rounded-lg shadow-sm overflow-hidden border border-neutral-200 hover:shadow-md transition-all group">
-                                    <div className="relative h-48 overflow-hidden bg-neutral-100">
-                                        <img src={photo.preview_url} alt={photo.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                                        <div className="absolute top-2 right-2 flex flex-col items-end gap-1">
-                                            {getStatusChip(photo.moderation_status, photo.rejection_reason)}
-                                            <span className={`px-2 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full border shadow-sm ${photo.is_public ? 'bg-white text-green-700 border-green-200' : 'bg-neutral-100 text-neutral-500 border-neutral-200'}`}>
-                                                {photo.is_public ? 'Pública' : 'Privada'}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div className="p-4">
-                                        <h4 className="font-semibold text-neutral-900 truncate mb-1" title={photo.title}>{photo.title}</h4>
-                                        <p className="text-sm text-neutral-500 mb-4">R$ {photo.price.toFixed(2).replace('.', ',')}</p>
+                {!selectedEvent ? (
+                    // EVENTS GRID
+                    events.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {events.map(event => {
+                                const eventPhotos = photos.filter(p => p.event_id === event.id);
+                                const coverPhoto = eventPhotos[0];
 
-                                        <div className="flex gap-2 pt-2 border-t border-neutral-100">
-                                            <button
-                                                onClick={() => handleOpenModal(photo)}
-                                                className="flex-1 flex items-center justify-center px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors"
-                                            >
-                                                <span className="mr-1"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></span>
-                                                Editar
-                                            </button>
-                                            <button
-                                                onClick={() => handleDelete(photo)}
-                                                className="flex items-center justify-center px-3 py-2 text-red-600 bg-red-50 rounded-md hover:bg-red-100 transition-colors"
-                                                title="Excluir"
-                                            >
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-                                            </button>
+                                // Only show events with photos in public view, unless editable
+                                if (!editable && eventPhotos.length === 0) return null;
+
+                                return (
+                                    <div
+                                        key={event.id}
+                                        onClick={() => setSelectedEvent(event)}
+                                        className="bg-white rounded-xl shadow-sm border border-neutral-100 overflow-hidden hover:shadow-md transition-all cursor-pointer group"
+                                    >
+                                        <div className="h-48 bg-neutral-200 relative overflow-hidden">
+                                            {coverPhoto ? (
+                                                <img
+                                                    src={coverPhoto.preview_url}
+                                                    alt={event.name}
+                                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-neutral-400 bg-neutral-100">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                                                </div>
+                                            )}
+                                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>
+                                        </div>
+                                        <div className="p-5">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <h3 className="font-bold text-lg text-neutral-900 line-clamp-1">{event.name}</h3>
+                                                <span className="bg-neutral-100 text-neutral-600 text-xs px-2 py-1 rounded-full whitespace-nowrap font-medium">
+                                                    {eventPhotos.length} fotos
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center text-sm text-neutral-500 gap-4 mt-3">
+                                                <span className="flex items-center gap-1">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                                                    {new Date(event.event_date).toLocaleDateString()}
+                                                </span>
+                                                {event.location && (
+                                                    <span className="flex items-center gap-1">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                                                        {event.location}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            ) : (
-                                // Public View Card
-                                <PhotoCard
-                                    key={photo.id}
-                                    photo={photo}
-                                    photographer={displayUser}
-                                    onNavigate={onNavigate}
-                                    onAddToCart={onAddToCart}
-                                    currentUser={currentUser}
-                                />
-                            )
-                        ))}
-                    </div>
-                ) : (
-                    <div className="text-center py-16 bg-white rounded-lg border border-dashed border-neutral-300">
-                        <div className="inline-block p-4 rounded-full bg-neutral-100 mb-4">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-neutral-400"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                                );
+                            })}
                         </div>
-                        <h4 className="text-lg font-medium text-neutral-800">Nenhuma foto encontrada</h4>
-                        <p className="text-neutral-500 mt-2 max-w-md mx-auto">
-                            {editable
-                                ? "Você ainda não enviou nenhuma foto. Vá para a aba 'Portfólio' para adicionar."
-                                : "Suas fotos aparecerão aqui quando forem aprovadas pela moderação e marcadas como públicas."}
-                        </p>
-                    </div>
+                    ) : (
+                        <div className="text-center py-16 bg-white rounded-lg border border-dashed border-neutral-300">
+                            <div className="inline-block p-4 rounded-full bg-neutral-100 mb-4">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-neutral-400"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                            </div>
+                            <h4 className="text-lg font-medium text-neutral-800">Nenhum evento encontrado</h4>
+                            <p className="text-neutral-500 mt-2 max-w-md mx-auto">
+                                Este fotógrafo ainda não publicou nenhum evento.
+                            </p>
+                        </div>
+                    )
+                ) : (
+                    // PHOTOS GRID (Filtered by Event)
+                    photos.filter(p => p.event_id === selectedEvent.id).length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                            {photos.filter(p => p.event_id === selectedEvent.id).map(photo => (
+                                editable ? (
+                                    // Editable CRUD Card
+                                    <div key={photo.id} className="bg-white rounded-lg shadow-sm overflow-hidden border border-neutral-200 hover:shadow-md transition-all group">
+                                        <div className="relative h-48 overflow-hidden bg-neutral-100">
+                                            <img src={photo.preview_url} alt={photo.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                                            <div className="absolute top-2 right-2 flex flex-col items-end gap-1">
+                                                {getStatusChip(photo.moderation_status, photo.rejection_reason)}
+                                                <span className={`px-2 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full border shadow-sm ${photo.is_public ? 'bg-white text-green-700 border-green-200' : 'bg-neutral-100 text-neutral-500 border-neutral-200'}`}>
+                                                    {photo.is_public ? 'Pública' : 'Privada'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="p-4">
+                                            <h4 className="font-semibold text-neutral-900 truncate mb-1" title={photo.title}>{photo.title}</h4>
+                                            <p className="text-sm text-neutral-500 mb-4">R$ {photo.price.toFixed(2).replace('.', ',')}</p>
+
+                                            <div className="flex gap-2 pt-2 border-t border-neutral-100">
+                                                <button
+                                                    onClick={() => handleOpenModal(photo)}
+                                                    className="flex-1 flex items-center justify-center px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors"
+                                                >
+                                                    <span className="mr-1"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></span>
+                                                    Editar
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDelete(photo)}
+                                                    className="flex items-center justify-center px-3 py-2 text-red-600 bg-red-50 rounded-md hover:bg-red-100 transition-colors"
+                                                    title="Excluir"
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    // Public View Card
+                                    <PhotoCard
+                                        key={photo.id}
+                                        photo={photo}
+                                        photographer={displayUser}
+                                        onNavigate={onNavigate}
+                                        onAddToCart={onAddToCart}
+                                        currentUser={currentUser}
+                                    />
+                                )
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="text-center py-16 bg-white rounded-lg border border-dashed border-neutral-300">
+                            <div className="inline-block p-4 rounded-full bg-neutral-100 mb-4">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-neutral-400"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                            </div>
+                            <h4 className="text-lg font-medium text-neutral-800">Nenhuma foto encontrada neste evento</h4>
+                            <p className="text-neutral-500 mt-2 max-w-md mx-auto">
+                                Não há fotos para exibir aqui no momento.
+                            </p>
+                        </div>
+                    )
                 )}
             </div>
 

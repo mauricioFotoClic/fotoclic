@@ -58,8 +58,9 @@ const App: React.FC = () => {
     // Animation State
     const [flyingImage, setFlyingImage] = useState<FlyingImage | null>(null);
 
-    // Initialize cart from localStorage on mount (Client/Guest Cart)
+    // Initialize cart from localStorage and Restore Session on mount
     useEffect(() => {
+        // 1. Cart
         const savedCart = localStorage.getItem('cartItems');
         if (savedCart) {
             try {
@@ -68,6 +69,20 @@ const App: React.FC = () => {
                 console.error("Failed to parse cart from localStorage", e);
             }
         }
+
+        // 2. Auth Session
+        const restoreSession = async () => {
+            try {
+                const user = await api.getCurrentUser();
+                if (user) {
+                    console.log("Session restored for:", user.email);
+                    setCurrentUser(user);
+                }
+            } catch (error) {
+                console.warn("Failed to restore session:", error);
+            }
+        };
+        restoreSession();
     }, []);
 
     // Handle URL routing on initial load
@@ -382,6 +397,7 @@ const App: React.FC = () => {
                     onClose={() => setIsRegisterModalOpen(false)}
                     onLoginSuccess={handleLoginSuccess}
                     onNavigate={handleNavigate}
+                    onShowToast={showToast}
                 />
             )}
             {isFaceSearchModalOpen && (

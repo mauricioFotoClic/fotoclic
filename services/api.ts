@@ -1,5 +1,5 @@
 
-import { User, Photo, Category, UserRole, PhotographerWithStats, Sale, Payout, PhotographerBalance, CommissionSettings, EmailTemplates, Coupon, PhotoQualityAnalysis, PurchasedPhoto, AbandonedCart, BulkDiscountRule, BankInfo, PayoutStatus, Review } from '../types';
+import { User, Photo, Category, UserRole, PhotographerWithStats, Sale, Payout, PhotographerBalance, CommissionSettings, EmailTemplates, Coupon, PhotoQualityAnalysis, PurchasedPhoto, AbandonedCart, BulkDiscountRule, BankInfo, PayoutStatus, Review, PhotoEvent, RegisterResponse } from '../types';
 import { supabase } from './supabaseClient';
 import bcrypt from 'bcryptjs';
 
@@ -20,6 +20,7 @@ const mapUser = (dbUser: any): User => {
     is_active: dbUser.is_active,
     bulkDiscountRules: dbUser.bulk_discount_rules || [],
     bank_info: dbUser.bank_info || undefined,
+    liability_waiver_accepted_at: dbUser.liability_waiver_accepted_at,
   };
 };
 
@@ -53,7 +54,8 @@ const mapPhoto = (dbPhoto: any): Photo => {
     likes: dbPhoto.likes_count || 0,
     liked_by_users: likedByUsers,
     quality_analysis: dbPhoto.quality_analysis || undefined,
-    is_face_indexed: dbPhoto.is_face_indexed
+    is_face_indexed: dbPhoto.is_face_indexed,
+    event_id: dbPhoto.event_id
   };
 };
 
@@ -115,8 +117,7 @@ export const api = {
       return [];
     }
     if (!data || data.length === 0) return [];
-    const shuffledData = shuffleArray(data);
-    return shuffledData.slice(0, limit).map(mapPhoto);
+    return data.slice(0, limit).map(mapPhoto);
   },
 
   getPhotosByCategoryId: async (categoryId: string, shuffle: boolean = false): Promise<Photo[]> => {
@@ -169,7 +170,9 @@ export const api = {
   },
 
   createPhoto: async (data: any): Promise<Photo> => {
-    const { data: newPhoto, error } = await supabase.from('photos').insert(data).select().single();
+    // Force approved status as per new requirement (No Moderation)
+    const photoData = { ...data, moderation_status: 'approved' };
+    const { data: newPhoto, error } = await supabase.from('photos').insert(photoData).select().single();
     if (error) throw error;
     return mapPhoto(newPhoto);
   },
@@ -595,6 +598,78 @@ export const api = {
     return validUsers.slice(0, 10);
   },
 
+  // --- EVENTS ---
+  createEvent: async (eventData: Omit<PhotoEvent, 'id' | 'created_at'>): Promise<PhotoEvent> => {
+    // Force usage of the currently authenticated user's ID for RLS compliance
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+    if (!user) {
+      console.error("Auth Error details:", userError);
+      const { data: { session } } = await supabase.auth.getSession();
+      console.error("Fallback Session check:", session);
+      throw new Error(`Sessão inválida (User: ${userError?.message || 'null'}, Session: ${session ? 'exists' : 'null'}). Recarregue a página.`);
+    }
+
+    const finalEventData = {
+      ...eventData,
+      photographer_id: user.id
+    };
+
+    const { data, error } = await supabase
+      .from('events')
+      .insert(finalEventData)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error creating event:", error);
+      throw error;
+    }
+    return data as PhotoEvent;
+  },
+
+  getPhotographerEvents: async (photographerId: string): Promise<PhotoEvent[]> => {
+    const { data, error } = await supabase
+      .from('events')
+      .select('*')
+      .eq('photographer_id', photographerId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error("Error fetching events:", error);
+      return [];
+    }
+    return data as PhotoEvent[];
+  },
+
+  deleteEvent: async (id: string): Promise<boolean> => {
+    const { error } = await supabase
+      .from('events')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error("Error deleting event:", error);
+      return false;
+    }
+    return true;
+  },
+
+  updateEvent: async (id: string, updates: Partial<PhotoEvent>): Promise<PhotoEvent | null> => {
+    const { data, error } = await supabase
+      .from('events')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error updating event:", error);
+      return null;
+    }
+    return data as PhotoEvent;
+  },
+
   createReview: async (review: Omit<Review, 'id' | 'created_at'>): Promise<Review | null> => {
     const { data, error } = await supabase
       .from('reviews')
@@ -752,87 +827,82 @@ export const api = {
     return { success: true };
   },
 
+  getCurrentUser: async (): Promise<User | null> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+
+    const { data: userProfile } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+
+    if (!userProfile) return null;
+    return mapUser(userProfile);
+  },
+
   login: async (email: string, password?: string): Promise<User | undefined> => {
-    const { data, error } = await supabase.from('users').select('*').ilike('email', email).single();
-    if (error && error.code !== 'PGRST116') throw error;
+    if (!password) return undefined;
 
-    if (!data) return undefined;
+    // 1. Authenticate with Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
 
-    // Password Check
-    if (password && data.password) {
-      let match = false;
-      const isHashed = data.password.startsWith('$2');
+    if (authError) {
+      console.error("Auth Login Failed:", authError);
 
-      if (isHashed) {
-        match = await bcrypt.compare(password, data.password);
-      } else {
-        // Fallback or Legacy Plain Text
-        match = data.password === password;
-
-        // If matched and was plain text, migrate to hash immediately
-        if (match) {
-          console.log("Migrating user password to hash...");
-          const hashedPassword = await bcrypt.hash(password, 10);
-          await supabase.from('users').update({ password: hashedPassword }).eq('id', data.id);
+      if (authError.message === "Invalid login credentials") {
+        // Check if it's a legacy user (exists in DB but not in Auth)
+        const { data: legacyUser } = await supabase.from('users').select('id').eq('email', email).single();
+        if (legacyUser) {
+          throw new Error("Sistema de segurança atualizado. Por favor, CRIE UMA NOVA CONTA (Registre-se novamente) para sincronizar seu acesso.");
         }
+        throw new Error("Email ou senha incorretos.");
       }
 
-      if (!match) return undefined;
+      throw new Error(`Erro de autenticação: ${authError.message}`);
     }
 
-    // If user has a password but none provided, fail
-    if (data.password && !password) {
-      return undefined;
+    if (!authData.user) return undefined;
+
+    // 2. Fetch User Profile
+    const { data: userProfile, error: profileError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', authData.user.id)
+      .single();
+
+    if (profileError) {
+      console.error("Profile Fetch Error:", profileError);
+      throw new Error("Usuário autenticado, mas perfil não encontrado.");
     }
 
     // Check if user is active
-    if (data.role === 'photographer' && !data.is_active) {
-      return undefined;
+    if (userProfile.role === 'photographer' && !userProfile.is_active) {
+      throw new Error("Sua conta de fotógrafo ainda não está ativa.");
     }
 
-    return mapUser(data);
+    return mapUser(userProfile);
   },
   requestPasswordReset: async (email: string): Promise<boolean> => {
     try {
-      // 1. Check if user exists
-      const { data: user, error } = await supabase
-        .from('users')
-        .select('id, name')
-        .ilike('email', email)
-        .single();
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
 
-      if (error || !user) {
-        console.error('User not found for recovery:', email);
-        return false;
+      if (error) {
+        console.error("Supabase Reset Error:", error);
+        throw error;
       }
 
-      // 2. Generate Token
-      const token = crypto.randomUUID();
-      const expiresAt = new Date(Date.now() + 3600000).toISOString(); // 1 hour
+      return true;
 
-      // 3. Store Token in DB
-      const { error: tokenError } = await supabase
-        .from('password_reset_tokens')
-        .insert({
-          user_id: user.id,
-          token: token,
-          expires_at: expiresAt
-        });
-
-      if (tokenError) {
-        console.error('Error creating reset token:', tokenError);
-        return false;
-      }
-
-      // 4. Send Email with Link
-      const { emailService } = await import('./emailService');
-      const resetLink = `${window.location.origin}/reset-password?token=${token}`;
-
-      return await emailService.sendPasswordResetEmail(email, user.name, resetLink);
-
-    } catch (error) {
-      console.error('Error in resetPassword:', error);
-      return false;
+    } catch (error: any) {
+      console.error('Error in requestPasswordReset:', error);
+      // Re-throw to let the UI show the message
+      throw new Error(error.message || "Falha ao enviar e-mail de recuperação.");
     }
   },
 
@@ -886,29 +956,61 @@ export const api = {
       return false;
     }
   },
-  register: async (data: { name: string, email: string, role: UserRole, password?: string }): Promise<User | undefined> => {
-    // Photographers start as inactive (pending approval), Customers start as active
+  register: async (data: { name: string, email: string, role: UserRole, password?: string }): Promise<RegisterResponse | undefined> => {
+    // 1. Create Auth User
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email: data.email,
+      password: data.password || 'temp-pass-123', // Handle nullable password edge case
+    });
+
+    if (authError) throw authError;
+    if (!authData.user) throw new Error("Falha ao criar usuário de autenticação.");
+
+    // 2. Create Public Profile with SAME ID
     const userData: any = {
+      id: authData.user.id, // CRITICAL: Sync IDs
       ...data,
-      is_active: data.role !== UserRole.PHOTOGRAPHER
+      is_active: true
     };
 
+    // Store hash solely for legacy compatibility / redundancy, or remove if column allows null.
+    // Assuming we stick to the existing schema:
     if (data.password) {
       userData.password = await bcrypt.hash(data.password, 10);
     }
 
     const { data: newUser, error } = await supabase.from('users').insert(userData).select().single();
-    if (error) throw error;
+
+    if (error) {
+      // If DB insert fails, we should probably cleanup the Auth user? 
+      // For now just throw.
+      throw error;
+    }
 
     // Send notification email if the new user is a photographer
     if (data.role === UserRole.PHOTOGRAPHER) {
-      // We don't await this to avoid blocking the UI response
       import('./emailService').then(({ emailService }) => {
         emailService.sendNewPhotographerNotification(data.name, data.email);
       });
     }
 
-    return mapUser(newUser);
+    return {
+      user: mapUser(newUser),
+      session: authData.session
+    };
+  },
+
+  updateUserLiabilityWaiver: async (userId: string): Promise<boolean> => {
+    const { error } = await supabase
+      .from('users')
+      .update({ liability_waiver_accepted_at: new Date().toISOString() })
+      .eq('id', userId);
+
+    if (error) {
+      console.error("Error updating liability waiver:", error);
+      return false;
+    }
+    return true;
   },
 
   purchasePhoto: async (photoId: string, userId: string = 'guest-id', paidPrice?: number): Promise<{ success: boolean, error?: string }> => {

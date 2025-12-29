@@ -7,11 +7,12 @@ import Spinner from '../Spinner';
 interface PhotographerProfileProps {
     user: User;
     onProfileUpdate?: () => void;
+    showToast?: (message: string, type?: 'success' | 'error' | 'info') => void;
 }
 
 type FormData = Partial<Omit<User, 'id' | 'role' | 'is_active' | 'email'>>;
 
-const PhotographerProfile: React.FC<PhotographerProfileProps> = ({ user, onProfileUpdate }) => {
+const PhotographerProfile: React.FC<PhotographerProfileProps> = ({ user, onProfileUpdate, showToast }) => {
     const [formData, setFormData] = useState<FormData>({});
     const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
     const [bannerPreview, setBannerPreview] = useState<string | null>(null);
@@ -101,24 +102,24 @@ const PhotographerProfile: React.FC<PhotographerProfileProps> = ({ user, onProfi
                 // Calculate logic to mimic object-fit: cover
                 const scale = Math.max(size / img.width, size / img.height) * cropZoom;
                 const x = (size / 2) - (img.width / 2) * scale;
-                
+
                 // Calculate Y based on percentage (0% = top, 50% = center, 100% = bottom)
                 // We need to calculate the total vertical space we can move
                 const scaledHeight = img.height * scale;
                 const hiddenHeight = scaledHeight - size;
                 // If cropY is 0, we want y = 0 (align top) IF zoom is high enough? 
                 // Actually, let's align closely to CSS object-position: 50% Y%
-                
+
                 // Simplified approach: Center the image, then offset by the slider difference
                 // Center Y would be: (size - scaledHeight) / 2
                 // The slider goes from 0 to 100. 50 is center.
                 // Let's map 0..100 to the range of movement.
-                
+
                 const centerY = (size - scaledHeight) / 2;
                 // Move relative to center. 
                 // If cropY = 0 (Top), y should be 0.
                 // If cropY = 100 (Bottom), y should be size - scaledHeight.
-                
+
                 // Let's trust the standard math:
                 // Destination Y = (CanvasHeight - ScaledImageHeight) * (PositionPercentage / 100)
                 const y = (size - scaledHeight) * (cropY / 100);
@@ -153,10 +154,18 @@ const PhotographerProfile: React.FC<PhotographerProfileProps> = ({ user, onProfi
             if (onProfileUpdate) {
                 onProfileUpdate();
             }
-            alert('Perfil atualizado com sucesso!');
+            if (showToast) {
+                showToast('Perfil atualizado com sucesso!', 'success');
+            } else {
+                alert('Perfil atualizado com sucesso!');
+            }
         } catch (error) {
             console.error("Failed to update profile", error);
-            alert('Ocorreu um erro ao atualizar o perfil.');
+            if (showToast) {
+                showToast('Ocorreu um erro ao atualizar o perfil.', 'error');
+            } else {
+                alert('Ocorreu um erro ao atualizar o perfil.');
+            }
         } finally {
             setSaving(false);
         }
@@ -169,31 +178,31 @@ const PhotographerProfile: React.FC<PhotographerProfileProps> = ({ user, onProfi
     return (
         <div>
             <h1 className="text-3xl font-display font-bold text-primary-dark mb-6">Meu Perfil</h1>
-            
+
             <div className="bg-white rounded-lg shadow-md p-6">
                 <form onSubmit={handleSubmit} className="space-y-6 max-w-3xl">
                     {/* Imagens */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-                         <div className="flex flex-col items-center">
+                        <div className="flex flex-col items-center">
                             <label className="block text-sm font-medium text-neutral-700 mb-2">Foto de Perfil</label>
                             <div className="relative group">
                                 {avatarPreview ? (
-                                    <img src={avatarPreview} alt="Avatar" className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-sm"/>
+                                    <img src={avatarPreview} alt="Avatar" className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-sm" />
                                 ) : (
                                     <div className="w-32 h-32 rounded-full bg-neutral-100 flex items-center justify-center text-neutral-400">
-                                         <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
                                     </div>
                                 )}
                                 <label htmlFor="avatar-upload" className="absolute bottom-0 right-0 bg-secondary text-white p-2 rounded-full cursor-pointer shadow-md hover:bg-opacity-90 transition-colors">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                                 </label>
-                                <input 
-                                    type="file" 
-                                    id="avatar-upload" 
-                                    className="hidden" 
-                                    accept="image/*" 
+                                <input
+                                    type="file"
+                                    id="avatar-upload"
+                                    className="hidden"
+                                    accept="image/*"
                                     onChange={(e) => handleFileChange(e, 'avatar')}
-                                    ref={fileInputRef} 
+                                    ref={fileInputRef}
                                 />
                             </div>
                         </div>
@@ -201,11 +210,11 @@ const PhotographerProfile: React.FC<PhotographerProfileProps> = ({ user, onProfi
                         <div className="flex flex-col">
                             <label className="block text-sm font-medium text-neutral-700 mb-2">Banner do Perfil</label>
                             <div className="relative group w-full h-32 rounded-lg overflow-hidden bg-neutral-100 border border-neutral-200">
-                                 {bannerPreview ? (
-                                    <img src={bannerPreview} alt="Banner" className="w-full h-full object-cover"/>
+                                {bannerPreview ? (
+                                    <img src={bannerPreview} alt="Banner" className="w-full h-full object-cover" />
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center text-neutral-400">
-                                       <span>Sem banner</span>
+                                        <span>Sem banner</span>
                                     </div>
                                 )}
                                 <label htmlFor="banner-upload" className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-0 group-hover:bg-opacity-30 cursor-pointer transition-all opacity-0 group-hover:opacity-100">
@@ -216,25 +225,25 @@ const PhotographerProfile: React.FC<PhotographerProfileProps> = ({ user, onProfi
                             <p className="text-xs text-neutral-500 mt-2">Recomendado: 1500x400px.</p>
                         </div>
                     </div>
-                    
+
                     {/* Campos de Texto */}
                     <div className="space-y-4">
                         <div>
                             <label htmlFor="name" className="block text-sm font-medium text-neutral-700 mb-1">Nome de Exibição</label>
                             <input id="name" name="name" type="text" value={formData.name || ''} onChange={handleChange} className={inputClass} />
                         </div>
-                        
+
                         <div>
                             <label htmlFor="bio" className="block text-sm font-medium text-neutral-700 mb-1">Biografia</label>
                             <textarea id="bio" name="bio" value={formData.bio || ''} onChange={handleChange} className={inputClass} rows={4} placeholder="Conte um pouco sobre você e seu estilo fotográfico..."></textarea>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                             <div>
+                            <div>
                                 <label htmlFor="location" className="block text-sm font-medium text-neutral-700 mb-1">Localização</label>
                                 <input id="location" name="location" type="text" value={formData.location || ''} onChange={handleChange} className={inputClass} placeholder="Ex: São Paulo, Brasil" />
                             </div>
-                             <div>
+                            <div>
                                 <label htmlFor="social_instagram" className="block text-sm font-medium text-neutral-700 mb-1">Instagram (usuário)</label>
                                 <div className="relative">
                                     <span className="absolute inset-y-0 left-3 flex items-center text-neutral-500">@</span>
@@ -245,8 +254,8 @@ const PhotographerProfile: React.FC<PhotographerProfileProps> = ({ user, onProfi
                     </div>
 
                     <div className="pt-4 border-t flex justify-end">
-                        <button 
-                            type="submit" 
+                        <button
+                            type="submit"
                             disabled={saving}
                             className="px-6 py-2 text-sm font-medium text-white bg-secondary rounded-full hover:bg-opacity-90 transition-colors disabled:bg-neutral-400"
                         >
@@ -261,12 +270,12 @@ const PhotographerProfile: React.FC<PhotographerProfileProps> = ({ user, onProfi
                 <div className="fixed inset-0 bg-black/80 z-50 flex justify-center items-center p-4">
                     <div className="bg-white rounded-lg shadow-2xl w-full max-w-md p-6 flex flex-col items-center">
                         <h3 className="text-lg font-display font-bold text-primary-dark mb-4">Ajustar Foto de Perfil</h3>
-                        
+
                         <div className="relative w-64 h-64 rounded-full overflow-hidden border-4 border-neutral-200 shadow-inner mb-6 bg-neutral-100">
                             {tempAvatarSrc && (
-                                <img 
-                                    src={tempAvatarSrc} 
-                                    alt="Preview" 
+                                <img
+                                    src={tempAvatarSrc}
+                                    alt="Preview"
                                     className="w-full h-full object-cover"
                                     style={{
                                         transform: `scale(${cropZoom})`,
@@ -283,11 +292,11 @@ const PhotographerProfile: React.FC<PhotographerProfileProps> = ({ user, onProfi
                                     <span>Zoom</span>
                                     <span>{cropZoom.toFixed(1)}x</span>
                                 </div>
-                                <input 
-                                    type="range" 
-                                    min="1" 
-                                    max="3" 
-                                    step="0.1" 
+                                <input
+                                    type="range"
+                                    min="1"
+                                    max="3"
+                                    step="0.1"
                                     value={cropZoom}
                                     onChange={(e) => setCropZoom(parseFloat(e.target.value))}
                                     className="w-full h-2 bg-neutral-200 rounded-lg appearance-none cursor-pointer accent-secondary"
@@ -298,11 +307,11 @@ const PhotographerProfile: React.FC<PhotographerProfileProps> = ({ user, onProfi
                                     <span>Posição Vertical</span>
                                     <span>{cropY === 0 ? 'Topo' : cropY === 100 ? 'Fundo' : 'Centro'}</span>
                                 </div>
-                                <input 
-                                    type="range" 
-                                    min="0" 
-                                    max="100" 
-                                    step="1" 
+                                <input
+                                    type="range"
+                                    min="0"
+                                    max="100"
+                                    step="1"
                                     value={cropY}
                                     onChange={(e) => setCropY(parseInt(e.target.value))}
                                     className="w-full h-2 bg-neutral-200 rounded-lg appearance-none cursor-pointer accent-secondary"
@@ -311,13 +320,13 @@ const PhotographerProfile: React.FC<PhotographerProfileProps> = ({ user, onProfi
                         </div>
 
                         <div className="flex space-x-3 w-full">
-                            <button 
+                            <button
                                 onClick={handleCancelCrop}
                                 className="flex-1 px-4 py-2 text-sm font-medium text-neutral-700 bg-neutral-100 border border-neutral-200 rounded-full hover:bg-neutral-200 transition-colors"
                             >
                                 Cancelar
                             </button>
-                            <button 
+                            <button
                                 onClick={handleConfirmCrop}
                                 className="flex-1 px-4 py-2 text-sm font-medium text-white bg-primary rounded-full hover:bg-opacity-90 transition-colors"
                             >

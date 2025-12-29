@@ -129,12 +129,12 @@ const PhotographerSidebar: React.FC<PhotographerSidebarProps> = ({ user, activeV
                     <nav className="px-2 pb-4">
                         <SectionLabel label="Principal" />
                         <NavLink label="Visão Geral" isActive={activeView === 'dashboard'} onClick={() => { setView('dashboard'); onClose(); }} icon={<HomeIcon />} />
-                        <NavLink label="Portfólio" isActive={activeView === 'photos'} onClick={() => { setView('photos'); onClose(); }} icon={<ImageIcon />} badge="NOVO" />
+                        <NavLink label="Minhas Fotos" isActive={activeView === 'photos'} onClick={() => { setView('photos'); onClose(); }} icon={<ImageIcon />} />
                         <NavLink label="Ver Meu Portfólio" isActive={activeView === 'portfolio-preview'} onClick={() => { setView('portfolio-preview'); onClose(); }} icon={<EyeIcon />} />
 
                         <SectionLabel label="Financeiro" />
                         <NavLink label="Vendas Realizadas" isActive={activeView === 'sales'} onClick={() => { setView('sales'); onClose(); }} icon={<DollarSignIcon />} />
-                        <NavLink label="Carrinhos Abandonados" isActive={activeView === 'abandoned-carts'} onClick={() => { setView('abandoned-carts'); onClose(); }} icon={<CartIcon />} badge="NEW" />
+                        <NavLink label="Carrinhos Abandonados" isActive={activeView === 'abandoned-carts'} onClick={() => { setView('abandoned-carts'); onClose(); }} icon={<CartIcon />} />
                         <NavLink label="Central Financeira" isActive={activeView === 'payouts'} onClick={() => { setView('payouts'); onClose(); }} icon={<ChartIcon />} />
 
                         <SectionLabel label="Marketing" />

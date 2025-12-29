@@ -34,11 +34,10 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess
             if (user) {
                 onLoginSuccess(user);
                 onClose();
-            } else {
-                setError('E-mail não encontrado ou senha inválida.');
             }
-        } catch (err) {
-            setError('Ocorreu um erro ao tentar entrar. Tente novamente.');
+        } catch (err: any) {
+            console.error("Login failed:", err);
+            setError(err.message || 'Ocorreu um erro ao tentar entrar. Tente novamente.');
         } finally {
             setLoading(false);
         }
@@ -60,11 +59,9 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess
             const success = await api.requestPasswordReset(email);
             if (success) {
                 setSuccessMessage('E-mail de recuperação enviado! Verifique sua caixa de entrada.');
-            } else {
-                setError('Erro ao enviar e-mail. Verifique se o endereço está correto.');
             }
-        } catch (err) {
-            setError('Ocorreu um erro. Tente novamente mais tarde.');
+        } catch (err: any) {
+            setError(err.message || 'Ocorreu um erro. Tente novamente mais tarde.');
         } finally {
             setLoading(false);
         }

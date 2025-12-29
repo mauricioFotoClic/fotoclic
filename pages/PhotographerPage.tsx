@@ -62,7 +62,7 @@ const PhotographerPage: React.FC<PhotographerPageProps> = ({ user: initialUser, 
             case 'payouts':
                 return <PhotographerPayouts user={currentUser} />;
             case 'profile':
-                return <PhotographerProfile user={currentUser} onProfileUpdate={handleRefreshUser} />;
+                return <PhotographerProfile user={currentUser} onProfileUpdate={handleRefreshUser} showToast={showToast} />;
             case 'portfolio-preview':
                 return <PhotographerPortfolioPreview user={currentUser} onNavigate={onNavigate} editable={true} />;
             case 'coupons':
