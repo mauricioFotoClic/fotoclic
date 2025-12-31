@@ -91,7 +91,7 @@ export const api = {
     const limit = shuffle ? 100 : 500; // Increase limit for admin view
     const { data, error } = await supabase
       .from('photos')
-      .select('id, photographer_id, category_id, title, preview_url, price, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags')
+      .select('id, photographer_id, category_id, title, preview_url, price, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags, event_id')
       .order('created_at', { ascending: false })
       .limit(limit);
     if (error) {
@@ -178,7 +178,9 @@ export const api = {
   },
 
   updatePhoto: async (id: string, data: any): Promise<Photo | undefined> => {
-    const { data: updatedPhoto, error } = await supabase.from('photos').update(data).eq('id', id).select().single();
+    // Remove computed fields that are not columns in the database
+    const { likes, liked_by_users, ...dbData } = data;
+    const { data: updatedPhoto, error } = await supabase.from('photos').update(dbData).eq('id', id).select().single();
     if (error) throw error;
     return mapPhoto(updatedPhoto);
   },

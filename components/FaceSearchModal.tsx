@@ -31,6 +31,8 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({ isOpen, onClose, onNa
 
     if (!isOpen) return null;
 
+
+
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
@@ -41,6 +43,62 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({ isOpen, onClose, onNa
                 setHasSearched(false);
             };
             reader.readAsDataURL(file);
+        }
+    };
+
+    // Camera State
+    const [isCameraOpen, setIsCameraOpen] = useState(false);
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const streamRef = useRef<MediaStream | null>(null);
+
+    useEffect(() => {
+        return () => {
+            // Cleanup stream on unmount
+            stopCamera();
+        }
+    }, []);
+
+    const startCamera = async () => {
+        try {
+            setIsCameraOpen(true);
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+            streamRef.current = stream;
+            if (videoRef.current) {
+                videoRef.current.srcObject = stream;
+            }
+        } catch (err) {
+            console.error("Error accessing camera:", err);
+            onShowToast("Não foi possível acessar a câmera. Verifique as permissões.", 'error');
+            setIsCameraOpen(false);
+        }
+    };
+
+    const stopCamera = () => {
+        if (streamRef.current) {
+            streamRef.current.getTracks().forEach(track => track.stop());
+            streamRef.current = null;
+        }
+        setIsCameraOpen(false);
+    };
+
+    const capturePhoto = () => {
+        if (videoRef.current) {
+            const canvas = document.createElement('canvas');
+            canvas.width = videoRef.current.videoWidth;
+            canvas.height = videoRef.current.videoHeight;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+                // Flip horizontally if it's a selfie to match mirror effect usually expect
+                ctx.translate(canvas.width, 0);
+                ctx.scale(-1, 1);
+                ctx.drawImage(videoRef.current, 0, 0);
+
+                const dataUrl = canvas.toDataURL('image/jpeg');
+                setSelectedImage(dataUrl);
+                setResults([]);
+                setHasSearched(false);
+                stopCamera();
+            }
         }
     };
 
@@ -57,8 +115,15 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({ isOpen, onClose, onNa
             img.src = selectedImage;
             await new Promise((resolve) => { img.onload = resolve; });
 
+            // Unblock UI to let spinner render
+            await new Promise(resolve => setTimeout(resolve, 100));
+
             // 1. Get descriptor
-            const descriptor = await faceRecognitionService.getFaceDescriptor(img);
+            const descriptor = await faceRecognitionService.getFaceDescriptor(img, (status) => {
+                // Show status in UI via toast or other method
+                console.log(status);
+                onShowToast(status, 'info'); // User wants feedback if it's slow
+            });
 
             if (!descriptor) {
                 onShowToast("Nenhum rosto detectado na imagem. Tente outra foto.", 'error');
@@ -67,7 +132,10 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({ isOpen, onClose, onNa
             }
 
             // 2. Search matches
-            const matchedIds = await faceRecognitionService.searchMatches(descriptor);
+            const matches = await faceRecognitionService.searchMatches(descriptor);
+            const matchedIds = matches.map(m => m.id);
+
+            console.log("Valid Matches after Filter:", matches);
 
             const endTime = performance.now();
             const duration = ((endTime - startTime) / 1000).toFixed(1);
@@ -120,6 +188,33 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({ isOpen, onClose, onNa
 
                 {/* Main Content Area - Scrollable */}
                 <div className="flex-1 overflow-y-auto bg-neutral-50/50 relative">
+                    {/* CAMERA OVERLAY */}
+                    {isCameraOpen && (
+                        <div className="absolute inset-0 z-30 bg-black flex flex-col items-center justify-center">
+                            <video
+                                ref={videoRef}
+                                autoPlay
+                                playsInline
+                                muted
+                                className="w-full h-full object-cover md:object-contain transform -scale-x-100"
+                            />
+                            <div className="absolute bottom-8 flex gap-4">
+                                <button
+                                    onClick={stopCamera}
+                                    className="px-6 py-3 rounded-full bg-white/20 backdrop-blur text-white font-medium hover:bg-white/30 transition-all"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={capturePhoto}
+                                    className="w-16 h-16 rounded-full border-4 border-white flex items-center justify-center bg-transparent hover:bg-white/20 transition-all"
+                                >
+                                    <div className="w-12 h-12 bg-white rounded-full"></div>
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
                     <div className="min-h-full p-4 md:p-8 flex flex-col">
 
                         {/* State 1: Results Display (When searched) */}
@@ -211,7 +306,7 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({ isOpen, onClose, onNa
 
                                     <div className="grid grid-cols-2 gap-4 mb-6">
                                         <div
-                                            onClick={() => cameraInputRef.current?.click()}
+                                            onClick={startCamera}
                                             className="border-2 border-dashed border-neutral-200 hover:border-blue-400 hover:bg-blue-50/50 rounded-2xl p-6 cursor-pointer transition-all duration-300 group flex flex-col items-center justify-center text-center h-48"
                                         >
                                             <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform text-blue-600">
@@ -248,13 +343,14 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({ isOpen, onClose, onNa
                                         <button
                                             onClick={handleSearch}
                                             disabled={!selectedImage || isProcessing}
-                                            className="w-full py-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-lg shadow-lg hover:shadow-blue-500/40 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-95 flex items-center justify-center gap-3"
+                                            className="w-full py-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-lg shadow-lg hover:shadow-blue-500/40 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-95 flex items-center justify-center gap-3 relative overflow-hidden"
                                         >
+                                            {/* Standard Spinner inside button */}
                                             {isProcessing ? (
-                                                <>
-                                                    <Spinner size="sm" color="white" />
-                                                    <span>Processando IA...</span>
-                                                </>
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                                    <span>Processando...</span>
+                                                </div>
                                             ) : (
                                                 <>
                                                     <Search size={22} />
@@ -264,6 +360,16 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({ isOpen, onClose, onNa
                                         </button>
                                     </div>
                                 </div>
+
+                                {/* Full Modal Spinner Overlay */}
+                                {isProcessing && (
+                                    <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center animate-in fade-in duration-200">
+                                        <div className="w-16 h-16 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin mb-4 shadow-lg"></div>
+                                        <p className="text-lg font-semibold text-neutral-800 animate-pulse">Buscando você...</p>
+                                        <p className="text-sm text-neutral-500">Isso leva apenas alguns segundos</p>
+                                    </div>
+                                )}
+
                                 <div className="mt-6 text-center">
                                     <p className="text-xs text-neutral-400 flex items-center justify-center gap-1">
                                         <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
@@ -275,19 +381,13 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({ isOpen, onClose, onNa
                     </div>
                 </div>
 
+
+
                 <input
                     type="file"
                     ref={fileInputRef}
                     className="hidden"
                     accept="image/*"
-                    onChange={handleFileChange}
-                />
-                <input
-                    type="file"
-                    ref={cameraInputRef}
-                    className="hidden"
-                    accept="image/*"
-                    capture="user"
                     onChange={handleFileChange}
                 />
             </div>

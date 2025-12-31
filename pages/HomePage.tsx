@@ -34,11 +34,8 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
         ]);
 
 
-        // Try fallback if featured photos are empty
-        let finalFeatured = featuredPhotos;
-        if (finalFeatured.length === 0 && recent.length > 0) {
-          finalFeatured = recent.slice(0, 5);
-        }
+        // No fallback - strictly show only admin-featured photos
+        const finalFeatured = featuredPhotos;
 
         // Randomize the featured photos for hero section variety
         const shuffledFeatured = [...finalFeatured].sort(() => 0.5 - Math.random());

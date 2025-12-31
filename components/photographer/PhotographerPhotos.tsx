@@ -206,6 +206,16 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user }) => {
                     });
 
                     if (newPhoto) {
+                        // AUTOMATIC INDEXING:
+                        try {
+                            // We reuse the 'img' object which is already loaded
+                            await faceRecognitionService.indexPhoto(newPhoto.id, img);
+                            console.log(`Face indexed for photo ${newPhoto.id}`);
+                        } catch (indexError) {
+                            console.error(`Failed to index face for photo ${newPhoto.id}`, indexError);
+                            // We don't fail the whole upload if indexing fails, but we log it
+                        }
+
                         setPhotos(prev => [newPhoto, ...prev]);
                         successCount++;
                     }
@@ -408,8 +418,12 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user }) => {
                                         onClick={() => { setSelectedEvent(event); setView('photos'); }}
                                     >
                                         <div className="h-40 bg-neutral-200 relative">
-                                            {eventPhotos.length > 0 ? (
-                                                <img src={eventPhotos[0].preview_url} alt="Capa" className="w-full h-full object-cover" />
+                                            {event.cover_photo_url || eventPhotos.length > 0 ? (
+                                                <img
+                                                    src={event.cover_photo_url || eventPhotos[0].preview_url}
+                                                    alt="Capa"
+                                                    className="w-full h-full object-cover"
+                                                />
                                             ) : (
                                                 <div className="w-full h-full flex items-center justify-center text-neutral-400">
                                                     <FolderIcon />

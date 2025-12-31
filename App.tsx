@@ -83,6 +83,23 @@ const App: React.FC = () => {
             }
         };
         restoreSession();
+
+        // PERFORMANCE: Preload FaceAPI models in background
+        // This runs after the main thread is free, avoiding UI blocking
+        const preloadModels = async () => {
+            try {
+                console.log("App mounted: Starting background model preloading...");
+                // We use 'requestIdleCallback' logic via setTimeout to not block initial render
+                setTimeout(() => {
+                    import('./services/faceRecognition').then(({ faceRecognitionService }) => {
+                        faceRecognitionService.loadPreciseModel().catch(e => console.warn("Background model load failed", e));
+                    });
+                }, 3000);
+            } catch (e) {
+                console.warn("Preload error", e);
+            }
+        };
+        preloadModels();
     }, []);
 
     // Handle URL routing on initial load

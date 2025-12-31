@@ -107,6 +107,54 @@ const CreateEventForm: React.FC<CreateEventFormProps> = ({ onSubmit, onCancel, c
                 />
             </div>
 
+            <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-1">Capa do Evento (Opcional)</label>
+                <div className="flex items-center gap-4">
+                    <div className="relative w-24 h-24 bg-neutral-100 rounded-lg overflow-hidden border border-neutral-200 flex-shrink-0">
+                        {formData.cover_photo_url ? (
+                            <img src={formData.cover_photo_url} alt="Capa" className="w-full h-full object-cover" />
+                        ) : (
+                            <div className="flex items-center justify-center w-full h-full text-neutral-400">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                            </div>
+                        )}
+                    </div>
+                    <div className="flex-1">
+                        <input
+                            type="file"
+                            accept="image/*"
+                            onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                    // Resize and Base64
+                                    const img = new Image();
+                                    img.src = URL.createObjectURL(file);
+                                    await new Promise(r => img.onload = r);
+
+                                    const canvas = document.createElement('canvas');
+                                    const MAX_SIZE = 800; // Adequate for cover
+                                    let w = img.width;
+                                    let h = img.height;
+
+                                    if (w > h) { if (w > MAX_SIZE) { h *= MAX_SIZE / w; w = MAX_SIZE; } }
+                                    else { if (h > MAX_SIZE) { w *= MAX_SIZE / h; h = MAX_SIZE; } }
+
+                                    canvas.width = w;
+                                    canvas.height = h;
+                                    const ctx = canvas.getContext('2d');
+                                    ctx?.drawImage(img, 0, 0, w, h);
+
+                                    const base64 = canvas.toDataURL('image/jpeg', 0.8);
+                                    setFormData(prev => ({ ...prev, cover_photo_url: base64 }));
+                                }
+                            }}
+                            className="text-sm text-neutral-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-light file:text-primary hover:file:bg-primary-light/80"
+                        />
+                        <p className="text-xs text-neutral-400 mt-1">Recomendado: 800x600px ou superior.</p>
+                    </div>
+                </div>
+            </div>
+
             <div className="flex justify-end space-x-2 pt-4 border-t">
                 <button
                     type="button"

@@ -15,10 +15,14 @@ async function warmupModels() {
         const dummyCanvas = document.createElement('canvas');
         dummyCanvas.width = 1;
         dummyCanvas.height = 1;
-        // Run a dummy detection to initialize shaders
-        await faceapi.detectSingleFace(dummyCanvas, new faceapi.TinyFaceDetectorOptions({ inputSize: 128, scoreThreshold: 0.1 }))
-            .withFaceLandmarks()
-            .withFaceDescriptor();
+        // Run a dummy detection to initialize shaders for BOTH models
+        console.log("Warming up models...");
+        // Warmup TinyFace (still used for some internals)
+        await faceapi.detectSingleFace(dummyCanvas, new faceapi.TinyFaceDetectorOptions({ inputSize: 128, scoreThreshold: 0.1 }));
+
+        // Warmup SSD MobileNet (CRITICAL for search speed)
+        await faceapi.detectSingleFace(dummyCanvas, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.1 }));
+        console.log("Models warmed up!");
     } catch (e) {
         console.warn('Warmup failed (non-critical):', e);
     }
@@ -26,7 +30,7 @@ async function warmupModels() {
 
 export const faceRecognitionService = {
 
-    async loadModels() {
+    async loadEssentialModels() {
         if (modelsLoaded) return;
         if (loadingPromise) return loadingPromise;
 
@@ -38,22 +42,22 @@ export const faceRecognitionService = {
                 await faceapi.tf.setBackend('webgl').catch(() => console.log('WebGL not available, using CPU'));
                 await faceapi.tf.ready();
 
+                // Load only the essential models for fast detection
                 await Promise.all([
-                    faceapi.nets.ssdMobilenetv1.loadFromUri(modelUrl), // Fallback
-                    faceapi.nets.tinyFaceDetector.loadFromUri(modelUrl), // Primary
+                    faceapi.nets.tinyFaceDetector.loadFromUri(modelUrl), // Primary (Lightweight)
                     faceapi.nets.faceLandmark68Net.loadFromUri(modelUrl),
                     faceapi.nets.faceRecognitionNet.loadFromUri(modelUrl)
                 ]);
 
                 modelsLoaded = true;
 
-                // Trigger warmup with a delay to avoid blocking UI during modal open (improves INP)
+                // Trigger warmup with a delay
                 setTimeout(() => {
                     warmupModels();
                 }, 1000);
 
             } catch (error) {
-                console.error('Error loading FaceAPI models:', error);
+                console.error('Error loading Essential FaceAPI models:', error);
                 modelsLoaded = false;
                 throw new Error('Falha ao carregar modelos de reconhecimento facial');
             } finally {
@@ -62,6 +66,25 @@ export const faceRecognitionService = {
         })();
 
         return loadingPromise;
+    },
+
+    async loadPreciseModel() {
+        if (faceapi.nets.ssdMobilenetv1.isLoaded) return;
+
+        const modelUrl = '/models';
+        try {
+            console.log("Loading precise model (SSD MobileNet)...");
+            console.time('Load SSD MobileNet');
+            await faceapi.nets.ssdMobilenetv1.loadFromUri(modelUrl);
+            console.timeEnd('Load SSD MobileNet');
+        } catch (error) {
+            console.error("Error loading SSD MobileNet:", error);
+        }
+    },
+
+    // Backwards compatibility alias
+    async loadModels() {
+        return this.loadEssentialModels();
     },
 
     resizeImage(image: HTMLImageElement, maxWidth = 1280): HTMLCanvasElement | HTMLImageElement {
@@ -83,35 +106,37 @@ export const faceRecognitionService = {
         return image; // fallback
     },
 
-    async getFaceDescriptor(image: HTMLImageElement | HTMLVideoElement): Promise<Float32Array | null> {
-        await this.loadModels();
+    async getFaceDescriptor(image: HTMLImageElement | HTMLVideoElement, onStatusUpdate?: (status: string) => void): Promise<Float32Array | null> {
+        // ALWAYS use SSD MobileNet for search to match indexing accuracy
+        // Since we are preloading, this shouldn't be too slow
+        if (onStatusUpdate) onStatusUpdate("Carregando modelos...");
+
+        await this.loadPreciseModel();
 
         let input: any = image;
         // Resize if it's an image, to ensure we don't process 4k images on CPU
+        // But keep enough resolution for SSD to work well
         if (image instanceof HTMLImageElement) {
-            input = this.resizeImage(image, 600); // Reduced to 600 for optimal performance
+            input = this.resizeImage(image, 512);
         }
 
-        // Use TinyFaceDetector for speed (much faster on mobile/web)
-        // Adjust scoreThreshold as needed (0.5 is default)
-        const detection = await faceapi.detectSingleFace(input, new faceapi.TinyFaceDetectorOptions({ inputSize: 512, scoreThreshold: 0.5 }))
+        if (onStatusUpdate) onStatusUpdate("Analisando rosto (Biometria)...");
+        console.time('Face Detection');
+
+        const detection = await faceapi.detectSingleFace(input, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 }))
             .withFaceLandmarks()
             .withFaceDescriptor();
 
-        if (!detection) {
-            // Fallback: If TinyFace fails, try SSD MobileNet (slower but more accurate)
-            console.log("TinyFace failed, trying SSD MobileNet...");
-            const retryDetection = await faceapi.detectSingleFace(input)
-                .withFaceLandmarks()
-                .withFaceDescriptor();
-            return retryDetection ? retryDetection.descriptor : null;
-        }
+        console.timeEnd('Face Detection');
 
-        return detection.descriptor;
+        return detection ? detection.descriptor : null;
     },
 
     async indexPhoto(photoId: string, imageElement: HTMLImageElement) {
-        await this.loadModels();
+        // Indexing MUST use the most accurate model (SSD MobileNet)
+        // to ensure the stored descriptors are high quality.
+        await this.loadEssentialModels();
+        await this.loadPreciseModel();
 
         // Performance Optimization: Resize for detection
         const inputToProcess = this.resizeImage(imageElement, 1280);
@@ -148,6 +173,14 @@ export const faceRecognitionService = {
             // Convert Float32Array to regular array for pgvector
             // Supabase JS client handles array -> vector conversion automatically
             descriptor: Array.from(d.descriptor),
+
+            // New Metadata Columns (Spec Alignment)
+            x: Math.round(d.detection.box.x),
+            y: Math.round(d.detection.box.y),
+            w: Math.round(d.detection.box.width),
+            h: Math.round(d.detection.box.height),
+            quality_score: d.detection.score,
+
             model_version: 'face-api.js-v1'
         }));
 
@@ -170,14 +203,15 @@ export const faceRecognitionService = {
             .eq('id', photoId);
     },
 
-    async searchMatches(descriptor: Float32Array, threshold = 0.6): Promise<string[]> {
+    async searchMatches(descriptor: Float32Array, threshold = 0.2): Promise<{ id: string, distance: number }[]> {
         // Server-side vector search using pgvector
-        // We use the RPC function 'match_faces' created in the migration
+        // Using a slightly higher base threshold (0.2) to capture potential matches,
+        // then filtering strictly on the client side based on relative distance.
         const { data: matches, error } = await supabase
             .rpc('match_faces', {
-                query_embedding: Array.from(descriptor), // Convert to regular array
+                query_embedding: Array.from(descriptor),
                 match_threshold: threshold,
-                match_count: 20 // Limit results for performance
+                match_count: 50
             });
 
         if (error) {
@@ -187,8 +221,32 @@ export const faceRecognitionService = {
 
         if (!matches || matches.length === 0) return [];
 
-        // Return unique photo IDs
-        const uniquePhotoIds = Array.from(new Set(matches.map((m: any) => m.photo_id)));
-        return uniquePhotoIds as string[];
+        console.log("Raw Matches from DB:", matches.map((m: any) => ({ id: m.photo_id, d: m.distance })));
+
+        // DYNAMIC THRESHOLDING STRATEGY
+        // The "absolute" distance varies by model/environment.
+        // False positives usually appear as a "shelf" after the true matches.
+        // Strategy: 
+        // 1. Take the best match distance (e.g., 0.05).
+        // 2. Allow a small margin (e.g., +0.08).
+        // 3. Discard anything significantly worse than the best match.
+
+        const bestDistance = matches[0].distance;
+        const relativeThreshold = bestDistance + 0.08; // Allow matches within 0.08 of the best one
+
+        const validMatches = matches.filter((m: any) => m.distance <= relativeThreshold && m.distance < 0.25); // Hard cap at 0.25
+
+        console.log(`Filtering: Best=${bestDistance.toFixed(4)}, RelativeLimit=${relativeThreshold.toFixed(4)} -> Kept ${validMatches.length}/${matches.length}`);
+
+        // Return unique items (sometimes one photo has multiple faces/matches, take best)
+        const uniqueResults = new Map<string, number>();
+        validMatches.forEach((m: any) => {
+            if (!uniqueResults.has(m.photo_id)) {
+                uniqueResults.set(m.photo_id, m.distance);
+            }
+        });
+
+        // Convert back to array
+        return Array.from(uniqueResults.entries()).map(([id, distance]) => ({ id, distance }));
     }
 };

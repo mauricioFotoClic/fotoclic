@@ -18,6 +18,8 @@ const WarningIcon: React.FC<{ className?: string }> = ({ className }) => <svg cl
 const CheckCircleIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>;
 const FolderIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>;
 const ArrowLeftIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>;
+const ChevronDownIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>;
+const ChevronUpIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>;
 
 const ToggleSwitch: React.FC<{ checked: boolean; onChange: () => void; }> = ({ checked, onChange }) => (
     <label className="relative inline-flex items-center cursor-pointer">
@@ -59,13 +61,18 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
     const [photoToReject, setPhotoToReject] = useState<Photo | null>(null);
     const [rejectionReason, setRejectionReason] = useState('');
 
-    // State for Quality Analysis Modal
+    const [photographerEvents, setPhotographerEvents] = useState<any[]>([]); // New state for events
+    const [expandedEventId, setExpandedEventId] = useState<string | null>(null); // Accordion state
+    const [eventFilter, setEventFilter] = useState<string>('all'); // New event filter
     const [isAnalysisModalOpen, setIsAnalysisModalOpen] = useState(false);
     const [photoToAnalyze, setPhotoToAnalyze] = useState<Photo | null>(null);
 
     // State for Bulk Operations
     const [isBulkApproving, setIsBulkApproving] = useState(false);
     const [isBulkConfirmOpen, setIsBulkConfirmOpen] = useState(false);
+
+    // State for Events (Moved to top level)
+    // const [photographerEvents, setPhotographerEvents] = useState<any[]>([]);
 
 
     const fetchData = useCallback(async () => {
@@ -92,6 +99,15 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
         setLoading(true);
         fetchData();
     }, [fetchData]);
+
+    // Fetch Events when photographer changes
+    useEffect(() => {
+        if (selectedPhotographerId) {
+            api.getPhotographerEvents(selectedPhotographerId).then(setPhotographerEvents);
+        } else {
+            setPhotographerEvents([]);
+        }
+    }, [selectedPhotographerId]);
 
     useEffect(() => {
         if (context?.filterByPhotoId && photos.length > 0) {
@@ -327,6 +343,60 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
             .sort((a, b) => b.pendingCount - a.pendingCount); // Show pending first
     }, [photographers, photos]);
 
+    // Group filtered photos by event (Moved to top level)
+    const photosByEvent = useMemo(() => {
+        const noEventPhotos = filteredPhotos.filter(p => !p.event_id || !photographerEvents.find(e => e.id === p.event_id));
+
+        // Apply Event Filter
+        if (eventFilter !== 'all') {
+            if (eventFilter === 'no_event') {
+                return [{
+                    id: 'no-event',
+                    title: 'Outras Fotos (Sem Evento)',
+                    subtitle: 'Fotos enviadas individualmente',
+                    photos: noEventPhotos,
+                    isEvent: false
+                }];
+            } else {
+                const event = photographerEvents.find(e => e.id === eventFilter);
+                if (event) {
+                    const photos = filteredPhotos.filter(p => p.event_id === event.id);
+                    return [{
+                        id: event.id,
+                        title: event.name,
+                        subtitle: `${new Date(event.event_date).toLocaleDateString()} - ${event.location || ''}`,
+                        photos: photos,
+                        isEvent: true
+                    }];
+                }
+                return [];
+            }
+        }
+
+        const groups = photographerEvents.map(event => {
+            const photos = filteredPhotos.filter(p => p.event_id === event.id);
+            return {
+                id: event.id,
+                title: event.name,
+                subtitle: `${new Date(event.event_date).toLocaleDateString()} - ${event.location || ''}`,
+                photos: photos,
+                isEvent: true
+            };
+        }).filter(g => g.photos.length > 0); // Only show events with photos matching filters
+
+        if (noEventPhotos.length > 0) {
+            groups.push({
+                id: 'no-event',
+                title: 'Outras Fotos (Sem Evento)',
+                subtitle: 'Fotos enviadas individualmente',
+                photos: noEventPhotos,
+                isEvent: false
+            });
+        }
+
+        return groups;
+    }, [filteredPhotos, photographerEvents, eventFilter]);
+
 
     if (loading) {
         return <Spinner />;
@@ -397,6 +467,126 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
     const currentPhotographer = photographers.find(p => p.id === selectedPhotographerId);
     const currentPhotographerPendingCount = photos.filter(p => p.photographer_id === selectedPhotographerId && p.moderation_status === 'pending').length;
 
+    const handleToggleExpand = (id: string) => {
+        setExpandedEventId(prev => prev === id ? null : id);
+    };
+
+    const renderPhotoTable = (photos: Photo[], title: string, subtitle: string | undefined, id: string) => {
+        const isExpanded = expandedEventId === id || eventFilter !== 'all'; // Always expanded if filtered by specific event
+
+
+        return (
+            <div className="mb-4 bg-white rounded-lg shadow-md overflow-hidden border border-neutral-200">
+                <button
+                    onClick={() => handleToggleExpand(id)}
+                    className="w-full bg-neutral-50 px-6 py-4 border-b border-neutral-200 flex justify-between items-center hover:bg-neutral-100 transition-colors"
+                >
+                    <div className="text-left">
+                        <h3 className="text-lg font-bold text-neutral-800 flex items-center gap-2">
+                            {isExpanded ? <ChevronUpIcon /> : <ChevronDownIcon />}
+                            {title}
+                        </h3>
+                        {subtitle && <p className="text-sm text-neutral-500 ml-7">{subtitle}</p>}
+                    </div>
+                    <span className="text-xs font-semibold bg-neutral-200 text-neutral-600 px-2 py-1 rounded-full">{photos.length} fotos</span>
+                </button>
+
+                {isExpanded && (
+                    <div className="overflow-x-auto">
+                        <table className="w-full min-w-[1200px]">
+                            <thead className="bg-white border-b border-neutral-100">
+                                <tr>
+                                    <th className="p-4 text-left text-sm font-semibold text-neutral-600">Foto</th>
+                                    <th className="p-4 text-left text-sm font-semibold text-neutral-600">Título</th>
+                                    <th className="p-4 text-right text-sm font-semibold text-neutral-600">Preço</th>
+                                    <th className="p-4 text-center text-sm font-semibold text-neutral-600">Status</th>
+                                    <th className="p-4 text-center text-sm font-semibold text-neutral-600">Destaque</th>
+                                    <th className="p-4 text-center text-sm font-semibold text-neutral-600">Moderação</th>
+                                    <th className="p-4 text-right text-sm font-semibold text-neutral-600">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {photos.map((photo, index) => (
+                                    <tr key={photo.id} className={`border-t ${index % 2 === 0 ? 'bg-white' : 'bg-neutral-50'} ${photo.moderation_status === 'pending' ? 'bg-yellow-50/50' : ''}`}>
+                                        <td className="p-2">
+                                            <img src={photo.preview_url} alt={photo.title} className="w-20 h-14 object-cover rounded-md" />
+                                        </td>
+                                        <td className="p-4 text-sm text-neutral-800 font-medium">
+                                            {photo.title}
+                                            {photo.width && <div className="text-xs text-neutral-400 mt-1">{photo.width}x{photo.height}</div>}
+                                        </td>
+                                        <td className="p-4 text-sm text-green-600 font-medium text-right">{photo.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+                                        <td className="p-4 text-center">
+                                            <span className={`px-2 py-1 text-xs font-semibold rounded-full ${photo.is_public ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                                {photo.is_public ? 'Pública' : 'Privada'}
+                                            </span>
+                                        </td>
+                                        <td className="p-4 text-center">
+                                            <ToggleSwitch
+                                                checked={photo.is_featured}
+                                                onChange={() => handleToggleFeatured(photo.id, !photo.is_featured)}
+                                            />
+                                        </td>
+                                        <td className="p-4 text-center">
+                                            {photo.moderation_status === 'pending' && (
+                                                <div className="flex justify-center items-center gap-2">
+                                                    <button
+                                                        onClick={() => handleAnalyze(photo)}
+                                                        className="p-1.5 text-purple-600 bg-purple-50 rounded-full hover:bg-purple-100 transition-colors"
+                                                        title="Análise IA"
+                                                    >
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path></svg>
+                                                    </button>
+                                                    <button onClick={() => handleApprove(photo.id)} className="px-3 py-1 text-xs text-white bg-green-500 rounded-full hover:bg-green-600 transition-colors">Aprovar</button>
+                                                    <button onClick={() => handleOpenRejectModal(photo)} className="px-3 py-1 text-xs text-white bg-red-500 rounded-full hover:bg-red-600 transition-colors">Rejeitar</button>
+                                                </div>
+                                            )}
+                                            {photo.moderation_status === 'approved' && (
+                                                <div className="flex flex-col items-center justify-center gap-1">
+                                                    <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Aprovado</span>
+                                                    <button onClick={() => handleOpenRejectModal(photo)} className="mt-1 px-3 py-1 text-xs text-white bg-red-500 rounded-full hover:bg-red-600 transition-colors">Rejeitar</button>
+                                                </div>
+                                            )}
+                                            {photo.moderation_status === 'rejected' && (
+                                                <div className="flex flex-col items-center justify-center gap-1">
+                                                    <span className="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800" title={`Motivo: ${photo.rejection_reason}`}>
+                                                        Rejeitado
+                                                    </span>
+                                                    <div className="flex items-center gap-2 mt-1">
+                                                        <button onClick={() => handleApprove(photo.id)} className="px-2 py-0.5 text-xs text-white bg-green-500 rounded-full hover:bg-green-600 transition-colors">Aprovar</button>
+                                                        <button onClick={() => handleOpenRejectModal(photo)} className="px-2 py-0.5 text-xs text-white bg-blue-500 rounded-full hover:bg-blue-600 transition-colors">Editar</button>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </td>
+                                        <td className="p-4 text-right">
+                                            <div className="flex items-center justify-end gap-2">
+                                                <button
+                                                    onClick={() => handleOpenModal(photo)}
+                                                    className="flex items-center justify-center w-9 h-9 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-full transition-colors"
+                                                    title="Editar"
+                                                >
+                                                    <EditIcon />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDelete(photo)}
+                                                    className="flex items-center justify-center w-9 h-9 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-full transition-colors"
+                                                    title="Excluir"
+                                                >
+                                                    <TrashIcon />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </div>
+        );
+    };
+
     return (
         <div>
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
@@ -446,7 +636,7 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
                 </div>
             </div>
 
-            {/* Filters, Table and other UI components remain unchanged but included in the full file content */}
+            {/* Filters */}
             <div className="mb-4 p-4 bg-white rounded-lg shadow-sm space-y-4">
                 <div>
                     <label htmlFor="search" className="text-xs text-neutral-500">Pesquisar por Título</label>
@@ -460,6 +650,20 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
                     />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+                    <div className="lg:col-span-1">
+                        <label className="text-xs text-neutral-500">Evento</label>
+                        <select
+                            value={eventFilter}
+                            onChange={(e) => setEventFilter(e.target.value)}
+                            className="w-full mt-1 p-2 border border-neutral-200 rounded-md bg-white focus:ring-2 focus:ring-primary"
+                        >
+                            <option value="all">Todos os Eventos</option>
+                            <option value="no_event">Sem Evento (Avulsas)</option>
+                            {photographerEvents.map(event => (
+                                <option key={event.id} value={event.id}>{event.name}</option>
+                            ))}
+                        </select>
+                    </div>
                     <div className="lg:col-span-1">
                         <label className="text-xs text-neutral-500">Categoria</label>
                         <select name="category" value={filters.category} onChange={handleFilterChange} className="w-full mt-1 p-2 border border-neutral-200 rounded-md bg-white">
@@ -498,123 +702,29 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
                 </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow-md overflow-x-auto">
-                <table className="w-full min-w-[1200px]">
-                    <thead className="bg-neutral-100">
-                        <tr>
-                            <th className="p-4 text-left text-sm font-semibold text-neutral-600">Foto</th>
-                            <th className="p-4 text-left text-sm font-semibold text-neutral-600">Título</th>
-                            <th className="p-4 text-right text-sm font-semibold text-neutral-600">Preço</th>
-                            <th className="p-4 text-center text-sm font-semibold text-neutral-600">Status</th>
-                            <th className="p-4 text-center text-sm font-semibold text-neutral-600">Destaque</th>
-                            <th className="p-4 text-center text-sm font-semibold text-neutral-600">Moderação</th>
-                            <th className="p-4 text-right text-sm font-semibold text-neutral-600">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {paginatedPhotos.map((photo, index) => (
-                            <tr key={photo.id} className={`border-t ${index % 2 === 0 ? 'bg-white' : 'bg-neutral-50'} ${photo.moderation_status === 'pending' ? 'bg-yellow-50/50' : ''}`}>
-                                <td className="p-2">
-                                    <img src={photo.preview_url} alt={photo.title} className="w-20 h-14 object-cover rounded-md" />
-                                </td>
-                                <td className="p-4 text-sm text-neutral-800 font-medium">
-                                    {photo.title}
-                                    {photo.width && <div className="text-xs text-neutral-400 mt-1">{photo.width}x{photo.height}</div>}
-                                </td>
-                                <td className="p-4 text-sm text-green-600 font-medium text-right">{photo.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
-                                <td className="p-4 text-center">
-                                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${photo.is_public ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                                        {photo.is_public ? 'Pública' : 'Privada'}
-                                    </span>
-                                </td>
-                                <td className="p-4 text-center">
-                                    <ToggleSwitch
-                                        checked={photo.is_featured}
-                                        onChange={() => handleToggleFeatured(photo.id, !photo.is_featured)}
-                                    />
-                                </td>
-                                <td className="p-4 text-center">
-                                    {photo.moderation_status === 'pending' && (
-                                        <div className="flex justify-center items-center gap-2">
-                                            <button
-                                                onClick={() => handleAnalyze(photo)}
-                                                className="p-1.5 text-purple-600 bg-purple-50 rounded-full hover:bg-purple-100 transition-colors"
-                                                title="Análise IA"
-                                            >
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path></svg>
-                                            </button>
-                                            <button onClick={() => handleApprove(photo.id)} className="px-3 py-1 text-xs text-white bg-green-500 rounded-full hover:bg-green-600 transition-colors">Aprovar</button>
-                                            <button onClick={() => handleOpenRejectModal(photo)} className="px-3 py-1 text-xs text-white bg-red-500 rounded-full hover:bg-red-600 transition-colors">Rejeitar</button>
-                                        </div>
-                                    )}
-                                    {photo.moderation_status === 'approved' && (
-                                        <div className="flex flex-col items-center justify-center gap-1">
-                                            <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Aprovado</span>
-                                            <button onClick={() => handleOpenRejectModal(photo)} className="mt-1 px-3 py-1 text-xs text-white bg-red-500 rounded-full hover:bg-red-600 transition-colors">Rejeitar</button>
-                                        </div>
-                                    )}
-                                    {photo.moderation_status === 'rejected' && (
-                                        <div className="flex flex-col items-center justify-center gap-1">
-                                            <span className="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800" title={`Motivo: ${photo.rejection_reason}`}>
-                                                Rejeitado
-                                            </span>
-                                            <div className="flex items-center gap-2 mt-1">
-                                                <button onClick={() => handleApprove(photo.id)} className="px-2 py-0.5 text-xs text-white bg-green-500 rounded-full hover:bg-green-600 transition-colors">Aprovar</button>
-                                                <button onClick={() => handleOpenRejectModal(photo)} className="px-2 py-0.5 text-xs text-white bg-blue-500 rounded-full hover:bg-blue-600 transition-colors">Editar</button>
-                                            </div>
-                                        </div>
-                                    )}
-                                </td>
-                                <td className="p-4 text-right">
-                                    <div className="flex items-center justify-end gap-2">
-                                        <button
-                                            onClick={() => handleOpenModal(photo)}
-                                            className="flex items-center justify-center w-9 h-9 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-full transition-colors"
-                                            title="Editar"
-                                        >
-                                            <EditIcon />
-                                        </button>
-                                        <button
-                                            onClick={() => handleDelete(photo)}
-                                            className="flex items-center justify-center w-9 h-9 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-full transition-colors"
-                                            title="Excluir"
-                                        >
-                                            <TrashIcon />
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        ))}
-                        {filteredPhotos.length === 0 && (
-                            <tr>
-                                <td colSpan={7} className="text-center p-8 text-neutral-500">Nenhuma foto encontrada com os filtros atuais.</td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
-            </div>
-
-            {totalPages > 1 && (
-                <div className="flex justify-between items-center mt-4">
-                    <button
-                        onClick={goToPreviousPage}
-                        disabled={currentPage === 1}
-                        className="px-4 py-2 text-sm font-medium text-neutral-700 bg-white border border-neutral-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        Anterior
-                    </button>
-                    <span className="text-sm text-neutral-500">
-                        Página {currentPage} de {totalPages}
-                    </span>
-                    <button
-                        onClick={goToNextPage}
-                        disabled={currentPage === totalPages}
-                        className="px-4 py-2 text-sm font-medium text-neutral-700 bg-white border border-neutral-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        Próxima
-                    </button>
+            {/* Render Groups */}
+            {photosByEvent.length === 0 && (
+                <div className="text-center py-12 text-neutral-500 bg-white rounded-lg shadow-sm">
+                    Nenhuma foto encontrada com os filtros atuais.
                 </div>
             )}
+
+            {photosByEvent.map((group, idx) => (
+                <div key={group.id}>
+                    {renderPhotoTable(
+                        group.photos,
+                        group.title,
+                        group.subtitle,
+                        group.id
+                    )}
+                </div>
+            ))}
+
+            {/* Pagination controls removed for now as we are grouping all filtered results. 
+                If pagination is strictly required, it needs to be applied differently (e.g. paginate events, or paginate total photos but that breaks grouping).
+                For Admin view, simple scrolling with all filtered results is usually acceptable for events view. 
+            */}
+
 
             <Modal
                 isOpen={isModalOpen}
