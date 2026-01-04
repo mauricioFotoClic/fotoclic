@@ -109,9 +109,12 @@ export const faceRecognitionService = {
     async getFaceDescriptor(image: HTMLImageElement | HTMLVideoElement, onStatusUpdate?: (status: string) => void): Promise<Float32Array | null> {
         // ALWAYS use SSD MobileNet for search to match indexing accuracy
         // Since we are preloading, this shouldn't be too slow
-        if (onStatusUpdate) onStatusUpdate("Carregando modelos...");
+        console.time('Total Face Process');
 
+        if (onStatusUpdate) onStatusUpdate("Carregando modelos IA...");
+        console.time('Load Model');
         await this.loadPreciseModel();
+        console.timeEnd('Load Model');
 
         let input: any = image;
         // Resize if it's an image, to ensure we don't process 4k images on CPU
@@ -123,11 +126,13 @@ export const faceRecognitionService = {
         if (onStatusUpdate) onStatusUpdate("Analisando rosto (Biometria)...");
         console.time('Face Detection');
 
+        // Use slightly higher confidence for the probe image to allow decent quality only
         const detection = await faceapi.detectSingleFace(input, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 }))
             .withFaceLandmarks()
             .withFaceDescriptor();
 
         console.timeEnd('Face Detection');
+        console.timeEnd('Total Face Process');
 
         return detection ? detection.descriptor : null;
     },
@@ -203,10 +208,11 @@ export const faceRecognitionService = {
             .eq('id', photoId);
     },
 
-    async searchMatches(descriptor: Float32Array, threshold = 0.2): Promise<{ id: string, distance: number }[]> {
+    async searchMatches(descriptor: Float32Array, threshold = 0.4): Promise<{ id: string, distance: number }[]> {
         // Server-side vector search using pgvector
-        // Using a slightly higher base threshold (0.2) to capture potential matches,
+        // Using a slightly higher base threshold (0.4) to capture potential matches,
         // then filtering strictly on the client side based on relative distance.
+        // NOTE: match_threshold in RPC is just an optimization effectively.
         const { data: matches, error } = await supabase
             .rpc('match_faces', {
                 query_embedding: Array.from(descriptor),
@@ -223,20 +229,27 @@ export const faceRecognitionService = {
 
         console.log("Raw Matches from DB:", matches.map((m: any) => ({ id: m.photo_id, d: m.distance })));
 
-        // DYNAMIC THRESHOLDING STRATEGY
-        // The "absolute" distance varies by model/environment.
-        // False positives usually appear as a "shelf" after the true matches.
-        // Strategy: 
-        // 1. Take the best match distance (e.g., 0.05).
-        // 2. Allow a small margin (e.g., +0.08).
-        // 3. Discard anything significantly worse than the best match.
+        // DYNAMIC THRESHOLDING STRATEGY (UPDATED)
+        // Cosine distance: 0.0 (exact) to 2.0 (opposite).
+        // 0.6 Euclidean ~= 0.18 Cosine Distance.
+
+        // Strict baseline
+        const STRICT_HARD_CAP = 0.15; // Only allow very close matches (was 0.25)
 
         const bestDistance = matches[0].distance;
-        const relativeThreshold = bestDistance + 0.08; // Allow matches within 0.08 of the best one
 
-        const validMatches = matches.filter((m: any) => m.distance <= relativeThreshold && m.distance < 0.25); // Hard cap at 0.25
+        // If the best match is weirdly far (e.g. 0.3), it's probably not a match at all
+        if (bestDistance > STRICT_HARD_CAP) {
+            console.log("Best match is too far, returning empty.");
+            return [];
+        }
 
-        console.log(`Filtering: Best=${bestDistance.toFixed(4)}, RelativeLimit=${relativeThreshold.toFixed(4)} -> Kept ${validMatches.length}/${matches.length}`);
+        // Relative threshold: allow matches that are very close to the best match
+        const relativeThreshold = bestDistance + 0.05; // Tighter relative margin (was 0.08)
+
+        const validMatches = matches.filter((m: any) => m.distance <= relativeThreshold && m.distance <= STRICT_HARD_CAP);
+
+        console.log(`Filtering: Best=${bestDistance.toFixed(4)}, RelativeLimit=${relativeThreshold.toFixed(4)}, HardCap=${STRICT_HARD_CAP} -> Kept ${validMatches.length}/${matches.length}`);
 
         // Return unique items (sometimes one photo has multiple faces/matches, take best)
         const uniqueResults = new Map<string, number>();
