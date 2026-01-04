@@ -119,8 +119,9 @@ export const faceRecognitionService = {
         let input: any = image;
         // Resize if it's an image, to ensure we don't process 4k images on CPU
         // But keep enough resolution for SSD to work well
+        // OPTIMIZATION: Reduced from 512 to 320 to improve speed (target < 5s)
         if (image instanceof HTMLImageElement) {
-            input = this.resizeImage(image, 512);
+            input = this.resizeImage(image, 320);
         }
 
         if (onStatusUpdate) onStatusUpdate("Analisando rosto (Biometria)...");
