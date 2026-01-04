@@ -135,7 +135,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
             <div className="relative flex">
               <input
                 type="text"
-                placeholder="Pesquise milhões de fotosssss..."
+                placeholder="Pesquise milhões de fotosxxxx..."
                 className="w-full pl-6 pr-14 py-4 text-neutral-800 bg-white border-0 rounded-full focus:ring-0 shadow-2xl text-lg"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
