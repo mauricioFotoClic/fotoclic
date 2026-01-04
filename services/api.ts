@@ -888,6 +888,12 @@ export const api = {
 
     return mapUser(userProfile);
   },
+
+  logout: async (): Promise<void> => {
+    const { error } = await supabase.auth.signOut();
+    if (error) console.error("Error signing out:", error);
+  },
+
   requestPasswordReset: async (email: string): Promise<boolean> => {
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {

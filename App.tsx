@@ -161,7 +161,13 @@ const App: React.FC = () => {
         }
     };
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
+        try {
+            await api.logout();
+            console.log("Logged out from Supabase");
+        } catch (e) {
+            console.error("Logout failed", e);
+        }
         setCurrentUser(null);
         // Clear session cart on logout so next user/guest starts fresh
         setCartItems([]);
