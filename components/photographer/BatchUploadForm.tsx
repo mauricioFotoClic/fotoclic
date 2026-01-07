@@ -103,7 +103,7 @@ const BatchUploadForm: React.FC<BatchUploadFormProps> = ({ event, photographerId
                                     <span className="font-medium text-primary hover:text-primary-dark">Clique para selecionar</span>
                                     <span className="pl-1">ou arraste e solte</span>
                                 </div>
-                                <p className="text-xs text-neutral-500">PNG, JPG, JPEG até 10MB</p>
+                                <p className="text-xs text-neutral-500">JPG, PNG, WebP (Máx. 15MB)</p>
                             </div>
                         </div>
                         {selectedFiles.length > 0 && (

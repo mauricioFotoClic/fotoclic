@@ -19,20 +19,31 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
   const [photographers, setPhotographers] = useState<PhotographerWithStats[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true);
+        setError(null);
         // Use optimized API calls to avoid downloading entire database tables
-        const [featuredPhotos, popularPhotographers, mainCategories, recent] = await Promise.all([
-          api.getFeaturedPhotos(),
-          api.getActivePhotographersPreview(), // Lighter query
-          api.getCategories(),
-          api.getRecentPhotos(8), // Limit DB query to 8
+        console.log("HomePage: Starting loadData...");
+
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Timeout: Database is taking too long to respond")), 8000)
+        );
+
+        const dataPromise = Promise.all([
+          api.getFeaturedPhotos().then(res => { console.log("HomePage: Featured Photos loaded", res?.length); return res; }),
+          api.getActivePhotographersPreview().then(res => { console.log("HomePage: Photographers loaded", res?.length); return res; }),
+          api.getCategories().then(res => { console.log("HomePage: Categories loaded", res?.length); return res; }),
+          api.getRecentPhotos(8).then(res => { console.log("HomePage: Recent loaded", res?.length); return res; }),
         ]);
 
+        const [featuredPhotos, popularPhotographers, mainCategories, recent] = await Promise.race([dataPromise, timeoutPromise]) as any;
+
+        console.log("HomePage: All data loaded successfully");
 
         // No fallback - strictly show only admin-featured photos
         const finalFeatured = featuredPhotos;
@@ -44,8 +55,9 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
         setRecentPhotos(recent);
         setPhotographers(popularPhotographers);
         setCategories(mainCategories);
-      } catch (error) {
+      } catch (error: any) {
         console.error("Falha ao carregar os dados da página inicial", error);
+        setError(error.message || "Erro desconhecido ao conectar com o servidor.");
       } finally {
         setLoading(false);
       }
@@ -113,6 +125,24 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
       </div>
     );
   };
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh] text-center p-6">
+        <div className="text-red-500 mb-4">
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+        </div>
+        <h2 className="text-xl font-bold text-neutral-800 mb-2">Sistema Temporariamente Indisponível</h2>
+        <p className="text-neutral-600 max-w-md mb-6">{error}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="px-6 py-2 bg-primary text-white rounded-full font-semibold hover:bg-primary-dark transition-colors"
+        >
+          Tentar Novamente
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div>

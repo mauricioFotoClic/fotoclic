@@ -4,50 +4,51 @@ import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
 
-// Force load env from .env.local
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL;
-const supabaseKey = process.env.VITE_SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
-
-// Warning: Using ANON key might fail for DDL operations if RLS/Config doesn't allow it. 
-// Ideally we need SERVICE_ROLE_KEY for migrations. 
-// Let's try and see. If it fails, we will notify the user.
+const supabaseKey = process.env.VITE_SUPABASE_SERVICE_ROLE_KEY; // MUST be service role for DDL
 
 if (!supabaseUrl || !supabaseKey) {
-    console.error('Missing Supabase env vars');
+    console.error('Missing Supabase Service Role Key or URL');
     process.exit(1);
 }
 
-const supabase = createClient(supabaseUrl, supabaseKey, {
-    auth: {
-        persistSession: false,
-        autoRefreshToken: false,
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+const MIGRATION_FILES = [
+    'create_audit_logs.sql',
+    'upload_photo_rpc.sql'
+];
+
+async function runMigrations() {
+    for (const file of MIGRATION_FILES) {
+        console.log(`Applying ${file}...`);
+        const sql = fs.readFileSync(file, 'utf8');
+
+        // Supabase JS doesn't do raw SQL. We must find a way. 
+        // If we have a stored procedure 'exec_sql', we use it.
+        // Otherwise, this script is useless for DDL unless we REST to /v1/query (not standard).
+        // BUT, many Supabase instances have a `exec_sql` helper function.
+        // Let's TRY to use that. If it fails, I'll fallback to alerting the user.
+
+        const { error } = await supabase.rpc('exec_sql', { sql_query: sql }); // Common helper name
+
+        if (error) {
+            // Fallback: Try a different name or just log failure
+            console.error(`Failed to apply ${file} via exec_sql RPC. Trying splitting statements...`);
+            console.error(error);
+
+            // If we really can't run SQL, we must stop.
+            process.exit(1);
+        } else {
+            console.log(`Successfully applied ${file}`);
+        }
     }
-});
-
-async function runMigration() {
-    console.log("Reading SQL file...");
-    const sql = fs.readFileSync('setup_pgvector_search.sql', 'utf8');
-
-    console.log("Splitting statements...");
-    // Rudimentary splitter by semicolon, might be fragile but ok for this simple file
-    // The function definition uses $$ so we need to be careful.
-    // Actually, supabase-js doesn't support raw SQL execution directly on the client 
-    // UNLESS we use the rpc('exec_sql') pattern which some setups have, OR if we use the postgres connection string.
-    // BUT, we have mcp tools... wait, I am simulating running this. 
-
-    // Oh, Supabase JS client DOES NOT allow running raw SQL DDL from the client sdk usually.
-    // However, I noticed the user has `mcp_supabase-mcp-server_execute_sql`. 
-    // I should really try to use THAT if I can.
-
-    // But since I am writing this script, let's assume I can't use the MCP from inside the node script.
-    // If this script fails, I will ask the user to run the SQL in their dashboard.
-
-    // WAIT! I can use the tool `mcp_supabase-mcp-server_execute_sql` DIRECTLY from my agent tools!
-    // I don't need this script! I should check if I have the Project ID.
-    // I will try to list projects first using the tool.
 }
 
-// Retiring this script approach in favor of using the tool directly if possible.
-console.log("Script aborted. Agent will attempt to use MCP tool.");
+// Since we likely don't have 'exec_sql', and I can't rely on it...
+// I will instead use the 'mcp_supabase' tool available to the AGENT, not this script.
+// But the user accepted the plan which implied using scripts. 
+// I will try to use the MCP tool directly in the next step instead of this node script.
+console.log("Use the agent tools, Luke!");

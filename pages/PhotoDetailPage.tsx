@@ -30,7 +30,7 @@ const PhotoDetailPage: React.FC<PhotoDetailPageProps> = ({ photoId, onNavigate, 
                     if (photographerData) {
                         setPhotographer(photographerData);
                     }
-                    
+
                     if (currentUser) {
                         const purchased = await api.checkIfPurchased(currentUser.id, photoId);
                         setHasPurchased(purchased);
@@ -45,14 +45,27 @@ const PhotoDetailPage: React.FC<PhotoDetailPageProps> = ({ photoId, onNavigate, 
         loadData();
     }, [photoId, currentUser]);
 
-    const handleDownload = () => {
-        if (!photo) return;
-        const link = document.createElement('a');
-        link.href = photo.file_url;
-        link.download = `fotoclic-${photo.title.replace(/\s+/g, '-').toLowerCase()}.jpg`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+    const handleDownload = async () => {
+        if (!photo || !currentUser) return;
+
+        try {
+            const secureUrl = await api.getSecureDownloadUrl(photo.id, currentUser.id);
+
+            if (!secureUrl) {
+                alert("Erro ao gerar link de download. Tente novamente.");
+                return;
+            }
+
+            const link = document.createElement('a');
+            link.href = secureUrl;
+            link.setAttribute('download', `fotoclic-${photo.title.replace(/\s+/g, '-').toLowerCase()}.jpg`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } catch (error) {
+            console.error("Download failed:", error);
+            alert("Erro ao iniciar download.");
+        }
     };
 
     const handleAddToCartClick = () => {
@@ -92,9 +105,9 @@ const PhotoDetailPage: React.FC<PhotoDetailPageProps> = ({ photoId, onNavigate, 
                     <div className="lg:col-span-2">
                         <div ref={imgContainerRef} className="bg-neutral-100 rounded-lg overflow-hidden shadow-sm border border-neutral-200 flex items-center justify-center">
                             {hasPurchased ? (
-                                <img src={photo.preview_url} alt={photo.title} className="w-full h-auto max-h-[70vh] object-contain"/>
+                                <img src={photo.preview_url} alt={photo.title} className="w-full h-auto max-h-[70vh] object-contain" />
                             ) : (
-                                <WatermarkedImage src={photo.preview_url} alt={photo.title} className="w-full h-auto max-h-[70vh] object-contain"/>
+                                <WatermarkedImage src={photo.preview_url} alt={photo.title} className="w-full h-auto max-h-[70vh] object-contain" />
                             )}
                         </div>
                     </div>
@@ -102,14 +115,14 @@ const PhotoDetailPage: React.FC<PhotoDetailPageProps> = ({ photoId, onNavigate, 
                     <div className="lg:col-span-1">
                         <div className="sticky top-24">
                             <h1 className="text-3xl font-display font-bold text-primary-dark mb-2">{photo.title}</h1>
-                            
+
                             {photo.width && photo.height && (
                                 <p className="text-sm text-neutral-500 font-mono mb-4">{photo.width} x {photo.height}</p>
                             )}
-                            
+
                             {photographer && (
                                 <div className="flex items-center mb-6">
-                                    <img src={photographer.avatar_url} alt={photographer.name} className="w-10 h-10 rounded-full object-cover mr-3 border border-neutral-200"/>
+                                    <img src={photographer.avatar_url} alt={photographer.name} className="w-10 h-10 rounded-full object-cover mr-3 border border-neutral-200" />
                                     <div>
                                         <p className="text-sm text-neutral-500">Fotografia por</p>
                                         <p className="font-medium text-neutral-800">{photographer.name}</p>
@@ -136,7 +149,7 @@ const PhotoDetailPage: React.FC<PhotoDetailPageProps> = ({ photoId, onNavigate, 
                                                 R$ {photo.price.toFixed(2).replace('.', ',')}
                                             </span>
                                         </div>
-                                        
+
                                         {/* Bulk Discount Banner */}
                                         {photographer?.bulkDiscountRules && photographer.bulkDiscountRules.length > 0 && (
                                             <div className="mb-4 p-3 bg-blue-50 border border-blue-100 rounded-lg">
@@ -160,7 +173,7 @@ const PhotoDetailPage: React.FC<PhotoDetailPageProps> = ({ photoId, onNavigate, 
                                         </button>
                                     </>
                                 )}
-                                
+
                                 <div className="mt-4 pt-4 border-t border-neutral-200 text-xs text-neutral-500 flex flex-col gap-2">
                                     <div className="flex justify-between">
                                         <span>Resolução:</span><span className="font-medium text-neutral-700">{photo.resolution}</span>

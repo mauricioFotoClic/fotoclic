@@ -74,6 +74,7 @@ export interface Photo {
   description: string;
   preview_url: string;
   file_url: string;
+  thumb_url?: string;
   price: number;
   resolution: 'HD' | 'Full HD' | '4K' | 'RAW';
   width?: number;

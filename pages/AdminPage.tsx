@@ -9,10 +9,11 @@ import AdminPhotos from '../components/admin/AdminPhotos';
 import AdminSales from '../components/admin/AdminSales';
 import AdminPayouts from '../components/admin/AdminPayouts';
 import AdminSettings from '../components/admin/AdminSettings';
+import AdminStorageRequests from '../components/admin/AdminStorageRequests';
 import { Page } from '../types';
 import api from '../services/api';
 
-type AdminView = 'dashboard' | 'photos' | 'photographers' | 'customers' | 'categories' | 'sales' | 'payouts' | 'settings';
+type AdminView = 'dashboard' | 'photos' | 'photographers' | 'customers' | 'categories' | 'sales' | 'payouts' | 'settings' | 'storage-requests';
 
 interface AdminPageProps {
     onNavigate: (page: Page) => void;
@@ -21,7 +22,34 @@ interface AdminPageProps {
 const AdminPage: React.FC<AdminPageProps> = ({ onNavigate }) => {
     const [view, setView] = useState<AdminView>('dashboard');
     const [navContext, setNavContext] = useState<any>(null);
-    const [notificationCounts, setNotificationCounts] = useState<{payouts: number}>({ payouts: 0 });
+    const [notificationCounts, setNotificationCounts] = useState<{ payouts: number }>({ payouts: 0 });
+
+    // ... 
+
+    const renderView = () => {
+        switch (view) {
+            case 'dashboard':
+                return <AdminDashboard setView={handleSetView} />;
+            case 'categories':
+                return <AdminCategories />;
+            case 'photographers':
+                return <AdminPhotographers onNavigate={onNavigate} />;
+            case 'customers':
+                return <AdminCustomers />;
+            case 'photos':
+                return <AdminPhotos context={navContext} setContext={setNavContext} />;
+            case 'sales':
+                return <AdminSales />;
+            case 'payouts':
+                return <AdminPayouts />;
+            case 'storage-requests':
+                return <AdminStorageRequests />;
+            case 'settings':
+                return <AdminSettings />;
+            default:
+                return <AdminDashboard setView={handleSetView} />;
+        }
+    }
 
     const handleSetView = (newView: AdminView, context: any = null) => {
         setView(newView);
@@ -45,28 +73,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ onNavigate }) => {
         return () => clearInterval(interval);
     }, [view]);
 
-    const renderView = () => {
-        switch(view) {
-            case 'dashboard':
-                return <AdminDashboard setView={handleSetView} />;
-            case 'categories':
-                 return <AdminCategories />;
-            case 'photographers':
-                return <AdminPhotographers onNavigate={onNavigate} />;
-            case 'customers':
-                return <AdminCustomers />;
-            case 'photos':
-                return <AdminPhotos context={navContext} setContext={setNavContext} />;
-            case 'sales':
-                return <AdminSales />;
-            case 'payouts':
-                return <AdminPayouts />;
-            case 'settings':
-                return <AdminSettings />;
-            default:
-                return <AdminDashboard setView={handleSetView} />;
-        }
-    }
+
 
     return (
         <div className="bg-white">

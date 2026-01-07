@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import api from '../../services/api';
 import Spinner from '../Spinner';
@@ -66,7 +65,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setView }) => {
     const totalRevenue = useMemo(() => sales.reduce((sum, sale) => sum + sale.price, 0), [sales]);
     const activePhotographersCount = useMemo(() => photographers.filter(p => p.is_active).length, [photographers]);
     const pendingPhotos = useMemo(() => photos.filter(p => p.moderation_status === 'pending'), [photos]);
-    
+
     const salesLast7Days = useMemo(() => {
         const last7Days = Array.from({ length: 7 }, (_, i) => {
             const d = new Date();
@@ -82,7 +81,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setView }) => {
         });
         return dailySales;
     }, [sales]);
-    
+
     const maxDailySale = useMemo(() => Math.max(...salesLast7Days.map(s => s.total), 1), [salesLast7Days]);
 
     const topPhotographers = useMemo(() => {
@@ -99,7 +98,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setView }) => {
             .sort((a, b) => b.totalRevenue - a.totalRevenue)
             .slice(0, 5);
     }, [sales, photos, photographers]);
-    
+
     const categoryPhotoCount = useMemo(() => {
         const counts: { [key: string]: number } = {};
         categories.forEach(cat => {
@@ -115,21 +114,21 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setView }) => {
                 counts['Sem Categoria']++;
             }
         });
-        
+
         return Object.entries(counts)
             .map(([name, count]) => ({ name, count }))
             .sort((a, b) => b.count - a.count);
     }, [photos, categories]);
 
     const maxCategoryCount = useMemo(() => Math.max(...categoryPhotoCount.map(c => c.count), 1), [categoryPhotoCount]);
-    
+
     if (loading) return <Spinner />;
 
     return (
         <div>
             <h1 className="text-3xl font-display font-bold text-primary-dark mb-2">Bem-vindo, Admin!</h1>
             <p className="text-neutral-500 mb-6">Aqui está um resumo da atividade do seu marketplace.</p>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 <StatCard title="Receita Total" value={totalRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} icon={<DollarSignIcon />} colorClass="bg-green-100 text-green-600" />
                 <StatCard title="Vendas Realizadas" value={sales.length} icon={<ShoppingCartIcon />} colorClass="bg-blue-100 text-blue-600" />
@@ -142,18 +141,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setView }) => {
                     <div className="bg-white p-6 rounded-lg shadow-md">
                         <h2 className="text-xl font-display font-bold text-primary-dark mb-4">Vendas nos Últimos 7 Dias</h2>
                         <div className="flex justify-between items-end h-48 space-x-2">
-                           {salesLast7Days.map((day, index) => (
+                            {salesLast7Days.map((day, index) => (
                                 <div key={index} className="flex-1 flex flex-col items-center justify-end group">
                                     <div className="text-sm font-bold text-primary opacity-0 group-hover:opacity-100 transition-opacity -mb-1">
-                                       {day.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                        {day.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                                     </div>
-                                    <div 
+                                    <div
                                         className="w-full bg-primary/20 hover:bg-primary/40 rounded-t-md transition-all"
                                         style={{ height: `${(day.total / maxDailySale) * 100}%` }}
                                     ></div>
                                     <span className="text-xs text-neutral-500 mt-2">{new Date(day.date + 'T12:00:00Z').toLocaleDateString('pt-BR', { weekday: 'short' })}</span>
                                 </div>
-                           ))}
+                            ))}
                         </div>
                     </div>
 
@@ -178,7 +177,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setView }) => {
                 </div>
 
                 <div className="lg:col-span-2 space-y-6">
-                     <div className="bg-white p-6 rounded-lg shadow-md">
+                    <div className="bg-white p-6 rounded-lg shadow-md">
                         <h2 className="text-xl font-display font-bold text-primary-dark mb-4">Fotógrafos em Destaque</h2>
                         <div className="space-y-4">
                             {topPhotographers.map(p => (
@@ -194,8 +193,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setView }) => {
                                 </div>
                             ))}
                         </div>
-                     </div>
-                     <div className="bg-white p-6 rounded-lg shadow-md">
+                    </div>
+                    <div className="bg-white p-6 rounded-lg shadow-md">
                         <h2 className="text-xl font-display font-bold text-primary-dark mb-4">Fotos por Categoria</h2>
                         <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
                             {categoryPhotoCount.map((data, idx) => (
@@ -210,7 +209,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setView }) => {
                                 </div>
                             ))}
                         </div>
-                     </div>
+                    </div>
                 </div>
             </div>
         </div>

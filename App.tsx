@@ -7,10 +7,14 @@ import PhotoDetailModal from './components/PhotoDetailModal';
 import LoginModal from './components/LoginModal';
 import RegisterModal from './components/RegisterModal';
 import FaceSearchModal from './components/FaceSearchModal';
-import Toast from './components/Toast';
+// import Toast from './components/Toast'; // Removed, using Context
 import Spinner from './components/Spinner';
 
-// Lazy load pages for performance optimization
+// Contexts
+import { ToastProvider, useToast } from './contexts/ToastContext';
+import { ConfirmProvider, useConfirm } from './contexts/ConfirmContext';
+
+// Lazy load pages
 const HomePage = React.lazy(() => import('./pages/HomePage'));
 const AdminPage = React.lazy(() => import('./pages/AdminPage'));
 const CategoryPage = React.lazy(() => import('./pages/CategoryPage'));
@@ -43,7 +47,8 @@ interface FlyingImage {
     opacity: number;
 }
 
-const App: React.FC = () => {
+const MainApp: React.FC = () => {
+    const { showToast } = useToast();
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [currentPage, setCurrentPage] = useState<Page>({ name: 'home' });
     const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -51,9 +56,6 @@ const App: React.FC = () => {
     const [isFaceSearchModalOpen, setIsFaceSearchModalOpen] = useState(false);
     const [selectedPhotoId, setSelectedPhotoId] = useState<string | null>(null);
     const [cartItems, setCartItems] = useState<string[]>([]);
-
-    // Toast State
-    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
     // Animation State
     const [flyingImage, setFlyingImage] = useState<FlyingImage | null>(null);
@@ -85,11 +87,9 @@ const App: React.FC = () => {
         restoreSession();
 
         // PERFORMANCE: Preload FaceAPI models in background
-        // This runs after the main thread is free, avoiding UI blocking
         const preloadModels = async () => {
             try {
                 console.log("App mounted: Starting background model preloading...");
-                // We use 'requestIdleCallback' logic via setTimeout to not block initial render
                 setTimeout(() => {
                     import('./services/faceRecognition').then(({ faceRecognitionService }) => {
                         faceRecognitionService.loadPreciseModel().catch(e => console.warn("Background model load failed", e));
@@ -126,16 +126,10 @@ const App: React.FC = () => {
         }
     }, [cartItems, currentUser]);
 
-    const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
-        setToast({ message, type });
-    };
-
-
-
     const handleLoginSuccess = async (user: User) => {
         setCurrentUser(user);
 
-        // Immediate redirection based on role (Bypassing handleNavigate checks to avoid race conditions)
+        // Immediate redirection based on role
         if (user.role === UserRole.PHOTOGRAPHER) {
             setCurrentPage({ name: 'photographer' });
             window.scrollTo(0, 0);
@@ -143,12 +137,10 @@ const App: React.FC = () => {
             setCurrentPage({ name: 'admin' });
             window.scrollTo(0, 0);
         } else {
-            // Customers stay on current page (or we could force home if desired)
-            // Ideally, we refresh the current view if it depends on user data? 
-            // For now, doing nothing preserves context which is good (e.g. on detail page).
+            // Customers stay
         }
 
-        // If customer, fetch their saved cart and merge with current session cart
+        // If customer, fetch their saved cart
         if (user.role === UserRole.CUSTOMER) {
             try {
                 const savedUserCart = await api.getUserCart(user.id);
@@ -169,28 +161,25 @@ const App: React.FC = () => {
             console.error("Logout failed", e);
         }
         setCurrentUser(null);
-        // Clear session cart on logout so next user/guest starts fresh
         setCartItems([]);
         localStorage.removeItem('cartItems');
         handleNavigate({ name: 'home' });
     };
 
     const handleNavigate = (page: Page) => {
-        // Show toast if provided in navigation
         if (page.toastMessage) {
             showToast(page.toastMessage, page.toastType || 'info');
         }
 
-        // Intercept navigation to Auth pages and open Modals instead
         if (page.name === 'login') {
             setIsLoginModalOpen(true);
-            setIsRegisterModalOpen(false); // Close register if open
+            setIsRegisterModalOpen(false);
             return;
         }
 
         if (page.name === 'register') {
             setIsRegisterModalOpen(true);
-            setIsLoginModalOpen(false); // Close login if open
+            setIsLoginModalOpen(false);
             return;
         }
 
@@ -212,12 +201,11 @@ const App: React.FC = () => {
             return;
         }
         setCurrentPage(page);
-        window.scrollTo(0, 0); // Scroll to top on page change
+        window.scrollTo(0, 0);
     }
 
     const handleAddToCart = (photoId: string, imgElement?: HTMLImageElement) => {
         if (!cartItems.includes(photoId)) {
-
             // Animation Logic
             if (imgElement) {
                 const rect = imgElement.getBoundingClientRect();
@@ -225,8 +213,6 @@ const App: React.FC = () => {
 
                 if (cartBtn) {
                     const cartRect = cartBtn.getBoundingClientRect();
-
-                    // Initialize at starting position
                     setFlyingImage({
                         src: imgElement.src,
                         top: rect.top,
@@ -236,11 +222,10 @@ const App: React.FC = () => {
                         opacity: 1
                     });
 
-                    // Trigger animation next tick
                     setTimeout(() => {
                         setFlyingImage({
                             src: imgElement.src,
-                            top: cartRect.top + 10, // Center of cart roughly
+                            top: cartRect.top + 10,
                             left: cartRect.left + 10,
                             width: 20,
                             height: 20,
@@ -248,12 +233,11 @@ const App: React.FC = () => {
                         });
                     }, 50);
 
-                    // Cleanup and update cart
                     setTimeout(() => {
                         setFlyingImage(null);
                         setCartItems(prev => [...prev, photoId]);
                         showToast("Foto adicionada ao carrinho!");
-                    }, 800); // Match transition duration
+                    }, 800);
                     return;
                 }
             }
@@ -286,13 +270,23 @@ const App: React.FC = () => {
         handleNavigate({ name: 'customer-dashboard' });
     };
 
+    const { confirm } = useConfirm();
+
     const handleBuyPhoto = async (photoId: string) => {
         if (!currentUser) {
             showToast("Por favor, faça login para comprar.", "info");
             handleNavigate({ name: 'login' });
             return;
         }
-        if (!confirm("Simular compra desta foto?")) return;
+
+        const isConfirmed = await confirm({
+            title: "Simular Compra",
+            message: "Simular compra desta foto?",
+            confirmText: "Simular",
+            variant: 'primary'
+        });
+
+        if (!isConfirmed) return;
 
         const success = await api.purchasePhoto(photoId, currentUser.id);
         if (success) {
@@ -395,14 +389,6 @@ const App: React.FC = () => {
                         }}
                     />
                 )}
-
-                {toast && (
-                    <Toast
-                        message={toast.message}
-                        type={toast.type}
-                        onClose={() => setToast(null)}
-                    />
-                )}
             </main>
             {showFooter && <Footer onNavigate={handleNavigate} />}
 
@@ -441,6 +427,16 @@ const App: React.FC = () => {
                 />
             )}
         </div>
+    );
+};
+
+const App: React.FC = () => {
+    return (
+        <ToastProvider>
+            <ConfirmProvider>
+                <MainApp />
+            </ConfirmProvider>
+        </ToastProvider>
     );
 };
 

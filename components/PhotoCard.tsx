@@ -98,9 +98,10 @@ const PhotoCard: React.FC<PhotoCardProps> = ({ photo, photographer, onNavigate, 
         <div className={`group relative overflow-hidden rounded-lg shadow-md bg-white transition-all duration-700 ease-out hover:shadow-xl ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
             <div className="cursor-pointer overflow-hidden h-48" onClick={handleDetailsClick}>
                 <WatermarkedImage
-                    src={photo.preview_url}
+                    src={photo.thumb_url || photo.preview_url}
                     alt={photo.title}
-                    loading={loading}
+                    loading={loading || "lazy"}
+                    decoding="async"
                     className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                 />
             </div>

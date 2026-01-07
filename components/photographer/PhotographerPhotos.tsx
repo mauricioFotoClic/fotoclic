@@ -6,11 +6,15 @@ import Spinner from '../Spinner';
 import Modal from '../Modal';
 import PhotoUploadForm from './PhotoUploadForm';
 import PhotoLikesModal from './PhotoLikesModal';
-import Toast from '../Toast';
+// import Toast from '../Toast'; // Content handled by Context
 import CreateEventForm from './CreateEventForm';
 import BatchUploadForm from './BatchUploadForm';
 
 import { faceRecognitionService } from '../../services/faceRecognition';
+import { processImageForUpload } from '../../utils/imageProcessing';
+
+import { useToast } from '../../contexts/ToastContext';
+import { useConfirm } from '../../contexts/ConfirmContext';
 
 // Icons
 const EditIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>;
@@ -28,6 +32,9 @@ interface PhotographerPhotosProps {
 }
 
 const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user }) => {
+    const { showToast } = useToast();
+    const { confirm } = useConfirm();
+
     // --- STATE ---
     const [view, setView] = useState<'events' | 'photos'>('events');
     const [events, setEvents] = useState<PhotoEvent[]>([]);
@@ -35,6 +42,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user }) => {
 
     const [photos, setPhotos] = useState<Photo[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
+    const [myRequest, setMyRequest] = useState<any>(null); // New state for storage request
     const [loading, setLoading] = useState(true);
     const stopBulkRef = useRef(false);
 
@@ -45,7 +53,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user }) => {
     // Legacy Modals (Single Photo)
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingPhoto, setEditingPhoto] = useState<Photo | null>(null);
-    const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+    // const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false); // Removed in favor of Context
     const [photoToDelete, setPhotoToDelete] = useState<Photo | null>(null);
     const [isLikesModalOpen, setIsLikesModalOpen] = useState(false);
     const [selectedPhotoForLikes, setSelectedPhotoForLikes] = useState<Photo | null>(null);
@@ -59,10 +67,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user }) => {
     const [isBulkStartConfirmOpen, setIsBulkStartConfirmOpen] = useState(false);
     const [isBulkStopConfirmOpen, setIsBulkStopConfirmOpen] = useState(false);
 
-    // Toast
-    const [showToast, setShowToast] = useState(false);
-    const [toastMessage, setToastMessage] = useState('');
-    const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('success');
+    // Toast (STATE REMOVED)
 
     // Filters
     const [searchTerm, setSearchTerm] = useState('');
@@ -72,18 +77,24 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user }) => {
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
 
+    const [stats, setStats] = useState<any>(null); // Add stats state
+
     // --- DATA FETCHING ---
     const fetchData = useCallback(async () => {
         try {
             setLoading(true);
-            const [eventsData, photosData, categoriesData] = await Promise.all([
+            const [eventsData, photosData, categoriesData, statsData, myRequestData] = await Promise.all([
                 api.getPhotographerEvents(user.id),
                 api.getPhotosByPhotographerId(user.id),
-                api.getCategories()
+                api.getCategories(),
+                api.getPhotographerStats(user.id),
+                api.getMyLatestStorageRequest()
             ]);
             setEvents(eventsData);
             setPhotos(photosData);
             setCategories(categoriesData);
+            setStats(statsData);
+            setMyRequest(myRequestData);
         } catch (error) {
             console.error("Failed to fetch data", error);
         } finally {
@@ -108,29 +119,37 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user }) => {
             if (newEvent) {
                 setEvents(prev => [newEvent, ...prev]);
                 setIsEventModalOpen(false);
-                showToastNotification("Evento criado com sucesso!", "success");
+                showToast("Evento criado com sucesso!", "success");
             }
         } catch (error: any) {
             console.error("Failed to create event", error);
             const msg = error.message || "Erro desconhecido";
-            showToastNotification(`Erro ao criar evento: ${msg}`, "error");
+            showToast(`Erro ao criar evento: ${msg}`, "error");
         }
     };
 
     const handleDeleteEvent = async (eventId: string, e: React.MouseEvent) => {
         e.stopPropagation();
-        if (!window.confirm("Você tem certeza que deseja excluir este evento? Todas as fotos dentro dele também serão excluídas.")) return;
+
+        const isConfirmed = await confirm({
+            title: "Excluir Evento",
+            message: "Você tem certeza que deseja excluir este evento? Todas as fotos dentro dele também serão excluídas.",
+            confirmText: "Excluir",
+            variant: "danger"
+        });
+
+        if (!isConfirmed) return;
 
         try {
             const success = await api.deleteEvent(eventId);
             if (success) {
                 setEvents(prev => prev.filter(ev => ev.id !== eventId));
                 setPhotos(prev => prev.filter(p => p.event_id !== eventId));
-                showToastNotification("Evento excluído com sucesso.", "success");
+                showToast("Evento excluído com sucesso.", "success");
             }
         } catch (error) {
             console.error(error);
-            showToastNotification("Erro ao excluir evento.", "error");
+            showToast("Erro ao excluir evento.", "error");
         }
     }
 
@@ -147,7 +166,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user }) => {
         let successCount = 0;
         let failCount = 0;
 
-        showToastNotification(`Iniciando envio de ${files.length} fotos...`, "info");
+        showToast(`Iniciando envio de ${files.length} fotos...`, "info");
 
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
@@ -155,88 +174,145 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user }) => {
             // Report progress
             if (onProgress) onProgress(i + 1, files.length);
 
+            // 1. Validation: File Size (Max 15MB)
+            const MAX_SIZE_MB = 15;
+            if (file.size > MAX_SIZE_MB * 1024 * 1024) {
+                console.error(`File ${file.name} is too large (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
+                failCount++;
+                continue; // Skip this file
+            }
+
+            // 2. Validation: File Type (Allow JPG, WebP, PNG)
+            const validTypes = ['image/jpeg', 'image/jpg', 'image/webp', 'image/png'];
+            if (!validTypes.includes(file.type)) {
+                console.error(`File ${file.name} has invalid type: ${file.type}`);
+                failCount++;
+                continue;
+            }
+
             try {
-                // 1. Process Image
-                const img = new Image();
-                const objectUrl = URL.createObjectURL(file);
-                img.src = objectUrl;
+                // 3. Process Image (Original, Preview, Thumb)
+                // Note: processImageForUpload returns base64 strings.
+                // We need to convert them back to Blobs for Storage upload.
+                const processed = await processImageForUpload(file);
 
-                await new Promise((resolve) => { img.onload = resolve; });
+                // Helper to convert base64 to Blob
+                const base64ToBlob = async (b64Data: string) => {
+                    const res = await fetch(b64Data);
+                    return await res.blob();
+                };
 
-                // Compress/Resize Logic specific to each file
-                const MAX_WIDTH = 1600;
-                const MAX_HEIGHT = 1600;
-                let width = img.naturalWidth;
-                let height = img.naturalHeight;
+                const originalBlob = await base64ToBlob(processed.original);
+                const previewBlob = await base64ToBlob(processed.preview);
+                const thumbBlob = await base64ToBlob(processed.thumb);
 
-                if (width > MAX_WIDTH || height > MAX_HEIGHT) {
-                    if (width > height) {
-                        height *= MAX_WIDTH / width;
-                        width = MAX_WIDTH;
-                    } else {
-                        width *= MAX_HEIGHT / height;
-                        height = MAX_HEIGHT;
-                    }
-                }
+                // 4. Upload to Storage
+                const fileExt = file.name.split('.').pop();
+                const fileName = `${self.crypto.randomUUID()}`; // Base name
+                const filePath = `${user.id}/${selectedEvent.id}/${fileName}`;
 
-                const canvas = document.createElement('canvas');
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext('2d');
-                if (ctx) {
-                    ctx.drawImage(img, 0, 0, width, height);
-                    const finalDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                // Upload Original (Private Bucket)
+                const { data: origData, error: origError } = await api.supabase.storage
+                    .from('photos-original')
+                    .upload(`${filePath}-original.${fileExt}`, originalBlob);
 
-                    // 2. Upload using existing api.createPhoto which expects base64 or similar
-                    const newPhoto = await api.createPhoto({
-                        photographer_id: user.id,
-                        category_id: selectedEvent.category_id,
-                        title: `${selectedEvent.name} - ${files.indexOf(file) + 1}`,
-                        description: `Foto do evento ${selectedEvent.name}`,
-                        price: metadata.price,
-                        preview_url: finalDataUrl, // For now storing base64 as existing logic does
-                        file_url: finalDataUrl,
-                        resolution: '4K', // Placeholder
-                        width: Math.round(width),
-                        height: Math.round(height),
-                        tags: metadata.tags,
-                        is_public: metadata.is_public,
-                        is_featured: false,
-                        event_id: selectedEvent.id
-                    });
+                if (origError) throw origError;
 
-                    if (newPhoto) {
-                        // AUTOMATIC INDEXING:
-                        try {
-                            // We reuse the 'img' object which is already loaded
-                            await faceRecognitionService.indexPhoto(newPhoto.id, img);
-                            console.log(`Face indexed for photo ${newPhoto.id}`);
-                        } catch (indexError) {
-                            console.error(`Failed to index face for photo ${newPhoto.id}`, indexError);
-                            // We don't fail the whole upload if indexing fails, but we log it
+                // Upload Preview (Public Bucket)
+                const { data: prevData, error: prevError } = await api.supabase.storage
+                    .from('photos-preview')
+                    .upload(`${filePath}-preview.webp`, previewBlob); // Preview is always webp
+
+                if (prevError) throw prevError;
+
+                // Upload Thumb (Public Bucket)
+                const { data: thumbData, error: thumbError } = await api.supabase.storage
+                    .from('photos-preview')
+                    .upload(`${filePath}-thumb.webp`, thumbBlob); // Thumb is always webp
+
+                if (thumbError) throw thumbError;
+
+                // Get Public URLs for Preview and Thumb
+                const { data: prevUrlData } = api.supabase.storage.from('photos-preview').getPublicUrl(`${filePath}-preview.webp`);
+                const { data: thumbUrlData } = api.supabase.storage.from('photos-preview').getPublicUrl(`${filePath}-thumb.webp`);
+
+                // 5. Save Metadata to DB
+                // For original, we save the PATH (to be used with createSignedUrl)
+                // For preview/thumb, we save the Public URL
+                const newPhoto = await api.createPhoto({
+                    photographer_id: user.id,
+                    category_id: selectedEvent.category_id,
+                    title: `${selectedEvent.name} - ${files.indexOf(file) + 1}`,
+                    description: `Foto do evento ${selectedEvent.name}`,
+                    price: metadata.price,
+                    preview_url: prevUrlData.publicUrl,
+                    file_url: `${filePath}-original.${fileExt}`, // Store relative path for private access
+                    thumb_url: thumbUrlData.publicUrl,
+                    resolution: '4K',
+                    width: processed.width,
+                    height: processed.height,
+                    tags: metadata.tags,
+                    is_public: metadata.is_public,
+                    is_featured: false,
+                    event_id: selectedEvent.id
+                });
+
+                // ... (Indexing logic stays same) ...
+
+                if (newPhoto) {
+                    // AUTOMATIC INDEXING:
+                    try {
+                        // Index face if enabled
+                        if ((user as any).face_indexing_enabled !== false) { // Default true
+                            // Must create an image element for face-api
+                            const indexingImg = new Image();
+                            indexingImg.src = newPhoto.preview_url;
+                            // CrossOrigin might be needed if public bucket domain differs, usually ok with std supabase
+                            indexingImg.crossOrigin = "anonymous";
+                            await new Promise((resolve, reject) => {
+                                indexingImg.onload = resolve;
+                                indexingImg.onerror = reject;
+                            });
+
+                            await faceRecognitionService.indexPhoto(newPhoto.id, indexingImg); // Use loaded image
                         }
-
-                        setPhotos(prev => [newPhoto, ...prev]);
-                        successCount++;
+                    } catch (idxError: any) {
+                        // Check if it's a "no face found" error which is expected for some photos
+                        if (idxError.message && idxError.message.includes("Nenhum rosto")) {
+                            console.warn(`Aviso: Indexação facial pulada para foto ${newPhoto.id} (Nenhum rosto detectado).`);
+                        } else {
+                            console.warn("Falha na indexação facial (não impede o upload):", idxError);
+                        }
                     }
+
+                    successCount++;
                 }
-                URL.revokeObjectURL(objectUrl);
-            } catch (error) {
-                console.error("Failed to upload file", file.name, error);
+
+            } catch (err: any) {
+                console.error(`Upload error for ${file.name}:`, err);
                 failCount++;
             }
+
+            // ... (Progress update call if I had passed one, but loop handles batch) ...
+        } // End Loop
+
+        setIsBatchUploadModalOpen(false);
+
+        if (failCount > 0) {
+            if (successCount === 0) {
+                showToast(`Falha no envio. Verifique permissões e conexão.`, "error");
+            } else {
+                showToast(`Envio parcial: ${successCount} sucessos, ${failCount} falhas.`, "info");
+            }
+        } else {
+            showToast(`Upload concluído! ${successCount} fotos processadas.`, "success");
         }
 
-        setIsBatchUploadModalOpen(false); // Close AFTER completion
-        showToastNotification(`Envio concluído! ${successCount} sucessos, ${failCount} falhas.`, failCount > 0 ? "info" : "success");
+        fetchData();
     };
 
     // --- VIEW HELPERS ---
-    const showToastNotification = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
-        setToastMessage(message);
-        setToastType(type);
-        setShowToast(true);
-    };
+    // showToastNotification Helper removed (using useToast directly)
 
     // Filter Logic restricted to Selected Event if in details view
     const filteredPhotos = useMemo(() => {
@@ -275,18 +351,25 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user }) => {
     const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => { setFilterStatus(e.target.value); setCurrentPage(1); };
 
     // --- REUSED HANDLERS (Delete, Edit, Likes) ---
-    const handleDelete = (photo: Photo) => { setPhotoToDelete(photo); setIsConfirmModalOpen(true); };
-    const handleConfirmDelete = async () => {
-        if (!photoToDelete) return;
+    const handleDelete = async (photo: Photo) => {
+        const isConfirmed = await confirm({
+            title: "Confirmar Exclusão",
+            message: "Tem certeza que deseja excluir esta foto?",
+            confirmText: "Excluir",
+            variant: "danger"
+        });
+
+        if (!isConfirmed) return;
+
         try {
-            const success = await api.deletePhoto(photoToDelete.id);
+            const success = await api.deletePhoto(photo.id);
             if (success) {
-                setPhotos(prev => prev.filter(p => p.id !== photoToDelete.id));
-                showToastNotification('Foto excluída com sucesso.', 'success');
-            } else { showToastNotification('Erro ao excluir foto.', 'error'); }
-        } catch (error) { showToastNotification('Erro ao excluir foto.', 'error'); }
-        finally { setIsConfirmModalOpen(false); setPhotoToDelete(null); }
+                setPhotos(prev => prev.filter(p => p.id !== photo.id));
+                showToast('Foto excluída com sucesso.', 'success');
+            } else { showToast('Erro ao excluir foto.', 'error'); }
+        } catch (error) { showToast('Erro ao excluir foto.', 'error'); }
     };
+    // handleConfirmDelete removed
 
     // ... (Keep existing simple edit/like handlers reused properly)
     const handleOpenLikesModal = (photo: Photo) => { if (photo.likes > 0) { setSelectedPhotoForLikes(photo); setIsLikesModalOpen(true); } };
@@ -299,8 +382,8 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user }) => {
             await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; });
             await faceRecognitionService.indexPhoto(photoToIndex.id, img);
             setPhotos(prev => prev.map(p => p.id === photoToIndex.id ? { ...p, is_face_indexed: true } : p));
-            showToastNotification("Sucesso! Rostos indexados.", 'success');
-        } catch (error: any) { showToastNotification(`Erro: ${error.message}`, 'error'); }
+            showToast("Sucesso! Rostos indexados.", 'success');
+        } catch (error: any) { showToast(`Erro: ${error.message}`, 'error'); }
     };
 
     const confirmBulkIndex = async () => { /* reuse logic - careful with scope variables */
@@ -323,7 +406,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user }) => {
             await new Promise(r => setTimeout(r, 100)); // throttle
         }
         setIsBulkIndexing(false);
-        showToastNotification(`Processo finalizado: ${successes} processados.`, 'info');
+        showToast(`Processo finalizado: ${successes} processados.`, 'info');
     };
 
     // Status Chip Helper
@@ -461,6 +544,107 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user }) => {
             ) : (
                 // --- PHOTOGRAPHER FILTERED LIST VIEW (Existing Logic) ---
                 <div>
+                    {/* Stats Card */}
+                    <div className="bg-white p-4 rounded-xl shadow-sm border border-neutral-100 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <h3 className="font-bold text-neutral-800 text-lg">Uso do Plano</h3>
+                            <p className="text-sm text-neutral-500">
+                                Você usou <span className="font-semibold text-neutral-900">{stats.photos_count}</span> de <span className="font-semibold text-neutral-900">{stats.photo_limit}</span> fotos.
+                            </p>
+                            {stats.photos_count >= stats.photo_limit && (
+                                <p className="text-xs text-red-600 font-bold mt-1">Limite atingido! Entre em contato para aumentar.</p>
+                            )}
+                        </div>
+                        <div className="flex flex-col items-end gap-2">
+                            <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm font-medium">
+                                <span className="text-green-600 bg-green-50 px-3 py-1 rounded-full border border-green-100">
+                                    {stats.approved_count} Aprovadas
+                                </span>
+                                <span className="text-yellow-600 bg-yellow-50 px-3 py-1 rounded-full border border-yellow-100">
+                                    {stats.pending_count} Pendentes
+                                </span>
+                                <span className="text-red-600 bg-red-50 px-3 py-1 rounded-full border border-red-100">
+                                    {stats.rejected_count} Rejeitadas
+                                </span>
+                            </div>
+
+                            {/* Storage Request Logic */}
+                            {(myRequest && myRequest.status === 'pending') ? (
+                                <span className="text-xs text-yellow-600 font-medium bg-yellow-50 px-3 py-1 rounded-full border border-yellow-100">
+                                    ⏳ Solicitação em análise
+                                </span>
+                            ) : (myRequest && myRequest.status === 'rejected') ? (
+                                <div className="flex flex-col items-end">
+                                    <span className="text-xs text-red-600 font-medium bg-red-50 px-3 py-1 rounded-full border border-red-100 mb-1" title={myRequest.rejection_reason || ''}>
+                                        ❌ Solicitação rejeitada
+                                    </span>
+                                    <button
+                                        onClick={async () => {
+                                            const isConfirmed = await confirm({
+                                                title: "Nova Solicitação",
+                                                message: `Sua última solicitação foi rejeitada pelo motivo: "${myRequest.rejection_reason}". Deseja tentar novamente?`,
+                                                confirmText: "Solicitar Novamente"
+                                            });
+
+                                            if (!isConfirmed) return;
+
+                                            // Handle request logic...
+                                            setLoading(true);
+                                            try {
+                                                const result = await api.requestStorageLimit();
+                                                if (result && result.success) {
+                                                    showToast("Solicitação enviada com sucesso!", "success");
+                                                    fetchData(); // Refresh to get new pending status
+                                                } else {
+                                                    showToast(result.error || "Erro ao enviar solicitação.", "error");
+                                                }
+                                            } catch (e) {
+                                                console.error(e);
+                                                showToast("Erro ao processar solicitação.", "error");
+                                            } finally {
+                                                setLoading(false);
+                                            }
+                                        }}
+                                        className="text-xs text-primary hover:text-primary-dark underline font-medium"
+                                    >
+                                        Tentar Novamente
+                                    </button>
+                                </div>
+                            ) : (
+                                <button
+                                    onClick={async () => {
+                                        const isConfirmed = await confirm({
+                                            title: "Solicitar Aumento",
+                                            message: "Deseja solicitar o aumento do seu limite de fotos para o admin?",
+                                            confirmText: "Solicitar"
+                                        });
+
+                                        if (!isConfirmed) return;
+
+                                        setLoading(true);
+                                        try {
+                                            const result = await api.requestStorageLimit();
+                                            if (result && result.success) {
+                                                showToast("Solicitação enviada com sucesso!", "success");
+                                                fetchData();
+                                            } else {
+                                                showToast(result.error || "Erro ao enviar solicitação.", "error");
+                                            }
+                                        } catch (e) {
+                                            console.error(e);
+                                            showToast("Erro ao processar solicitação.", "error");
+                                        } finally {
+                                            setLoading(false);
+                                        }
+                                    }}
+                                    className="text-xs text-primary hover:text-primary-dark underline font-medium"
+                                >
+                                    Solicitar Aumento de Limite
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
                     {/* Filters */}
                     <div className="mb-6 flex flex-col md:flex-row gap-4">
                         <div className="relative flex-grow">
@@ -507,7 +691,13 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user }) => {
                                     {paginatedPhotos.map((photo, index) => (
                                         <tr key={photo.id} className={`border-t ${index % 2 === 0 ? 'bg-white' : 'bg-neutral-50'}`}>
                                             <td className="p-2">
-                                                <img src={photo.preview_url} alt={photo.title} className="w-16 h-12 object-cover rounded-md border border-neutral-200" />
+                                                <img
+                                                    src={photo.thumb_url || photo.preview_url}
+                                                    alt={photo.title}
+                                                    loading="lazy"
+                                                    decoding="async"
+                                                    className="w-16 h-12 object-cover rounded-md border border-neutral-200"
+                                                />
                                             </td>
                                             <td className="p-4 text-sm font-medium text-neutral-800">{photo.title}</td>
                                             <td className="p-4 text-sm text-neutral-500">{getCategoryName(photo.category_id)}</td>
@@ -574,20 +764,79 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user }) => {
                     initialData={editingPhoto}
                     photographerId={user.id}
                     categories={categories}
-                    onSubmit={async (data) => { /* Reuse minimal submit logic for legacy single edit */ }}
+                    onSubmit={async (data) => {
+                        try {
+                            // Helper to upload blob
+                            const uploadToStorage = async (b64: string, path: string, bucket: string) => {
+                                const res = await fetch(b64);
+                                const blob = await res.blob();
+                                const { error } = await api.supabase.storage.from(bucket).upload(path, blob);
+                                if (error) throw error;
+                            };
+
+                            let finalPreview = data.preview_url;
+                            let finalFile = data.file_url;
+                            let finalThumb = data.thumb_url || data.preview_url;
+
+                            // If new upload (Base64), upload to Storage
+                            if (data.preview_url.startsWith('data:')) {
+                                const fileExt = 'webp'; // Converted format
+                                const fileName = `${self.crypto.randomUUID()}`;
+                                const basePath = `${user.id}/${selectedEvent?.id || 'misc'}/${fileName}`;
+
+                                // Upload Original (data.file_url might be original base64)
+                                if (data.file_url.startsWith('data:')) {
+                                    // Determine ext from base64 header or default
+                                    const origExt = data.file_url.substring(data.file_url.indexOf('/') + 1, data.file_url.indexOf(';'));
+                                    await uploadToStorage(data.file_url, `${basePath}-original.${origExt}`, 'photos-original');
+                                    finalFile = `${basePath}-original.${origExt}`;
+                                }
+
+                                // Upload Preview
+                                await uploadToStorage(data.preview_url, `${basePath}-preview.webp`, 'photos-preview');
+                                finalPreview = api.supabase.storage.from('photos-preview').getPublicUrl(`${basePath}-preview.webp`).data.publicUrl;
+
+                                // Upload Thumb
+                                if (data.thumb_url && data.thumb_url.startsWith('data:')) {
+                                    await uploadToStorage(data.thumb_url, `${basePath}-thumb.webp`, 'photos-preview');
+                                    finalThumb = api.supabase.storage.from('photos-preview').getPublicUrl(`${basePath}-thumb.webp`).data.publicUrl;
+                                } else {
+                                    finalThumb = finalPreview;
+                                }
+                            }
+
+                            if (editingPhoto) {
+                                // Update existing
+                                await api.updatePhoto(editingPhoto.id, {
+                                    ...data,
+                                    preview_url: finalPreview,
+                                    file_url: finalFile,
+                                    thumb_url: finalThumb
+                                });
+                                showToast("Foto atualizada!", "success");
+                            } else {
+                                // Create new (Legacy single upload mode)
+                                await api.createPhoto({
+                                    ...data,
+                                    photographer_id: user.id,
+                                    file_url: finalFile,
+                                    preview_url: finalPreview,
+                                    thumb_url: finalThumb
+                                });
+                                showToast("Foto criada!", "success");
+                            }
+                            setIsModalOpen(false);
+                            fetchData();
+                        } catch (err: any) {
+                            console.error(err);
+                            showToast("Erro ao salvar foto.", "error");
+                        }
+                    }}
                     onCancel={() => setIsModalOpen(false)}
                 />
             </Modal>
 
-            <Modal isOpen={isConfirmModalOpen} onClose={() => setIsConfirmModalOpen(false)} title="Confirmar Exclusão">
-                <div className="p-4">
-                    <p className="mb-4">Tem certeza que deseja excluir esta foto?</p>
-                    <div className="flex justify-end gap-2">
-                        <button onClick={() => setIsConfirmModalOpen(false)} className="px-4 py-2 border rounded">Cancelar</button>
-                        <button onClick={handleConfirmDelete} className="px-4 py-2 bg-red-600 text-white rounded">Excluir</button>
-                    </div>
-                </div>
-            </Modal>
+            {/* Modal Confirmar Exclusão Removed (Used Context) */}
 
             {/* Progress Modal needs to be reused/restored from original file but adapted */}
             {isBulkIndexing && (
@@ -601,7 +850,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user }) => {
 
             <Modal isOpen={isBulkStartConfirmOpen} onClose={() => setIsBulkStartConfirmOpen(false)} title="Confirmar Indexação"><div className="p-4"><p>Deseja indexar todas as fotos pendentes?</p><div className="flex justify-end mt-4"><button onClick={() => setIsBulkStartConfirmOpen(false)} className="mr-2 border px-4 rounded">Cancelar</button><button onClick={confirmBulkIndex} className="bg-purple-600 text-white px-4 rounded">Confirmar</button></div></div></Modal>
 
-            {showToast && <Toast message={toastMessage} type={toastType} onClose={() => setShowToast(false)} />}
+            {/* showToast && <Toast ... /> removed */}
         </div>
     );
 };

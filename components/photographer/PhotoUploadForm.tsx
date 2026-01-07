@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Photo, Category } from '../../types';
+import { processImageForUpload } from '../../utils/imageProcessing';
 
 type FormData = Omit<Photo, 'id' | 'upload_date' | 'moderation_status' | 'rejection_reason' | 'likes' | 'liked_by_users'>;
 
@@ -83,64 +84,63 @@ const PhotoUploadForm: React.FC<PhotoUploadFormProps> = ({ onSubmit, onCancel, i
         }
     };
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            setIsProcessingImage(true);
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                const result = reader.result as string;
-
-                // Compress logic
-                const img = new Image();
-                img.src = result;
-                img.onload = () => {
-                    // Max dimensions to avoid DB timeout with large base64 strings
-                    const MAX_WIDTH = 1200;
-                    const MAX_HEIGHT = 1200;
-                    let width = img.naturalWidth;
-                    let height = img.naturalHeight;
-
-                    if (width > MAX_WIDTH || height > MAX_HEIGHT) {
-                        if (width > height) {
-                            height *= MAX_WIDTH / width;
-                            width = MAX_WIDTH;
-                        } else {
-                            width *= MAX_HEIGHT / height;
-                            height = MAX_HEIGHT;
-                        }
-                    }
-
-                    const canvas = document.createElement('canvas');
-                    canvas.width = width;
-                    canvas.height = height;
-                    const ctx = canvas.getContext('2d');
-
-                    let finalDataUrl = result;
-
-                    if (ctx) {
-                        ctx.drawImage(img, 0, 0, width, height);
-                        // Compress to JPEG with 0.7 quality
-                        finalDataUrl = canvas.toDataURL('image/jpeg', 0.7);
-                    }
-
-                    setFormData(prev => ({
-                        ...prev,
-                        preview_url: finalDataUrl,
-                        file_url: finalDataUrl,
-                        width: Math.round(width),
-                        height: Math.round(height)
-                    }));
-                    setPreviewImage(finalDataUrl);
-                    setIsProcessingImage(false);
-                };
+            // 1. Validation: File Size (Max 15MB)
+            const MAX_SIZE_MB = 15;
+            if (file.size > MAX_SIZE_MB * 1024 * 1024) {
+                alert(`O arquivo selecionado é muito grande. O tamanho máximo permitido é de ${MAX_SIZE_MB} MB.`);
+                return;
             }
-            reader.readAsDataURL(file);
+
+            // 2. Validation: File Type
+            const validTypes = ['image/jpeg', 'image/jpg', 'image/webp', 'image/png'];
+            if (!validTypes.includes(file.type)) {
+                alert("Formato de arquivo inválido. Por favor, selecione uma imagem JPG, PNG ou WebP.");
+                return;
+            }
+
+            setIsProcessingImage(true);
+            try {
+                const processed = await processImageForUpload(file);
+
+                setFormData(prev => ({
+                    ...prev,
+                    preview_url: processed.preview,
+                    file_url: processed.original,
+                    thumb_url: processed.thumb, // Include Thumb
+                    width: processed.width,
+                    height: processed.height
+                }));
+                setPreviewImage(processed.preview);
+            } catch (err) {
+                console.error("Error processing image:", err);
+                alert("Erro ao processar a imagem. Verifique se o arquivo não está corrompido.");
+            } finally {
+                setIsProcessingImage(false);
+            }
         }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        // Allow submission if we have the necessary data, even if it's base64 for now, 
+        // BUT the parent expects to receive "ready to upload" data OR performs the upload.
+        // Let's see... `onSubmit` prop usually takes the object.
+        // If I change the logic here, I might break the contract. 
+        // Better to change the PARENT function `handleAddPhoto` to handle the storage upload
+        // OR change `onSubmit` to async upload and then pass result.
+
+        // Actually, the `processImageForUpload` runs in `handleFileChange`.
+        // So `formData` has base64 strings.
+        // The parent `handleAddPhoto` receives these base64 strings and calls `api.createPhoto`.
+        // So I must modify `handleAddPhoto` in `PhotographerPhotos.tsx`, NOT this file, 
+        // UNLESS I want to move upload logic here.
+        // Keeping upload logic in Parent is cleaner? No, Batch Upload handles it.
+        // Let's modify `PhotographerPhotos.tsx`.
+        // So I will CANCEL this edit and view `PhotographerPhotos.tsx` again.
+
         if (formData.title.trim() && formData.category_id && formData.preview_url) {
             setIsSubmitting(true);
             try {

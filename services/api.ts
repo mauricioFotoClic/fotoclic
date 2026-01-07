@@ -41,6 +41,7 @@ const mapPhoto = (dbPhoto: any): Photo => {
     description: dbPhoto.description || '',
     preview_url: dbPhoto.preview_url,
     file_url: dbPhoto.file_url || '',
+    thumb_url: dbPhoto.thumb_url || dbPhoto.preview_url, // Fallback to preview if no thumb
     price: Number(dbPhoto.price),
     resolution: dbPhoto.resolution,
     width: dbPhoto.width,
@@ -170,11 +171,36 @@ export const api = {
   },
 
   createPhoto: async (data: any): Promise<Photo> => {
-    // Force approved status as per new requirement (No Moderation)
-    const photoData = { ...data, moderation_status: 'approved' };
-    const { data: newPhoto, error } = await supabase.from('photos').insert(photoData).select().single();
+    const { data: result, error } = await supabase.rpc('upload_photo', {
+      p_photographer_id: data.photographer_id,
+      p_category_id: data.category_id,
+      p_title: data.title,
+      p_description: data.description || '',
+      p_price: data.price,
+      p_preview_url: data.preview_url,
+      p_file_url: data.file_url || '',
+      p_thumb_url: data.thumb_url || '', // Pass thumb
+      p_resolution: data.resolution || '4K',
+      p_width: data.width,
+      p_height: data.height,
+      p_tags: data.tags || [],
+      p_is_public: data.is_public,
+      p_is_featured: false, // Default
+      p_event_id: data.event_id
+    });
+
     if (error) throw error;
-    return mapPhoto(newPhoto);
+
+    // The RPC returns a JSON object { success: boolean, original_error?: string, data?: photo_row }
+    // We need to parse/check it.
+    // Note: Supabase RPC returns the JSONB directly as data.
+
+    if (!result || !result.success) {
+      throw new Error(result?.error || 'Erro desconhecido ao enviar foto.');
+    }
+
+    // Map the returned data (which is the raw photo row) to our Photo type
+    return mapPhoto(result.data);
   },
 
   updatePhoto: async (id: string, data: any): Promise<Photo | undefined> => {
@@ -510,43 +536,34 @@ export const api = {
     return true;
   },
   getPhotographers: async (): Promise<PhotographerWithStats[]> => {
-    // 1. Get all photographers
-    const { data: users, error } = await supabase.from('users').select('*').eq('role', 'photographer');
-    if (error) throw error;
+    // 1. Get stats via RPC (Server-side aggregation)
+    const { data, error } = await supabase.rpc('get_photographers_with_stats');
 
-    // 2. Get stats manually 
-    const { data: allSales } = await supabase.from('sales').select('photographer_id, price, commission');
-    const { data: allPhotos } = await supabase.from('photos').select('photographer_id, likes_count');
+    if (error) {
+      console.error("Error fetching photographer stats via RPC:", error);
+      throw error;
+    }
 
-    // 3. Get Commission Settings (New)
+    // 2. Get Commission Settings
     const settings = await api.getCommissionSettings();
 
-    // 4. Aggregate
-    return users.map(u => {
-      const user = mapUser(u);
-
-      const userSales = allSales?.filter((s: any) => s.photographer_id === u.id) || [];
-      const userPhotos = allPhotos?.filter((p: any) => p.photographer_id === u.id) || [];
-
-      const salesCount = userSales.length;
-      const commissionValue = userSales.reduce((sum: number, s: any) => sum + (s.commission || 0), 0);
-
-      const photoCount = userPhotos.length;
-      const likesCount = userPhotos.reduce((sum: number, p: any) => sum + (p.likes_count || 0), 0);
+    // 3. Map result
+    return (data as any[]).map(row => {
+      const user = mapUser(row.user_data);
 
       // Determine the effective rate for this photographer
       let effectiveRate = settings.defaultRate;
-      if (settings.customRates && settings.customRates[u.id] !== undefined) {
-        effectiveRate = settings.customRates[u.id];
+      if (settings.customRates && settings.customRates[user.id] !== undefined) {
+        effectiveRate = settings.customRates[user.id];
       }
 
       return {
         ...user,
-        photoCount,
-        salesCount,
-        commissionValue,
-        commissionRate: effectiveRate, // Use the real active rate
-        likesCount,
+        photoCount: Number(row.photo_cnt),
+        salesCount: Number(row.sales_cnt),
+        commissionValue: Number(row.comm_val),
+        commissionRate: effectiveRate,
+        likesCount: Number(row.likes_cnt),
         avgRating: 0,
         reviewCount: 0,
         approvalPercentage: 0
@@ -856,11 +873,6 @@ export const api = {
       console.error("Auth Login Failed:", authError);
 
       if (authError.message === "Invalid login credentials") {
-        // Check if it's a legacy user (exists in DB but not in Auth)
-        const { data: legacyUser } = await supabase.from('users').select('id').eq('email', email).single();
-        if (legacyUser) {
-          throw new Error("Sistema de segurança atualizado. Por favor, CRIE UMA NOVA CONTA (Registre-se novamente) para sincronizar seu acesso.");
-        }
         throw new Error("Email ou senha incorretos.");
       }
 
@@ -1104,65 +1116,27 @@ export const api = {
     }).filter(Boolean) as PurchasedPhoto[];
   },
   getSecureDownloadUrl: async (photoId: string, userId: string): Promise<string | null> => {
-    // 1. Verify Purchase
-    const purchased = await api.checkIfPurchased(userId, photoId);
-    if (!purchased) {
-      console.warn(`User ${userId} attempted to access photo ${photoId} without purchase.`);
-      return null;
-    }
-
-    // 2. Get Photo Storage Path
-    const photo = await api.getPhotoById(photoId);
-    if (!photo || !photo.file_url) return null;
-
     try {
-      // Extract path from URL if it's a full Supabase URL, or usage as is if relative
-      // Assumption: file_url might be "https://.../storage/v1/object/public/photos/path/to/file.jpg"
-      // We need just "photos/path/to/file.jpg" or the path relative to bucket.
-
-      // Heuristic: If it contains '/public/', we presume the sensitive bucket would be different or we just sign this path.
-      // But if the bucket is PUBLIC, signing is redundant but harmless. 
-      // ideally the bucket should be PRIVATE 'photos_secure'.
-
-      // For this implementation, we will use the 'createSignedUrl' on the 'photos' bucket 
-      // assuming the file path is extractable.
-
-      // Let's assume the project follows standard Supabase pattern:
-      // .../storage/v1/object/public/[bucket]/[path]
-
-      const urlObj = new URL(photo.file_url);
-      const pathParts = urlObj.pathname.split('/');
-      // pathParts usually: ["", "storage", "v1", "object", "public", "photos", "folder", "file.jpg"]
-
-      const publicIndex = pathParts.indexOf('public');
-      if (publicIndex === -1) {
-        // Fallback: If not standard structure, return original if we can't sign it
-        // OR if it is already a signed url?
-        return photo.file_url;
-      }
-
-      const bucket = pathParts[publicIndex + 1]; // e.g. 'photos'
-      const path = pathParts.slice(publicIndex + 2).join('/'); // e.g. 'folder/file.jpg'
-
-      // Generate Signed URL (valid for 1 hour)
-      const { data, error } = await supabase
-        .storage
-        .from(bucket)
-        .createSignedUrl(path, 3600); // 1 hour
+      const { data, error } = await supabase.rpc('get_download_link', { p_photo_id: photoId });
 
       if (error) {
-        console.error("Error creating signed URL:", error);
+        console.error("RPC Error:", error);
         return null;
       }
 
-      return data.signedUrl;
-
+      // RPC returns { success, url, error }
+      if (data && data.success && data.url) {
+        return data.url;
+      } else {
+        console.error("Download denied:", data?.error);
+        return null;
+      }
     } catch (e) {
-      console.error("Error parsing photo URL for signing:", e);
-      // Fallback to original if parsing fails (likely external url or local mock)
-      return photo.file_url;
+      console.error("Exception getting download link:", e);
+      return null;
     }
   },
+
   validateCoupon: async (code: string): Promise<Coupon | null> => {
     const { data, error } = await supabase.from('coupons').select('*').eq('code', code).single();
     if (error || !data) return null;
@@ -1548,6 +1522,81 @@ export const api = {
       buyer_name: s.buyer?.name || 'Comprador Desconhecido'
     })) || [];
   },
+  supabase, // Expose raw client for Storage ops
+  getPhotographerStats: async (userId: string) => {
+    const { data, error } = await supabase
+      .from('photographer_stats_view')
+      .select('*')
+      .eq('photographer_id', userId)
+      .single();
+
+    if (error) {
+      console.error("Error fetching stats:", error);
+      return null;
+    }
+    return data;
+  },
+  moderatePhoto: async (photoId: string, status: 'approved' | 'rejected', reason?: string) => {
+    const { data, error } = await supabase.rpc('moderate_photo', {
+      p_photo_id: photoId,
+      p_status: status,
+      p_reason: reason
+    });
+
+    if (error) {
+      console.error("Error moderating photo:", error);
+      return { success: false, error: error.message };
+    }
+    return data; // Returns { success: true/false, ... }
+  },
+  requestStorageLimit: async () => {
+    const { data, error } = await supabase.rpc('request_storage_limit');
+    if (error) {
+      console.error("Error requesting storage limit:", error);
+      return { success: false, error: error.message };
+    }
+    // RPC returns JSONB {success: bool, error: string}
+    return data;
+  },
+  getStorageRequests: async (status: 'pending' | 'approved' | 'rejected' | null = null) => {
+    const { data, error } = await supabase.rpc('get_storage_requests', { p_status: status });
+    if (error) {
+      console.error("Error fetching storage requests:", error);
+      return [];
+    }
+    return data;
+  },
+  approveStorageRequest: async (requestId: string, newLimit: number) => {
+    const { data, error } = await supabase.rpc('approve_storage_request', {
+      p_request_id: requestId,
+      p_new_limit: newLimit
+    });
+    if (error) {
+      console.error("Error approving request:", error);
+      return { success: false, error: error.message };
+    }
+    return data;
+  },
+  rejectStorageRequest: async (requestId: string, reason: string) => {
+    const { data, error } = await supabase.rpc('reject_storage_request', {
+      p_request_id: requestId,
+      p_reason: reason
+    });
+    if (error) {
+      console.error("Error rejecting request:", error);
+      return { success: false, error: error.message };
+    }
+    return data;
+  },
+  getMyLatestStorageRequest: async () => {
+    const { data, error } = await supabase.rpc('get_my_latest_storage_request');
+    if (error) {
+      // If RPC is missing context or similar errors, treat as no request
+      console.warn("Error fetching my storage request:", error);
+      return null;
+    }
+    return data; // Returns { id, status, created_at, rejection_reason }
+  }
 };
 
 export default api;
