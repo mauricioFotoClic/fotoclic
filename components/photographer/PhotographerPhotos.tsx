@@ -48,7 +48,12 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user }) => {
 
     // Modals
     const [isEventModalOpen, setIsEventModalOpen] = useState(false);
+
     const [isBatchUploadModalOpen, setIsBatchUploadModalOpen] = useState(false);
+
+    // Edit Event State
+    const [editingEvent, setEditingEvent] = useState<PhotoEvent | null>(null);
+    const [isEditEventModalOpen, setIsEditEventModalOpen] = useState(false);
 
     // Legacy Modals (Single Photo)
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -125,6 +130,24 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user }) => {
             console.error("Failed to create event", error);
             const msg = error.message || "Erro desconhecido";
             showToast(`Erro ao criar evento: ${msg}`, "error");
+        }
+    };
+
+    const handleUpdateEvent = async (data: Omit<PhotoEvent, 'id' | 'created_at' | 'photographer_id'>) => {
+        if (!editingEvent) return;
+        try {
+            const updated = await api.updateEvent(editingEvent.id, data);
+            if (updated) {
+                setEvents(prev => prev.map(ev => ev.id === updated.id ? updated : ev));
+                setIsEditEventModalOpen(false);
+                setEditingEvent(null);
+                showToast("Evento atualizado com sucesso!", "success");
+            } else {
+                showToast("Erro ao atualizar evento.", "error");
+            }
+        } catch (error) {
+            console.error(error);
+            showToast("Erro ao atualizar evento.", "error");
         }
     };
 
@@ -512,10 +535,21 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user }) => {
                                                     <FolderIcon />
                                                 </div>
                                             )}
-                                            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setEditingEvent(event);
+                                                        setIsEditEventModalOpen(true);
+                                                    }}
+                                                    className="p-2 bg-white rounded-full text-blue-600 hover:bg-blue-50 shadow-sm transition-transform hover:scale-110"
+                                                    title="Editar Evento"
+                                                >
+                                                    <EditIcon />
+                                                </button>
                                                 <button
                                                     onClick={(e) => handleDeleteEvent(event.id, e)}
-                                                    className="p-2 bg-white rounded-full text-red-600 hover:bg-red-50 shadow-sm"
+                                                    className="p-2 bg-white rounded-full text-red-600 hover:bg-red-50 shadow-sm transition-transform hover:scale-110"
                                                     title="Excluir Evento"
                                                 >
                                                     <TrashIcon />
@@ -744,6 +778,18 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user }) => {
                     onSubmit={handleCreateEvent}
                     onCancel={() => setIsEventModalOpen(false)}
                 />
+            </Modal>
+
+            {/* Edit Event Modal */}
+            <Modal isOpen={isEditEventModalOpen} onClose={() => setIsEditEventModalOpen(false)} title="Editar Evento">
+                {editingEvent && (
+                    <CreateEventForm
+                        categories={categories}
+                        onSubmit={handleUpdateEvent}
+                        onCancel={() => setIsEditEventModalOpen(false)}
+                        initialData={editingEvent}
+                    />
+                )}
             </Modal>
 
             {/* Batch Upload Modal */}

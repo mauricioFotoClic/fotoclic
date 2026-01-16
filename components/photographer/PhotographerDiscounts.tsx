@@ -18,7 +18,7 @@ const PhotographerDiscounts: React.FC<PhotographerDiscountsProps> = ({ user, sho
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    
+
     // Form state inside Modal
     const [minQty, setMinQty] = useState(2);
     const [discountPct, setDiscountPct] = useState(5);
@@ -60,7 +60,7 @@ const PhotographerDiscounts: React.FC<PhotographerDiscountsProps> = ({ user, sho
             showToast("A porcentagem de desconto deve ser entre 1 e 90.", "error");
             return;
         }
-        
+
         if (rules.some(r => r.minQuantity === minQty)) {
             showToast("Já existe uma regra para esta quantidade.", "error");
             return;
@@ -81,7 +81,10 @@ const PhotographerDiscounts: React.FC<PhotographerDiscountsProps> = ({ user, sho
         setSaving(true);
         try {
             await api.updatePhotographer(user.id, { bulkDiscountRules: rules });
-            setInitialRules(rules);
+
+            // Verify by fetching fresh data
+            await fetchRules();
+
             showToast("Regras de desconto salvas com sucesso!", "success");
         } catch (error) {
             console.error("Failed to save discounts", error);
@@ -104,7 +107,7 @@ const PhotographerDiscounts: React.FC<PhotographerDiscountsProps> = ({ user, sho
                         Incentive compras maiores oferecendo descontos automáticos baseados na quantidade de fotos no carrinho de um cliente. As regras se aplicam apenas às suas fotos.
                     </p>
                 </div>
-                <button 
+                <button
                     onClick={handleOpenModal}
                     className="px-4 py-2 bg-secondary text-white font-medium rounded-full hover:bg-opacity-90 transition-colors shadow-sm flex items-center flex-shrink-0"
                 >
@@ -116,7 +119,7 @@ const PhotographerDiscounts: React.FC<PhotographerDiscountsProps> = ({ user, sho
             <div className="bg-white rounded-lg shadow-md border border-neutral-100 overflow-hidden">
                 <div className="p-6">
                     <h3 className="text-lg font-bold text-neutral-800 mb-4">Regras Ativas</h3>
-                    
+
                     {rules.length === 0 ? (
                         <div className="text-center py-12 bg-neutral-50 rounded-lg border border-dashed border-neutral-200">
                             <p className="text-neutral-500 mb-2">Você ainda não configurou descontos por volume.</p>
@@ -139,7 +142,7 @@ const PhotographerDiscounts: React.FC<PhotographerDiscountsProps> = ({ user, sho
                                             </p>
                                         </div>
                                     </div>
-                                    <button 
+                                    <button
                                         type="button"
                                         onClick={() => handleRemoveRule(index)}
                                         className="p-2 text-neutral-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all"
@@ -152,9 +155,9 @@ const PhotographerDiscounts: React.FC<PhotographerDiscountsProps> = ({ user, sho
                         </div>
                     )}
                 </div>
-                
+
                 <div className="px-6 py-4 bg-neutral-50 border-t border-neutral-100 flex justify-end">
-                    <button 
+                    <button
                         type="button"
                         onClick={handleSave}
                         disabled={saving || !hasChanges}
@@ -170,9 +173,9 @@ const PhotographerDiscounts: React.FC<PhotographerDiscountsProps> = ({ user, sho
                 </div>
             </div>
 
-            <Modal 
-                isOpen={isModalOpen} 
-                onClose={() => setIsModalOpen(false)} 
+            <Modal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
                 title="Adicionar Regra de Desconto"
                 size="sm"
             >
@@ -181,8 +184,8 @@ const PhotographerDiscounts: React.FC<PhotographerDiscountsProps> = ({ user, sho
                         <label className="block text-sm font-medium text-neutral-700 mb-1">
                             Quantidade Mínima de Fotos
                         </label>
-                        <input 
-                            type="number" 
+                        <input
+                            type="number"
                             min="2"
                             value={minQty}
                             onChange={(e) => setMinQty(parseInt(e.target.value) || 0)}
@@ -196,9 +199,9 @@ const PhotographerDiscounts: React.FC<PhotographerDiscountsProps> = ({ user, sho
                             Porcentagem de Desconto
                         </label>
                         <div className="relative">
-                            <input 
-                                type="number" 
-                                min="1" 
+                            <input
+                                type="number"
+                                min="1"
                                 max="90"
                                 value={discountPct}
                                 onChange={(e) => setDiscountPct(parseInt(e.target.value) || 0)}
@@ -209,13 +212,13 @@ const PhotographerDiscounts: React.FC<PhotographerDiscountsProps> = ({ user, sho
                     </div>
 
                     <div className="pt-2 flex justify-end gap-2">
-                        <button 
+                        <button
                             onClick={() => setIsModalOpen(false)}
                             className="px-4 py-2 text-neutral-600 hover:bg-neutral-100 rounded-md transition-colors font-medium"
                         >
                             Cancelar
                         </button>
-                        <button 
+                        <button
                             onClick={handleAddRule}
                             className="px-6 py-2 bg-secondary text-white font-bold rounded-md hover:bg-opacity-90 transition-colors shadow-sm"
                         >
