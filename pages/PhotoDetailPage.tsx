@@ -4,6 +4,7 @@ import { Photo, User, Page } from '../types';
 import api from '../services/api';
 import Spinner from '../components/Spinner';
 import WatermarkedImage from '../components/WatermarkedImage';
+import SEO from '../components/SEO';
 
 interface PhotoDetailPageProps {
     photoId: string;
@@ -92,6 +93,13 @@ const PhotoDetailPage: React.FC<PhotoDetailPageProps> = ({ photoId, onNavigate, 
 
     return (
         <div className="bg-white min-h-screen pb-12">
+            <SEO
+                title={`${photo.title} por ${photographer ? photographer.name : 'Unknown'}`}
+                description={photo.description || `Compre a foto "${photo.title}" em alta resolução no FotoClic.`}
+                image={photo.preview_url}
+                url={`https://fotoclic.com.br/foto/${photo.id}`}
+                type="article"
+            />
             <div className="bg-neutral-100 py-4 border-b border-neutral-200">
                 <div className="container mx-auto px-4 sm:px-6 lg:px-8">
                     <button onClick={() => onNavigate({ name: 'home' })} className="text-sm text-neutral-500 hover:text-primary">Home</button>
