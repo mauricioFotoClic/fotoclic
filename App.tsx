@@ -102,17 +102,90 @@ const MainApp: React.FC = () => {
         preloadModels();
     }, []);
 
-    // Handle URL routing on initial load
-    useEffect(() => {
-        const path = window.location.pathname;
-        const searchParams = new URLSearchParams(window.location.search);
-
-        if (path === '/reset-password') {
-            const token = searchParams.get('token');
-            if (token) {
-                setCurrentPage({ name: 'reset-password', token });
-            }
+    // Helper to converting Page to URL
+    const getUrlFromPage = (page: Page): string => {
+        switch (page.name) {
+            case 'home': return '/';
+            case 'login': return '/login';
+            case 'register': return '/cadastro';
+            case 'pending-approval': return '/aguardando-aprovacao';
+            case 'admin': return '/admin';
+            case 'photographer': return '/area-fotografo';
+            case 'customer-dashboard': return '/minhas-compras';
+            case 'category': return `/categoria/${page.id}`;
+            case 'photo-detail': return `/foto/${page.id}`;
+            case 'photographer-portfolio': return `/portfolio/${page.photographerId}`;
+            case 'about': return '/sobre';
+            case 'contact': return '/contato';
+            case 'help-center': return '/ajuda';
+            case 'terms': return '/termos';
+            case 'privacy': return '/privacidade';
+            case 'featured-photos': return '/fotos-destaque';
+            case 'discover': return page.initialSearch ? `/descobrir?q=${encodeURIComponent(page.initialSearch)}` : '/descobrir';
+            case 'photographers': return '/fotografos';
+            case 'cart': return '/carrinho';
+            case 'checkout': return '/checkout';
+            case 'test-stripe': return '/test-stripe';
+            // case 'face-search': return '/busca-facial'; // Modal usually
+            case 'reset-password': return page.token ? `/reset-password?token=${page.token}` : '/reset-password';
+            default: return '/';
         }
+    };
+
+    // Helper to convert URL to Page (for initial load / popstate)
+    const getPageFromUrl = (pathname: string, searchParams: URLSearchParams): Page => {
+        if (pathname === '/' || pathname === '') return { name: 'home' };
+        if (pathname === '/login') return { name: 'login' };
+        if (pathname === '/cadastro') return { name: 'register' };
+        if (pathname === '/aguardando-aprovacao') return { name: 'pending-approval' };
+        if (pathname === '/admin') return { name: 'admin' };
+        if (pathname === '/area-fotografo') return { name: 'photographer' };
+        if (pathname === '/minhas-compras') return { name: 'customer-dashboard' };
+        if (pathname === '/sobre') return { name: 'about' };
+        if (pathname === '/contato') return { name: 'contact' };
+        if (pathname === '/ajuda') return { name: 'help-center' };
+        if (pathname === '/termos') return { name: 'terms' };
+        if (pathname === '/privacidade') return { name: 'privacy' };
+        if (pathname === '/fotos-destaque') return { name: 'featured-photos' };
+        if (pathname === '/fotografos') return { name: 'photographers' };
+        if (pathname === '/carrinho') return { name: 'cart' };
+        if (pathname === '/checkout') return { name: 'checkout' };
+        if (pathname === '/test-stripe') return { name: 'test-stripe' };
+        if (pathname === '/reset-password') return { name: 'reset-password', token: searchParams.get('token') || undefined };
+
+        // Dynamic routes
+        if (pathname.startsWith('/descobrir')) {
+            const q = searchParams.get('q');
+            return { name: 'discover', initialSearch: q || undefined };
+        }
+
+        const categoryMatch = pathname.match(/^\/categoria\/(.+)$/);
+        if (categoryMatch) return { name: 'category', id: categoryMatch[1] };
+
+        const photoMatch = pathname.match(/^\/foto\/(.+)$/);
+        if (photoMatch) return { name: 'photo-detail', id: photoMatch[1] };
+
+        const portfolioMatch = pathname.match(/^\/portfolio\/(.+)$/);
+        if (portfolioMatch) return { name: 'photographer-portfolio', photographerId: portfolioMatch[1] };
+
+        return { name: 'home' };
+    };
+
+    // Handle URL routing on initial load and popstate
+    useEffect(() => {
+        const handleLocationChange = () => {
+            const path = window.location.pathname;
+            const searchParams = new URLSearchParams(window.location.search);
+            const newPage = getPageFromUrl(path, searchParams);
+            setCurrentPage(newPage);
+        };
+
+        // Initial Load
+        handleLocationChange();
+
+        // Browser Back/Forward
+        window.addEventListener('popstate', handleLocationChange);
+        return () => window.removeEventListener('popstate', handleLocationChange);
     }, []);
 
     // Sync Cart with LocalStorage (Client) and Backend (User) when it changes
@@ -186,6 +259,7 @@ const MainApp: React.FC = () => {
         if (page.name === 'photo-detail') {
             setCurrentPage(page);
             window.scrollTo(0, 0);
+            window.history.pushState(null, '', getUrlFromPage(page));
             return;
         }
 
@@ -202,6 +276,12 @@ const MainApp: React.FC = () => {
         }
         setCurrentPage(page);
         window.scrollTo(0, 0);
+
+        // Update URL
+        const newUrl = getUrlFromPage(page);
+        if (newUrl) {
+            window.history.pushState(null, '', newUrl);
+        }
     }
 
     const handleAddToCart = (photoId: string, imgElement?: HTMLImageElement) => {
