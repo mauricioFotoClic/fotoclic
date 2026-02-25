@@ -94,7 +94,7 @@ const MainApp: React.FC = () => {
                     import('./services/faceRecognition').then(({ faceRecognitionService }) => {
                         faceRecognitionService.loadPreciseModel().catch(e => console.warn("Background model load failed", e));
                     });
-                }, 3000);
+                }, 10000);
             } catch (e) {
                 console.warn("Preload error", e);
             }

@@ -265,7 +265,15 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
             </button>
           </div>
 
-          {loading ? <Spinner /> : (
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-4 md:grid-rows-2 gap-4 h-auto md:h-[600px]">
+              <div className="md:col-span-2 md:row-span-2 h-[300px] md:h-auto bg-neutral-800 animate-pulse rounded-2xl"></div>
+              <div className="md:col-span-1 md:row-span-1 h-[200px] md:h-auto bg-neutral-800 animate-pulse rounded-2xl"></div>
+              <div className="md:col-span-1 md:row-span-1 h-[200px] md:h-auto bg-neutral-800 animate-pulse rounded-2xl"></div>
+              <div className="md:col-span-1 md:row-span-1 h-[200px] md:h-auto bg-neutral-800 animate-pulse rounded-2xl"></div>
+              <div className="md:col-span-1 md:row-span-1 h-[200px] md:h-auto bg-neutral-800 animate-pulse rounded-2xl"></div>
+            </div>
+          ) : (
             <div className="grid grid-cols-1 md:grid-cols-4 md:grid-rows-2 gap-4 h-auto md:h-[600px]">
               {/* Hero Item - Big Left */}
               {photos.length > 0 && (
@@ -290,7 +298,13 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
             <p className="text-neutral-500">Conheça os criadores que estão definindo tendências visuais.</p>
           </div>
 
-          {loading ? <Spinner /> : (
+          {loading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="h-80 bg-neutral-100 animate-pulse rounded-2xl"></div>
+              ))}
+            </div>
+          ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
               {photographers.slice(0, 4).map((p, index) => (
                 <div
@@ -375,7 +389,13 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
             <div className="w-24 h-1 bg-gradient-to-r from-primary to-secondary rounded-full mt-6"></div>
           </div>
 
-          {loading ? <Spinner /> : (
+          {loading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
+              {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+                <div key={i} className="h-72 bg-white animate-pulse rounded-2xl"></div>
+              ))}
+            </div>
+          ) : (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
                 {recentPhotos.map(photo => (
