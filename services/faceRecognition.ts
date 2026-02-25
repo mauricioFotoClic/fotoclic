@@ -121,7 +121,7 @@ export const faceRecognitionService = {
         // But keep enough resolution for SSD to work well
         // OPTIMIZATION: Reduced from 512 to 320 to improve speed (target < 5s)
         if (image instanceof HTMLImageElement) {
-            input = this.resizeImage(image, 320);
+            input = this.resizeImage(image, 640);
         }
 
         if (onStatusUpdate) onStatusUpdate("Analisando rosto (Biometria)...");
@@ -210,10 +210,6 @@ export const faceRecognitionService = {
     },
 
     async searchMatches(descriptor: Float32Array, threshold = 0.4): Promise<{ id: string, distance: number }[]> {
-        // Server-side vector search using pgvector
-        // Using a slightly higher base threshold (0.4) to capture potential matches,
-        // then filtering strictly on the client side based on relative distance.
-        // NOTE: match_threshold in RPC is just an optimization effectively.
         const { data: matches, error } = await supabase
             .rpc('match_faces', {
                 query_embedding: Array.from(descriptor),
@@ -230,23 +226,23 @@ export const faceRecognitionService = {
 
         console.log("Raw Matches from DB:", matches.map((m: any) => ({ id: m.photo_id, d: m.distance })));
 
-        // DYNAMIC THRESHOLDING STRATEGY (UPDATED)
+        // DYNAMIC THRESHOLDING STRATEGY (STRICTER)
         // Cosine distance: 0.0 (exact) to 2.0 (opposite).
-        // 0.6 Euclidean ~= 0.18 Cosine Distance.
 
-        // Strict baseline
-        const STRICT_HARD_CAP = 0.15; // Only allow very close matches (was 0.25)
+        // Strict baseline: Reduced to 0.10 to eliminate false positives
+        const STRICT_HARD_CAP = 0.10;
 
         const bestDistance = matches[0].distance;
 
-        // If the best match is weirdly far (e.g. 0.3), it's probably not a match at all
+        // If the best match is weirdly far, it's probably not a match at all
         if (bestDistance > STRICT_HARD_CAP) {
             console.log("Best match is too far, returning empty.");
             return [];
         }
 
         // Relative threshold: allow matches that are very close to the best match
-        const relativeThreshold = bestDistance + 0.05; // Tighter relative margin (was 0.08)
+        // Tightened from 0.05 to 0.02 to avoid "look-alikes"
+        const relativeThreshold = bestDistance + 0.02;
 
         const validMatches = matches.filter((m: any) => m.distance <= relativeThreshold && m.distance <= STRICT_HARD_CAP);
 

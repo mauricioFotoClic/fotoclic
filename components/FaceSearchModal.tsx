@@ -120,9 +120,8 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({ isOpen, onClose, onNa
 
             // 1. Get descriptor
             const descriptor = await faceRecognitionService.getFaceDescriptor(img, (status) => {
-                // Show status in UI via toast or other method
-                console.log(status);
-                onShowToast(status, 'info'); // User wants feedback if it's slow
+                console.log("Face Search Status:", status);
+                // The toast is already handles in the search loop below
             });
 
             if (!descriptor) {
@@ -133,6 +132,7 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({ isOpen, onClose, onNa
 
             // 2. Search matches
             const matches = await faceRecognitionService.searchMatches(descriptor);
+            console.log(`Matched ${matches.length} photos after precision filtering.`);
             const matchedIds = matches.map(m => m.id);
 
             console.log("Valid Matches after Filter:", matches);
