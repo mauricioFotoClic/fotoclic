@@ -27,34 +27,32 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
       try {
         setLoading(true);
         setError(null);
-        // Use optimized API calls to avoid downloading entire database tables
-        console.log("HomePage: Starting loadData...");
+        console.log("HomePage: Starting modular data load...");
 
-        const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Timeout: Database is taking too long to respond")), 8000)
-        );
+        // Load essential data first or in parallel but handle independently
+        const fetchEssentialData = async () => {
+          try {
+            const [featured, cats, recents, pops] = await Promise.all([
+              api.getFeaturedPhotos().catch(e => { console.warn("Failed featured", e); return []; }),
+              api.getCategories().catch(e => { console.warn("Failed cats", e); return []; }),
+              api.getRecentPhotos(8).catch(e => { console.warn("Failed recents", e); return []; }),
+              api.getActivePhotographersPreview().catch(e => { console.warn("Failed pops", e); return []; })
+            ]);
 
-        const dataPromise = Promise.all([
-          api.getFeaturedPhotos().then(res => { console.log("HomePage: Featured Photos loaded", res?.length); return res; }),
-          api.getActivePhotographersPreview().then(res => { console.log("HomePage: Photographers loaded", res?.length); return res; }),
-          api.getCategories().then(res => { console.log("HomePage: Categories loaded", res?.length); return res; }),
-          api.getRecentPhotos(8).then(res => { console.log("HomePage: Recent loaded", res?.length); return res; }),
-        ]);
+            setPhotos(featured.slice(0, 5));
+            setCategories(cats);
+            setRecentPhotos(recents);
+            setPhotographers(pops);
 
-        const [featuredPhotos, popularPhotographers, mainCategories, recent] = await Promise.race([dataPromise, timeoutPromise]) as any;
+            console.log("HomePage: Essential data loaded");
+          } catch (err) {
+            console.error("Error in batch data load", err);
+            throw new Error("Erro ao conectar com o servidor. Verifique sua conexão.");
+          }
+        };
 
-        console.log("HomePage: All data loaded successfully");
+        await fetchEssentialData();
 
-        // No fallback - strictly show only admin-featured photos
-        const finalFeatured = featuredPhotos;
-
-        // Randomize the featured photos for hero section variety
-        const shuffledFeatured = [...finalFeatured].sort(() => 0.5 - Math.random());
-
-        setPhotos(shuffledFeatured.slice(0, 5));
-        setRecentPhotos(recent);
-        setPhotographers(popularPhotographers);
-        setCategories(mainCategories);
       } catch (error: any) {
         console.error("Falha ao carregar os dados da página inicial", error);
         setError(error.message || "Erro desconhecido ao conectar com o servidor.");

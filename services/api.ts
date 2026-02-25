@@ -105,20 +105,18 @@ export const api = {
   },
 
   getRecentPhotos: async (limit: number = 8): Promise<Photo[]> => {
-    const poolSize = 100;
     const { data, error } = await supabase
       .from('photos')
       .select('id, photographer_id, category_id, title, preview_url, price, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags')
       .eq('moderation_status', 'approved')
       .eq('is_public', true)
       .order('created_at', { ascending: false })
-      .limit(poolSize);
+      .limit(limit);
     if (error) {
       console.warn("Error fetching recent photos:", error);
       return [];
     }
-    if (!data || data.length === 0) return [];
-    return data.slice(0, limit).map(mapPhoto);
+    return data ? data.map(mapPhoto) : [];
   },
 
   getPhotosByCategoryId: async (categoryId: string, shuffle: boolean = false): Promise<Photo[]> => {
@@ -581,40 +579,28 @@ export const api = {
   getActivePhotographersPreview: async (): Promise<PhotographerWithStats[]> => {
     const { data: users, error } = await supabase
       .from('users')
-      .select('*, reviews!photographer_id(*)')
+      .select('id, name, email, avatar_url, location, is_active, bio, role')
       .eq('role', 'photographer')
       .eq('is_active', true)
       .not('avatar_url', 'is', null)
-      .limit(20);
+      .limit(10);
 
     if (error) {
       console.warn("Could not fetch active photographers", error);
       return [];
     }
 
-    const validUsers = users ? users.filter(u => u.avatar_url).map(u => {
-      const reviews = u.reviews || [];
-      const reviewCount = reviews.length;
-      const avgRating = reviewCount > 0
-        ? reviews.reduce((acc: number, r: any) => acc + r.rating, 0) / reviewCount
-        : 0;
-      const approvedCount = reviews.filter((r: any) => r.rating >= 4).length;
-      const approvalPercentage = reviewCount > 0 ? (approvedCount / reviewCount) * 100 : 0;
-
-      return {
-        ...mapUser(u),
-        photoCount: 0,
-        salesCount: 0,
-        commissionValue: 0,
-        commissionRate: 0,
-        likesCount: 0,
-        avgRating,
-        reviewCount,
-        approvalPercentage
-      };
-    }) : [];
-
-    return validUsers.slice(0, 10);
+    return users ? users.map(u => ({
+      ...mapUser(u),
+      photoCount: 0,
+      salesCount: 0,
+      commissionValue: 0,
+      commissionRate: 0,
+      likesCount: 0,
+      avgRating: 5.0, // Default for preview to avoid heavy review joins
+      reviewCount: 0,
+      approvalPercentage: 100
+    })) : [];
   },
 
   // --- EVENTS ---
@@ -913,7 +899,12 @@ export const api = {
       });
 
       if (error) {
-        console.error("Supabase Reset Error:", error);
+        console.error("Supabase Reset Error (Technical Details):", {
+          message: error.message,
+          status: error.status,
+          name: error.name,
+          details: error.details
+        });
         throw error;
       }
 
@@ -921,8 +912,9 @@ export const api = {
 
     } catch (error: any) {
       console.error('Error in requestPasswordReset:', error);
-      // Re-throw to let the UI show the message
-      throw new Error(error.message || "Falha ao enviar e-mail de recuperação.");
+      // Construct a more helpful error message including the status if available
+      const statusSuffix = error.status ? ` (Status: ${error.status})` : '';
+      throw new Error(error.message ? `${error.message}${statusSuffix}` : "Falha ao enviar e-mail de recuperação.");
     }
   },
 
