@@ -197,8 +197,8 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user }) => {
             // Report progress
             if (onProgress) onProgress(i + 1, files.length);
 
-            // 1. Validation: File Size (Max 15MB)
-            const MAX_SIZE_MB = 15;
+            // 1. Validation: File Size (Max 50MB, will be compressed to 10MB)
+            const MAX_SIZE_MB = 50;
             if (file.size > MAX_SIZE_MB * 1024 * 1024) {
                 console.error(`File ${file.name} is too large (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
                 failCount++;
@@ -578,16 +578,12 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user }) => {
             ) : (
                 // --- PHOTOGRAPHER FILTERED LIST VIEW (Existing Logic) ---
                 <div>
-                    {/* Stats Card */}
                     <div className="bg-white p-4 rounded-xl shadow-sm border border-neutral-100 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
-                            <h3 className="font-bold text-neutral-800 text-lg">Uso do Plano</h3>
+                            <h3 className="font-bold text-neutral-800 text-lg">Estatísticas</h3>
                             <p className="text-sm text-neutral-500">
-                                Você usou <span className="font-semibold text-neutral-900">{stats.photos_count}</span> de <span className="font-semibold text-neutral-900">{stats.photo_limit}</span> fotos.
+                                Você já enviou <span className="font-semibold text-neutral-900">{stats.photos_count}</span> fotos.
                             </p>
-                            {stats.photos_count >= stats.photo_limit && (
-                                <p className="text-xs text-red-600 font-bold mt-1">Limite atingido! Entre em contato para aumentar.</p>
-                            )}
                         </div>
                         <div className="flex flex-col items-end gap-2">
                             <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm font-medium">
@@ -601,81 +597,6 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user }) => {
                                     {stats.rejected_count} Rejeitadas
                                 </span>
                             </div>
-
-                            {/* Storage Request Logic */}
-                            {(myRequest && myRequest.status === 'pending') ? (
-                                <span className="text-xs text-yellow-600 font-medium bg-yellow-50 px-3 py-1 rounded-full border border-yellow-100">
-                                    ⏳ Solicitação em análise
-                                </span>
-                            ) : (myRequest && myRequest.status === 'rejected') ? (
-                                <div className="flex flex-col items-end">
-                                    <span className="text-xs text-red-600 font-medium bg-red-50 px-3 py-1 rounded-full border border-red-100 mb-1" title={myRequest.rejection_reason || ''}>
-                                        ❌ Solicitação rejeitada
-                                    </span>
-                                    <button
-                                        onClick={async () => {
-                                            const isConfirmed = await confirm({
-                                                title: "Nova Solicitação",
-                                                message: `Sua última solicitação foi rejeitada pelo motivo: "${myRequest.rejection_reason}". Deseja tentar novamente?`,
-                                                confirmText: "Solicitar Novamente"
-                                            });
-
-                                            if (!isConfirmed) return;
-
-                                            // Handle request logic...
-                                            setLoading(true);
-                                            try {
-                                                const result = await api.requestStorageLimit();
-                                                if (result && result.success) {
-                                                    showToast("Solicitação enviada com sucesso!", "success");
-                                                    fetchData(); // Refresh to get new pending status
-                                                } else {
-                                                    showToast(result.error || "Erro ao enviar solicitação.", "error");
-                                                }
-                                            } catch (e) {
-                                                console.error(e);
-                                                showToast("Erro ao processar solicitação.", "error");
-                                            } finally {
-                                                setLoading(false);
-                                            }
-                                        }}
-                                        className="text-xs text-primary hover:text-primary-dark underline font-medium"
-                                    >
-                                        Tentar Novamente
-                                    </button>
-                                </div>
-                            ) : (
-                                <button
-                                    onClick={async () => {
-                                        const isConfirmed = await confirm({
-                                            title: "Solicitar Aumento",
-                                            message: "Deseja solicitar o aumento do seu limite de fotos para o admin?",
-                                            confirmText: "Solicitar"
-                                        });
-
-                                        if (!isConfirmed) return;
-
-                                        setLoading(true);
-                                        try {
-                                            const result = await api.requestStorageLimit();
-                                            if (result && result.success) {
-                                                showToast("Solicitação enviada com sucesso!", "success");
-                                                fetchData();
-                                            } else {
-                                                showToast(result.error || "Erro ao enviar solicitação.", "error");
-                                            }
-                                        } catch (e) {
-                                            console.error(e);
-                                            showToast("Erro ao processar solicitação.", "error");
-                                        } finally {
-                                            setLoading(false);
-                                        }
-                                    }}
-                                    className="text-xs text-primary hover:text-primary-dark underline font-medium"
-                                >
-                                    Solicitar Aumento de Limite
-                                </button>
-                            )}
                         </div>
                     </div>
 

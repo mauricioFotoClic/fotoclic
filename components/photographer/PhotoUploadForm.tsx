@@ -87,8 +87,8 @@ const PhotoUploadForm: React.FC<PhotoUploadFormProps> = ({ onSubmit, onCancel, i
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            // 1. Validation: File Size (Max 15MB)
-            const MAX_SIZE_MB = 15;
+            // 1. Validation: File Size (Max 50MB before compression)
+            const MAX_SIZE_MB = 50;
             if (file.size > MAX_SIZE_MB * 1024 * 1024) {
                 alert(`O arquivo selecionado é muito grande. O tamanho máximo permitido é de ${MAX_SIZE_MB} MB.`);
                 return;
@@ -209,9 +209,14 @@ const PhotoUploadForm: React.FC<PhotoUploadFormProps> = ({ onSubmit, onCancel, i
                                     <span className="mr-1">✓</span> Esta imagem já foi aprovada e não pode ser alterada. Você pode editar as informações abaixo.
                                 </p>
                             ) : (
-                                <p className="text-xs text-neutral-500 italic bg-yellow-50 p-2 rounded border border-yellow-100 inline-block">
-                                    A imagem original não pode ser substituída após o envio para garantir a integridade da moderação.
-                                </p>
+                                <>
+                                    <p className="text-xs text-neutral-500 italic bg-yellow-50 p-2 rounded border border-yellow-100 inline-block mb-2">
+                                        A imagem original não pode ser substituída após o envio para garantir a integridade da moderação.
+                                    </p>
+                                    <p className="text-xs text-blue-500 p-2 rounded border border-blue-100 bg-blue-50 inline-block">
+                                        Nota: Fotos maiores que 10MB serão automaticamente reduzidas pelo sistema.
+                                    </p>
+                                </>
                             )}
                         </div>
                     )}

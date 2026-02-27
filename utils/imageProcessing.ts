@@ -3,6 +3,8 @@
  * Image processing utility for FotoClic
  */
 
+import imageCompression from 'browser-image-compression';
+
 interface ProcessedImages {
     thumb: string; // Base64 (WebP, ~400px)
     preview: string; // Base64 (WebP, ~1600px + Watermark)
@@ -12,9 +14,19 @@ interface ProcessedImages {
 }
 
 export const processImageForUpload = async (file: File): Promise<ProcessedImages> => {
+    let processFile = file;
+    try {
+        processFile = await imageCompression(file, {
+            maxSizeMB: 10,
+            useWebWorker: true,
+        });
+    } catch (error) {
+        console.warn('Image compression failed, proceeding with original file', error);
+    }
+
     return new Promise((resolve, reject) => {
         const img = new Image();
-        const objectUrl = URL.createObjectURL(file);
+        const objectUrl = URL.createObjectURL(processFile);
         img.src = objectUrl;
 
         img.onload = () => {

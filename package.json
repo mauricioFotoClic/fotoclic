@@ -16,6 +16,7 @@
     "@stripe/stripe-js": "^8.5.3",
     "@supabase/supabase-js": "^2.39.7",
     "bcryptjs": "^3.0.3",
+    "browser-image-compression": "^2.0.2",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
