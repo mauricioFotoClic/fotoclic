@@ -11,6 +11,7 @@ interface PhotographerSidebarProps {
     onLogout: () => void;
     isOpen: boolean;
     onClose: () => void;
+    abandonedCartsCount?: number;
 }
 
 const NavLink: React.FC<{
@@ -32,19 +33,18 @@ const NavLink: React.FC<{
                 <div className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 bg-[#8A2BE2] rounded-r-md"></div>
             )}
 
-            <span className={`mr-2 flex-shrink-0 transition-colors duration-200 ${isActive ? 'text-[#8A2BE2]' : 'text-neutral-400 group-hover:text-neutral-600'}`}>
-                {icon}
-            </span>
-
-            <span className="truncate">{label}</span>
-
-            {badge && (
-                <span className="ml-auto pl-2 flex-shrink-0">
-                    <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white bg-[#8A2BE2] rounded shadow-sm">
+            <div className="relative flex-shrink-0 mr-2">
+                <span className={`flex transition-colors duration-200 ${isActive ? 'text-[#8A2BE2]' : 'text-neutral-400 group-hover:text-neutral-600'}`}>
+                    {icon}
+                </span>
+                {badge && (
+                    <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow ring-2 ring-white">
                         {badge}
                     </span>
-                </span>
-            )}
+                )}
+            </div>
+
+            <span className="truncate">{label}</span>
         </button>
     );
 };
@@ -68,7 +68,7 @@ const CartIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height
 const PercentIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="5" x2="5" y2="19"></line><circle cx="6.5" cy="6.5" r="2.5"></circle><circle cx="17.5" cy="17.5" r="2.5"></circle></svg>;
 import { X } from 'lucide-react';
 
-const PhotographerSidebar: React.FC<PhotographerSidebarProps> = ({ user, activeView, setView, onLogout, isOpen, onClose }) => {
+const PhotographerSidebar: React.FC<PhotographerSidebarProps> = ({ user, activeView, setView, onLogout, isOpen, onClose, abandonedCartsCount }) => {
     return (
         <>
             {/* Mobile Overlay - Only visible when open on mobile */}
@@ -134,7 +134,13 @@ const PhotographerSidebar: React.FC<PhotographerSidebarProps> = ({ user, activeV
 
                         <SectionLabel label="Financeiro" />
                         <NavLink label="Vendas Realizadas" isActive={activeView === 'sales'} onClick={() => { setView('sales'); onClose(); }} icon={<DollarSignIcon />} />
-                        <NavLink label="Carrinhos Abandonados" isActive={activeView === 'abandoned-carts'} onClick={() => { setView('abandoned-carts'); onClose(); }} icon={<CartIcon />} />
+                        <NavLink
+                            label="Carrinhos Abandonados"
+                            isActive={activeView === 'abandoned-carts'}
+                            onClick={() => { setView('abandoned-carts'); onClose(); }}
+                            icon={<CartIcon />}
+                            badge={abandonedCartsCount && abandonedCartsCount > 0 ? abandonedCartsCount.toString() : undefined}
+                        />
                         <NavLink label="Central Financeira" isActive={activeView === 'payouts'} onClick={() => { setView('payouts'); onClose(); }} icon={<ChartIcon />} />
 
                         <SectionLabel label="Marketing" />

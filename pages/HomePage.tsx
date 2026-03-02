@@ -22,7 +22,12 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
+  const isLoaded = React.useRef(false);
+
   useEffect(() => {
+    if (isLoaded.current) return;
+    isLoaded.current = true;
+
     const loadData = async () => {
       try {
         setLoading(true);

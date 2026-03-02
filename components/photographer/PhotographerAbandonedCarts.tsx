@@ -12,6 +12,7 @@ interface PhotographerAbandonedCartsProps {
 }
 
 const EmailIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path></svg>;
+const WhatsAppIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z" /></svg>;
 const TagIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>;
 const CartIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="text-neutral-300 mb-4"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>;
 
@@ -45,11 +46,27 @@ const PhotographerAbandonedCarts: React.FC<PhotographerAbandonedCartsProps> = ({
         const itemsList = cart.items.map(i => `- ${i.title}`).join('\n');
         const subject = encodeURIComponent("Você esqueceu algo especial no FotoClic!");
         const body = encodeURIComponent(`Olá ${cart.userName},\n\nNotamos que você deixou algumas fotos incríveis no seu carrinho:\n\n${itemsList}\n\nElas ainda estão esperando por você. Clique aqui para finalizar sua compra!\n\nAtenciosamente,\n${user.name}`);
-        
+
         window.open(`mailto:${cart.userEmail}?subject=${subject}&body=${body}`, '_blank');
         setNotification({ message: 'Cliente de e-mail aberto com sucesso!', type: 'info' });
-        
+
         // Mark as contacted
+        updateCartStatus(cart.id, 'contacted');
+    };
+
+    const handleWhatsAppContact = (cart: AbandonedCart) => {
+        if (!cart.userPhone) {
+            setNotification({ message: 'Este cliente não cadastrou telefone.', type: 'info' });
+            return;
+        }
+
+        const cleanPhone = cart.userPhone.replace(/\D/g, '');
+        const itemsList = cart.items.map(i => `- ${i.title}`).join('%0A');
+        const text = `Olá ${cart.userName}, aqui é ${user.name} da FotoClic! %0A%0AVi que você deixou algumas fotos no seu carrinho: %0A${itemsList} %0A%0AElas estão incríveis! Gostaria de alguma ajuda para finalizar sua compra?`;
+
+        window.open(`https://wa.me/55${cleanPhone}?text=${text}`, '_blank');
+        setNotification({ message: 'WhatsApp aberto com sucesso!', type: 'info' });
+
         updateCartStatus(cart.id, 'contacted');
     };
 
@@ -81,7 +98,7 @@ const PhotographerAbandonedCarts: React.FC<PhotographerAbandonedCartsProps> = ({
         const body = encodeURIComponent(`Olá ${selectedCart.userName},\n\nVi que você deixou algumas fotos no carrinho:\n\n${itemsList}\n\nQuero te ajudar a finalizar essa compra. Use o cupom abaixo para ganhar ${coupon.discount_percent}% de desconto:\n\nCÓDIGO: ${coupon.code}\n\nEste cupom expira em ${new Date(coupon.expiration_date).toLocaleDateString('pt-BR')}.\n\nEspero que aproveite!\n\nAtenciosamente,\n${user.name}`);
 
         window.open(`mailto:${selectedCart.userEmail}?subject=${subject}&body=${body}`, '_blank');
-        
+
         setNotification({ message: `Cupom ${coupon.code} enviado para o cliente!`, type: 'success' });
         updateCartStatus(selectedCart.id, 'contacted');
         setIsCouponModalOpen(false);
@@ -126,26 +143,41 @@ const PhotographerAbandonedCarts: React.FC<PhotographerAbandonedCartsProps> = ({
                             </thead>
                             <tbody>
                                 {carts.map((cart, index) => {
-                                    const totalValue = cart.items.reduce((acc, item) => acc + item.price, 0);
+                                    const rawTotal = cart.items.reduce((acc, item) => acc + item.price, 0);
+                                    let discountAmount = 0;
+                                    const rules = user.bulkDiscountRules || [];
+                                    const sortedRules = [...rules].sort((a, b) => b.minQuantity - a.minQuantity);
+                                    const appliedRule = sortedRules.find(r => cart.items.length >= r.minQuantity) || null;
+
+                                    if (appliedRule) {
+                                        discountAmount = rawTotal * (appliedRule.discountPercent / 100);
+                                    }
+                                    const totalValue = rawTotal - discountAmount;
+
                                     return (
                                         <tr key={cart.id} className={`border-t ${index % 2 === 0 ? 'bg-white' : 'bg-neutral-50'}`}>
                                             <td className="p-4">
                                                 <div className="font-medium text-neutral-800">{cart.userName}</div>
                                                 <div className="text-xs text-neutral-500">{cart.userEmail}</div>
+                                                {cart.userPhone && (
+                                                    <div className="text-xs text-neutral-400 mt-1 flex items-center">
+                                                        <span className="mr-1">📱</span> {cart.userPhone}
+                                                    </div>
+                                                )}
                                             </td>
                                             <td className="p-4 text-sm text-neutral-600">
-                                                {new Date(cart.date).toLocaleDateString('pt-BR')} <br/>
+                                                {new Date(cart.date).toLocaleDateString('pt-BR')} <br />
                                                 <span className="text-xs text-neutral-400">{new Date(cart.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
                                             </td>
                                             <td className="p-4">
                                                 <div className="flex items-center space-x-2">
                                                     <div className="flex -space-x-2 overflow-hidden">
                                                         {cart.items.slice(0, 3).map((item, i) => (
-                                                            <img 
-                                                                key={i} 
-                                                                src={item.preview_url} 
-                                                                alt="item" 
-                                                                className="inline-block h-8 w-8 rounded-full ring-2 ring-white object-cover" 
+                                                            <img
+                                                                key={i}
+                                                                src={item.preview_url}
+                                                                alt="item"
+                                                                className="inline-block h-8 w-8 rounded-full ring-2 ring-white object-cover"
                                                                 title={item.title}
                                                             />
                                                         ))}
@@ -156,32 +188,56 @@ const PhotographerAbandonedCarts: React.FC<PhotographerAbandonedCartsProps> = ({
                                                 </div>
                                             </td>
                                             <td className="p-4 text-right font-bold text-green-600">
-                                                R$ {totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                                {appliedRule ? (
+                                                    <div className="flex flex-col items-end">
+                                                        <span className="text-xs text-neutral-400 font-normal line-through">R$ {rawTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                                                        <span>R$ {totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                                                    </div>
+                                                ) : (
+                                                    <span>R$ {totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                                                )}
                                             </td>
                                             <td className="p-4 text-center">
                                                 <span className={`px-2 py-1 text-xs font-semibold rounded-full 
-                                                    ${cart.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
-                                                      cart.status === 'contacted' ? 'bg-blue-100 text-blue-800' : 
-                                                      'bg-green-100 text-green-800'}`}>
+                                                    ${cart.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                                        cart.status === 'contacted' ? 'bg-blue-100 text-blue-800' :
+                                                            'bg-green-100 text-green-800'}`}>
                                                     {cart.status === 'pending' ? 'Pendente' : cart.status === 'contacted' ? 'Contactado' : 'Recuperado'}
                                                 </span>
                                             </td>
                                             <td className="p-4 text-right">
-                                                <div className="flex justify-end gap-2">
-                                                    <button 
-                                                        onClick={() => handleSendEmail(cart)}
-                                                        className="p-2 text-neutral-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                                                <div className="flex justify-end gap-2 text-neutral-500">
+                                                    <a
+                                                        href={`mailto:${cart.userEmail}?subject=${encodeURIComponent("Você esqueceu algo especial no FotoClic!")}&body=${encodeURIComponent(`Olá ${cart.userName},\n\nNotamos que você deixou algumas fotos incríveis no seu carrinho:\n${cart.items.map(i => `- ${i.title}`).join('\n')}\n\nElas ainda estão esperando por você. Clique aqui para finalizar sua compra!\n\nAtenciosamente,\n${user.name}`)}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        onClick={() => {
+                                                            setNotification({ message: 'Cliente de e-mail aberto!', type: 'info' });
+                                                            updateCartStatus(cart.id, 'contacted');
+                                                        }}
+                                                        className="p-2 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors flex items-center justify-center"
                                                         title="Enviar E-mail Lembrete"
                                                     >
                                                         <EmailIcon />
-                                                    </button>
-                                                    <button 
-                                                        onClick={() => handleOpenCouponModal(cart)}
-                                                        className="p-2 text-neutral-500 hover:text-secondary hover:bg-secondary/10 rounded-full transition-colors"
-                                                        title="Enviar Cupom de Desconto"
+                                                    </a>
+                                                    <a
+                                                        href={`https://wa.me/55${cart.userPhone?.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${cart.userName}, aqui é ${user.name} da FotoClic! \n\nVi que você deixou algumas fotos no seu carrinho: \n${cart.items.map(i => `- ${i.title}`).join('\n')} \n\nElas estão incríveis! Gostaria de alguma ajuda para finalizar sua compra?`)}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        onClick={(e) => {
+                                                            if (!cart.userPhone) {
+                                                                e.preventDefault();
+                                                                setNotification({ message: 'Este cliente não cadastrou telefone.', type: 'info' });
+                                                            } else {
+                                                                setNotification({ message: 'WhatsApp aberto!', type: 'info' });
+                                                                updateCartStatus(cart.id, 'contacted');
+                                                            }
+                                                        }}
+                                                        className="p-2 hover:text-green-600 hover:bg-green-50 rounded-full transition-colors flex items-center justify-center"
+                                                        title="Contactar via WhatsApp"
                                                     >
-                                                        <TagIcon />
-                                                    </button>
+                                                        <WhatsAppIcon />
+                                                    </a>
                                                 </div>
                                             </td>
                                         </tr>
@@ -224,9 +280,9 @@ const PhotographerAbandonedCarts: React.FC<PhotographerAbandonedCartsProps> = ({
                     ) : (
                         <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
                             <p className="text-sm text-neutral-600">Escolha qual oferta deseja enviar para <strong>{selectedCart?.userName}</strong>:</p>
-                            
+
                             {availableCoupons.map(coupon => (
-                                <div 
+                                <div
                                     key={coupon.id}
                                     onClick={() => handleSelectCoupon(coupon)}
                                     className="border border-neutral-200 rounded-xl p-4 hover:border-secondary hover:shadow-md cursor-pointer transition-all group bg-white"
@@ -253,10 +309,10 @@ const PhotographerAbandonedCarts: React.FC<PhotographerAbandonedCartsProps> = ({
             </Modal>
 
             {notification && (
-                <Toast 
-                    message={notification.message} 
-                    type={notification.type} 
-                    onClose={() => setNotification(null)} 
+                <Toast
+                    message={notification.message}
+                    type={notification.type}
+                    onClose={() => setNotification(null)}
                 />
             )}
         </div>

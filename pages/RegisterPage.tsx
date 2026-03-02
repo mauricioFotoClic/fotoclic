@@ -10,10 +10,29 @@ interface RegisterPageProps {
     onLoginSuccess: (user: User) => void;
 }
 
+const ddiList = [
+    { code: '+55', country: 'BR' },
+    { code: '+1', country: 'USA/CA' },
+    { code: '+351', country: 'PT' },
+    { code: '+44', country: 'UK' },
+    { code: '+34', country: 'ES' },
+    { code: '+33', country: 'FR' },
+    { code: '+49', country: 'DE' },
+    { code: '+39', country: 'IT' },
+    { code: '+54', country: 'AR' },
+    { code: '+52', country: 'MX' },
+    { code: '+56', country: 'CL' },
+    { code: '+57', country: 'CO' },
+    { code: '+86', country: 'CN' },
+    { code: '+91', country: 'IN' }
+];
+
 const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onLoginSuccess }) => {
     const [formData, setFormData] = useState({
         name: '',
         email: '',
+        ddi: '+55',
+        phone: '',
         password: '',
         confirmPassword: '',
         isPhotographer: false
@@ -46,19 +65,20 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onLoginSuccess 
         setLoading(true);
 
         try {
-            const newUser = await api.register({
+            const response = await api.register({
                 name: formData.name,
                 email: formData.email,
+                phone: `${formData.ddi} ${formData.phone}`,
                 role: formData.isPhotographer ? UserRole.PHOTOGRAPHER : UserRole.CUSTOMER,
                 password: formData.password
             });
 
-            if (newUser) {
-                if (newUser.role === UserRole.PHOTOGRAPHER) {
+            if (response?.user) {
+                if (response.user.role === UserRole.PHOTOGRAPHER) {
                     // Fotógrafos não logam imediatamente, vão para página de moderação
                     onNavigate({ name: 'pending-approval' });
                 } else {
-                    onLoginSuccess(newUser);
+                    onLoginSuccess(response.user);
                     onNavigate({ name: 'home' });
                 }
             } else {
@@ -120,6 +140,37 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onLoginSuccess 
                                     value={formData.email}
                                     onChange={handleChange}
                                     className="appearance-none block w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
+                                />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
+                                WhatsApp / Telefone
+                            </label>
+                            <div className="mt-1 flex gap-2">
+                                <select
+                                    name="ddi"
+                                    value={formData.ddi}
+                                    onChange={handleChange as any}
+                                    className="w-1/3 min-w-[100px] block px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm cursor-pointer"
+                                >
+                                    {ddiList.map(item => (
+                                        <option key={item.code} value={item.code}>
+                                            {item.code} {item.country}
+                                        </option>
+                                    ))}
+                                </select>
+                                <input
+                                    id="phone"
+                                    name="phone"
+                                    type="tel"
+                                    autoComplete="tel"
+                                    placeholder="(11) 99999-9999"
+                                    required
+                                    value={formData.phone}
+                                    onChange={handleChange}
+                                    className="appearance-none block w-2/3 px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
                                 />
                             </div>
                         </div>

@@ -1,7 +1,27 @@
-
-import { User, Photo, Category, UserRole, PhotographerWithStats, Sale, Payout, PhotographerBalance, CommissionSettings, EmailTemplates, Coupon, PhotoQualityAnalysis, PurchasedPhoto, AbandonedCart, BulkDiscountRule, BankInfo, PayoutStatus, Review, PhotoEvent, RegisterResponse } from '../types';
-import { supabase } from './supabaseClient';
-import bcrypt from 'bcryptjs';
+import {
+  User,
+  Photo,
+  Category,
+  UserRole,
+  PhotographerWithStats,
+  Sale,
+  Payout,
+  PhotographerBalance,
+  CommissionSettings,
+  EmailTemplates,
+  Coupon,
+  PhotoQualityAnalysis,
+  PurchasedPhoto,
+  AbandonedCart,
+  BulkDiscountRule,
+  BankInfo,
+  PayoutStatus,
+  Review,
+  PhotoEvent,
+  RegisterResponse,
+} from "../types";
+import { supabase } from "./supabaseClient";
+import bcrypt from "bcryptjs";
 
 // --- HELPER FUNCTIONS ---
 
@@ -21,6 +41,7 @@ const mapUser = (dbUser: any): User => {
     bulkDiscountRules: dbUser.bulk_discount_rules || [],
     bank_info: dbUser.bank_info || undefined,
     liability_waiver_accepted_at: dbUser.liability_waiver_accepted_at,
+    phone: dbUser.phone,
   };
 };
 
@@ -38,9 +59,9 @@ const mapPhoto = (dbPhoto: any): Photo => {
     photographer_id: dbPhoto.photographer_id,
     category_id: dbPhoto.category_id,
     title: dbPhoto.title,
-    description: dbPhoto.description || '',
+    description: dbPhoto.description || "",
     preview_url: dbPhoto.preview_url,
-    file_url: dbPhoto.file_url || '',
+    file_url: dbPhoto.file_url || "",
     thumb_url: dbPhoto.thumb_url || dbPhoto.preview_url, // Fallback to preview if no thumb
     price: Number(dbPhoto.price),
     resolution: dbPhoto.resolution,
@@ -56,11 +77,11 @@ const mapPhoto = (dbPhoto: any): Photo => {
     liked_by_users: likedByUsers,
     quality_analysis: dbPhoto.quality_analysis || undefined,
     is_face_indexed: dbPhoto.is_face_indexed,
-    event_id: dbPhoto.event_id
+    event_id: dbPhoto.event_id,
   };
 };
 
-const shuffleArray = <T,>(array: T[]): T[] => {
+const shuffleArray = <T>(array: T[]): T[] => {
   const newArray = [...array];
   for (let i = newArray.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -69,17 +90,18 @@ const shuffleArray = <T,>(array: T[]): T[] => {
   return newArray;
 };
 
-
 export const api = {
   // --- PHOTOS ---
   getFeaturedPhotos: async (): Promise<Photo[]> => {
     const { data, error } = await supabase
-      .from('photos')
-      .select('id, photographer_id, category_id, title, preview_url, price, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags')
-      .eq('is_featured', true)
-      .eq('moderation_status', 'approved')
-      .eq('is_public', true)
-      .order('created_at', { ascending: false })
+      .from("photos")
+      .select(
+        "id, photographer_id, category_id, title, preview_url, price, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags",
+      )
+      .eq("is_featured", true)
+      .eq("moderation_status", "approved")
+      .eq("is_public", true)
+      .order("created_at", { ascending: false })
       .limit(12);
     if (error) {
       console.warn("Error fetching featured photos:", error);
@@ -91,9 +113,11 @@ export const api = {
   getAllPhotos: async (shuffle: boolean = false): Promise<Photo[]> => {
     const limit = shuffle ? 100 : 500; // Increase limit for admin view
     const { data, error } = await supabase
-      .from('photos')
-      .select('id, photographer_id, category_id, title, preview_url, price, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags, event_id')
-      .order('created_at', { ascending: false })
+      .from("photos")
+      .select(
+        "id, photographer_id, category_id, title, preview_url, price, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags, event_id",
+      )
+      .order("created_at", { ascending: false })
       .limit(limit);
     if (error) {
       console.warn("Error fetching all photos:", error);
@@ -106,11 +130,13 @@ export const api = {
 
   getRecentPhotos: async (limit: number = 8): Promise<Photo[]> => {
     const { data, error } = await supabase
-      .from('photos')
-      .select('id, photographer_id, category_id, title, preview_url, price, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags')
-      .eq('moderation_status', 'approved')
-      .eq('is_public', true)
-      .order('created_at', { ascending: false })
+      .from("photos")
+      .select(
+        "id, photographer_id, category_id, title, preview_url, price, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags",
+      )
+      .eq("moderation_status", "approved")
+      .eq("is_public", true)
+      .order("created_at", { ascending: false })
       .limit(limit);
     if (error) {
       console.warn("Error fetching recent photos:", error);
@@ -119,14 +145,19 @@ export const api = {
     return data ? data.map(mapPhoto) : [];
   },
 
-  getPhotosByCategoryId: async (categoryId: string, shuffle: boolean = false): Promise<Photo[]> => {
+  getPhotosByCategoryId: async (
+    categoryId: string,
+    shuffle: boolean = false,
+  ): Promise<Photo[]> => {
     const limit = shuffle ? 100 : 500;
     const { data, error } = await supabase
-      .from('photos')
-      .select('id, photographer_id, category_id, title, preview_url, price, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags')
-      .eq('category_id', categoryId)
-      .eq('moderation_status', 'approved')
-      .eq('is_public', true)
+      .from("photos")
+      .select(
+        "id, photographer_id, category_id, title, preview_url, price, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags",
+      )
+      .eq("category_id", categoryId)
+      .eq("moderation_status", "approved")
+      .eq("is_public", true)
       .limit(limit);
     if (error) throw error;
     let resultData = data || [];
@@ -136,12 +167,14 @@ export const api = {
 
   getPhotoById: async (id: string): Promise<Photo | undefined> => {
     const { data, error } = await supabase
-      .from('photos')
-      .select('*, photo_likes(user_id)')
-      .eq('id', id)
+      .from("photos")
+      .select(
+        "id, photographer_id, category_id, title, description, preview_url, file_url, thumb_url, price, resolution, width, height, tags, is_public, created_at, moderation_status, rejection_reason, is_featured, likes_count, quality_analysis, is_face_indexed, event_id, photo_likes(user_id)",
+      )
+      .eq("id", id)
       .single();
     if (error) {
-      if (error.code === 'PGRST116') return undefined; // Not found is not an error here
+      if (error.code === "PGRST116") return undefined; // Not found is not an error here
       throw error;
     }
     return mapPhoto(data);
@@ -150,41 +183,47 @@ export const api = {
   getPhotosByIds: async (ids: string[]): Promise<Photo[]> => {
     if (ids.length === 0) return [];
     const { data, error } = await supabase
-      .from('photos')
-      .select('*, photo_likes(user_id)')
-      .in('id', ids);
+      .from("photos")
+      .select(
+        "id, photographer_id, category_id, title, description, preview_url, file_url, thumb_url, price, resolution, width, height, tags, is_public, created_at, moderation_status, rejection_reason, is_featured, likes_count, quality_analysis, is_face_indexed, event_id, photo_likes(user_id)",
+      )
+      .in("id", ids);
 
     if (error) throw error;
     return data ? data.map(mapPhoto) : [];
   },
 
-  getPhotosByPhotographerId: async (photographerId: string): Promise<Photo[]> => {
+  getPhotosByPhotographerId: async (
+    photographerId: string,
+  ): Promise<Photo[]> => {
     const { data, error } = await supabase
-      .from('photos')
-      .select('*, photo_likes(user_id)')
-      .eq('photographer_id', photographerId)
-      .order('created_at', { ascending: false });
+      .from("photos")
+      .select(
+        "id, photographer_id, category_id, title, description, preview_url, file_url, thumb_url, price, resolution, width, height, tags, is_public, created_at, moderation_status, rejection_reason, is_featured, likes_count, quality_analysis, is_face_indexed, event_id, photo_likes(user_id)",
+      )
+      .eq("photographer_id", photographerId)
+      .order("created_at", { ascending: false });
     if (error) throw error;
     return data ? data.map(mapPhoto) : [];
   },
 
   createPhoto: async (data: any): Promise<Photo> => {
-    const { data: result, error } = await supabase.rpc('upload_photo', {
+    const { data: result, error } = await supabase.rpc("upload_photo", {
       p_photographer_id: data.photographer_id,
       p_category_id: data.category_id,
       p_title: data.title,
-      p_description: data.description || '',
+      p_description: data.description || "",
       p_price: data.price,
       p_preview_url: data.preview_url,
-      p_file_url: data.file_url || '',
-      p_thumb_url: data.thumb_url || '', // Pass thumb
-      p_resolution: data.resolution || '4K',
+      p_file_url: data.file_url || "",
+      p_thumb_url: data.thumb_url || "", // Pass thumb
+      p_resolution: data.resolution || "4K",
       p_width: data.width,
       p_height: data.height,
       p_tags: data.tags || [],
       p_is_public: data.is_public,
       p_is_featured: false, // Default
-      p_event_id: data.event_id
+      p_event_id: data.event_id,
     });
 
     if (error) throw error;
@@ -194,7 +233,7 @@ export const api = {
     // Note: Supabase RPC returns the JSONB directly as data.
 
     if (!result || !result.success) {
-      throw new Error(result?.error || 'Erro desconhecido ao enviar foto.');
+      throw new Error(result?.error || "Erro desconhecido ao enviar foto.");
     }
 
     // Map the returned data (which is the raw photo row) to our Photo type
@@ -204,13 +243,18 @@ export const api = {
   updatePhoto: async (id: string, data: any): Promise<Photo | undefined> => {
     // Remove computed fields that are not columns in the database
     const { likes, liked_by_users, ...dbData } = data;
-    const { data: updatedPhoto, error } = await supabase.from('photos').update(dbData).eq('id', id).select().single();
+    const { data: updatedPhoto, error } = await supabase
+      .from("photos")
+      .update(dbData)
+      .eq("id", id)
+      .select()
+      .single();
     if (error) throw error;
     return mapPhoto(updatedPhoto);
   },
 
   deletePhoto: async (id: string): Promise<boolean> => {
-    const { error } = await supabase.from('photos').delete().eq('id', id);
+    const { error } = await supabase.from("photos").delete().eq("id", id);
     if (error) throw error;
     return true;
   },
@@ -220,88 +264,137 @@ export const api = {
     const dbData: { [key: string]: any } = {};
 
     Object.entries(data).forEach(([key, value]) => {
-      if (key === 'bulkDiscountRules') {
-        dbData['bulk_discount_rules'] = value;
+      if (key === "bulkDiscountRules") {
+        dbData["bulk_discount_rules"] = value;
       } else {
         dbData[key] = value;
       }
     });
 
-    const { error } = await supabase.from('users').update(dbData).eq('id', id);
+    const { error } = await supabase.from("users").update(dbData).eq("id", id);
 
     if (error) {
       console.error("Supabase update error:", error);
       throw error;
     }
 
-    const { data: updatedUser } = await supabase.from('users').select('*').eq('id', id).single();
+    const { data: updatedUser } = await supabase
+      .from("users")
+      .select("*")
+      .eq("id", id)
+      .single();
     return mapUser(updatedUser);
   },
 
   getSalesByPhotographerId: async (photographerId: string): Promise<Sale[]> => {
     const { data, error } = await supabase
-      .from('sales')
-      .select('*')
-      .eq('photographer_id', photographerId)
-      .order('sale_date', { ascending: false });
+      .from("sales")
+      .select("*")
+      .eq("photographer_id", photographerId)
+      .order("sale_date", { ascending: false });
 
     if (error) {
       console.warn("Error fetching sales:", error);
       return [];
     }
 
-    // We need buyer name, let's fetch it or map it if possible contextually, 
-    // but for now let's just return the sales. 
-    // Ideally we would join with users table: .select('*, buyer:users!buyer_id(name)') 
+    // We need buyer name, let's fetch it or map it if possible contextually,
+    // but for now let's just return the sales.
+    // Ideally we would join with users table: .select('*, buyer:users!buyer_id(name)')
     // But type definition expects buyer_name directly on Sale object.
     // Let's try to fetch with join
     const { data: salesWithBuyer, error: joinError } = await supabase
-      .from('sales')
-      .select('*, buyer:users!buyer_id(name)')
-      .eq('photographer_id', photographerId)
-      .order('sale_date', { ascending: false });
+      .from("sales")
+      .select("*, buyer:users!buyer_id(name)")
+      .eq("photographer_id", photographerId)
+      .order("sale_date", { ascending: false });
 
     if (joinError) {
       console.warn("Error fetching sales with buyer details:", joinError);
       // Fallback to simple data without name
-      return data ? data.map((s: any) => ({ ...s, buyer_name: 'Cliente' })) : [];
+      return data
+        ? data.map((s: any) => ({ ...s, buyer_name: "Cliente" }))
+        : [];
     }
 
-    return salesWithBuyer ? salesWithBuyer.map((s: any) => ({
-      ...s,
-      buyer_name: s.buyer?.name || 'Cliente'
-    })) : [];
+    return salesWithBuyer
+      ? salesWithBuyer.map((s: any) => ({
+        ...s,
+        buyer_name: s.buyer?.name || "Cliente",
+      }))
+      : [];
   },
 
-  getPhotographerBalanceById: async (photographerId: string): Promise<PhotographerBalance | undefined> => {
+  getPhotographerBalanceById: async (
+    photographerId: string,
+  ): Promise<PhotographerBalance | undefined> => {
     try {
-      const { data: userData, error: userError } = await supabase.from('users').select('*').eq('id', photographerId).single();
-      if (userError && userError.code !== 'PGRST116') throw userError;
+      const { data: userData, error: userError } = await supabase
+        .from("users")
+        .select("*")
+        .eq("id", photographerId)
+        .single();
+      if (userError && userError.code !== "PGRST116") throw userError;
       const user = userData ? mapUser(userData) : null;
 
       if (!user) {
-        const tempUser: User = { id: photographerId, role: UserRole.PHOTOGRAPHER, name: "Fotógrafo", email: '', avatar_url: '', is_active: false };
-        return { ...tempUser, photoCount: 0, salesCount: 0, commissionValue: 0, commissionRate: 0.15, totalSalesGross: 0, totalPlatformFees: 0, totalEarnings: 0, totalPaid: 0, currentBalance: 0, likesCount: 0, avgRating: 0, reviewCount: 0, approvalPercentage: 0 };
+        const tempUser: User = {
+          id: photographerId,
+          role: UserRole.PHOTOGRAPHER,
+          name: "Fotógrafo",
+          email: "",
+          avatar_url: "",
+          is_active: false,
+        };
+        return {
+          ...tempUser,
+          photoCount: 0,
+          salesCount: 0,
+          commissionValue: 0,
+          commissionRate: 0.15,
+          totalSalesGross: 0,
+          totalPlatformFees: 0,
+          totalEarnings: 0,
+          totalPaid: 0,
+          currentBalance: 0,
+          likesCount: 0,
+          avgRating: 0,
+          reviewCount: 0,
+          approvalPercentage: 0,
+        };
       }
 
       const sales = await api.getSalesByPhotographerId(photographerId);
-      const { count: photoCount } = await supabase.from('photos').select('*', { count: 'exact', head: true }).eq('photographer_id', photographerId);
-      const { data: payouts } = await supabase.from('payouts').select('amount, status').eq('photographer_id', photographerId);
+      const { count: photoCount } = await supabase
+        .from("photos")
+        .select("*", { count: "exact", head: true })
+        .eq("photographer_id", photographerId);
+      const { data: payouts } = await supabase
+        .from("payouts")
+        .select("amount, status")
+        .eq("photographer_id", photographerId);
 
       const totalSalesGross = sales.reduce((sum, s) => sum + s.price, 0);
       const totalPlatformFees = sales.reduce((sum, s) => sum + s.commission, 0);
       const totalEarnings = totalSalesGross - totalPlatformFees;
 
-      const totalPaid = (payouts || []).filter(p => p.status === 'paid').reduce((sum, p) => sum + p.amount, 0);
-      const pendingAmount = (payouts || []).filter(p => p.status === 'pending' || p.status === 'processing').reduce((sum, p) => sum + p.amount, 0);
+      const totalPaid = (payouts || [])
+        .filter((p) => p.status === "paid")
+        .reduce((sum, p) => sum + p.amount, 0);
+      const pendingAmount = (payouts || [])
+        .filter((p) => p.status === "pending" || p.status === "processing")
+        .reduce((sum, p) => sum + p.amount, 0);
 
       const currentBalance = totalEarnings - totalPaid - pendingAmount;
 
-
-
       // Recalculate likes count properly by summing 'likes_count' from all photos
-      const { data: photos } = await supabase.from('photos').select('likes_count').eq('photographer_id', photographerId);
-      const totalLikes = photos ? photos.reduce((sum, p) => sum + (p.likes_count || 0), 0) : 0;
+      const { data: photos } = await supabase
+        .from("photos")
+        .select("likes_count")
+        .eq("photographer_id", photographerId);
+      const totalLikes = photos
+        ? photos.reduce((sum, p) => sum + (p.likes_count || 0), 0)
+        : 0;
 
       return {
         ...user,
@@ -317,52 +410,66 @@ export const api = {
         likesCount: totalLikes,
         avgRating: 0, // Not fetching for balance currently
         reviewCount: 0, // Not fetching for balance currently
-        approvalPercentage: 0 // Not fetching for balance currently
+        approvalPercentage: 0, // Not fetching for balance currently
       };
-
     } catch (error) {
-      console.error(`Failed to fetch and calculate balance for ${photographerId}`, error);
+      console.error(
+        `Failed to fetch and calculate balance for ${photographerId}`,
+        error,
+      );
       throw error;
     }
   },
 
-  createCoupon: async (couponData: Omit<Coupon, 'id'>): Promise<Coupon> => {
-    const { data, error } = await supabase.from('coupons').insert(couponData).select().single();
+  createCoupon: async (couponData: Omit<Coupon, "id">): Promise<Coupon> => {
+    const { data, error } = await supabase
+      .from("coupons")
+      .insert(couponData)
+      .select()
+      .single();
     if (error) throw error;
     return data;
   },
 
-  getCouponsByPhotographerId: async (photographerId: string): Promise<Coupon[]> => {
-    const { data, error } = await supabase.from('coupons').select('*').eq('photographer_id', photographerId);
+  getCouponsByPhotographerId: async (
+    photographerId: string,
+  ): Promise<Coupon[]> => {
+    const { data, error } = await supabase
+      .from("coupons")
+      .select("*")
+      .eq("photographer_id", photographerId);
     if (error) throw error;
     return data || [];
   },
 
   deleteCoupon: async (id: string): Promise<boolean> => {
-    const { error } = await supabase.from('coupons').delete().eq('id', id);
+    const { error } = await supabase.from("coupons").delete().eq("id", id);
     if (error) throw error;
     return true;
   },
 
   approvePhotosBatch: async (photoIds: string[]): Promise<boolean> => {
     const { error } = await supabase
-      .from('photos')
-      .update({ moderation_status: 'approved', rejection_reason: null })
-      .in('id', photoIds);
+      .from("photos")
+      .update({ moderation_status: "approved", rejection_reason: null })
+      .in("id", photoIds);
     if (error) throw error;
     return true;
   },
-  toggleLike: async (photoId: string, userId: string): Promise<{ success: boolean, newLikes: number, isLiked: boolean }> => {
+  toggleLike: async (
+    photoId: string,
+    userId: string,
+  ): Promise<{ success: boolean; newLikes: number; isLiked: boolean }> => {
     try {
       // Check if user already liked this photo
       const { data: existingLike, error: checkError } = await supabase
-        .from('photo_likes')
-        .select('id')
-        .eq('photo_id', photoId)
-        .eq('user_id', userId)
+        .from("photo_likes")
+        .select("id")
+        .eq("photo_id", photoId)
+        .eq("user_id", userId)
         .single();
 
-      if (checkError && checkError.code !== 'PGRST116') {
+      if (checkError && checkError.code !== "PGRST116") {
         // PGRST116 is "not found" which is expected if no like exists
         throw checkError;
       }
@@ -372,17 +479,17 @@ export const api = {
       if (existingLike) {
         // Unlike: Remove the like
         const { error: deleteError } = await supabase
-          .from('photo_likes')
+          .from("photo_likes")
           .delete()
-          .eq('photo_id', photoId)
-          .eq('user_id', userId);
+          .eq("photo_id", photoId)
+          .eq("user_id", userId);
 
         if (deleteError) throw deleteError;
         isLiked = false;
       } else {
         // Like: Add the like
         const { error: insertError } = await supabase
-          .from('photo_likes')
+          .from("photo_likes")
           .insert({ photo_id: photoId, user_id: userId });
 
         if (insertError) throw insertError;
@@ -391,9 +498,9 @@ export const api = {
 
       // Get updated like count
       const { count, error: countError } = await supabase
-        .from('photo_likes')
-        .select('*', { count: 'exact', head: true })
-        .eq('photo_id', photoId);
+        .from("photo_likes")
+        .select("*", { count: "exact", head: true })
+        .eq("photo_id", photoId);
 
       if (countError) throw countError;
 
@@ -401,22 +508,22 @@ export const api = {
 
       // Update the likes_count in the photos table for denormalization
       await supabase
-        .from('photos')
+        .from("photos")
         .update({ likes_count: newLikes })
-        .eq('id', photoId);
+        .eq("id", photoId);
 
       return { success: true, newLikes, isLiked };
     } catch (error) {
-      console.error('Error toggling like:', error);
+      console.error("Error toggling like:", error);
       return { success: false, newLikes: 0, isLiked: false };
     }
   },
   getPhotoLikers: async (photoId: string): Promise<User[]> => {
     try {
       const { data, error } = await supabase
-        .from('photo_likes')
-        .select('user_id, user:users!photo_likes_user_id_fkey(*)')
-        .eq('photo_id', photoId);
+        .from("photo_likes")
+        .select("user_id, user:users!photo_likes_user_id_fkey(*)")
+        .eq("photo_id", photoId);
 
       if (error) throw error;
 
@@ -429,53 +536,69 @@ export const api = {
       }
 
       // Map the nested user object
-      return data.map((item: any) => mapUser(item.user)).filter((u: User) => u.id);
+      return data
+        .map((item: any) => mapUser(item.user))
+        .filter((u: User) => u.id);
     } catch (error) {
       // Fallback: Manual join if relation name is different, missing, or RLS blocks join
-      console.warn("Error fetching likers with foreign key, trying manual join", error);
+      console.warn(
+        "Error fetching likers with foreign key, trying manual join",
+        error,
+      );
 
       const { data: likes } = await supabase
-        .from('photo_likes')
-        .select('user_id')
-        .eq('photo_id', photoId);
+        .from("photo_likes")
+        .select("user_id")
+        .eq("photo_id", photoId);
 
       if (!likes || likes.length === 0) return [];
 
-      const userIds = likes.map(l => l.user_id);
+      const userIds = likes.map((l) => l.user_id);
 
       // Fetch users manually
       const { data: users } = await supabase
-        .from('users')
-        .select('*')
-        .in('id', userIds);
+        .from("users")
+        .select("*")
+        .in("id", userIds);
 
       return users ? users.map(mapUser) : [];
     }
   },
   getCategories: async (): Promise<Category[]> => {
-    const { data, error } = await supabase.from('categories').select('*').order('sort_order', { ascending: true });
+    // Trazendo image_url de volta. Recomendamos remover qualquer Base64 gigante do banco de dados e usar URLs (ex: webhooks, unsplash, supabase storage) para não sobrecarregar a api.
+    const { data, error } = await supabase
+      .from("categories")
+      .select("id, name, slug, sort_order, image_url")
+      .order("sort_order", { ascending: true });
     if (error) {
-      console.warn("Could not fetch categories", error)
+      console.warn("Could not fetch categories", error);
       return [];
     }
     return data || [];
   },
   getCategoryById: async (id: string): Promise<Category | undefined> => {
-    const { data, error } = await supabase.from('categories').select('*').eq('id', id).single();
+    const { data, error } = await supabase
+      .from("categories")
+      .select("*")
+      .eq("id", id)
+      .single();
     if (error) throw error;
     return data;
   },
-  createCategory: async (data: { name: string; image_url: string }): Promise<Category> => {
+  createCategory: async (data: {
+    name: string;
+    image_url: string;
+  }): Promise<Category> => {
     // Generate a simple slug from name
     const slug = data.name
       .toLowerCase()
-      .normalize('NFD') // decompose accents
-      .replace(/[\u0300-\u036f]/g, '') // remove accents
-      .replace(/[^a-z0-9]+/g, '-') // replace non-alphanum with dash
-      .replace(/^-+|-+$/g, ''); // remove leading/trailing dashes
+      .normalize("NFD") // decompose accents
+      .replace(/[\u0300-\u036f]/g, "") // remove accents
+      .replace(/[^a-z0-9]+/g, "-") // replace non-alphanum with dash
+      .replace(/^-+|-+$/g, ""); // remove leading/trailing dashes
 
     const { data: newCategory, error } = await supabase
-      .from('categories')
+      .from("categories")
       .insert({ ...data, slug })
       .select()
       .single();
@@ -483,20 +606,23 @@ export const api = {
     if (error) throw error;
     return newCategory;
   },
-  updateCategory: async (id: string, data: { name: string; image_url: string }): Promise<Category | undefined> => {
-    // Regenerate slug on update? Usually better to keep stable unless explicitly requested, 
+  updateCategory: async (
+    id: string,
+    data: { name: string; image_url: string },
+  ): Promise<Category | undefined> => {
+    // Regenerate slug on update? Usually better to keep stable unless explicitly requested,
     // but for simple cats syncing slug to name is often expected.
     const slug = data.name
       .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '');
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
 
     const { data: updatedCategory, error } = await supabase
-      .from('categories')
+      .from("categories")
       .update({ ...data, slug })
-      .eq('id', id)
+      .eq("id", id)
       .select()
       .single();
 
@@ -504,19 +630,17 @@ export const api = {
     return updatedCategory;
   },
   updateCategoriesOrder: async (categories: Category[]): Promise<boolean> => {
-    // We use upsert to update multiple records. 
+    // We use upsert to update multiple records.
     // We map to match the DB columns exactly.
     const updates = categories.map((cat, index) => ({
       id: cat.id,
       name: cat.name,
       slug: cat.slug,
       image_url: cat.image_url,
-      sort_order: index // Update the order based on array position
+      sort_order: index, // Update the order based on array position
     }));
 
-    const { error } = await supabase
-      .from('categories')
-      .upsert(updates);
+    const { error } = await supabase.from("categories").upsert(updates);
 
     if (error) {
       console.error("Error reordering categories:", error);
@@ -525,17 +649,14 @@ export const api = {
     return true;
   },
   deleteCategory: async (id: string): Promise<boolean> => {
-    const { error } = await supabase
-      .from('categories')
-      .delete()
-      .eq('id', id);
+    const { error } = await supabase.from("categories").delete().eq("id", id);
 
     if (error) throw error;
     return true;
   },
   getPhotographers: async (): Promise<PhotographerWithStats[]> => {
     // 1. Get stats via RPC (Server-side aggregation)
-    const { data, error } = await supabase.rpc('get_photographers_with_stats');
+    const { data, error } = await supabase.rpc("get_photographers_with_stats");
 
     if (error) {
       console.error("Error fetching photographer stats via RPC:", error);
@@ -546,7 +667,7 @@ export const api = {
     const settings = await api.getCommissionSettings();
 
     // 3. Map result
-    return (data as any[]).map(row => {
+    return (data as any[]).map((row) => {
       const user = mapUser(row.user_data);
 
       // Determine the effective rate for this photographer
@@ -564,25 +685,29 @@ export const api = {
         likesCount: Number(row.likes_cnt),
         avgRating: 0,
         reviewCount: 0,
-        approvalPercentage: 0
+        approvalPercentage: 0,
       };
     });
   },
   getPhotographerById: async (id: string): Promise<User | undefined> => {
-    const { data, error } = await supabase.from('users').select('*').eq('id', id).single();
+    const { data, error } = await supabase
+      .from("users")
+      .select("*")
+      .eq("id", id)
+      .single();
     if (error) {
-      if (error.code === 'PGRST116') return undefined; // Not found is not an error here
+      if (error.code === "PGRST116") return undefined; // Not found is not an error here
       throw error;
     }
     return mapUser(data);
   },
   getActivePhotographersPreview: async (): Promise<PhotographerWithStats[]> => {
     const { data: users, error } = await supabase
-      .from('users')
-      .select('id, name, email, avatar_url, location, is_active, bio, role')
-      .eq('role', 'photographer')
-      .eq('is_active', true)
-      .not('avatar_url', 'is', null)
+      .from("users")
+      .select("id, name, email, avatar_url, location, is_active, bio, role")
+      .eq("role", "photographer")
+      .eq("is_active", true)
+      .not("avatar_url", "is", null)
       .limit(10);
 
     if (error) {
@@ -590,38 +715,49 @@ export const api = {
       return [];
     }
 
-    return users ? users.map(u => ({
-      ...mapUser(u),
-      photoCount: 0,
-      salesCount: 0,
-      commissionValue: 0,
-      commissionRate: 0,
-      likesCount: 0,
-      avgRating: 5.0, // Default for preview to avoid heavy review joins
-      reviewCount: 0,
-      approvalPercentage: 100
-    })) : [];
+    return users
+      ? users.map((u) => ({
+        ...mapUser(u),
+        photoCount: 0,
+        salesCount: 0,
+        commissionValue: 0,
+        commissionRate: 0,
+        likesCount: 0,
+        avgRating: 5.0, // Default for preview to avoid heavy review joins
+        reviewCount: 0,
+        approvalPercentage: 100,
+      }))
+      : [];
   },
 
   // --- EVENTS ---
-  createEvent: async (eventData: Omit<PhotoEvent, 'id' | 'created_at'>): Promise<PhotoEvent> => {
+  createEvent: async (
+    eventData: Omit<PhotoEvent, "id" | "created_at">,
+  ): Promise<PhotoEvent> => {
     // Force usage of the currently authenticated user's ID for RLS compliance
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
 
     if (!user) {
       console.error("Auth Error details:", userError);
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       console.error("Fallback Session check:", session);
-      throw new Error(`Sessão inválida (User: ${userError?.message || 'null'}, Session: ${session ? 'exists' : 'null'}). Recarregue a página.`);
+      throw new Error(
+        `Sessão inválida (User: ${userError?.message || "null"}, Session: ${session ? "exists" : "null"}). Recarregue a página.`,
+      );
     }
 
     const finalEventData = {
       ...eventData,
-      photographer_id: user.id
+      photographer_id: user.id,
     };
 
     const { data, error } = await supabase
-      .from('events')
+      .from("events")
       .insert(finalEventData)
       .select()
       .single();
@@ -633,12 +769,14 @@ export const api = {
     return data as PhotoEvent;
   },
 
-  getPhotographerEvents: async (photographerId: string): Promise<PhotoEvent[]> => {
+  getPhotographerEvents: async (
+    photographerId: string,
+  ): Promise<PhotoEvent[]> => {
     const { data, error } = await supabase
-      .from('events')
-      .select('*')
-      .eq('photographer_id', photographerId)
-      .order('created_at', { ascending: false });
+      .from("events")
+      .select("*")
+      .eq("photographer_id", photographerId)
+      .order("created_at", { ascending: false });
 
     if (error) {
       console.error("Error fetching events:", error);
@@ -648,10 +786,7 @@ export const api = {
   },
 
   deleteEvent: async (id: string): Promise<boolean> => {
-    const { error } = await supabase
-      .from('events')
-      .delete()
-      .eq('id', id);
+    const { error } = await supabase.from("events").delete().eq("id", id);
 
     if (error) {
       console.error("Error deleting event:", error);
@@ -660,11 +795,14 @@ export const api = {
     return true;
   },
 
-  updateEvent: async (id: string, updates: Partial<PhotoEvent>): Promise<PhotoEvent | null> => {
+  updateEvent: async (
+    id: string,
+    updates: Partial<PhotoEvent>,
+  ): Promise<PhotoEvent | null> => {
     const { data, error } = await supabase
-      .from('events')
+      .from("events")
       .update(updates)
-      .eq('id', id)
+      .eq("id", id)
       .select()
       .single();
 
@@ -675,9 +813,11 @@ export const api = {
     return data as PhotoEvent;
   },
 
-  createReview: async (review: Omit<Review, 'id' | 'created_at'>): Promise<Review | null> => {
+  createReview: async (
+    review: Omit<Review, "id" | "created_at">,
+  ): Promise<Review | null> => {
     const { data, error } = await supabase
-      .from('reviews')
+      .from("reviews")
       .insert(review)
       .select()
       .single();
@@ -691,10 +831,10 @@ export const api = {
 
   getPhotographerReviews: async (photographerId: string): Promise<Review[]> => {
     const { data, error } = await supabase
-      .from('reviews')
-      .select('*, reviewer:reviewer_id(name, avatar_url)')
-      .eq('photographer_id', photographerId)
-      .order('created_at', { ascending: false });
+      .from("reviews")
+      .select("*, reviewer:reviewer_id(name, avatar_url)")
+      .eq("photographer_id", photographerId)
+      .order("created_at", { ascending: false });
 
     if (error) {
       console.error("Error fetching reviews:", error);
@@ -703,17 +843,24 @@ export const api = {
     return data;
   },
   getPublicPhotographers: async (): Promise<PhotographerWithStats[]> => {
-    const { data: users, error } = await supabase.from('users').select('*, reviews!photographer_id(*)').eq('role', 'photographer').eq('is_active', true);
+    const { data: users, error } = await supabase
+      .from("users")
+      .select("*, reviews!photographer_id(*)")
+      .eq("role", "photographer")
+      .eq("is_active", true);
     if (error) throw error;
 
-    return users.map(u => {
+    return users.map((u) => {
       const reviews = u.reviews || [];
       const reviewCount = reviews.length;
-      const avgRating = reviewCount > 0
-        ? reviews.reduce((acc: number, r: any) => acc + r.rating, 0) / reviewCount
-        : 0;
+      const avgRating =
+        reviewCount > 0
+          ? reviews.reduce((acc: number, r: any) => acc + r.rating, 0) /
+          reviewCount
+          : 0;
       const approvedCount = reviews.filter((r: any) => r.rating >= 4).length;
-      const approvalPercentage = reviewCount > 0 ? (approvedCount / reviewCount) * 100 : 0;
+      const approvalPercentage =
+        reviewCount > 0 ? (approvedCount / reviewCount) * 100 : 0;
 
       return {
         ...mapUser(u),
@@ -724,30 +871,44 @@ export const api = {
         likesCount: 0,
         avgRating,
         reviewCount,
-        approvalPercentage
+        approvalPercentage,
       };
     });
   },
 
   getAdminUser: async (): Promise<User | undefined> => undefined,
   getPhotographerUser: async (): Promise<User | undefined> => {
-    const { data, error } = await supabase.from('users').select('*').eq('email', 'daian@example.com').single();
+    const { data, error } = await supabase
+      .from("users")
+      .select("*")
+      .eq("email", "daian@example.com")
+      .single();
     if (error) return undefined;
     return mapUser(data);
   },
-  createPhotographer: async (data: Omit<User, 'id' | 'role'>): Promise<User> => {
-    const { data: newUser, error } = await supabase.from('users').insert({ ...data, role: UserRole.PHOTOGRAPHER }).select().single();
+  createPhotographer: async (
+    data: Omit<User, "id" | "role">,
+  ): Promise<User> => {
+    const { data: newUser, error } = await supabase
+      .from("users")
+      .insert({ ...data, role: UserRole.PHOTOGRAPHER })
+      .select()
+      .single();
     if (error) throw error;
     return mapUser(newUser);
   },
-  deletePhotographer: async (id: string): Promise<boolean> => { return true; },
-  getCustomers: async (): Promise<(User & { purchaseCount: number; totalSpent: number })[]> => {
+  deletePhotographer: async (id: string): Promise<boolean> => {
+    return true;
+  },
+  getCustomers: async (): Promise<
+    (User & { purchaseCount: number; totalSpent: number })[]
+  > => {
     // 1. Fetch Customers
     const { data: users, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('role', 'customer')
-      .order('created_at', { ascending: false });
+      .from("users")
+      .select("*")
+      .eq("role", "customer")
+      .order("created_at", { ascending: false });
 
     if (error) {
       console.warn("Error fetching customers:", error);
@@ -757,103 +918,140 @@ export const api = {
     if (!users || users.length === 0) return [];
 
     // 2. Fetch Sales for these customers to calculate stats
-    const userIds = users.map(u => u.id);
+    const userIds = users.map((u) => u.id);
     const { data: sales, error: salesError } = await supabase
-      .from('sales')
-      .select('buyer_id, price')
-      .in('buyer_id', userIds);
+      .from("sales")
+      .select("buyer_id, price")
+      .in("buyer_id", userIds);
 
     if (salesError) {
       console.warn("Error fetching customer sales stats:", salesError);
       // Fallback: return users with 0 stats
-      return users.map(u => ({
+      return users.map((u) => ({
         ...mapUser(u),
         purchaseCount: 0,
-        totalSpent: 0
+        totalSpent: 0,
       }));
     }
 
     // 3. Aggregate Stats
-    return users.map(u => {
-      const userSales = sales?.filter(s => s.buyer_id === u.id) || [];
+    return users.map((u) => {
+      const userSales = sales?.filter((s) => s.buyer_id === u.id) || [];
       const totalSpent = userSales.reduce((sum, s) => sum + Number(s.price), 0);
       const purchaseCount = userSales.length;
 
       return {
         ...mapUser(u),
         purchaseCount,
-        totalSpent
+        totalSpent,
       };
     });
   },
-  createCustomer: async (data: { name: string; email: string }): Promise<User> => { return { id: 'cust-new', role: UserRole.CUSTOMER, ...data, avatar_url: '', is_active: true }; },
-  updateCustomer: async (id: string, data: Partial<Pick<User, 'name' | 'email'>>): Promise<User | undefined> => {
+  createCustomer: async (data: {
+    name: string;
+    email: string;
+  }): Promise<User> => {
+    return {
+      id: "cust-new",
+      role: UserRole.CUSTOMER,
+      ...data,
+      avatar_url: "",
+      is_active: true,
+    };
+  },
+  updateCustomer: async (
+    id: string,
+    data: Partial<Pick<User, "name" | "email">>,
+  ): Promise<User | undefined> => {
     const { data: updatedUser, error } = await supabase
-      .from('users')
+      .from("users")
       .update(data)
-      .eq('id', id)
+      .eq("id", id)
       .select()
       .single();
 
     if (error) throw error;
     return mapUser(updatedUser);
   },
-  deleteCustomer: async (id: string): Promise<{ success: boolean, error?: string }> => {
+  deleteCustomer: async (
+    id: string,
+  ): Promise<{ success: boolean; error?: string }> => {
     // 1. Delete related records first (Foreign Key Constraints)
     // Delete user's cart
     // Delete user's sales (as buyer)
-    const { error: salesError } = await supabase.from('sales').delete().eq('buyer_id', id);
+    const { error: salesError } = await supabase
+      .from("sales")
+      .delete()
+      .eq("buyer_id", id);
     if (salesError) {
       console.warn("Error deleting user sales (might not exist):", salesError);
     }
 
-    const { error: cartError } = await supabase.from('carts').delete().eq('user_id', id);
+    const { error: cartError } = await supabase
+      .from("carts")
+      .delete()
+      .eq("user_id", id);
     if (cartError) {
       console.warn("Error deleting user cart (might not exist):", cartError);
       // We continue even if cart delete fails, as it might just not exist
     }
 
-    // 2. Delete the user
-    // We select the deleted row to confirm it was actually deleted
-    // If RLS blocks it, error might be null but data will be empty
-    const { data, error } = await supabase.from('users').delete().eq('id', id).select();
+    // 2. Delete the user (including auth table) via RPC
+    const { data, error } = await supabase.rpc("admin_delete_user", {
+      target_user_id: id,
+    });
 
     if (error) {
-      console.error("Error deleting customer:", error);
-      return { success: false, error: error.message || error.details || "Erro desconhecido ao excluir usuário." };
+      console.error("Error deleting customer via RPC:", error);
+      return {
+        success: false,
+        error:
+          error.message ||
+          error.details ||
+          "Erro desconhecido ao excluir usuário.",
+      };
     }
 
-    // If no rows were returned, it means nothing was deleted (RLS or not found)
-    if (!data || data.length === 0) {
-      console.warn("Delete operation returned 0 rows. Possible RLS restriction.");
-      return { success: false, error: "Nenhum registro excluído. Verifique permissões (RLS) ou se o usuário existe." };
+    // `data` returns json from RPC: { "success": true/false, "error": "msg" }
+    if (data && !data.success) {
+      console.warn("RPC operation failed.", data.error);
+      return {
+        success: false,
+        error: data.error || "Erro de permissão ou falha ao excluir.",
+      };
     }
 
     return { success: true };
   },
 
   getCurrentUser: async (): Promise<User | null> => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) return null;
 
     const { data: userProfile } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', user.id)
+      .from("users")
+      .select("*")
+      .eq("id", user.id)
       .single();
 
     if (!userProfile) return null;
     return mapUser(userProfile);
   },
 
-  login: async (email: string, password?: string): Promise<User | undefined> => {
+  login: async (
+    email: string,
+    password?: string,
+  ): Promise<User | undefined> => {
     if (!password) return undefined;
 
     // 1. Authenticate with Supabase Auth
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    });
+    const { data: authData, error: authError } =
+      await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
     if (authError) {
       console.error("Auth Login Failed:", authError);
@@ -869,9 +1067,9 @@ export const api = {
 
     // 2. Fetch User Profile
     const { data: userProfile, error: profileError } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', authData.user.id)
+      .from("users")
+      .select("*")
+      .eq("id", authData.user.id)
       .single();
 
     if (profileError) {
@@ -880,7 +1078,7 @@ export const api = {
     }
 
     // Check if user is active
-    if (userProfile.role === 'photographer' && !userProfile.is_active) {
+    if (userProfile.role === "photographer" && !userProfile.is_active) {
       throw new Error("Sua conta de fotógrafo ainda não está ativa.");
     }
 
@@ -903,27 +1101,32 @@ export const api = {
           message: error.message,
           status: error.status,
           name: error.name,
-          details: error.details
+          details: error.details,
         });
         throw error;
       }
 
       return true;
-
     } catch (error: any) {
-      console.error('Error in requestPasswordReset:', error);
+      console.error("Error in requestPasswordReset:", error);
       // Construct a more helpful error message including the status if available
-      const statusSuffix = error.status ? ` (Status: ${error.status})` : '';
-      throw new Error(error.message ? `${error.message}${statusSuffix}` : "Falha ao enviar e-mail de recuperação.");
+      const statusSuffix = error.status ? ` (Status: ${error.status})` : "";
+      throw new Error(
+        error.message
+          ? `${error.message}${statusSuffix}`
+          : "Falha ao enviar e-mail de recuperação.",
+      );
     }
   },
 
-  verifyResetToken: async (token: string): Promise<{ valid: boolean, userId?: string }> => {
+  verifyResetToken: async (
+    token: string,
+  ): Promise<{ valid: boolean; userId?: string }> => {
     try {
       const { data, error } = await supabase
-        .from('password_reset_tokens')
-        .select('user_id, expires_at, used')
-        .eq('token', token)
+        .from("password_reset_tokens")
+        .select("user_id, expires_at, used")
+        .eq("token", token)
         .single();
 
       if (error || !data) return { valid: false };
@@ -934,12 +1137,15 @@ export const api = {
 
       return { valid: true, userId: data.user_id };
     } catch (error) {
-      console.error('Error validating token:', error);
+      console.error("Error validating token:", error);
       return { valid: false };
     }
   },
 
-  completePasswordReset: async (token: string, newPassword: string): Promise<boolean> => {
+  completePasswordReset: async (
+    token: string,
+    newPassword: string,
+  ): Promise<boolean> => {
     try {
       // 1. Validate again
       const { valid, userId } = await api.verifyResetToken(token);
@@ -950,39 +1156,46 @@ export const api = {
 
       // 3. Update User Password
       const { error: updateError } = await supabase
-        .from('users')
+        .from("users")
         .update({ password: hashedPassword })
-        .eq('id', userId);
+        .eq("id", userId);
 
       if (updateError) throw updateError;
 
       // 4. Mark Token as Used
       await supabase
-        .from('password_reset_tokens')
+        .from("password_reset_tokens")
         .update({ used: true })
-        .eq('token', token);
+        .eq("token", token);
 
       return true;
     } catch (error) {
-      console.error('Error completing reset:', error);
+      console.error("Error completing reset:", error);
       return false;
     }
   },
-  register: async (data: { name: string, email: string, role: UserRole, password?: string }): Promise<RegisterResponse | undefined> => {
+  register: async (data: {
+    name: string;
+    email: string;
+    role: UserRole;
+    password?: string;
+    phone?: string;
+  }): Promise<RegisterResponse | undefined> => {
     // 1. Create Auth User
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: data.email,
-      password: data.password || 'temp-pass-123', // Handle nullable password edge case
+      password: data.password || "temp-pass-123", // Handle nullable password edge case
     });
 
     if (authError) throw authError;
-    if (!authData.user) throw new Error("Falha ao criar usuário de autenticação.");
+    if (!authData.user)
+      throw new Error("Falha ao criar usuário de autenticação.");
 
     // 2. Create Public Profile with SAME ID
     const userData: any = {
       id: authData.user.id, // CRITICAL: Sync IDs
       ...data,
-      is_active: true
+      is_active: true,
     };
 
     // Store hash solely for legacy compatibility / redundancy, or remove if column allows null.
@@ -991,32 +1204,36 @@ export const api = {
       userData.password = await bcrypt.hash(data.password, 10);
     }
 
-    const { data: newUser, error } = await supabase.from('users').insert(userData).select().single();
+    const { data: newUser, error } = await supabase
+      .from("users")
+      .insert(userData)
+      .select()
+      .single();
 
     if (error) {
-      // If DB insert fails, we should probably cleanup the Auth user? 
+      // If DB insert fails, we should probably cleanup the Auth user?
       // For now just throw.
       throw error;
     }
 
     // Send notification email if the new user is a photographer
     if (data.role === UserRole.PHOTOGRAPHER) {
-      import('./emailService').then(({ emailService }) => {
+      import("./emailService").then(({ emailService }) => {
         emailService.sendNewPhotographerNotification(data.name, data.email);
       });
     }
 
     return {
       user: mapUser(newUser),
-      session: authData.session
+      session: authData.session,
     };
   },
 
   updateUserLiabilityWaiver: async (userId: string): Promise<boolean> => {
     const { error } = await supabase
-      .from('users')
+      .from("users")
       .update({ liability_waiver_accepted_at: new Date().toISOString() })
-      .eq('id', userId);
+      .eq("id", userId);
 
     if (error) {
       console.error("Error updating liability waiver:", error);
@@ -1025,7 +1242,11 @@ export const api = {
     return true;
   },
 
-  purchasePhoto: async (photoId: string, userId: string = 'guest-id', paidPrice?: number): Promise<{ success: boolean, error?: string }> => {
+  purchasePhoto: async (
+    photoId: string,
+    userId: string = "guest-id",
+    paidPrice?: number,
+  ): Promise<{ success: boolean; error?: string }> => {
     try {
       // 1. Get Photo Details
       const photo = await api.getPhotoById(photoId);
@@ -1036,7 +1257,10 @@ export const api = {
       let rate = settings.defaultRate;
 
       // Check for custom rate for this photographer
-      if (settings.customRates && settings.customRates[photo.photographer_id] !== undefined) {
+      if (
+        settings.customRates &&
+        settings.customRates[photo.photographer_id] !== undefined
+      ) {
         rate = settings.customRates[photo.photographer_id];
       }
 
@@ -1047,33 +1271,45 @@ export const api = {
       const commissionValue = finalPrice * rate;
 
       // 4. Record Sale
-      const { error } = await supabase.from('sales').insert({
+      const { error } = await supabase.from("sales").insert({
         photo_id: photoId,
         buyer_id: userId,
-        price: finalPrice,          // Record the ACTUAL paid amount
+        price: finalPrice, // Record the ACTUAL paid amount
         commission: commissionValue, // Calculate commission on the ACTUAL amount
         photographer_id: photo.photographer_id,
         commission_rate: rate,
-        sale_date: new Date()
+        sale_date: new Date(),
       });
 
       if (error) {
         console.error("Erro ao registrar venda:", error);
-        return { success: false, error: error.message || error.details || "Erro no banco de dados (Supabase)" };
+        return {
+          success: false,
+          error:
+            error.message ||
+            error.details ||
+            "Erro no banco de dados (Supabase)",
+        };
       }
 
       return { success: true };
     } catch (e: any) {
       console.error("Compra falhou", e);
-      return { success: false, error: e.message || "Erro inesperado na aplicação" };
+      return {
+        success: false,
+        error: e.message || "Erro inesperado na aplicação",
+      };
     }
   },
-  checkIfPurchased: async (userId: string, photoId: string): Promise<boolean> => {
+  checkIfPurchased: async (
+    userId: string,
+    photoId: string,
+  ): Promise<boolean> => {
     const { data, error } = await supabase
-      .from('sales')
-      .select('id')
-      .eq('buyer_id', userId)
-      .eq('photo_id', photoId)
+      .from("sales")
+      .select("id")
+      .eq("buyer_id", userId)
+      .eq("photo_id", photoId)
       .maybeSingle(); // Use maybeSingle to avoid error if multiple purchases or none
 
     if (error) {
@@ -1085,10 +1321,10 @@ export const api = {
   getPurchasesByUserId: async (userId: string): Promise<PurchasedPhoto[]> => {
     // Join sales with photos
     const { data, error } = await supabase
-      .from('sales')
-      .select('*, photo:photos(*)')
-      .eq('buyer_id', userId)
-      .order('sale_date', { ascending: false });
+      .from("sales")
+      .select("*, photo:photos(*)")
+      .eq("buyer_id", userId)
+      .order("sale_date", { ascending: false });
 
     if (error) {
       console.warn("Error fetching purchases:", error);
@@ -1097,19 +1333,26 @@ export const api = {
 
     if (!data) return [];
 
-    return data.map((sale: any) => {
-      if (!sale.photo) return null; // Should not happen if data integrity is good
-      const photo = mapPhoto(sale.photo);
-      return {
-        ...photo,
-        purchase_date: sale.sale_date,
-        sale_id: sale.id
-      } as PurchasedPhoto;
-    }).filter(Boolean) as PurchasedPhoto[];
+    return data
+      .map((sale: any) => {
+        if (!sale.photo) return null; // Should not happen if data integrity is good
+        const photo = mapPhoto(sale.photo);
+        return {
+          ...photo,
+          purchase_date: sale.sale_date,
+          sale_id: sale.id,
+        } as PurchasedPhoto;
+      })
+      .filter(Boolean) as PurchasedPhoto[];
   },
-  getSecureDownloadUrl: async (photoId: string, userId: string): Promise<string | null> => {
+  getSecureDownloadUrl: async (
+    photoId: string,
+    userId: string,
+  ): Promise<string | null> => {
     try {
-      const { data, error } = await supabase.rpc('get_download_link', { p_photo_id: photoId });
+      const { data, error } = await supabase.rpc("get_download_link", {
+        p_photo_id: photoId,
+      });
 
       if (error) {
         console.error("RPC Error:", error);
@@ -1130,24 +1373,30 @@ export const api = {
   },
 
   validateCoupon: async (code: string): Promise<Coupon | null> => {
-    const { data, error } = await supabase.from('coupons').select('*').eq('code', code).single();
+    const { data, error } = await supabase
+      .from("coupons")
+      .select("*")
+      .eq("code", code)
+      .single();
     if (error || !data) return null;
-    if (!data.is_active || new Date(data.expiration_date) < new Date()) return null;
+    if (!data.is_active || new Date(data.expiration_date) < new Date())
+      return null;
     return data;
   },
   syncCart: async (userId: string, itemIds: string[]): Promise<void> => {
     // console.log(`[SyncCart] Attempting to sync cart for User ID: ${ userId } `);
     try {
       // Use UPSERT for atomic update/create, avoiding race conditions (409) and manual checks
-      const { error } = await supabase
-        .from('carts')
-        .upsert({
+      const { error } = await supabase.from("carts").upsert(
+        {
           user_id: userId,
           items: itemIds,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'user_id'
-        });
+          updated_at: new Date().toISOString(),
+        },
+        {
+          onConflict: "user_id",
+        },
+      );
 
       if (error) {
         console.warn("Error syncing cart (upsert):", error);
@@ -1159,9 +1408,9 @@ export const api = {
   getUserCart: async (userId: string): Promise<string[]> => {
     try {
       const { data, error } = await supabase
-        .from('carts')
-        .select('items')
-        .eq('user_id', userId)
+        .from("carts")
+        .select("items")
+        .eq("user_id", userId)
         .maybeSingle();
 
       if (error) {
@@ -1174,31 +1423,32 @@ export const api = {
       return [];
     }
   },
-  getAbandonedCartsByPhotographerId: async (photographerId: string): Promise<AbandonedCart[]> => {
+  getAbandonedCartsByPhotographerId: async (
+    photographerId: string,
+  ): Promise<AbandonedCart[]> => {
     try {
-      // Calculate the cutoff time (24 hours ago)
-      const cutoffTime = new Date();
-      cutoffTime.setHours(cutoffTime.getHours() - 24);
-      const cutoffISO = cutoffTime.toISOString();
+      console.log(
+        `[AbandonedCart] Inciando busca RPC para fotógrafo: ${photographerId}`,
+      );
 
-      // 1. Fetch carts that haven't been updated in the last 24 hours
-      const { data: carts, error } = await supabase
-        .from('carts')
-        .select('user_id, items, updated_at, created_at, user:users!carts_user_id_fkey (name, email)')
-        .lt('updated_at', cutoffISO); // Only carts older than 24 hours
+      // 1. Fetch exactly the carts we need via RPC (bypasses RLS limiting access to other users' carts)
+      const { data: rawCarts, error: rpcError } = await supabase.rpc(
+        "get_photographer_abandoned_carts",
+        {
+          p_photographer_id: photographerId,
+        },
+      );
 
-      if (error) {
-        // Fallback: try without explicit relationship name or handle if relationship missing
-        console.warn("Error fetching carts with relations:", error);
-        // Try simple fetch
+      if (rpcError) {
+        console.warn("[AbandonedCart] Erro na RPC:", rpcError);
         return [];
       }
 
-      if (!carts || carts.length === 0) return [];
+      if (!rawCarts || rawCarts.length === 0) return [];
 
-      // 2. Collect all photo IDs from all carts
+      // 2. Fetch photo details for these items
       const allPhotoIds = new Set<string>();
-      carts.forEach((cart: any) => {
+      rawCarts.forEach((cart: any) => {
         if (Array.isArray(cart.items)) {
           cart.items.forEach((id: string) => allPhotoIds.add(id));
         }
@@ -1206,108 +1456,147 @@ export const api = {
 
       if (allPhotoIds.size === 0) return [];
 
-      // 3. Fetch details ONLY for photos that belong to THIS photographer
       const { data: photos, error: photosError } = await supabase
-        .from('photos')
-        .select('id, title, price, preview_url, photographer_id')
-        .in('id', Array.from(allPhotoIds))
-        .eq('photographer_id', photographerId);
+        .from("photos")
+        .select("id, title, price, preview_url, photographer_id")
+        .in("id", Array.from(allPhotoIds))
+        .eq("photographer_id", photographerId);
 
-      if (photosError || !photos || photos.length === 0) return [];
+      if (photosError) {
+        console.warn(
+          "[AbandonedCart] Erro ao buscar detalhes das fotos:",
+          photosError,
+        );
+        return [];
+      }
 
       const photoMap = new Map();
-      photos.forEach(p => photoMap.set(p.id, p));
+      if (photos) {
+        photos.forEach((p) => photoMap.set(p.id, p));
+      }
 
-      // 4. Build the result
+      // 3. Build Result
       const abandonedCarts: AbandonedCart[] = [];
 
-      carts.forEach((cart: any) => {
-        if (!Array.isArray(cart.items) || cart.items.length === 0) return;
-
-        // Find items in this cart that belong to the photographer
+      rawCarts.forEach((cart: any) => {
         const relevantItems: any[] = [];
-        cart.items.forEach((itemId: string) => {
-          const photo = photoMap.get(itemId);
-          if (photo) {
-            relevantItems.push({
-              photo_id: photo.id,
-              title: photo.title,
-              price: photo.price,
-              preview_url: photo.preview_url,
-              photographer_id: photo.photographer_id
-            });
-          }
-        });
+        if (Array.isArray(cart.items)) {
+          cart.items.forEach((itemId: string) => {
+            const photo = photoMap.get(itemId);
+            if (photo) {
+              relevantItems.push({
+                photo_id: photo.id,
+                title: photo.title,
+                price: Number(photo.price),
+                preview_url: photo.preview_url,
+                photographer_id: photo.photographer_id,
+              });
+            }
+          });
+        }
 
         if (relevantItems.length > 0) {
-          // Safely access user data
-          const userData = Array.isArray(cart.user) ? cart.user[0] : cart.user;
-
           abandonedCarts.push({
-            id: cart.user_id, // Use user_id as unique ID for the cart view
+            id: cart.user_id,
             userId: cart.user_id,
-            userName: userData?.name || 'Cliente (Sem Nome)',
-            userEmail: userData?.email || 'Sem e-mail',
+            userName: cart.userName || "Cliente (Sem Nome)",
+            userEmail: cart.userEmail || "Sem e-mail",
+            userPhone: cart.userPhone || "",
             items: relevantItems,
-            date: cart.updated_at || cart.created_at || new Date().toISOString(),
-            status: 'pending'
+            date:
+              cart.updated_at || cart.created_at || new Date().toISOString(),
+            status: "pending", // You can persist this in database if you expand the schema later
           });
         }
       });
 
+      console.log(
+        `[AbandonedCart] Carrinhos finais carregados com sucesso: ${abandonedCarts.length}`,
+      );
       return abandonedCarts;
-
-    } catch (error) {
-      console.error("Failed to get abandoned carts:", error);
+    } catch (e) {
+      console.error("[AbandonedCart] Falha crítica:", e);
       return [];
     }
   },
   getStats: async () => ({ photos: 100, photographers: 20, categories: 5 }),
   getCommissionSettings: async (): Promise<CommissionSettings> => {
-    const { data, error } = await supabase.from('system_settings').select('commission_default_rate, commission_custom_rates').eq('id', 1).single();
+    const { data, error } = await supabase
+      .from("system_settings")
+      .select("commission_default_rate, commission_custom_rates")
+      .eq("id", 1)
+      .single();
     if (error) {
       console.warn("Error fetching commission settings:", error);
       return { defaultRate: 0.15, customRates: {} };
     }
     return {
       defaultRate: data.commission_default_rate,
-      customRates: data.commission_custom_rates || {}
+      customRates: data.commission_custom_rates || {},
     };
   },
-  updateCommissionSettings: async (settings: CommissionSettings): Promise<CommissionSettings> => {
-    const { data, error } = await supabase.from('system_settings').upsert({
-      id: 1,
-      commission_default_rate: settings.defaultRate,
-      commission_custom_rates: settings.customRates,
-      updated_at: new Date()
-    }).select().single();
+  updateCommissionSettings: async (
+    settings: CommissionSettings,
+  ): Promise<CommissionSettings> => {
+    const { data, error } = await supabase
+      .from("system_settings")
+      .upsert({
+        id: 1,
+        commission_default_rate: settings.defaultRate,
+        commission_custom_rates: settings.customRates,
+        updated_at: new Date(),
+      })
+      .select()
+      .single();
 
     if (error) throw error;
     return {
       defaultRate: data.commission_default_rate,
-      customRates: data.commission_custom_rates
+      customRates: data.commission_custom_rates,
     };
   },
   getEmailTemplates: async (): Promise<EmailTemplates> => {
-    const { data, error } = await supabase.from('system_settings').select('email_templates').eq('id', 1).single();
+    const { data, error } = await supabase
+      .from("system_settings")
+      .select("email_templates")
+      .eq("id", 1)
+      .single();
     if (error) {
       console.warn("Error fetching email templates:", error);
       // Return default templates if fetch fails
       return {
-        photographerActivated: { subject: 'Sua conta foi ativada!', body: 'Olá {{nome_fotografo}}, sua conta foi ativada.' },
-        photographerDeactivated: { subject: 'Sua conta foi desativada', body: 'Olá {{nome_fotografo}}, sua conta foi desativada.' },
-        photoRejected: { subject: 'Foto rejeitada', body: 'Olá {{nome_fotografo}}, sua foto {{titulo_foto}} foi rejeitada. Motivo: {{motivo_rejeicao}}' },
-        payoutProcessed: { subject: 'Pagamento processado', body: 'Olá {{nome_fotografo}}, seu pagamento de {{valor_pagamento}} foi processado em {{data_pagamento}}.' }
+        photographerActivated: {
+          subject: "Sua conta foi ativada!",
+          body: "Olá {{nome_fotografo}}, sua conta foi ativada.",
+        },
+        photographerDeactivated: {
+          subject: "Sua conta foi desativada",
+          body: "Olá {{nome_fotografo}}, sua conta foi desativada.",
+        },
+        photoRejected: {
+          subject: "Foto rejeitada",
+          body: "Olá {{nome_fotografo}}, sua foto {{titulo_foto}} foi rejeitada. Motivo: {{motivo_rejeicao}}",
+        },
+        payoutProcessed: {
+          subject: "Pagamento processado",
+          body: "Olá {{nome_fotografo}}, seu pagamento de {{valor_pagamento}} foi processado em {{data_pagamento}}.",
+        },
       };
     }
     return data.email_templates;
   },
-  updateEmailTemplates: async (templates: EmailTemplates): Promise<EmailTemplates> => {
-    const { data, error } = await supabase.from('system_settings').upsert({
-      id: 1,
-      email_templates: templates,
-      updated_at: new Date()
-    }).select().single();
+  updateEmailTemplates: async (
+    templates: EmailTemplates,
+  ): Promise<EmailTemplates> => {
+    const { data, error } = await supabase
+      .from("system_settings")
+      .upsert({
+        id: 1,
+        email_templates: templates,
+        updated_at: new Date(),
+      })
+      .select()
+      .single();
 
     if (error) throw error;
     return data.email_templates;
@@ -1319,10 +1608,14 @@ export const api = {
 
       const templates = await api.getEmailTemplates();
       // Select template based on status (Activation vs Deactivation)
-      const template = status ? templates.photographerActivated : templates.photographerDeactivated;
+      const template = status
+        ? templates.photographerActivated
+        : templates.photographerDeactivated;
 
       if (!template) {
-        console.warn(`Template de e - mail para ${status ? 'ativação' : 'desativação'} não encontrado.`);
+        console.warn(
+          `Template de e - mail para ${status ? "ativação" : "desativação"} não encontrado.`,
+        );
         return;
       }
 
@@ -1331,7 +1624,7 @@ export const api = {
       let bodyContent = template.body.replace(/{{nome_fotografo}}/g, user.name);
 
       // Convert newlines to HTML line breaks for correct formatting
-      bodyContent = bodyContent.replace(/\n/g, '<br />');
+      bodyContent = bodyContent.replace(/\n/g, "<br />");
 
       // Wrap in a nice template structure
       const htmlBody = `
@@ -1346,10 +1639,11 @@ export const api = {
             `;
 
       // Dynamically import emailService to avoid circular dependencies if any
-      const { emailService } = await import('./emailService');
+      const { emailService } = await import("./emailService");
       await emailService.sendEmail(user.email, subject, htmlBody);
-      console.log(`E - mail de ${status ? 'ativação' : 'desativação'} enviado para ${user.email} `);
-
+      console.log(
+        `E - mail de ${status ? "ativação" : "desativação"} enviado para ${user.email} `,
+      );
     } catch (error) {
       console.error("Falha ao enviar notificação de status", error);
     }
@@ -1378,10 +1672,13 @@ export const api = {
       let bodyContent = template.body
         .replace(/{{nome_fotografo}}/g, user.name)
         .replace(/{{titulo_foto}}/g, photo.title)
-        .replace(/{{motivo_rejeicao}}/g, photo.rejection_reason || 'Motivo não especificado');
+        .replace(
+          /{{motivo_rejeicao}}/g,
+          photo.rejection_reason || "Motivo não especificado",
+        );
 
       // Convert newlines to HTML line breaks for correct formatting
-      bodyContent = bodyContent.replace(/\n/g, '<br />');
+      bodyContent = bodyContent.replace(/\n/g, "<br />");
 
       // Wrap in a nice template structure
       const htmlBody = `
@@ -1396,10 +1693,9 @@ export const api = {
             `;
 
       // Dynamically import emailService to avoid circular dependencies if any
-      const { emailService } = await import('./emailService');
+      const { emailService } = await import("./emailService");
       await emailService.sendEmail(user.email, subject, htmlBody);
       console.log(`E - mail de rejeição enviado para ${user.email} `);
-
     } catch (error) {
       console.error("Falha ao enviar notificação de rejeição", error);
     }
@@ -1407,9 +1703,9 @@ export const api = {
   analyzePhoto: async (id: string) => {
     // 1. Try to get analysis from photo record if exists
     const { data, error } = await supabase
-      .from('photos')
-      .select('quality_analysis')
-      .eq('id', id)
+      .from("photos")
+      .select("quality_analysis")
+      .eq("id", id)
       .single();
 
     if (!error && data && data.quality_analysis) {
@@ -1417,33 +1713,64 @@ export const api = {
     }
 
     // 2. Fallback to mock if not analyzed
-    return { overallScore: 85, sharpness: 90, lighting: 80, composition: 85, noise: 20, ai_tags: [], recommendation: 'approve' as const, summary: 'Análise automática pendente.' };
+    return {
+      overallScore: 85,
+      sharpness: 90,
+      lighting: 80,
+      composition: 85,
+      noise: 20,
+      ai_tags: [],
+      recommendation: "approve" as const,
+      summary: "Análise automática pendente.",
+    };
   },
-  getPhotographerBalances: async (): Promise<PhotographerBalance[]> => { return []; },
-  requestPayout: async (photographerId: string, amount: number): Promise<Payout> => {
-    const { data, error } = await supabase.from('payouts').insert({ photographer_id: photographerId, amount }).select().single();
+  getPhotographerBalances: async (): Promise<PhotographerBalance[]> => {
+    return [];
+  },
+  requestPayout: async (
+    photographerId: string,
+    amount: number,
+  ): Promise<Payout> => {
+    const { data, error } = await supabase
+      .from("payouts")
+      .insert({ photographer_id: photographerId, amount })
+      .select()
+      .single();
     if (error) throw error;
     return data;
   },
   approvePayout: async (payoutId: string): Promise<boolean> => {
     // 1. Update status first
-    const { data: payoutData, error } = await supabase.from('payouts').update({ status: 'paid', processed_date: new Date().toISOString() }).eq('id', payoutId).select().single();
+    const { data: payoutData, error } = await supabase
+      .from("payouts")
+      .update({ status: "paid", processed_date: new Date().toISOString() })
+      .eq("id", payoutId)
+      .select()
+      .single();
     if (error) throw error;
 
     // 2. Send Notification Email
     try {
       // Need photographer details for the email
-      const photographer = await api.getPhotographerById(payoutData.photographer_id);
+      const photographer = await api.getPhotographerById(
+        payoutData.photographer_id,
+      );
 
       if (photographer) {
         const templates = await api.getEmailTemplates();
         const template = templates.payoutProcessed;
 
         if (template) {
-          const valorFormatado = payoutData.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-          const dataFormatada = new Date().toLocaleDateString('pt-BR');
+          const valorFormatado = payoutData.amount.toLocaleString("pt-BR", {
+            style: "currency",
+            currency: "BRL",
+          });
+          const dataFormatada = new Date().toLocaleDateString("pt-BR");
 
-          const subject = template.subject.replace(/{{nome_fotografo}}/g, photographer.name);
+          const subject = template.subject.replace(
+            /{{nome_fotografo}}/g,
+            photographer.name,
+          );
 
           let bodyContent = template.body
             .replace(/{{nome_fotografo}}/g, photographer.name)
@@ -1451,7 +1778,7 @@ export const api = {
             .replace(/{{data_pagamento}}/g, dataFormatada);
 
           // Convert newlines to HTML line breaks
-          bodyContent = bodyContent.replace(/\n/g, '<br />');
+          bodyContent = bodyContent.replace(/\n/g, "<br />");
 
           const htmlBody = `
       < div style = "font-family: Arial, sans-serif; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;" >
@@ -1464,9 +1791,11 @@ export const api = {
           </div>
             `;
 
-          const { emailService } = await import('./emailService');
+          const { emailService } = await import("./emailService");
           await emailService.sendEmail(photographer.email, subject, htmlBody);
-          console.log(`E - mail de pagamento enviado para ${photographer.email} `);
+          console.log(
+            `E - mail de pagamento enviado para ${photographer.email} `,
+          );
         }
       }
     } catch (e) {
@@ -1476,32 +1805,56 @@ export const api = {
 
     return true;
   },
-  getPayoutsByPhotographerId: async (photographerId: string): Promise<Payout[]> => {
-    const { data, error } = await supabase.from('payouts').select('*').eq('photographer_id', photographerId);
+  getPayoutsByPhotographerId: async (
+    photographerId: string,
+  ): Promise<Payout[]> => {
+    const { data, error } = await supabase
+      .from("payouts")
+      .select("*")
+      .eq("photographer_id", photographerId);
     if (error) throw error;
     return data || [];
   },
-  getAllPayouts: async (): Promise<(Payout & { photographer_name: string, bank_info?: BankInfo })[]> => {
-    const { data, error } = await supabase.from('payouts').select('*, photographer:photographer_id ( name, bank_info )');
+  getAllPayouts: async (): Promise<
+    (Payout & { photographer_name: string; bank_info?: BankInfo })[]
+  > => {
+    const { data, error } = await supabase
+      .from("payouts")
+      .select("*, photographer:photographer_id ( name, bank_info )");
     if (error) throw error;
-    return data.map((p: any) => ({ ...p, photographer_name: p.photographer.name, bank_info: p.photographer.bank_info })) || [];
+    return (
+      data.map((p: any) => ({
+        ...p,
+        photographer_name: p.photographer.name,
+        bank_info: p.photographer.bank_info,
+      })) || []
+    );
   },
   getPendingPayoutsCount: async (): Promise<number> => {
-    const { count, error } = await supabase.from('payouts').select('*', { count: 'exact', head: true }).eq('status', 'pending');
+    const { count, error } = await supabase
+      .from("payouts")
+      .select("*", { count: "exact", head: true })
+      .eq("status", "pending");
     if (error) throw error;
     return count || 0;
   },
-  updateBankInfo: async (userId: string, bankInfo: BankInfo): Promise<boolean> => {
-    const { error } = await supabase.from('users').update({ bank_info: bankInfo }).eq('id', userId);
+  updateBankInfo: async (
+    userId: string,
+    bankInfo: BankInfo,
+  ): Promise<boolean> => {
+    const { error } = await supabase
+      .from("users")
+      .update({ bank_info: bankInfo })
+      .eq("id", userId);
     if (error) throw error;
     return true;
   },
   getSales: async (): Promise<Sale[]> => {
     // Select sales and join with the buyer (users table) to get the name
     const { data, error } = await supabase
-      .from('sales')
-      .select('*, buyer:buyer_id(name)')
-      .order('sale_date', { ascending: false });
+      .from("sales")
+      .select("*, buyer:buyer_id(name)")
+      .order("sale_date", { ascending: false });
 
     if (error) {
       console.error("Error fetching sales:", error);
@@ -1509,17 +1862,19 @@ export const api = {
     }
 
     // Transform result to match Sale interface
-    return data?.map((s: any) => ({
-      ...s,
-      buyer_name: s.buyer?.name || 'Comprador Desconhecido'
-    })) || [];
+    return (
+      data?.map((s: any) => ({
+        ...s,
+        buyer_name: s.buyer?.name || "Comprador Desconhecido",
+      })) || []
+    );
   },
   supabase, // Expose raw client for Storage ops
   getPhotographerStats: async (userId: string) => {
     const { data, error } = await supabase
-      .from('photographer_stats_view')
-      .select('*')
-      .eq('photographer_id', userId)
+      .from("photographer_stats_view")
+      .select("*")
+      .eq("photographer_id", userId)
       .single();
 
     if (error) {
@@ -1528,11 +1883,15 @@ export const api = {
     }
     return data;
   },
-  moderatePhoto: async (photoId: string, status: 'approved' | 'rejected', reason?: string) => {
-    const { data, error } = await supabase.rpc('moderate_photo', {
+  moderatePhoto: async (
+    photoId: string,
+    status: "approved" | "rejected",
+    reason?: string,
+  ) => {
+    const { data, error } = await supabase.rpc("moderate_photo", {
       p_photo_id: photoId,
       p_status: status,
-      p_reason: reason
+      p_reason: reason,
     });
 
     if (error) {
@@ -1542,7 +1901,7 @@ export const api = {
     return data; // Returns { success: true/false, ... }
   },
   requestStorageLimit: async () => {
-    const { data, error } = await supabase.rpc('request_storage_limit');
+    const { data, error } = await supabase.rpc("request_storage_limit");
     if (error) {
       console.error("Error requesting storage limit:", error);
       return { success: false, error: error.message };
@@ -1550,8 +1909,12 @@ export const api = {
     // RPC returns JSONB {success: bool, error: string}
     return data;
   },
-  getStorageRequests: async (status: 'pending' | 'approved' | 'rejected' | null = null) => {
-    const { data, error } = await supabase.rpc('get_storage_requests', { p_status: status });
+  getStorageRequests: async (
+    status: "pending" | "approved" | "rejected" | null = null,
+  ) => {
+    const { data, error } = await supabase.rpc("get_storage_requests", {
+      p_status: status,
+    });
     if (error) {
       console.error("Error fetching storage requests:", error);
       return [];
@@ -1559,9 +1922,9 @@ export const api = {
     return data;
   },
   approveStorageRequest: async (requestId: string, newLimit: number) => {
-    const { data, error } = await supabase.rpc('approve_storage_request', {
+    const { data, error } = await supabase.rpc("approve_storage_request", {
       p_request_id: requestId,
-      p_new_limit: newLimit
+      p_new_limit: newLimit,
     });
     if (error) {
       console.error("Error approving request:", error);
@@ -1570,9 +1933,9 @@ export const api = {
     return data;
   },
   rejectStorageRequest: async (requestId: string, reason: string) => {
-    const { data, error } = await supabase.rpc('reject_storage_request', {
+    const { data, error } = await supabase.rpc("reject_storage_request", {
       p_request_id: requestId,
-      p_reason: reason
+      p_reason: reason,
     });
     if (error) {
       console.error("Error rejecting request:", error);
@@ -1581,14 +1944,14 @@ export const api = {
     return data;
   },
   getMyLatestStorageRequest: async () => {
-    const { data, error } = await supabase.rpc('get_my_latest_storage_request');
+    const { data, error } = await supabase.rpc("get_my_latest_storage_request");
     if (error) {
       // If RPC is missing context or similar errors, treat as no request
       console.warn("Error fetching my storage request:", error);
       return null;
     }
     return data; // Returns { id, status, created_at, rejection_reason }
-  }
+  },
 };
 
 export default api;

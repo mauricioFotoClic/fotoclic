@@ -13,6 +13,7 @@ interface StatCardProps {
 interface PhotographerDashboardProps {
     user: User;
     setView: (view: any) => void;
+    showToast?: (message: string, type?: 'success' | 'error' | 'info') => void;
 }
 
 const StatCard: React.FC<StatCardProps> = ({ title, value, icon, colorClass }) => (
@@ -33,23 +34,37 @@ const DollarSignIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" 
 const CreditCardIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>;
 const HeartIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>;
 
-const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({ user, setView }) => {
+const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({ user, setView, showToast }) => {
     const [balance, setBalance] = useState<PhotographerBalance | null>(null);
     const [sales, setSales] = useState<Sale[]>([]);
     const [photos, setPhotos] = useState<Photo[]>([]);
+    const [abandonedCartsCount, setAbandonedCartsCount] = useState(0);
     const [loading, setLoading] = useState(true);
+    const [hasNotified, setHasNotified] = useState(false);
 
     const fetchData = useCallback(async () => {
         try {
             setLoading(true);
-            const [balanceData, salesData, photosData] = await Promise.all([
+            const [balanceData, salesData, photosData, abandonedData] = await Promise.all([
                 api.getPhotographerBalanceById(user.id),
                 api.getSalesByPhotographerId(user.id),
                 api.getPhotosByPhotographerId(user.id),
+                api.getAbandonedCartsByPhotographerId(user.id)
             ]);
             setBalance(balanceData || null);
             setSales(salesData);
             setPhotos(photosData);
+
+            const viewedCarts = JSON.parse(localStorage.getItem(`viewedAbandonedCarts_${user.id}`) || '[]');
+            const newCarts = abandonedData.filter(c => !viewedCarts.includes(c.id));
+
+            setAbandonedCartsCount(newCarts.length);
+
+            // Notify if there are abandoned carts and we haven't notified yet in this session
+            if (newCarts.length > 0 && !hasNotified && showToast) {
+                showToast(`Você tem ${newCarts.length} novo(s) carrinho(s) para recuperação!`, 'info');
+                setHasNotified(true);
+            }
         } catch (error) {
             console.error("Failed to fetch photographer dashboard data", error);
         } finally {
@@ -123,6 +138,14 @@ const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({ user, set
                 <StatCard title="Total de Fotos" value={balance.photoCount} icon={<ImageIcon />} colorClass="bg-blue-100 text-blue-600" />
                 <StatCard title="Total de Vendas" value={balance.salesCount} icon={<ShoppingCartIcon />} colorClass="bg-purple-100 text-purple-600" />
                 <StatCard title="Total de Curtidas" value={balance.likesCount || 0} icon={<HeartIcon />} colorClass="bg-red-100 text-red-600" />
+                <div onClick={() => setView('abandoned-carts')} className="cursor-pointer transition-transform hover:scale-105">
+                    <StatCard
+                        title="Carrinhos Pendentes"
+                        value={abandonedCartsCount}
+                        icon={<ShoppingCartIcon />}
+                        colorClass={`${abandonedCartsCount > 0 ? 'bg-orange-100 text-orange-600 animate-pulse' : 'bg-neutral-100 text-neutral-400'}`}
+                    />
+                </div>
                 <StatCard title="Ganhos Totais" value={balance.totalEarnings.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} icon={<DollarSignIcon />} colorClass="bg-green-100 text-green-600" />
                 <StatCard title="Saldo Atual" value={balance.currentBalance.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} icon={<CreditCardIcon />} colorClass="bg-yellow-100 text-yellow-600" />
             </div>

@@ -34,6 +34,7 @@ export interface User {
   bulkDiscountRules?: BulkDiscountRule[];
   bank_info?: BankInfo;
   liability_waiver_accepted_at?: string;
+  phone?: string;
 }
 
 export interface PhotographerWithStats extends User {
@@ -117,6 +118,7 @@ export interface AbandonedCart {
   userId?: string;
   userName: string;
   userEmail: string;
+  userPhone?: string;
   items: CartItem[];
   date: string;
   status: 'pending' | 'recovered' | 'contacted';

@@ -38,6 +38,7 @@ const PhotographerProfile: React.FC<PhotographerProfileProps> = ({ user, onProfi
                     banner_url: userData.banner_url,
                     location: userData.location,
                     social_instagram: userData.social_instagram,
+                    phone: userData.phone,
                 });
                 setAvatarPreview(userData.avatar_url);
                 setBannerPreview(userData.banner_url || null);
@@ -236,6 +237,11 @@ const PhotographerProfile: React.FC<PhotographerProfileProps> = ({ user, onProfi
                         <div>
                             <label htmlFor="bio" className="block text-sm font-medium text-neutral-700 mb-1">Biografia</label>
                             <textarea id="bio" name="bio" value={formData.bio || ''} onChange={handleChange} className={inputClass} rows={4} placeholder="Conte um pouco sobre você e seu estilo fotográfico..."></textarea>
+                        </div>
+
+                        <div>
+                            <label htmlFor="phone" className="block text-sm font-medium text-neutral-700 mb-1">WhatsApp / Telefone</label>
+                            <input id="phone" name="phone" type="tel" value={formData.phone || ''} onChange={handleChange} className={inputClass} placeholder="(00) 00000-0000" />
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

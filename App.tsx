@@ -60,8 +60,13 @@ const MainApp: React.FC = () => {
     // Animation State
     const [flyingImage, setFlyingImage] = useState<FlyingImage | null>(null);
 
+    const initialized = React.useRef(false);
+
     // Initialize cart from localStorage and Restore Session on mount
     useEffect(() => {
+        if (initialized.current) return;
+        initialized.current = true;
+
         // 1. Cart
         const savedCart = localStorage.getItem('cartItems');
         if (savedCart) {
@@ -94,7 +99,7 @@ const MainApp: React.FC = () => {
                     import('./services/faceRecognition').then(({ faceRecognitionService }) => {
                         faceRecognitionService.loadPreciseModel().catch(e => console.warn("Background model load failed", e));
                     });
-                }, 10000);
+                }, 5000); // Reduced delay to 5s
             } catch (e) {
                 console.warn("Preload error", e);
             }
@@ -170,31 +175,63 @@ const MainApp: React.FC = () => {
 
         return { name: 'home' };
     };
+    // Ref to access current state in event listeners without re-triggering effects
+    const currentPageRef = React.useRef(currentPage);
+    useEffect(() => {
+        currentPageRef.current = currentPage;
+    }, [currentPage]);
 
-    // Handle URL routing on initial load and popstate
+    // Handle initial navigation and URL routing
     useEffect(() => {
         const handleLocationChange = () => {
-            const path = window.location.pathname;
+            const currentPath = window.location.pathname;
             const searchParams = new URLSearchParams(window.location.search);
-            const newPage = getPageFromUrl(path, searchParams);
-            setCurrentPage(newPage);
+            const newPage = getPageFromUrl(currentPath, searchParams);
+
+            // Structurally compare to avoid unnecessary updates/rerenders
+            setCurrentPage(prev => {
+                const isSame =
+                    prev.name === newPage.name &&
+                    (prev as any).id === (newPage as any).id &&
+                    (prev as any).photographerId === (newPage as any).photographerId &&
+                    (prev as any).token === (newPage as any).token &&
+                    (prev as any).initialSearch === (newPage as any).initialSearch;
+
+                return isSame ? prev : newPage;
+            });
         };
 
         // Initial Load
         handleLocationChange();
 
         // Browser Back/Forward
-        window.addEventListener('popstate', handleLocationChange);
-        return () => window.removeEventListener('popstate', handleLocationChange);
-    }, []);
+        const handlePopState = (e: PopStateEvent) => {
+            const currentPath = window.location.pathname;
+            const searchParams = new URLSearchParams(window.location.search);
+            const newPage = getPageFromUrl(currentPath, searchParams);
+
+            // Trap logic for panels
+            const state = currentPageRef.current;
+            if ((state.name === 'admin' || state.name === 'photographer') && newPage.name === 'home') {
+                window.history.pushState(null, '', getUrlFromPage(state));
+                showToast("Use o menu para sair do painel.", "info");
+                return;
+            }
+
+            handleLocationChange();
+        };
+
+        window.addEventListener('popstate', handlePopState);
+        return () => window.removeEventListener('popstate', handlePopState);
+    }, [showToast]); // Remove currentPage dependency to avoid infinite loop
 
     // Sync Cart with LocalStorage (Client) and Backend (User) when it changes
     useEffect(() => {
         // 1. Save to LocalStorage (client persistence for current session)
         localStorage.setItem('cartItems', JSON.stringify(cartItems));
 
-        // 2. Sync with Backend (if logged in as customer)
-        if (currentUser && currentUser.role === UserRole.CUSTOMER) {
+        // 2. Sync with Backend (if logged in)
+        if (currentUser) {
             api.syncCart(currentUser.id, cartItems);
         }
     }, [cartItems, currentUser]);
@@ -202,15 +239,13 @@ const MainApp: React.FC = () => {
     const handleLoginSuccess = async (user: User) => {
         setCurrentUser(user);
 
-        // Immediate redirection based on role
+        // Redirection based on role
         if (user.role === UserRole.PHOTOGRAPHER) {
-            setCurrentPage({ name: 'photographer' });
-            window.scrollTo(0, 0);
+            handleNavigate({ name: 'photographer' });
         } else if (user.role === UserRole.ADMIN) {
-            setCurrentPage({ name: 'admin' });
-            window.scrollTo(0, 0);
+            handleNavigate({ name: 'admin' });
         } else {
-            // Customers stay
+            // Customers stay on the same page
         }
 
         // If customer, fetch their saved cart
@@ -280,7 +315,12 @@ const MainApp: React.FC = () => {
         // Update URL
         const newUrl = getUrlFromPage(page);
         if (newUrl) {
-            window.history.pushState(null, '', newUrl);
+            // If admin or photographer, use replaceState to "disable" the back button behavior
+            if (page.name === 'admin' || page.name === 'photographer') {
+                window.history.replaceState(null, '', newUrl);
+            } else {
+                window.history.pushState(null, '', newUrl);
+            }
         }
     }
 

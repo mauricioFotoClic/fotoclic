@@ -178,7 +178,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user }) => {
 
     const handleBatchUpload = async (
         files: File[],
-        metadata: { price: number, tags: string[], is_public: boolean },
+        metadata: { price: number, tags: string[], is_public: boolean, skipIndexing: boolean },
         onProgress?: (current: number, total: number) => void
     ) => {
         if (!selectedEvent) return;
@@ -285,8 +285,8 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user }) => {
                 if (newPhoto) {
                     // AUTOMATIC INDEXING:
                     try {
-                        // Index face if enabled
-                        if ((user as any).face_indexing_enabled !== false) { // Default true
+                        // Index face if enabled and not skipped
+                        if (!metadata.skipIndexing && (user as any).face_indexing_enabled !== false) { // Default true
                             // Must create an image element for face-api
                             const indexingImg = new Image();
                             indexingImg.src = newPhoto.preview_url;

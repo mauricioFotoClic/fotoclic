@@ -24,6 +24,7 @@ interface PhotographerPageProps {
 const PhotographerPage: React.FC<PhotographerPageProps> = ({ user: initialUser, onLogout, onNavigate, showToast }) => {
     const [view, setView] = useState<PhotographerView>('dashboard');
     const [currentUser, setCurrentUser] = useState<User>(initialUser);
+    const [abandonedCartsCount, setAbandonedCartsCount] = useState(0);
 
     if (!initialUser) {
         return null;
@@ -44,6 +45,41 @@ const PhotographerPage: React.FC<PhotographerPageProps> = ({ user: initialUser, 
         }
     };
 
+    const fetchAbandonedCount = async () => {
+        try {
+            const carts = await api.getAbandonedCartsByPhotographerId(currentUser.id);
+
+            if (view === 'abandoned-carts') {
+                const cartIds = carts.map(c => c.id);
+                localStorage.setItem(`viewedAbandonedCarts_${currentUser.id}`, JSON.stringify(cartIds));
+                setAbandonedCartsCount(0);
+                return;
+            }
+
+            const viewedCarts = JSON.parse(localStorage.getItem(`viewedAbandonedCarts_${currentUser.id}`) || '[]');
+            const newCartsCount = carts.filter(c => !viewedCarts.includes(c.id)).length;
+            setAbandonedCartsCount(newCartsCount);
+        } catch (e) {
+            console.warn("Failed to fetch abandoned count", e);
+        }
+    };
+
+    useEffect(() => {
+        if (currentUser) {
+            fetchAbandonedCount();
+            // Polling for new carts every 5 minutes
+            const interval = setInterval(fetchAbandonedCount, 5 * 60 * 1000);
+            return () => clearInterval(interval);
+        }
+    }, [currentUser]);
+
+    // Recalculates badge completely to 0 and stores seen cars when entering the tab
+    useEffect(() => {
+        if (view === 'abandoned-carts' && currentUser) {
+            fetchAbandonedCount();
+        }
+    }, [view, currentUser]);
+
     const handleSetView = (newView: PhotographerView) => {
         setView(newView);
         window.scrollTo(0, 0);
@@ -52,7 +88,7 @@ const PhotographerPage: React.FC<PhotographerPageProps> = ({ user: initialUser, 
     const renderView = () => {
         switch (view) {
             case 'dashboard':
-                return <PhotographerDashboard user={currentUser} setView={handleSetView} />;
+                return <PhotographerDashboard user={currentUser} setView={handleSetView} showToast={showToast} />;
             case 'photos':
                 return <PhotographerPhotos user={currentUser} />;
             case 'sales':
@@ -100,6 +136,7 @@ const PhotographerPage: React.FC<PhotographerPageProps> = ({ user: initialUser, 
                         onLogout={onLogout}
                         isOpen={isSidebarOpen}
                         onClose={() => setIsSidebarOpen(false)}
+                        abandonedCartsCount={abandonedCartsCount}
                     />
                     <main className="flex-1 p-4 md:p-6 lg:p-8 bg-neutral-100 rounded-lg md:ml-4 mt-0 md:mt-0 min-w-0 overflow-x-hidden">
                         {renderView()}

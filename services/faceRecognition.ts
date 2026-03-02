@@ -8,6 +8,7 @@ const FACE_RECOGNITION = 'face_recognition';
 
 let modelsLoaded = false;
 let loadingPromise: Promise<void> | null = null;
+let preciseLoadingPromise: Promise<void> | null = null;
 
 // Warmup function to compile shaders in the background
 async function warmupModels() {
@@ -70,16 +71,23 @@ export const faceRecognitionService = {
 
     async loadPreciseModel() {
         if (faceapi.nets.ssdMobilenetv1.isLoaded) return;
+        if (preciseLoadingPromise) return preciseLoadingPromise;
 
         const modelUrl = '/models';
-        try {
-            console.log("Loading precise model (SSD MobileNet)...");
-            console.time('Load SSD MobileNet');
-            await faceapi.nets.ssdMobilenetv1.loadFromUri(modelUrl);
-            console.timeEnd('Load SSD MobileNet');
-        } catch (error) {
-            console.error("Error loading SSD MobileNet:", error);
-        }
+        preciseLoadingPromise = (async () => {
+            try {
+                console.log("Loading precise model (SSD MobileNet)...");
+                console.time('Load SSD MobileNet');
+                await faceapi.nets.ssdMobilenetv1.loadFromUri(modelUrl);
+                console.timeEnd('Load SSD MobileNet');
+            } catch (error) {
+                console.error("Error loading SSD MobileNet:", error);
+            } finally {
+                preciseLoadingPromise = null;
+            }
+        })();
+
+        return preciseLoadingPromise;
     },
 
     // Backwards compatibility alias

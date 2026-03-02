@@ -14,10 +14,29 @@ interface RegisterModalProps {
     onShowToast: (message: string, type?: 'success' | 'error' | 'info') => void;
 }
 
+const ddiList = [
+    { code: '+55', country: 'BR' },
+    { code: '+1', country: 'USA/CA' },
+    { code: '+351', country: 'PT' },
+    { code: '+44', country: 'UK' },
+    { code: '+34', country: 'ES' },
+    { code: '+33', country: 'FR' },
+    { code: '+49', country: 'DE' },
+    { code: '+39', country: 'IT' },
+    { code: '+54', country: 'AR' },
+    { code: '+52', country: 'MX' },
+    { code: '+56', country: 'CL' },
+    { code: '+57', country: 'CO' },
+    { code: '+86', country: 'CN' },
+    { code: '+91', country: 'IN' }
+];
+
 const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginSuccess, onNavigate, onShowToast }) => {
     const [formData, setFormData] = useState({
         name: '',
         email: '',
+        ddi: '+55',
+        phone: '',
         password: '',
         confirmPassword: '',
         isPhotographer: false
@@ -59,6 +78,7 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginS
             const newUser = await api.register({
                 name: formData.name,
                 email: formData.email,
+                phone: `${formData.ddi} ${formData.phone}`,
                 role: formData.isPhotographer ? UserRole.PHOTOGRAPHER : UserRole.CUSTOMER,
                 password: formData.password
             });
@@ -190,6 +210,36 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginS
                             placeholder="seu@email.com"
                             className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none text-gray-900 placeholder-gray-400"
                         />
+                    </div>
+
+                    <div>
+                        <label htmlFor="reg-phone" className="block text-sm font-medium text-gray-700 mb-1 ml-1">
+                            WhatsApp / Telefone
+                        </label>
+                        <div className="flex gap-2">
+                            <select
+                                name="ddi"
+                                value={formData.ddi}
+                                onChange={handleChange as any}
+                                className="w-1/3 min-w-[100px] px-3 py-3 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none text-gray-900 cursor-pointer"
+                            >
+                                {ddiList.map(item => (
+                                    <option key={item.code} value={item.code}>
+                                        {item.code} {item.country}
+                                    </option>
+                                ))}
+                            </select>
+                            <input
+                                id="reg-phone"
+                                name="phone"
+                                type="tel"
+                                required
+                                value={formData.phone}
+                                onChange={handleChange}
+                                placeholder="(11) 99999-9999"
+                                className="w-2/3 px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none text-gray-900 placeholder-gray-400"
+                            />
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
