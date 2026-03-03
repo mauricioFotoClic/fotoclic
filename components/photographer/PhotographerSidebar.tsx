@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { User } from '../../types';
+import { useToast } from '../../contexts/ToastContext';
 
 type PhotographerView = 'dashboard' | 'photos' | 'sales' | 'payouts' | 'profile' | 'portfolio-preview' | 'coupons' | 'abandoned-carts' | 'discounts';
 

@@ -7,6 +7,7 @@ import PhotoCard from '../PhotoCard';
 import Modal from '../Modal';
 import PhotoUploadForm from './PhotoUploadForm';
 import ReviewModal from '../ReviewModal';
+import { useToast } from '../../contexts/ToastContext';
 
 interface PhotographerPortfolioPreviewProps {
     user: User;
@@ -19,8 +20,10 @@ interface PhotographerPortfolioPreviewProps {
 const EditIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>;
 const TrashIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>;
 const WarningIcon: React.FC<{ className?: string }> = ({ className }) => <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 3.001-1.742 3.001H4.42c-1.53 0-2.493-1.667-1.743-3.001l5.58-9.92zM10 13a1 1 0 110-2 1 1 0 010 2zm-1-8a1 1 0 00-1 1v3a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>;
+const LinkIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>;
 
 const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> = ({ user, onNavigate, editable = false, onAddToCart, currentUser }) => {
+    const { showToast } = useToast();
     const [photos, setPhotos] = useState<Photo[]>([]);
     const [displayUser, setDisplayUser] = useState<User>(user);
     const [categories, setCategories] = useState<Category[]>([]);
@@ -134,6 +137,16 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
         }
     };
 
+    const handleCopyLink = () => {
+        const url = `${window.location.origin}/portfolio/${user.id}`;
+        navigator.clipboard.writeText(url).then(() => {
+            showToast('Link do portfólio copiado!', 'success');
+        }).catch(err => {
+            console.error('Erro ao copiar link', err);
+            showToast('Erro ao copiar link.', 'error');
+        });
+    };
+
     if (loading) return <Spinner />;
 
     return (
@@ -175,10 +188,19 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
                             )}
                         </p>
                     </div>
-                    <div className="mt-6 md:mt-28 w-full md:w-auto flex flex-row md:flex-col items-center md:items-end justify-between md:justify-start gap-4">
-                        <div className="px-4 py-2 rounded-full text-neutral-700 bg-neutral-100 border border-neutral-200 text-sm font-medium shadow-sm">
+                    <div className="mt-6 md:mt-28 w-full md:w-auto flex flex-col md:flex-col items-center md:items-end justify-between md:justify-start gap-4">
+                        <div className="px-4 py-2 rounded-full text-neutral-700 bg-neutral-100 border border-neutral-200 text-sm font-medium shadow-sm w-full md:w-auto text-center">
                             {photos.length} Fotos {editable ? 'no Total' : 'Publicadas'}
                         </div>
+                        {editable && (
+                            <button
+                                onClick={handleCopyLink}
+                                className="px-6 py-2 rounded-full bg-secondary hover:bg-secondary-light text-white font-medium shadow-sm transition-all flex items-center justify-center gap-2 w-full md:w-auto"
+                            >
+                                <LinkIcon />
+                                Copiar Link Público
+                            </button>
+                        )}
                         {!editable && currentUser && currentUser.id !== user.id && (
                             <button
                                 onClick={() => setIsReviewModalOpen(true)}

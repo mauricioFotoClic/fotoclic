@@ -535,7 +535,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user }) => {
                                                     <FolderIcon />
                                                 </div>
                                             )}
-                                            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+                                            <div className="absolute top-2 right-2 transition-opacity flex gap-2">
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();
