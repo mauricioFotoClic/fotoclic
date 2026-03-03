@@ -82,6 +82,19 @@ const MainApp: React.FC = () => {
             try {
                 const user = await api.getCurrentUser();
                 if (user) {
+                    if (user.role === UserRole.ADMIN || user.role === UserRole.PHOTOGRAPHER) {
+                        const hasActiveSession = sessionStorage.getItem('active_session_panel');
+                        if (!hasActiveSession) {
+                            console.log("Sessão antiga de painel detectada, mas a aba foi fechada. Deslogando.");
+                            await api.logout();
+                            setCurrentUser(null);
+                            return;
+                        } else {
+                            // Garante que a flag esteja na sessão
+                            sessionStorage.setItem('active_session_panel', 'true');
+                        }
+                    }
+
                     console.log("Session restored for:", user.email);
                     setCurrentUser(user);
                 }
@@ -237,6 +250,9 @@ const MainApp: React.FC = () => {
     }, [cartItems, currentUser]);
 
     const handleLoginSuccess = async (user: User) => {
+        if (user.role === UserRole.ADMIN || user.role === UserRole.PHOTOGRAPHER) {
+            sessionStorage.setItem('active_session_panel', 'true');
+        }
         setCurrentUser(user);
 
         // Redirection based on role
@@ -263,6 +279,7 @@ const MainApp: React.FC = () => {
 
     const handleLogout = async () => {
         try {
+            sessionStorage.removeItem('active_session_panel');
             await api.logout();
             console.log("Logged out from Supabase");
         } catch (e) {
