@@ -5,6 +5,7 @@ import api from '../services/api';
 import Spinner from './Spinner';
 import Modal from './Modal';
 import WatermarkedImage from './WatermarkedImage';
+import { getOptimizedImageUrl } from '../utils/imageOptimization';
 
 interface PhotoDetailModalProps {
     photoId: string;
@@ -52,9 +53,9 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({ photoId, onClose, o
     if (!photoId) return null;
 
     return (
-        <Modal 
-            isOpen={true} 
-            onClose={onClose} 
+        <Modal
+            isOpen={true}
+            onClose={onClose}
             size="2xl"
             title={photo?.title || "Detalhes da Foto"}
             noPadding={true}
@@ -70,9 +71,9 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({ photoId, onClose, o
             ) : (
                 <div className="flex flex-col lg:flex-row">
                     <div ref={imgContainerRef} className="lg:w-2/3 bg-neutral-100 flex items-center justify-center p-4 min-h-[300px] lg:min-h-[500px]">
-                         <WatermarkedImage 
-                            src={photo.preview_url} 
-                            alt={photo.title} 
+                        <WatermarkedImage
+                            src={getOptimizedImageUrl(photo.preview_url, 1200, 85)}
+                            alt={photo.title}
                             className="w-full h-auto max-h-[70vh] object-contain shadow-sm rounded-lg"
                         />
                     </div>
@@ -80,9 +81,9 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({ photoId, onClose, o
                     <div className="lg:w-1/3 p-6 flex flex-col h-full">
                         {photographer && (
                             <div className="flex items-center mb-6 pb-6 border-b border-neutral-100">
-                                <img 
-                                    src={photographer.avatar_url} 
-                                    alt={photographer.name} 
+                                <img
+                                    src={photographer.avatar_url}
+                                    alt={photographer.name}
                                     className="w-12 h-12 rounded-full object-cover mr-3 border border-neutral-200"
                                 />
                                 <div>
@@ -93,8 +94,8 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({ photoId, onClose, o
                         )}
 
                         <div className="mb-6 flex-grow">
-                             <h3 className="text-sm font-bold text-neutral-900 mb-2">Descrição</h3>
-                             <p className="text-sm text-neutral-600 leading-relaxed mb-4">
+                            <h3 className="text-sm font-bold text-neutral-900 mb-2">Descrição</h3>
+                            <p className="text-sm text-neutral-600 leading-relaxed mb-4">
                                 {photo.description || "Sem descrição disponível."}
                             </p>
 
@@ -106,7 +107,7 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({ photoId, onClose, o
                                     </span>
                                 ))}
                             </div>
-                            
+
                             <div className="space-y-2 text-xs text-neutral-500">
                                 <div className="flex justify-between">
                                     <span>Resolução</span>
@@ -130,15 +131,15 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({ photoId, onClose, o
                                     R$ {photo.price.toFixed(2).replace('.', ',')}
                                 </span>
                             </div>
-                            
+
                             <div className="space-y-2">
-                                <button 
+                                <button
                                     onClick={() => onAddToCart(photo.id, getImageElement())}
                                     className="w-full py-3 bg-primary text-white font-bold rounded-full shadow-lg hover:bg-opacity-90 transition-transform transform active:scale-95"
                                 >
                                     Adicionar ao Carrinho
                                 </button>
-                                <button 
+                                <button
                                     onClick={() => onBuy(photo.id)}
                                     className="w-full py-3 bg-white text-primary border-2 border-primary font-bold rounded-full hover:bg-primary hover:text-white transition-colors"
                                 >

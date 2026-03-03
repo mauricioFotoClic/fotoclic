@@ -4,6 +4,7 @@ import { User, Photo, Category, PhotoEvent } from '../../types';
 import api from '../../services/api';
 import Spinner from '../Spinner';
 import Modal from '../Modal';
+import { getOptimizedImageUrl } from '../../utils/imageOptimization';
 import PhotoUploadForm from './PhotoUploadForm';
 import PhotoLikesModal from './PhotoLikesModal';
 // import Toast from '../Toast'; // Content handled by Context
@@ -647,7 +648,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user }) => {
                                         <tr key={photo.id} className={`border-t ${index % 2 === 0 ? 'bg-white' : 'bg-neutral-50'}`}>
                                             <td className="p-2">
                                                 <img
-                                                    src={photo.thumb_url || photo.preview_url}
+                                                    src={getOptimizedImageUrl(photo.thumb_url || photo.preview_url, 150, 70)}
                                                     alt={photo.title}
                                                     loading="lazy"
                                                     decoding="async"

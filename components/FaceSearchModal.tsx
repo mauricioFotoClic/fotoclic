@@ -5,6 +5,7 @@ import { faceRecognitionService } from '../services/faceRecognition';
 import api from '../services/api';
 import { Photo } from '../types';
 import Spinner from './Spinner';
+import { getOptimizedImageUrl } from '../utils/imageOptimization';
 
 interface FaceSearchModalProps {
     isOpen: boolean;
@@ -252,7 +253,7 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({ isOpen, onClose, onNa
                                             <div key={photo.id} className="group relative bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 ring-1 ring-neutral-100">
                                                 <div className="aspect-[2/3] overflow-hidden bg-neutral-200">
                                                     <img
-                                                        src={photo.preview_url}
+                                                        src={getOptimizedImageUrl(photo.thumb_url || photo.preview_url, 400, 75)}
                                                         alt={photo.title}
                                                         loading="lazy"
                                                         className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"

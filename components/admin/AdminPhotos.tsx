@@ -6,6 +6,7 @@ import Spinner from '../Spinner';
 import Modal from '../Modal';
 import PhotoForm from './PhotoForm';
 import QualityAnalysisModal from './QualityAnalysisModal';
+import { getOptimizedImageUrl } from '../../utils/imageOptimization';
 
 interface AdminPhotosProps {
     context: any;
@@ -531,7 +532,7 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
                                     <tr key={photo.id} className={`border-t ${index % 2 === 0 ? 'bg-white' : 'bg-neutral-50'} ${photo.moderation_status === 'pending' ? 'bg-yellow-50/50' : ''}`}>
                                         <td className="p-2">
                                             <img
-                                                src={photo.thumb_url || photo.preview_url}
+                                                src={getOptimizedImageUrl(photo.thumb_url || photo.preview_url, 150, 75)}
                                                 alt={photo.title}
                                                 loading="lazy"
                                                 decoding="async"

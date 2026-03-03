@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Photo, User, Page } from '../types';
 import WatermarkedImage from './WatermarkedImage';
 import api from '../services/api';
+import { getOptimizedImageUrl } from '../utils/imageOptimization';
 
 interface PhotoCardProps {
     photo: Photo;
@@ -98,7 +99,7 @@ const PhotoCard: React.FC<PhotoCardProps> = ({ photo, photographer, onNavigate, 
         <div className={`group relative overflow-hidden rounded-lg shadow-md bg-white transition-all duration-700 ease-out hover:shadow-xl ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
             <div className="cursor-pointer overflow-hidden h-48" onClick={handleDetailsClick}>
                 <WatermarkedImage
-                    src={photo.thumb_url || photo.preview_url}
+                    src={getOptimizedImageUrl(photo.thumb_url || photo.preview_url, 600, 75)}
                     alt={photo.title}
                     loading={loading || "lazy"}
                     decoding="async"
