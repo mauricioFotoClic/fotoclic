@@ -257,9 +257,9 @@ const MainApp: React.FC = () => {
 
         // Redirection based on role
         if (user.role === UserRole.PHOTOGRAPHER) {
-            handleNavigate({ name: 'photographer' });
+            handleNavigate({ name: 'photographer' }, user);
         } else if (user.role === UserRole.ADMIN) {
-            handleNavigate({ name: 'admin' });
+            handleNavigate({ name: 'admin' }, user);
         } else {
             // Customers stay on the same page
         }
@@ -291,10 +291,12 @@ const MainApp: React.FC = () => {
         handleNavigate({ name: 'home' });
     };
 
-    const handleNavigate = (page: Page) => {
+    const handleNavigate = (page: Page, overrideUser?: User | null) => {
         if (page.toastMessage) {
             showToast(page.toastMessage, page.toastType || 'info');
         }
+
+        const activeUser = overrideUser !== undefined ? overrideUser : currentUser;
 
         if (page.name === 'login') {
             setIsLoginModalOpen(true);
@@ -320,10 +322,10 @@ const MainApp: React.FC = () => {
             return;
         }
 
-        if (page.name === 'admin' && currentUser?.role !== UserRole.ADMIN) {
+        if (page.name === 'admin' && activeUser?.role !== UserRole.ADMIN) {
             return;
         }
-        if (page.name === 'photographer' && currentUser?.role !== UserRole.PHOTOGRAPHER) {
+        if (page.name === 'photographer' && activeUser?.role !== UserRole.PHOTOGRAPHER) {
             return;
         }
         setCurrentPage(page);
