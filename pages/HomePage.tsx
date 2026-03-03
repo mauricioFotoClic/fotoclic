@@ -95,7 +95,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
       >
         <div className="absolute inset-0 bg-neutral-900/20 group-hover:bg-neutral-900/0 transition-colors duration-500 z-10 pointer-events-none"></div>
         <WatermarkedImage
-          src={photo.preview_url}
+          src={photo.thumb_url || photo.preview_url}
           alt={photo.title}
           loading="lazy"
           className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"

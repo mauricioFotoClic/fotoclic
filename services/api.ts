@@ -25,12 +25,30 @@ import bcrypt from "bcryptjs";
 
 // --- HELPER FUNCTIONS ---
 
+// Formatar nome: "MARCIA M FEITOSA" -> "Marcia M Feitosa"
+const formatNameAsTitleCase = (name: string): string => {
+  if (!name) return name;
+  const lowerCaseWords = ["de", "da", "do", "das", "dos", "e", "van", "von"];
+  return name
+    .toLowerCase()
+    .split(/\s+/) // Separar por espaços garantindo que 2 espaços virem 1
+    .map((word, index) => {
+      if (word.length === 0) return word;
+      if (index !== 0 && lowerCaseWords.includes(word)) {
+        return word;
+      }
+      return word.charAt(0).toUpperCase() + word.slice(1);
+    })
+    .join(" ")
+    .trim();
+};
+
 const mapUser = (dbUser: any): User => {
   if (!dbUser) return {} as User;
   return {
     id: dbUser.id,
     role: dbUser.role as UserRole,
-    name: dbUser.name,
+    name: formatNameAsTitleCase(dbUser.name),
     email: dbUser.email,
     bio: dbUser.bio,
     avatar_url: dbUser.avatar_url,
@@ -96,7 +114,7 @@ export const api = {
     const { data, error } = await supabase
       .from("photos")
       .select(
-        "id, photographer_id, category_id, title, preview_url, price, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags",
+        "id, photographer_id, category_id, title, preview_url, thumb_url, price, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags",
       )
       .eq("is_featured", true)
       .eq("moderation_status", "approved")
@@ -115,7 +133,7 @@ export const api = {
     const { data, error } = await supabase
       .from("photos")
       .select(
-        "id, photographer_id, category_id, title, preview_url, price, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags, event_id",
+        "id, photographer_id, category_id, title, preview_url, thumb_url, price, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags, event_id",
       )
       .order("created_at", { ascending: false })
       .limit(limit);
@@ -132,7 +150,7 @@ export const api = {
     const { data, error } = await supabase
       .from("photos")
       .select(
-        "id, photographer_id, category_id, title, preview_url, price, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags",
+        "id, photographer_id, category_id, title, preview_url, thumb_url, price, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags",
       )
       .eq("moderation_status", "approved")
       .eq("is_public", true)
@@ -153,7 +171,7 @@ export const api = {
     const { data, error } = await supabase
       .from("photos")
       .select(
-        "id, photographer_id, category_id, title, preview_url, price, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags",
+        "id, photographer_id, category_id, title, preview_url, thumb_url, price, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags",
       )
       .eq("category_id", categoryId)
       .eq("moderation_status", "approved")
@@ -266,6 +284,8 @@ export const api = {
     Object.entries(data).forEach(([key, value]) => {
       if (key === "bulkDiscountRules") {
         dbData["bulk_discount_rules"] = value;
+      } else if (key === "name" && typeof value === "string") {
+        dbData[key] = formatNameAsTitleCase(value);
       } else {
         dbData[key] = value;
       }
@@ -1195,6 +1215,7 @@ export const api = {
     const userData: any = {
       id: authData.user.id, // CRITICAL: Sync IDs
       ...data,
+      name: formatNameAsTitleCase(data.name),
       is_active: true,
     };
 
@@ -1458,7 +1479,7 @@ export const api = {
 
       const { data: photos, error: photosError } = await supabase
         .from("photos")
-        .select("id, title, price, preview_url, photographer_id")
+        .select("id, title, price, preview_url, thumb_url, photographer_id")
         .in("id", Array.from(allPhotoIds))
         .eq("photographer_id", photographerId);
 
