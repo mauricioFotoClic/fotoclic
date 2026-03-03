@@ -212,9 +212,9 @@ const MainApp: React.FC = () => {
 
             // Trap logic for panels
             const state = currentPageRef.current;
-            if ((state.name === 'admin' || state.name === 'photographer') && newPage.name === 'home') {
+            if ((state.name === 'admin' || state.name === 'photographer') && newPage.name !== state.name) {
                 window.history.pushState(null, '', getUrlFromPage(state));
-                showToast("Use o menu para sair do painel.", "info");
+                showToast("Use o botão Sair do menu para sair do painel.", "info");
                 return;
             }
 
