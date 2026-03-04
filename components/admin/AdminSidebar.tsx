@@ -22,8 +22,8 @@ const NavLink: React.FC<{
         <button
             onClick={onClick}
             className={`flex items-center justify-between w-full text-left px-4 py-3 rounded-md transition-colors text-sm font-medium ${isActive
-                    ? 'bg-primary text-white'
-                    : 'text-neutral-700 hover:bg-neutral-200'
+                ? 'bg-primary text-white'
+                : 'text-neutral-700 hover:bg-neutral-200'
                 }`}
         >
             <div className="flex items-center">
@@ -67,7 +67,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeView, setView, notifi
                     icon={<CreditCardIcon />}
                     notificationCount={notificationCounts?.payouts}
                 />
-                <NavLink label="Solicitações" isActive={activeView === 'storage-requests'} onClick={() => setView('storage-requests')} icon={<CloudIcon />} />
+                {/* <NavLink label="Solicitações" isActive={activeView === 'storage-requests'} onClick={() => setView('storage-requests')} icon={<CloudIcon />} /> */}
                 <div className="pt-2 my-2 border-t"></div>
                 <NavLink label="Configurações" isActive={activeView === 'settings'} onClick={() => setView('settings')} icon={<SettingsIcon />} />
             </nav>
