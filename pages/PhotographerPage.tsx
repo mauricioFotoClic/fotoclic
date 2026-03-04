@@ -14,6 +14,39 @@ import PhotographerDiscounts from '../components/photographer/PhotographerDiscou
 
 type PhotographerView = 'dashboard' | 'photos' | 'sales' | 'payouts' | 'profile' | 'portfolio-preview' | 'coupons' | 'abandoned-carts' | 'discounts';
 
+const KeepAliveView = React.memo(
+    ({ active, children, index = 0 }: { active: boolean; children: React.ReactNode; index?: number }) => {
+        const [hasMounted, setHasMounted] = useState(active);
+
+        // Mount immediately if it becomes active
+        useEffect(() => {
+            if (active && !hasMounted) {
+                setHasMounted(true);
+            }
+        }, [active, hasMounted]);
+
+        // Background pre-mount staggered by index
+        // This ensures the menus are pre-rendered and pre-fetched before the user even clicks them!
+        useEffect(() => {
+            if (!hasMounted && !active) {
+                const timer = setTimeout(() => {
+                    setHasMounted(true);
+                }, 500 + (index * 400));
+                return () => clearTimeout(timer);
+            }
+        }, [hasMounted, active, index]);
+
+        if (!hasMounted) return null;
+
+        return (
+            <div className={active ? 'block animate-fadeIn' : 'hidden'}>
+                {children}
+            </div>
+        );
+    },
+    (prevProps, nextProps) => !prevProps.active && !nextProps.active
+);
+
 interface PhotographerPageProps {
     user: User;
     onLogout: () => void;
@@ -85,29 +118,42 @@ const PhotographerPage: React.FC<PhotographerPageProps> = ({ user: initialUser, 
         window.scrollTo(0, 0);
     };
 
+    const [portfolioRefreshTrigger, setPortfolioRefreshTrigger] = useState(Date.now());
+
+    const handleDataChange = () => setPortfolioRefreshTrigger(Date.now());
+
     const renderView = () => {
-        switch (view) {
-            case 'dashboard':
-                return <PhotographerDashboard user={currentUser} setView={handleSetView} showToast={showToast} />;
-            case 'photos':
-                return <PhotographerPhotos user={currentUser} />;
-            case 'sales':
-                return <PhotographerSales user={currentUser} />;
-            case 'abandoned-carts':
-                return <PhotographerAbandonedCarts user={currentUser} setView={handleSetView} />;
-            case 'payouts':
-                return <PhotographerPayouts user={currentUser} />;
-            case 'profile':
-                return <PhotographerProfile user={currentUser} onProfileUpdate={handleRefreshUser} showToast={showToast} />;
-            case 'portfolio-preview':
-                return <PhotographerPortfolioPreview user={currentUser} onNavigate={onNavigate} editable={true} />;
-            case 'coupons':
-                return <PhotographerCoupons user={currentUser} />;
-            case 'discounts':
-                return <PhotographerDiscounts user={currentUser} showToast={showToast} />;
-            default:
-                return <PhotographerDashboard user={currentUser} setView={handleSetView} />;
-        }
+        return (
+            <>
+                <KeepAliveView active={view === 'dashboard'} index={0}>
+                    <PhotographerDashboard user={currentUser} setView={handleSetView} showToast={showToast} />
+                </KeepAliveView>
+                <KeepAliveView active={view === 'photos'} index={1}>
+                    <PhotographerPhotos user={currentUser} onDataChange={handleDataChange} />
+                </KeepAliveView>
+                <KeepAliveView active={view === 'portfolio-preview'} index={2}>
+                    <PhotographerPortfolioPreview user={currentUser} onNavigate={onNavigate} editable={true} isActive={view === 'portfolio-preview'} refreshTrigger={portfolioRefreshTrigger} />
+                </KeepAliveView>
+                <KeepAliveView active={view === 'sales'} index={3}>
+                    <PhotographerSales user={currentUser} />
+                </KeepAliveView>
+                <KeepAliveView active={view === 'abandoned-carts'} index={4}>
+                    <PhotographerAbandonedCarts user={currentUser} setView={handleSetView} />
+                </KeepAliveView>
+                <KeepAliveView active={view === 'payouts'} index={5}>
+                    <PhotographerPayouts user={currentUser} />
+                </KeepAliveView>
+                <KeepAliveView active={view === 'profile'} index={6}>
+                    <PhotographerProfile user={currentUser} onProfileUpdate={handleRefreshUser} showToast={showToast} />
+                </KeepAliveView>
+                <KeepAliveView active={view === 'coupons'} index={7}>
+                    <PhotographerCoupons user={currentUser} />
+                </KeepAliveView>
+                <KeepAliveView active={view === 'discounts'} index={8}>
+                    <PhotographerDiscounts user={currentUser} showToast={showToast} />
+                </KeepAliveView>
+            </>
+        );
     }
 
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);

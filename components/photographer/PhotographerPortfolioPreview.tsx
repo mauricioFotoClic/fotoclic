@@ -15,6 +15,8 @@ interface PhotographerPortfolioPreviewProps {
     editable?: boolean;
     onAddToCart?: (photoId: string, imgElement?: HTMLImageElement) => void;
     currentUser?: User | null;
+    isActive?: boolean;
+    refreshTrigger?: number;
 }
 
 const EditIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>;
@@ -22,7 +24,7 @@ const TrashIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" heigh
 const WarningIcon: React.FC<{ className?: string }> = ({ className }) => <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 3.001-1.742 3.001H4.42c-1.53 0-2.493-1.667-1.743-3.001l5.58-9.92zM10 13a1 1 0 110-2 1 1 0 010 2zm-1-8a1 1 0 00-1 1v3a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>;
 const LinkIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>;
 
-const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> = ({ user, onNavigate, editable = false, onAddToCart, currentUser }) => {
+const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> = ({ user, onNavigate, editable = false, onAddToCart, currentUser, isActive = true, refreshTrigger }) => {
     const { showToast } = useToast();
     const [photos, setPhotos] = useState<Photo[]>([]);
     const [displayUser, setDisplayUser] = useState<User>(user);
@@ -39,14 +41,21 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
     const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
 
     useEffect(() => {
+        // Skip fetching if running in the background and we ALREADY fetched it before.
+        if (!isActive && (events.length > 0 || photos.length > 0)) {
+            return;
+        }
+
         const loadData = async () => {
             try {
                 setLoading(true);
 
-                const freshUserData = await api.getPhotographerById(user.id);
-                if (freshUserData) {
-                    setDisplayUser(freshUserData);
-                }
+                // Fetch user info silently without blocking photos/events
+                api.getPhotographerById(user.id).then((freshUserData) => {
+                    if (freshUserData) {
+                        setDisplayUser(freshUserData);
+                    }
+                }).catch(e => console.error("Failed to refresh user", e));
 
                 const [allPhotos, allEvents] = await Promise.all([
                     api.getPhotosByPhotographerId(user.id),
@@ -73,7 +82,7 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
             }
         };
         loadData();
-    }, [user.id, editable]);
+    }, [user.id, editable, isActive, refreshTrigger]);
 
     // CRUD Handlers
     const handleOpenModal = (photo: Photo) => {
@@ -262,7 +271,7 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {events.map(event => {
                                 const eventPhotos = photos.filter(p => p.event_id === event.id);
-                                const coverPhoto = eventPhotos[0];
+                                const coverPhotoUrl = event.cover_photo_url || (eventPhotos.length > 0 ? eventPhotos[0].preview_url : null);
 
                                 // Only show events with photos in public view, unless editable
                                 if (!editable && eventPhotos.length === 0) return null;
@@ -274,9 +283,9 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
                                         className="bg-white rounded-xl shadow-sm border border-neutral-100 overflow-hidden hover:shadow-md transition-all cursor-pointer group"
                                     >
                                         <div className="h-48 bg-neutral-200 relative overflow-hidden">
-                                            {coverPhoto ? (
+                                            {coverPhotoUrl ? (
                                                 <img
-                                                    src={coverPhoto.preview_url}
+                                                    src={coverPhotoUrl}
                                                     alt={event.name}
                                                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                                                 />

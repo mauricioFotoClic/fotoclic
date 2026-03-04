@@ -15,6 +15,38 @@ import api from '../services/api';
 
 type AdminView = 'dashboard' | 'photos' | 'photographers' | 'customers' | 'categories' | 'sales' | 'payouts' | 'settings' | 'storage-requests';
 
+const KeepAliveView = React.memo(
+    ({ active, children, index = 0 }: { active: boolean; children: React.ReactNode; index?: number }) => {
+        const [hasMounted, setHasMounted] = useState(active);
+
+        // Mount immediately if it becomes active
+        useEffect(() => {
+            if (active && !hasMounted) {
+                setHasMounted(true);
+            }
+        }, [active, hasMounted]);
+
+        // Background pre-mount staggered by index
+        useEffect(() => {
+            if (!hasMounted && !active) {
+                const timer = setTimeout(() => {
+                    setHasMounted(true);
+                }, 500 + (index * 400));
+                return () => clearTimeout(timer);
+            }
+        }, [hasMounted, active, index]);
+
+        if (!hasMounted) return null;
+
+        return (
+            <div className={active ? 'block animate-fadeIn' : 'hidden'}>
+                {children}
+            </div>
+        );
+    },
+    (prevProps, nextProps) => !prevProps.active && !nextProps.active
+);
+
 interface AdminPageProps {
     onNavigate: (page: Page) => void;
 }
@@ -24,31 +56,40 @@ const AdminPage: React.FC<AdminPageProps> = ({ onNavigate }) => {
     const [navContext, setNavContext] = useState<any>(null);
     const [notificationCounts, setNotificationCounts] = useState<{ payouts: number }>({ payouts: 0 });
 
-    // ... 
+    // ...
 
     const renderView = () => {
-        switch (view) {
-            case 'dashboard':
-                return <AdminDashboard setView={handleSetView} />;
-            case 'categories':
-                return <AdminCategories />;
-            case 'photographers':
-                return <AdminPhotographers onNavigate={onNavigate} />;
-            case 'customers':
-                return <AdminCustomers />;
-            case 'photos':
-                return <AdminPhotos context={navContext} setContext={setNavContext} />;
-            case 'sales':
-                return <AdminSales />;
-            case 'payouts':
-                return <AdminPayouts />;
-            case 'storage-requests':
-                return <AdminStorageRequests />;
-            case 'settings':
-                return <AdminSettings />;
-            default:
-                return <AdminDashboard setView={handleSetView} />;
-        }
+        return (
+            <>
+                <KeepAliveView active={view === 'dashboard'} index={0}>
+                    <AdminDashboard setView={handleSetView} />
+                </KeepAliveView>
+                <KeepAliveView active={view === 'categories'} index={1}>
+                    <AdminCategories />
+                </KeepAliveView>
+                <KeepAliveView active={view === 'photographers'} index={2}>
+                    <AdminPhotographers onNavigate={onNavigate} />
+                </KeepAliveView>
+                <KeepAliveView active={view === 'customers'} index={3}>
+                    <AdminCustomers />
+                </KeepAliveView>
+                <KeepAliveView active={view === 'photos'} index={4}>
+                    <AdminPhotos context={navContext} setContext={setNavContext} />
+                </KeepAliveView>
+                <KeepAliveView active={view === 'sales'} index={5}>
+                    <AdminSales />
+                </KeepAliveView>
+                <KeepAliveView active={view === 'payouts'} index={6}>
+                    <AdminPayouts />
+                </KeepAliveView>
+                <KeepAliveView active={view === 'storage-requests'} index={7}>
+                    <AdminStorageRequests />
+                </KeepAliveView>
+                <KeepAliveView active={view === 'settings'} index={8}>
+                    <AdminSettings />
+                </KeepAliveView>
+            </>
+        );
     }
 
     const handleSetView = (newView: AdminView, context: any = null) => {

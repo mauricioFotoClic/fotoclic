@@ -17,20 +17,25 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ categoryId, onNavigate, onA
   const [category, setCategory] = useState<Category | null>(null);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [photographers, setPhotographers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingCategory, setLoadingCategory] = useState(true);
+  const [loadingPhotos, setLoadingPhotos] = useState(true);
 
   useEffect(() => {
     const loadData = async () => {
-      try {
-        setLoading(true);
-        const [categoryData, categoryPhotos, allPhotographers] = await Promise.all([
-          api.getCategoryById(categoryId),
-          api.getPhotosByCategoryId(categoryId, true), // Enable shuffling
-          api.getPhotographers(),
-        ]);
-
+      // Fetch category specifically to show header fast
+      api.getCategoryById(categoryId).then((categoryData) => {
         setCategory(categoryData || null);
+        setLoadingCategory(false);
+      }).catch((e) => {
+        console.error("Failed to load category metadata", e);
+        setLoadingCategory(false);
+      });
 
+      // Fetch photos and photographers concurrently but separately from category header
+      Promise.all([
+        api.getPhotosByCategoryId(categoryId, true), // Enable shuffling
+        api.getPhotographers(),
+      ]).then(([categoryPhotos, allPhotographers]) => {
         // Filter photographers to only include active ones for display
         const activePhotographers = allPhotographers.filter(p => p.is_active);
         const activeIds = activePhotographers.map(p => p.id);
@@ -40,11 +45,11 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ categoryId, onNavigate, onA
 
         setPhotos(validPhotos);
         setPhotographers(activePhotographers);
-      } catch (error) {
-        console.error(`Failed to load data for category ${categoryId}`, error);
-      } finally {
-        setLoading(false);
-      }
+        setLoadingPhotos(false);
+      }).catch(e => {
+        console.error(`Failed to load photos for category ${categoryId}`, e);
+        setLoadingPhotos(false);
+      });
     };
     loadData();
   }, [categoryId]);
@@ -53,10 +58,31 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ categoryId, onNavigate, onA
     return photographers.find(p => p.id === photographerId);
   };
 
-  if (loading) {
+  if (loadingCategory) {
     return (
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <Spinner />
+      <div className="bg-white min-h-screen">
+        <section className="py-12 bg-neutral-100 animate-pulse">
+          <div className="container mx-auto px-4 text-center">
+            <div className="h-10 bg-neutral-200 w-1/3 mx-auto rounded mb-4"></div>
+            <div className="h-4 bg-neutral-200 w-1/2 mx-auto rounded"></div>
+          </div>
+        </section>
+        <div className="container mx-auto px-4 py-16">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+              <div key={i} className="h-72 bg-white shadow-sm rounded-2xl animate-pulse flex flex-col overflow-hidden border border-neutral-100 w-full">
+                <div className="h-48 bg-neutral-200"></div>
+                <div className="flex-1 p-4 flex flex-col justify-between">
+                  <div className="h-5 bg-neutral-200 w-3/4 rounded mb-4"></div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full bg-neutral-200"></div>
+                    <div className="h-3 bg-neutral-200 w-1/2 rounded"></div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
@@ -91,7 +117,22 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ categoryId, onNavigate, onA
 
       <section className="py-16">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          {photos.length > 0 ? (
+          {loadingPhotos ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                <div key={i} className="h-72 bg-white shadow-sm rounded-2xl animate-pulse flex flex-col overflow-hidden border border-neutral-100 w-full">
+                  <div className="h-48 bg-neutral-200"></div>
+                  <div className="flex-1 p-4 flex flex-col justify-between">
+                    <div className="h-5 bg-neutral-200 w-3/4 rounded mb-4"></div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-full bg-neutral-200"></div>
+                      <div className="h-3 bg-neutral-200 w-1/2 rounded"></div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : photos.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
               {photos.map(photo => (
                 <PhotoCard

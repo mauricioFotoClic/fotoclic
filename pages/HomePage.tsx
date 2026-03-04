@@ -18,54 +18,52 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
   const [recentPhotos, setRecentPhotos] = useState<Photo[]>([]);
   const [photographers, setPhotographers] = useState<PhotographerWithStats[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
+
+  const [loadingFeatured, setLoadingFeatured] = useState(true);
+  const [loadingRecent, setLoadingRecent] = useState(true);
+  const [loadingPhotogs, setLoadingPhotogs] = useState(true);
+  const [loadingCats, setLoadingCats] = useState(true);
+
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const isLoaded = React.useRef(false);
-
   useEffect(() => {
-    if (isLoaded.current) return;
-    isLoaded.current = true;
+    // If we already have the data, DO NOT trigger the skeletons again
+    if (categories.length > 0 && photos.length > 0) {
+      setLoadingCats(false);
+      setLoadingFeatured(false);
+      setLoadingRecent(false);
+      setLoadingPhotogs(false);
+      return;
+    }
 
-    const loadData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        console.log("HomePage: Starting modular data load...");
+    // Reset loaded state variables to guarantee fetching if empty
+    setLoadingCats(true);
+    setLoadingFeatured(true);
+    setLoadingRecent(true);
+    setLoadingPhotogs(true);
 
-        // Load essential data first or in parallel but handle independently
-        const fetchEssentialData = async () => {
-          try {
-            const [featured, cats, recents, pops] = await Promise.all([
-              api.getFeaturedPhotos().catch(e => { console.warn("Failed featured", e); return []; }),
-              api.getCategories().catch(e => { console.warn("Failed cats", e); return []; }),
-              api.getRecentPhotos(8).catch(e => { console.warn("Failed recents", e); return []; }),
-              api.getActivePhotographersPreview().catch(e => { console.warn("Failed pops", e); return []; })
-            ]);
+    // Load data independently so one slow query doesn't block the rest
+    api.getCategories().then(cats => {
+      setCategories(cats);
+      setLoadingCats(false);
+    }).catch(e => { console.warn("Failed cats", e); setLoadingCats(false); });
 
-            setPhotos(featured.slice(0, 5));
-            setCategories(cats);
-            setRecentPhotos(recents);
-            setPhotographers(pops);
+    api.getFeaturedPhotos().then(featured => {
+      setPhotos(featured.slice(0, 5));
+      setLoadingFeatured(false);
+    }).catch(e => { console.warn("Failed featured", e); setLoadingFeatured(false); });
 
-            console.log("HomePage: Essential data loaded");
-          } catch (err) {
-            console.error("Error in batch data load", err);
-            throw new Error("Erro ao conectar com o servidor. Verifique sua conexão.");
-          }
-        };
+    api.getRecentPhotos(8).then(recents => {
+      setRecentPhotos(recents);
+      setLoadingRecent(false);
+    }).catch(e => { console.warn("Failed recents", e); setLoadingRecent(false); });
 
-        await fetchEssentialData();
+    api.getActivePhotographersPreview().then(pops => {
+      setPhotographers(pops);
+      setLoadingPhotogs(false);
+    }).catch(e => { console.warn("Failed pops", e); setLoadingPhotogs(false); });
 
-      } catch (error: any) {
-        console.error("Falha ao carregar os dados da página inicial", error);
-        setError(error.message || "Erro desconhecido ao conectar com o servidor.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadData();
   }, []);
 
   const handleSearch = () => {
@@ -202,46 +200,56 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
             <div className="w-24 h-1 bg-gradient-to-r from-primary to-secondary rounded-full mt-6"></div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
-            {categories.map((category, index) => (
-              <button
-                key={category.id}
-                onClick={() => onNavigate({ name: 'category', id: category.id })}
-                className="group relative h-64 md:h-80 w-full overflow-hidden rounded-2xl shadow-md hover:shadow-xl transition-all duration-500 ease-out transform hover:-translate-y-2"
-                style={{ transitionDelay: `${index * 50}ms` }}
-              >
-                {/* Image with zoom effect */}
-                <div className="absolute inset-0 w-full h-full overflow-hidden">
-                  <img
-                    src={category.image_url}
-                    alt={category.name}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                  />
+          {loadingCats ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+              {[1, 2, 3, 4, 5, 6].map(i => (
+                <div key={i} className="h-64 md:h-80 w-full bg-neutral-200 animate-pulse rounded-2xl flex items-end p-6">
+                  <div className="w-3/4 h-6 bg-neutral-300/70 rounded"></div>
                 </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+              {categories.map((category, index) => (
+                <button
+                  key={category.id}
+                  onClick={() => onNavigate({ name: 'category', id: category.id })}
+                  className="group relative h-64 md:h-80 w-full overflow-hidden rounded-2xl shadow-md hover:shadow-xl transition-all duration-500 ease-out transform hover:-translate-y-2"
+                  style={{ transitionDelay: `${index * 50}ms` }}
+                >
+                  {/* Image with zoom effect */}
+                  <div className="absolute inset-0 w-full h-full overflow-hidden">
+                    <img
+                      src={category.image_url}
+                      alt={category.name}
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    />
+                  </div>
 
-                {/* Gradient Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-80 group-hover:opacity-90 transition-opacity duration-300"></div>
+                  {/* Gradient Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-80 group-hover:opacity-90 transition-opacity duration-300"></div>
 
-                {/* Border effect */}
-                <div className="absolute inset-0 border-2 border-transparent group-hover:border-white/20 rounded-2xl transition-colors duration-300 pointer-events-none"></div>
+                  {/* Border effect */}
+                  <div className="absolute inset-0 border-2 border-transparent group-hover:border-white/20 rounded-2xl transition-colors duration-300 pointer-events-none"></div>
 
-                {/* Content */}
-                <div className="absolute inset-0 flex flex-col justify-end p-6 text-left">
-                  <div className="transform translate-y-2 group-hover:translate-y-0 transition-transform duration-500">
-                    <span className="block w-8 h-1 bg-primary mb-3 transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500 delay-100"></span>
-                    <h3 className="font-display font-bold text-white text-xl md:text-2xl tracking-wide drop-shadow-lg">
-                      {category.name}
-                    </h3>
-                    <div className="h-0 group-hover:h-6 overflow-hidden transition-[height] duration-500 ease-in-out opacity-0 group-hover:opacity-100">
-                      <span className="text-xs text-neutral-300 font-medium uppercase tracking-wider mt-2 block">
-                        Explorar coleção
-                      </span>
+                  {/* Content */}
+                  <div className="absolute inset-0 flex flex-col justify-end p-6 text-left">
+                    <div className="transform translate-y-2 group-hover:translate-y-0 transition-transform duration-500">
+                      <span className="block w-8 h-1 bg-primary mb-3 transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500 delay-100"></span>
+                      <h3 className="font-display font-bold text-white text-xl md:text-2xl tracking-wide drop-shadow-lg">
+                        {category.name}
+                      </h3>
+                      <div className="h-0 group-hover:h-6 overflow-hidden transition-[height] duration-500 ease-in-out opacity-0 group-hover:opacity-100">
+                        <span className="text-xs text-neutral-300 font-medium uppercase tracking-wider mt-2 block">
+                          Explorar coleção
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </button>
-            ))}
-          </div>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
@@ -270,13 +278,23 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
             </button>
           </div>
 
-          {loading ? (
+          {loadingFeatured ? (
             <div className="grid grid-cols-1 md:grid-cols-4 md:grid-rows-2 gap-4 h-auto md:h-[600px]">
-              <div className="md:col-span-2 md:row-span-2 h-[300px] md:h-auto bg-neutral-800 animate-pulse rounded-2xl"></div>
-              <div className="md:col-span-1 md:row-span-1 h-[200px] md:h-auto bg-neutral-800 animate-pulse rounded-2xl"></div>
-              <div className="md:col-span-1 md:row-span-1 h-[200px] md:h-auto bg-neutral-800 animate-pulse rounded-2xl"></div>
-              <div className="md:col-span-1 md:row-span-1 h-[200px] md:h-auto bg-neutral-800 animate-pulse rounded-2xl"></div>
-              <div className="md:col-span-1 md:row-span-1 h-[200px] md:h-auto bg-neutral-800 animate-pulse rounded-2xl"></div>
+              <div className="md:col-span-2 md:row-span-2 h-[300px] md:h-auto bg-neutral-800 animate-pulse rounded-2xl flex items-end p-6">
+                <div className="w-1/2 h-8 bg-neutral-700 rounded"></div>
+              </div>
+              <div className="md:col-span-1 md:row-span-1 h-[200px] md:h-auto bg-neutral-800 animate-pulse rounded-2xl flex items-end p-4">
+                <div className="w-2/3 h-5 bg-neutral-700 rounded"></div>
+              </div>
+              <div className="md:col-span-1 md:row-span-1 h-[200px] md:h-auto bg-neutral-800 animate-pulse rounded-2xl flex items-end p-4">
+                <div className="w-1/2 h-5 bg-neutral-700 rounded"></div>
+              </div>
+              <div className="md:col-span-1 md:row-span-1 h-[200px] md:h-auto bg-neutral-800 animate-pulse rounded-2xl flex items-end p-4">
+                <div className="w-3/4 h-5 bg-neutral-700 rounded"></div>
+              </div>
+              <div className="md:col-span-1 md:row-span-1 h-[200px] md:h-auto bg-neutral-800 animate-pulse rounded-2xl flex items-end p-4">
+                <div className="w-2/3 h-5 bg-neutral-700 rounded"></div>
+              </div>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-4 md:grid-rows-2 gap-4 h-auto md:h-[600px]">
@@ -303,10 +321,15 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
             <p className="text-neutral-500">Conheça os criadores que estão definindo tendências visuais.</p>
           </div>
 
-          {loading ? (
+          {loadingPhotogs ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
               {[1, 2, 3, 4].map(i => (
-                <div key={i} className="h-80 bg-neutral-100 animate-pulse rounded-2xl"></div>
+                <div key={i} className="h-80 bg-white border border-neutral-100 shadow-sm rounded-2xl p-6 flex flex-col animate-pulse">
+                  <div className="w-24 h-24 rounded-full bg-neutral-200 mx-auto mb-4"></div>
+                  <div className="h-6 bg-neutral-200 w-1/2 mx-auto rounded mb-2"></div>
+                  <div className="h-4 bg-neutral-200 w-1/3 mx-auto rounded"></div>
+                  <div className="mt-auto h-10 bg-neutral-200 rounded-full w-full"></div>
+                </div>
               ))}
             </div>
           ) : (
@@ -394,10 +417,19 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
             <div className="w-24 h-1 bg-gradient-to-r from-primary to-secondary rounded-full mt-6"></div>
           </div>
 
-          {loading ? (
+          {loadingRecent ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
               {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
-                <div key={i} className="h-72 bg-white animate-pulse rounded-2xl"></div>
+                <div key={i} className="h-72 bg-white shadow-sm rounded-2xl animate-pulse flex flex-col overflow-hidden border border-neutral-100">
+                  <div className="h-48 bg-neutral-200"></div>
+                  <div className="flex-1 p-4 flex flex-col justify-between">
+                    <div className="h-5 bg-neutral-200 w-3/4 rounded mb-4"></div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-full bg-neutral-200"></div>
+                      <div className="h-3 bg-neutral-200 w-1/2 rounded"></div>
+                    </div>
+                  </div>
+                </div>
               ))}
             </div>
           ) : (

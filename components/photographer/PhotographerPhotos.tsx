@@ -30,9 +30,10 @@ const PlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height
 
 interface PhotographerPhotosProps {
     user: User;
+    onDataChange?: () => void;
 }
 
-const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user }) => {
+const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataChange }) => {
     const { showToast } = useToast();
     const { confirm } = useConfirm();
 
@@ -111,6 +112,20 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user }) => {
     useEffect(() => {
         fetchData();
     }, [fetchData]);
+
+    const previousEventsCount = useRef(events.length);
+    const previousPhotosCount = useRef(photos.length);
+
+    useEffect(() => {
+        if (
+            (previousEventsCount.current !== 0 || events.length !== 0) &&
+            (events.length !== previousEventsCount.current || photos.length !== previousPhotosCount.current)
+        ) {
+            onDataChange?.();
+        }
+        previousEventsCount.current = events.length;
+        previousPhotosCount.current = photos.length;
+    }, [events.length, photos.length, onDataChange]);
 
     const getCategoryName = (id: string) => categories.find(c => c.id === id)?.name || 'N/A';
 

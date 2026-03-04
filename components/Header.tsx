@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { User, UserRole, Page } from '../types';
+import { useToast } from '../contexts/ToastContext';
 
 const CameraIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
     <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -27,9 +28,21 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigate, currentView, cartCount }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const { showToast } = useToast();
     const isAdminView = currentView === 'admin';
     const isPhotographerView = currentView === 'photographer';
     const isAuthPage = ['login', 'register', 'pending-approval'].includes(currentView);
+
+    const handleCopyLink = () => {
+        if (!user) return;
+        const url = `${window.location.origin}/portfolio/${user.id}`;
+        navigator.clipboard.writeText(url).then(() => {
+            showToast('Link do portfólio copiado!', 'success');
+        }).catch(err => {
+            console.error('Erro ao copiar link', err);
+            showToast('Erro ao copiar link.', 'error');
+        });
+    };
 
     return (
         <header className="bg-white/80 backdrop-blur-md sticky top-0 z-50 shadow-sm">
@@ -88,6 +101,16 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigate, currentView
                                         {user.role === UserRole.CUSTOMER && (
                                             <button onClick={() => onNavigate({ name: 'customer-dashboard' })} className="px-4 py-2 text-sm font-medium text-neutral-700 hover:text-primary transition-colors">
                                                 Minhas Compras
+                                            </button>
+                                        )}
+                                        {isPhotographerView && (
+                                            <button
+                                                onClick={handleCopyLink}
+                                                className="px-4 py-2 text-sm font-medium text-white bg-secondary hover:bg-secondary-light rounded-full shadow-sm transition-all flex items-center gap-2"
+                                                title="Copiar Link da Página Pública"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                                                Copiar Link Público
                                             </button>
                                         )}
                                         <span className="text-sm font-medium border-l border-neutral-200 pl-2 ml-2">Olá, {user.name}</span>
@@ -159,6 +182,15 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigate, currentView
                             )}
                             <div className="h-px bg-neutral-100 my-2"></div>
                             <span className="block text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-2">Conta</span>
+                            {isPhotographerView && (
+                                <button
+                                    onClick={() => { handleCopyLink(); setIsMenuOpen(false); }}
+                                    className="w-full text-center px-4 py-2 mb-2 text-sm font-medium text-white bg-secondary hover:bg-secondary-light rounded-full shadow-sm transition-all flex items-center justify-center gap-2"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                                    Copiar Link Público
+                                </button>
+                            )}
                             <span className="block text-sm text-neutral-800 mb-2 font-medium">Olá, {user.name}</span>
                             <button onClick={() => { onLogout(); setIsMenuOpen(false); }} className="w-full text-center px-4 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-full hover:bg-red-100 transition-colors mt-2">
                                 Sair

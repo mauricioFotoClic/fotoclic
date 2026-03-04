@@ -108,9 +108,26 @@ const shuffleArray = <T>(array: T[]): T[] => {
   return newArray;
 };
 
+const CACHE_TTL = 1000 * 60 * 5; // 5 minutes
+const inMemoryCache: {
+  categories: { data: Category[] | null, ts: number },
+  featured: { data: Photo[] | null, ts: number },
+  recent: { data: Photo[] | null, ts: number },
+  activePhotographers: { data: PhotographerWithStats[] | null, ts: number }
+} = {
+  categories: { data: null, ts: 0 },
+  featured: { data: null, ts: 0 },
+  recent: { data: null, ts: 0 },
+  activePhotographers: { data: null, ts: 0 }
+};
+
 export const api = {
   // --- PHOTOS ---
   getFeaturedPhotos: async (): Promise<Photo[]> => {
+    const now = Date.now();
+    if (inMemoryCache.featured.data && (now - inMemoryCache.featured.ts < CACHE_TTL)) {
+      return inMemoryCache.featured.data;
+    }
     const { data, error } = await supabase
       .from("photos")
       .select(
@@ -125,7 +142,9 @@ export const api = {
       console.warn("Error fetching featured photos:", error);
       return [];
     }
-    return data ? data.map(mapPhoto) : [];
+    const result = data ? data.map(mapPhoto) : [];
+    inMemoryCache.featured = { data: result, ts: now };
+    return result;
   },
 
   getAllPhotos: async (shuffle: boolean = false): Promise<Photo[]> => {
@@ -147,6 +166,11 @@ export const api = {
   },
 
   getRecentPhotos: async (limit: number = 8): Promise<Photo[]> => {
+    const now = Date.now();
+    // Cache only if limit is 8 (the default for home page)
+    if (limit === 8 && inMemoryCache.recent.data && (now - inMemoryCache.recent.ts < CACHE_TTL)) {
+      return inMemoryCache.recent.data;
+    }
     const { data, error } = await supabase
       .from("photos")
       .select(
@@ -160,7 +184,11 @@ export const api = {
       console.warn("Error fetching recent photos:", error);
       return [];
     }
-    return data ? data.map(mapPhoto) : [];
+    const result = data ? data.map(mapPhoto) : [];
+    if (limit === 8) {
+      inMemoryCache.recent = { data: result, ts: now };
+    }
+    return result;
   },
 
   getPhotosByCategoryId: async (
@@ -585,6 +613,10 @@ export const api = {
     }
   },
   getCategories: async (): Promise<Category[]> => {
+    const now = Date.now();
+    if (inMemoryCache.categories.data && (now - inMemoryCache.categories.ts < CACHE_TTL)) {
+      return inMemoryCache.categories.data;
+    }
     // Trazendo image_url de volta. Recomendamos remover qualquer Base64 gigante do banco de dados e usar URLs (ex: webhooks, unsplash, supabase storage) para não sobrecarregar a api.
     const { data, error } = await supabase
       .from("categories")
@@ -594,7 +626,10 @@ export const api = {
       console.warn("Could not fetch categories", error);
       return [];
     }
-    return data || [];
+
+    const result = data || [];
+    inMemoryCache.categories = { data: result, ts: now };
+    return result;
   },
   getCategoryById: async (id: string): Promise<Category | undefined> => {
     const { data, error } = await supabase
@@ -722,6 +757,10 @@ export const api = {
     return mapUser(data);
   },
   getActivePhotographersPreview: async (): Promise<PhotographerWithStats[]> => {
+    const now = Date.now();
+    if (inMemoryCache.activePhotographers.data && (now - inMemoryCache.activePhotographers.ts < CACHE_TTL)) {
+      return inMemoryCache.activePhotographers.data;
+    }
     const { data: users, error } = await supabase
       .from("users")
       .select("id, name, email, avatar_url, location, is_active, bio, role")
@@ -735,7 +774,7 @@ export const api = {
       return [];
     }
 
-    return users
+    const result = users
       ? users.map((u) => ({
         ...mapUser(u),
         photoCount: 0,
@@ -748,6 +787,9 @@ export const api = {
         approvalPercentage: 100,
       }))
       : [];
+
+    inMemoryCache.activePhotographers = { data: result, ts: now };
+    return result;
   },
 
   // --- EVENTS ---
