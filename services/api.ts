@@ -1163,7 +1163,7 @@ export const api = {
           message: error.message,
           status: error.status,
           name: error.name,
-          details: error.details,
+          details: (error as any).details,
         });
         throw error;
       }

@@ -26,6 +26,9 @@ export default defineConfig(({ mode }) => {
         '@': path.resolve(__dirname, '.'),
       }
     },
+    optimizeDeps: {
+      exclude: ['@vladmandic/human']
+    },
     build: {
       sourcemap: false
     }

@@ -1,0 +1,45 @@
+{
+  "probe_photo_id": "00c4b547-9bee-4502-af69-7ca516660df3",
+  "matches": [
+    {
+      "photo_id": "00c4b547-9bee-4502-af69-7ca516660df3",
+      "distance": 0
+    },
+    {
+      "photo_id": "cb4004c1-58bd-4ab4-be2c-a614674ec23e",
+      "distance": 0.233929345501177
+    },
+    {
+      "photo_id": "c55435b1-ddb5-49dc-bcf5-4c4d4c388c76",
+      "distance": 0.244736212002062
+    },
+    {
+      "photo_id": "a18ccedf-9c38-49fe-90f5-b2ac5178c89d",
+      "distance": 0.245670476845786
+    },
+    {
+      "photo_id": "2a75a70f-8d91-4a81-b62c-485b928e20cb",
+      "distance": 0.249446016682874
+    },
+    {
+      "photo_id": "a09ab0c4-1ea4-488b-9fab-66e77fc75291",
+      "distance": 0.252093992848609
+    },
+    {
+      "photo_id": "36743189-a08e-459b-8627-426b72388c5c",
+      "distance": 0.25674419432542
+    },
+    {
+      "photo_id": "2a75a70f-8d91-4a81-b62c-485b928e20cb",
+      "distance": 0.25686089862163
+    },
+    {
+      "photo_id": "de652f5d-79fd-439f-914d-78b9ccdb66a3",
+      "distance": 0.259405661115034
+    },
+    {
+      "photo_id": "c150b7c4-b68a-4f72-a676-d80cbe424c84",
+      "distance": 0.261256649808805
+    }
+  ]
+}

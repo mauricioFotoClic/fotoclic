@@ -1,5 +1,7 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import api from '../../services/api';
+import { supabase } from '../../services/supabaseClient';
+import { faceRecognitionService } from '../../services/faceRecognition';
 import Spinner from '../Spinner';
 import { Photo, User, Category, Sale, PhotographerWithStats } from '../../types';
 
@@ -30,6 +32,7 @@ const DollarSignIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" 
 const ShoppingCartIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>;
 const UsersIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>;
 const ClockIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>;
+const LayersIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>;
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ setView }) => {
     const [sales, setSales] = useState<Sale[]>([]);
@@ -37,6 +40,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setView }) => {
     const [photographers, setPhotographers] = useState<PhotographerWithStats[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
     const [loading, setLoading] = useState(true);
+
+    // Engine Reindex State
+    const [isReindexing, setIsReindexing] = useState(false);
+    const [reindexProgress, setReindexProgress] = useState(0);
+    const [reindexTotal, setReindexTotal] = useState(0);
 
     const fetchData = useCallback(async () => {
         try {
@@ -57,6 +65,64 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setView }) => {
             setLoading(false);
         }
     }, []);
+
+    const handleReindexAllPhotos = async () => {
+        if (!confirm("Isso iniciará a re-indexação biométrica (Human AI) para TODAS as fotos marcadas como não indexadas. Devido ao hardware ser no seu navegador, mantenha a tela ativa. Deseja continuar?")) return;
+
+        setIsReindexing(true);
+        try {
+            // Buscamos as pendentes diretas pelo Supabase
+            const { data: pendingPhotos, error } = await supabase
+                .from('photos')
+                .select('id, preview_url, is_face_indexed')
+                .eq('is_face_indexed', false);
+
+            if (error || !pendingPhotos) throw error;
+
+            setReindexTotal(pendingPhotos.length);
+            setReindexProgress(0);
+
+            if (pendingPhotos.length === 0) {
+                alert("Todas as fotos do banco de dados já estão indexadas com a nova tecnologia!");
+                setIsReindexing(false);
+                return;
+            }
+
+            // Loop por cada foto pendente
+            for (let i = 0; i < pendingPhotos.length; i++) {
+                const photo = pendingPhotos[i];
+
+                // Cria uma imagem via JS puro cruzando CORS
+                const img = new Image();
+                img.crossOrigin = "anonymous";
+
+                await new Promise((resolve) => {
+                    img.onload = resolve;
+                    img.onerror = () => {
+                        console.error(`Falha ao carregar a imagem da URL para a foto ${photo.id}: ${photo.preview_url}`);
+                        resolve(null);
+                    };
+                    img.src = photo.preview_url;
+                });
+
+                try {
+                    // Manda rodar o MobileFaceNet e inserir o vetor de 1024 no Supabase
+                    await faceRecognitionService.indexPhoto(photo.id, img);
+                } catch (e) {
+                    // Ignora erros individuais de fotos onde não tem ngm pra não parar o loop inteiro
+                    console.warn(`Foto ${photo.id} falhou na Inteligência Artificial:`, e);
+                }
+
+                setReindexProgress(i + 1);
+            }
+            alert("✅ Atualização Completa! Biometria SaaS recarregada e Banco de Dados atualizado.");
+        } catch (error) {
+            console.error(error);
+            alert("Ocorreu um erro massivo lendo o banco de dados.");
+        } finally {
+            setIsReindexing(false);
+        }
+    };
 
     useEffect(() => {
         fetchData();
@@ -126,8 +192,41 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setView }) => {
 
     return (
         <div>
-            <h1 className="text-3xl font-display font-bold text-primary-dark mb-2">Bem-vindo, Admin!</h1>
-            <p className="text-neutral-500 mb-6">Aqui está um resumo da atividade do seu marketplace.</p>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+                <div>
+                    <h1 className="text-3xl font-display font-bold text-primary-dark mb-2">Bem-vindo, Admin!</h1>
+                    <p className="text-neutral-500">Aqui está um resumo da atividade do seu marketplace.</p>
+                </div>
+
+                <div className="mt-4 md:mt-0 bg-white p-4 rounded-lg shadow-sm w-full md:w-auto border border-primary/20">
+                    <h3 className="text-sm font-semibold text-neutral-700 mb-2 flex items-center gap-2">
+                        <LayersIcon /> Ferramentas do Sistema
+                    </h3>
+                    <div className="flex flex-col gap-2">
+                        {isReindexing ? (
+                            <div className="w-full bg-neutral-200 rounded-full h-4 relative overflow-hidden min-w-[200px]">
+                                <div
+                                    className="bg-primary h-4 transition-all duration-300"
+                                    style={{ width: `${(reindexProgress / Math.max(reindexTotal, 1)) * 100}%` }}
+                                ></div>
+                                <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white shadow-sm">
+                                    {reindexProgress} / {reindexTotal} Processando...
+                                </span>
+                            </div>
+                        ) : (
+                            <button
+                                onClick={handleReindexAllPhotos}
+                                className="w-full md:w-auto bg-primary text-white py-2 px-4 rounded hover:bg-primary-dark transition-colors text-sm font-semibold shadow"
+                            >
+                                Re-Indexar Rostos Ausentes (Human AI)
+                            </button>
+                        )}
+                        <p className="text-[11px] text-neutral-400 max-w-xs leading-tight">
+                            Buscador de Biometria. Se você zerou o banco de vetores em uma atualização, aperte para recriá-los com a CPU deste PC.
+                        </p>
+                    </div>
+                </div>
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 <StatCard title="Receita Total" value={totalRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} icon={<DollarSignIcon />} colorClass="bg-green-100 text-green-600" />

@@ -26,7 +26,7 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({ isOpen, onClose, onNa
     useEffect(() => {
         if (isOpen) {
             // Preload models as soon as the modal opens to save time
-            faceRecognitionService.loadModels().catch(err => console.error("Failed to preload models", err));
+            faceRecognitionService.loadEssentialModels().catch(err => console.error("Failed to preload models", err));
         }
     }, [isOpen]);
 
@@ -47,61 +47,7 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({ isOpen, onClose, onNa
         }
     };
 
-    // Camera State
-    const [isCameraOpen, setIsCameraOpen] = useState(false);
-    const videoRef = useRef<HTMLVideoElement>(null);
-    const streamRef = useRef<MediaStream | null>(null);
-
-    useEffect(() => {
-        return () => {
-            // Cleanup stream on unmount
-            stopCamera();
-        }
-    }, []);
-
-    const startCamera = async () => {
-        try {
-            setIsCameraOpen(true);
-            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
-            streamRef.current = stream;
-            if (videoRef.current) {
-                videoRef.current.srcObject = stream;
-            }
-        } catch (err) {
-            console.error("Error accessing camera:", err);
-            onShowToast("Não foi possível acessar a câmera. Verifique as permissões.", 'error');
-            setIsCameraOpen(false);
-        }
-    };
-
-    const stopCamera = () => {
-        if (streamRef.current) {
-            streamRef.current.getTracks().forEach(track => track.stop());
-            streamRef.current = null;
-        }
-        setIsCameraOpen(false);
-    };
-
-    const capturePhoto = () => {
-        if (videoRef.current) {
-            const canvas = document.createElement('canvas');
-            canvas.width = videoRef.current.videoWidth;
-            canvas.height = videoRef.current.videoHeight;
-            const ctx = canvas.getContext('2d');
-            if (ctx) {
-                // Flip horizontally if it's a selfie to match mirror effect usually expect
-                ctx.translate(canvas.width, 0);
-                ctx.scale(-1, 1);
-                ctx.drawImage(videoRef.current, 0, 0);
-
-                const dataUrl = canvas.toDataURL('image/jpeg');
-                setSelectedImage(dataUrl);
-                setResults([]);
-                setHasSearched(false);
-                stopCamera();
-            }
-        }
-    };
+    // Removed WebRTC Camera state for better mobile compatibility using native HTML5 capture="user"
 
     const handleSearch = async () => {
         if (!selectedImage) return;
@@ -120,10 +66,7 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({ isOpen, onClose, onNa
             await new Promise(resolve => setTimeout(resolve, 100));
 
             // 1. Get descriptor
-            const descriptor = await faceRecognitionService.getFaceDescriptor(img, (status) => {
-                console.log("Face Search Status:", status);
-                // The toast is already handles in the search loop below
-            });
+            const descriptor = await faceRecognitionService.getFaceDescriptor(img);
 
             if (!descriptor) {
                 onShowToast("Nenhum rosto detectado na imagem. Tente outra foto.", 'error');
@@ -189,34 +132,7 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({ isOpen, onClose, onNa
 
                 {/* Main Content Area - Scrollable */}
                 <div className="flex-1 overflow-y-auto bg-neutral-50/50 relative">
-                    {/* CAMERA OVERLAY */}
-                    {isCameraOpen && (
-                        <div className="absolute inset-0 z-30 bg-black flex flex-col items-center justify-center">
-                            <video
-                                ref={videoRef}
-                                autoPlay
-                                playsInline
-                                muted
-                                className="w-full h-full object-cover md:object-contain transform -scale-x-100"
-                            />
-                            <div className="absolute bottom-8 flex gap-4">
-                                <button
-                                    onClick={stopCamera}
-                                    className="px-6 py-3 rounded-full bg-white/20 backdrop-blur text-white font-medium hover:bg-white/30 transition-all"
-                                >
-                                    Cancelar
-                                </button>
-                                <button
-                                    onClick={capturePhoto}
-                                    className="w-16 h-16 rounded-full border-4 border-white flex items-center justify-center bg-transparent hover:bg-white/20 transition-all"
-                                >
-                                    <div className="w-12 h-12 bg-white rounded-full"></div>
-                                </button>
-                            </div>
-                        </div>
-                    )}
-
-                    <div className="min-h-full p-4 md:p-8 flex flex-col">
+                    <div className="min-h-full p-4 md:p-8 flex flex-col pb-24">
 
                         {/* State 1: Results Display (When searched) */}
                         {hasSearched && (
@@ -305,21 +221,21 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({ isOpen, onClose, onNa
                                     </div>
 
 
-                                    <div className="grid grid-cols-2 gap-4 mb-6">
+                                    <div className="grid grid-cols-2 gap-3 md:gap-4 mb-6">
                                         <div
-                                            onClick={startCamera}
-                                            className="border-2 border-dashed border-neutral-200 hover:border-blue-400 hover:bg-blue-50/50 rounded-2xl p-6 cursor-pointer transition-all duration-300 group flex flex-col items-center justify-center text-center h-48"
+                                            onClick={() => cameraInputRef.current?.click()}
+                                            className="border-2 border-dashed border-neutral-200 hover:border-blue-400 hover:bg-blue-50/50 rounded-2xl p-4 md:p-6 cursor-pointer transition-all duration-300 group flex flex-col items-center justify-center text-center h-36 md:h-48"
                                         >
-                                            <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform text-blue-600">
-                                                <Camera size={28} />
+                                            <div className="w-12 h-12 md:w-14 md:h-14 bg-blue-100 rounded-full flex items-center justify-center mb-2 md:mb-3 group-hover:scale-110 transition-transform text-blue-600">
+                                                <Camera className="w-6 h-6 md:w-7 md:h-7" />
                                             </div>
                                             <span className="font-semibold text-neutral-800 text-sm">Tirar Selfie</span>
-                                            <span className="text-xs text-neutral-400 mt-1">Usar Câmera</span>
+                                            <span className="text-xs text-neutral-400 mt-1 hidden md:block">Usar Câmera</span>
                                         </div>
 
                                         <div
                                             onClick={() => fileInputRef.current?.click()}
-                                            className="border-2 border-dashed border-neutral-200 hover:border-purple-400 hover:bg-purple-50/50 rounded-2xl p-6 cursor-pointer transition-all duration-300 group flex flex-col items-center justify-center text-center h-48"
+                                            className="border-2 border-dashed border-neutral-200 hover:border-purple-400 hover:bg-purple-50/50 rounded-2xl p-4 md:p-6 cursor-pointer transition-all duration-300 group flex flex-col items-center justify-center text-center h-36 md:h-48"
                                         >
                                             {selectedImage ? (
                                                 <div className="relative w-full h-full rounded-xl overflow-hidden">
@@ -330,11 +246,11 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({ isOpen, onClose, onNa
                                                 </div>
                                             ) : (
                                                 <>
-                                                    <div className="w-14 h-14 bg-purple-100 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform text-purple-600">
-                                                        <Upload size={28} />
+                                                    <div className="w-12 h-12 md:w-14 md:h-14 bg-purple-100 rounded-full flex items-center justify-center mb-2 md:mb-3 group-hover:scale-110 transition-transform text-purple-600">
+                                                        <Upload className="w-6 h-6 md:w-7 md:h-7" />
                                                     </div>
                                                     <span className="font-semibold text-neutral-800 text-sm">Enviar Foto</span>
-                                                    <span className="text-xs text-neutral-400 mt-1">Da Galeria</span>
+                                                    <span className="text-xs text-neutral-400 mt-1 hidden md:block">Da Galeria</span>
                                                 </>
                                             )}
                                         </div>
@@ -389,6 +305,14 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({ isOpen, onClose, onNa
                     ref={fileInputRef}
                     className="hidden"
                     accept="image/*"
+                    onChange={handleFileChange}
+                />
+                <input
+                    type="file"
+                    ref={cameraInputRef}
+                    className="hidden"
+                    accept="image/*"
+                    capture="user"
                     onChange={handleFileChange}
                 />
             </div>

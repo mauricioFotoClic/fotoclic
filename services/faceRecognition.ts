@@ -1,206 +1,130 @@
-
-import * as faceapi from 'face-api.js';
 import { supabase } from './supabaseClient';
+import { Human, Config } from '@vladmandic/human';
 
-const SSD_MOBILENETV1 = 'ssd_mobilenetv1';
-const FACE_LANDMARK_68 = 'face_landmark_68';
-const FACE_RECOGNITION = 'face_recognition';
-
+let humanObj: Human | null = null;
 let modelsLoaded = false;
-let loadingPromise: Promise<void> | null = null;
-let preciseLoadingPromise: Promise<void> | null = null;
 
-// Warmup function to compile shaders in the background
-async function warmupModels() {
-    try {
-        const dummyCanvas = document.createElement('canvas');
-        dummyCanvas.width = 1;
-        dummyCanvas.height = 1;
-        // Run a dummy detection to initialize shaders for BOTH models
-        console.log("Warming up models...");
-        // Warmup TinyFace (still used for some internals)
-        await faceapi.detectSingleFace(dummyCanvas, new faceapi.TinyFaceDetectorOptions({ inputSize: 128, scoreThreshold: 0.1 }));
-
-        // Warmup SSD MobileNet (CRITICAL for search speed)
-        await faceapi.detectSingleFace(dummyCanvas, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.1 }));
-        console.log("Models warmed up!");
-    } catch (e) {
-        console.warn('Warmup failed (non-critical):', e);
-    }
-}
+// Basic configuration for face detection and recognition only
+const humanConfig: Partial<Config> = {
+    modelBasePath: 'https://vladmandic.github.io/human/models', // Fallback to CDN for instant access
+    filter: { enabled: false, equalization: false },
+    backend: 'webgl', // fast GPU
+    face: {
+        enabled: true,
+        detector: { return: true, rotation: true },
+        mesh: { enabled: false }, // we don't need 3D mesh for basic distance
+        attention: { enabled: false },
+        iris: { enabled: false },
+        description: { enabled: true }, // this generates the embeddings
+        emotion: { enabled: false },
+        antispoof: { enabled: false },
+        liveness: { enabled: false }
+    },
+    body: { enabled: false },
+    hand: { enabled: false },
+    object: { enabled: false },
+    gesture: { enabled: false }
+};
 
 export const faceRecognitionService = {
-
     async loadEssentialModels() {
-        if (modelsLoaded) return;
-        if (loadingPromise) return loadingPromise;
+        if (modelsLoaded && humanObj) return true;
+        try {
+            console.time('Load Human Models');
+            humanObj = new Human(humanConfig);
 
-        const modelUrl = '/models';
+            // Explicitly load the models to trigger downloads
+            await humanObj.load();
 
-        loadingPromise = (async () => {
-            try {
-                // Ensure backend is ready (try WebGL for performance)
-                await faceapi.tf.setBackend('webgl').catch(() => console.log('WebGL not available, using CPU'));
-                await faceapi.tf.ready();
+            // Warmup
+            await humanObj.warmup();
 
-                // Load only the essential models for fast detection
-                await Promise.all([
-                    faceapi.nets.tinyFaceDetector.loadFromUri(modelUrl), // Primary (Lightweight)
-                    faceapi.nets.faceLandmark68Net.loadFromUri(modelUrl),
-                    faceapi.nets.faceRecognitionNet.loadFromUri(modelUrl)
-                ]);
-
-                modelsLoaded = true;
-
-                // Trigger warmup with a delay
-                setTimeout(() => {
-                    warmupModels();
-                }, 1000);
-
-            } catch (error) {
-                console.error('Error loading Essential FaceAPI models:', error);
-                modelsLoaded = false;
-                throw new Error('Falha ao carregar modelos de reconhecimento facial');
-            } finally {
-                loadingPromise = null;
-            }
-        })();
-
-        return loadingPromise;
+            modelsLoaded = true;
+            console.timeEnd('Load Human Models');
+            return true;
+        } catch (error) {
+            console.error("Error loading Human models:", error);
+            throw error;
+        }
     },
 
+    // Kept to not break API components that might call this explicitly 
     async loadPreciseModel() {
-        if (faceapi.nets.ssdMobilenetv1.isLoaded) return;
-        if (preciseLoadingPromise) return preciseLoadingPromise;
-
-        const modelUrl = '/models';
-        preciseLoadingPromise = (async () => {
-            try {
-                console.log("Loading precise model (SSD MobileNet)...");
-                console.time('Load SSD MobileNet');
-                await faceapi.nets.ssdMobilenetv1.loadFromUri(modelUrl);
-                console.timeEnd('Load SSD MobileNet');
-            } catch (error) {
-                console.error("Error loading SSD MobileNet:", error);
-            } finally {
-                preciseLoadingPromise = null;
-            }
-        })();
-
-        return preciseLoadingPromise;
-    },
-
-    // Backwards compatibility alias
-    async loadModels() {
         return this.loadEssentialModels();
     },
 
-    resizeImage(image: HTMLImageElement, maxWidth = 1280): HTMLCanvasElement | HTMLImageElement {
-        if (image.width <= maxWidth && image.height <= maxWidth) {
-            return image;
+    resizeImage(input: HTMLImageElement | HTMLVideoElement | HTMLCanvasElement, maxSize: number = 800): HTMLCanvasElement {
+        let width = ('naturalWidth' in input) ? input.naturalWidth : ('videoWidth' in input) ? input.videoWidth : input.width;
+        let height = ('naturalHeight' in input) ? input.naturalHeight : ('videoHeight' in input) ? input.videoHeight : input.height;
+
+        if (width > maxSize || height > maxSize) {
+            const ratio = Math.min(maxSize / width, maxSize / height);
+            width = width * ratio;
+            height = height * ratio;
         }
 
         const canvas = document.createElement('canvas');
-        const scale = maxWidth / Math.max(image.width, 1);
-
-        canvas.width = image.width * scale;
-        canvas.height = image.height * scale;
+        canvas.width = width;
+        canvas.height = height;
 
         const ctx = canvas.getContext('2d');
         if (ctx) {
-            ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-            return canvas;
+            ctx.drawImage(input, 0, 0, width, height);
         }
-        return image; // fallback
+
+        return canvas;
     },
 
-    async getFaceDescriptor(image: HTMLImageElement | HTMLVideoElement, onStatusUpdate?: (status: string) => void): Promise<Float32Array | null> {
-        // ALWAYS use SSD MobileNet for search to match indexing accuracy
-        // Since we are preloading, this shouldn't be too slow
+    async getFaceDescriptor(input: HTMLImageElement | HTMLVideoElement | HTMLCanvasElement): Promise<Float32Array | null> {
         console.time('Total Face Process');
+        await this.loadEssentialModels();
 
-        if (onStatusUpdate) onStatusUpdate("Carregando modelos IA...");
-        console.time('Load Model');
-        await this.loadPreciseModel();
-        console.timeEnd('Load Model');
+        if (!humanObj) throw new Error("Human AI not initialized.");
 
-        let input: any = image;
-        // Resize if it's an image, to ensure we don't process 4k images on CPU
-        // But keep enough resolution for SSD to work well
-        // OPTIMIZATION: Reduced from 512 to 320 to improve speed (target < 5s)
-        if (image instanceof HTMLImageElement) {
-            input = this.resizeImage(image, 640);
-        }
-
-        if (onStatusUpdate) onStatusUpdate("Analisando rosto (Biometria)...");
         console.time('Face Detection');
 
-        // Use slightly higher confidence for the probe image to allow decent quality only
-        const detection = await faceapi.detectSingleFace(input, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 }))
-            .withFaceLandmarks()
-            .withFaceDescriptor();
+        // Performance Optimization: Resize search input (smaller size for faster search latency)
+        const inputToProcess = this.resizeImage(input, 640);
+
+        // Detect faces
+        const result = await humanObj.detect(inputToProcess);
 
         console.timeEnd('Face Detection');
         console.timeEnd('Total Face Process');
 
-        return detection ? detection.descriptor : null;
+        if (!result || !result.face || result.face.length === 0) {
+            console.log('No face detected.');
+            return null;
+        }
+
+        // Return the descriptor (embedding) of the most prominent face
+        return new Float32Array(result.face[0].embedding!);
     },
 
     async indexPhoto(photoId: string, imageElement: HTMLImageElement) {
-        // Indexing MUST use the most accurate model (SSD MobileNet)
-        // to ensure the stored descriptors are high quality.
         await this.loadEssentialModels();
-        await this.loadPreciseModel();
+        if (!humanObj) throw new Error("Human AI not initialized.");
 
         // Performance Optimization: Resize for detection
         const inputToProcess = this.resizeImage(imageElement, 1280);
 
-        // Detect all faces in the photo with default options
-        let detections = await faceapi.detectAllFaces(inputToProcess)
-            .withFaceLandmarks()
-            .withFaceDescriptors();
+        // Detect all faces
+        const result = await humanObj.detect(inputToProcess);
 
-        // Retry with lower confidence if no faces found
-        if (detections.length === 0) {
-            console.log('No faces detected with default confidence, retrying with 0.3...');
-            detections = await faceapi.detectAllFaces(inputToProcess, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.3 }))
-                .withFaceLandmarks()
-                .withFaceDescriptors();
-        }
+        const faces = result.face;
 
-        // Retry with even lower confidence
-        if (detections.length === 0) {
-            console.log('No faces detected with 0.3 confidence, retrying with 0.1...');
-            detections = await faceapi.detectAllFaces(inputToProcess, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.1 }))
-                .withFaceLandmarks()
-                .withFaceDescriptors();
-        }
-
-        if (detections.length === 0) {
+        if (!faces || faces.length === 0) {
             console.log('No faces detected in photo', photoId);
             throw new Error("Nenhum rosto foi identificado na foto. Verifique a iluminação e qualidade.");
         }
 
-        const encodings = detections.map((d, index) => ({
-            photo_id: photoId,
-            face_index: index,
-            // Convert Float32Array to regular array for pgvector
-            // Supabase JS client handles array -> vector conversion automatically
-            descriptor: Array.from(d.descriptor),
+        const encodings = faces
+            .filter(f => f.embedding) // Ensure embedding exists
+            .map(f => ({
+                photo_id: photoId,
+                descriptor: `[${Array.from(f.embedding!).join(',')}]`
+            }));
 
-            // New Metadata Columns (Spec Alignment)
-            x: Math.round(d.detection.box.x),
-            y: Math.round(d.detection.box.y),
-            w: Math.round(d.detection.box.width),
-            h: Math.round(d.detection.box.height),
-            quality_score: d.detection.score,
-
-            model_version: 'face-api.js-v1'
-        }));
-
-        console.log(`Attempting to save ${encodings.length} face encodings for photo ${photoId}`);
-
-        // Insert into the table (now with vector column)
         const { error } = await supabase
             .from('face_encodings')
             .insert(encodings);
@@ -210,14 +134,14 @@ export const faceRecognitionService = {
             throw error;
         }
 
-        // Mark photo as indexed
+        // Update photo status
         await supabase
             .from('photos')
             .update({ is_face_indexed: true })
             .eq('id', photoId);
     },
 
-    async searchMatches(descriptor: Float32Array, threshold = 0.4): Promise<{ id: string, distance: number }[]> {
+    async searchMatches(descriptor: Float32Array, threshold = 0.45): Promise<{ id: string, distance: number }[]> {
         const { data: matches, error } = await supabase
             .rpc('match_faces', {
                 query_embedding: Array.from(descriptor),
@@ -234,29 +158,23 @@ export const faceRecognitionService = {
 
         console.log("Raw Matches from DB:", matches.map((m: any) => ({ id: m.photo_id, d: m.distance })));
 
-        // DYNAMIC THRESHOLDING STRATEGY (STRICTER)
-        // Cosine distance: 0.0 (exact) to 2.0 (opposite).
-
-        // Strict baseline: Reduced to 0.10 to eliminate false positives
-        const STRICT_HARD_CAP = 0.10;
+        // strict baseline for Vladmandic/Human MobileFaceNet using Cosine Distance
+        // usually < 0.25 is a great match, > 0.50 is unrelated
+        const STRICT_HARD_CAP = 0.40;
 
         const bestDistance = matches[0].distance;
 
-        // If the best match is weirdly far, it's probably not a match at all
         if (bestDistance > STRICT_HARD_CAP) {
             console.log("Best match is too far, returning empty.");
             return [];
         }
 
-        // Relative threshold: allow matches that are very close to the best match
-        // Tightened from 0.05 to 0.02 to avoid "look-alikes"
-        const relativeThreshold = bestDistance + 0.02;
+        const relativeThreshold = Math.max(bestDistance + 0.12, 0.35); // allowance for different lighting, minimum 0.35 ceiling
 
         const validMatches = matches.filter((m: any) => m.distance <= relativeThreshold && m.distance <= STRICT_HARD_CAP);
 
-        console.log(`Filtering: Best=${bestDistance.toFixed(4)}, RelativeLimit=${relativeThreshold.toFixed(4)}, HardCap=${STRICT_HARD_CAP} -> Kept ${validMatches.length}/${matches.length}`);
+        console.log(`Filtering (Cosine): Best=${bestDistance.toFixed(4)}, RelativeLimit=${relativeThreshold.toFixed(4)}, HardCap=${STRICT_HARD_CAP} -> Kept ${validMatches.length}/${matches.length}`);
 
-        // Return unique items (sometimes one photo has multiple faces/matches, take best)
         const uniqueResults = new Map<string, number>();
         validMatches.forEach((m: any) => {
             if (!uniqueResults.has(m.photo_id)) {
@@ -264,7 +182,6 @@ export const faceRecognitionService = {
             }
         });
 
-        // Convert back to array
         return Array.from(uniqueResults.entries()).map(([id, distance]) => ({ id, distance }));
     }
 };
