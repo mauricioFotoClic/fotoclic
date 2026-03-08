@@ -904,6 +904,30 @@ export const api = {
     }
     return data;
   },
+  getAllPhotos: async (photographerId?: string): Promise<Photo[]> => {
+    let query = supabase.from("photos").select("*").order("created_at", { ascending: false });
+    if (photographerId) {
+      query = query.eq("photographer_id", photographerId);
+    }
+    const { data, error } = await query;
+    if (error) {
+      console.error("Error fetching photos:", error);
+      return [];
+    }
+    return data;
+  },
+  getPhotosToReindex: async (limit: number = 50): Promise<Photo[]> => {
+    const { data, error } = await supabase
+      .from("photos")
+      .select("*")
+      .eq("is_face_indexed", false)
+      .limit(limit);
+    if (error) {
+      console.error("Error fetching photos to re-index:", error);
+      return [];
+    }
+    return data;
+  },
   getPublicPhotographers: async (): Promise<PhotographerWithStats[]> => {
     const { data: users, error } = await supabase
       .from("users")
@@ -1911,6 +1935,14 @@ export const api = {
       .eq("id", userId);
     if (error) throw error;
     return true;
+  },
+  getAdminStats: async (): Promise<any> => {
+    const { data, error } = await supabase.rpc("get_admin_stats");
+    if (error) {
+      console.error("Error fetching admin stats:", error);
+      throw error;
+    }
+    return data;
   },
   getSales: async (): Promise<Sale[]> => {
     // Select sales and join with the buyer (users table) to get the name

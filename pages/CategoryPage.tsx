@@ -104,7 +104,7 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ categoryId, onNavigate, onA
         <SEO
           title={category.name}
           description={`Explore as melhores fotos de ${category.name}. Encontre imagens profissionais de alta qualidade no FotoClic.`}
-          image={category.image_url}
+          image={category.image_url || undefined}
           url={`https://fotoclic.com.br/categoria/${category.id}`}
         />
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">

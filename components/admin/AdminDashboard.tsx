@@ -35,10 +35,7 @@ const ClockIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" heigh
 const LayersIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>;
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ setView }) => {
-    const [sales, setSales] = useState<Sale[]>([]);
-    const [photos, setPhotos] = useState<Photo[]>([]);
-    const [photographers, setPhotographers] = useState<PhotographerWithStats[]>([]);
-    const [categories, setCategories] = useState<Category[]>([]);
+    const [stats, setStats] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
     // Engine Reindex State
@@ -49,16 +46,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setView }) => {
     const fetchData = useCallback(async () => {
         try {
             setLoading(true);
-            const [salesData, photosData, photographersData, categoriesData] = await Promise.all([
-                api.getSales(),
-                api.getAllPhotos(),
-                api.getPhotographers(),
-                api.getCategories(),
-            ]);
-            setSales(salesData);
-            setPhotos(photosData);
-            setPhotographers(photographersData);
-            setCategories(categoriesData);
+            const statsData = await api.getAdminStats();
+            setStats(statsData);
         } catch (error) {
             console.error("Failed to fetch dashboard data", error);
         } finally {
@@ -67,58 +56,61 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setView }) => {
     }, []);
 
     const handleReindexAllPhotos = async () => {
-        if (!confirm("Isso iniciará a re-indexação biométrica (Human AI) para TODAS as fotos marcadas como não indexadas. Devido ao hardware ser no seu navegador, mantenha a tela ativa. Deseja continuar?")) return;
+        if (!confirm("Isso iniciará a re-indexação biométrica (Human AI) para TODAS as fotos marcadas como não indexadas. Devido ao hardware de IA rodar no seu navegador, mantenha esta aba ativa durante o processo. Deseja continuar?")) return;
 
-        setIsReindexing(true);
         try {
-            // Buscamos as pendentes diretas pelo Supabase
-            const { data: pendingPhotos, error } = await supabase
-                .from('photos')
-                .select('id, preview_url, is_face_indexed')
-                .eq('is_face_indexed', false);
-
-            if (error || !pendingPhotos) throw error;
-
-            setReindexTotal(pendingPhotos.length);
+            setIsReindexing(true);
+            const totalToProcess = stats.notIndexedPhotosCount; // Use the count from fetched stats
+            setReindexTotal(totalToProcess);
             setReindexProgress(0);
 
-            if (pendingPhotos.length === 0) {
+            if (totalToProcess === 0) {
                 alert("Todas as fotos do banco de dados já estão indexadas com a nova tecnologia!");
                 setIsReindexing(false);
                 return;
             }
 
-            // Loop por cada foto pendente
-            for (let i = 0; i < pendingPhotos.length; i++) {
-                const photo = pendingPhotos[i];
+            let processed = 0;
+            const batchSize = 10;
 
-                // Cria uma imagem via JS puro cruzando CORS
-                const img = new Image();
-                img.crossOrigin = "anonymous";
+            while (processed < totalToProcess) {
+                // Fetch next batch of non-indexed photos
+                const photosToProcess = await api.getPhotosToReindex(batchSize);
 
-                await new Promise((resolve) => {
-                    img.onload = resolve;
-                    img.onerror = () => {
-                        console.error(`Falha ao carregar a imagem da URL para a foto ${photo.id}: ${photo.preview_url}`);
-                        resolve(null);
-                    };
-                    img.src = photo.preview_url;
-                });
+                if (photosToProcess.length === 0) break;
 
-                try {
-                    // Manda rodar o MobileFaceNet e inserir o vetor de 1024 no Supabase
-                    await faceRecognitionService.indexPhoto(photo.id, img);
-                } catch (e) {
-                    // Ignora erros individuais de fotos onde não tem ngm pra não parar o loop inteiro
-                    console.warn(`Foto ${photo.id} falhou na Inteligência Artificial:`, e);
+                for (const photo of photosToProcess) {
+                    const img = new Image();
+                    img.crossOrigin = "anonymous";
+
+                    await new Promise((resolve) => {
+                        img.onload = resolve;
+                        img.onerror = () => {
+                            console.error(`Falha ao carregar a imagem para a foto ${photo.id}`);
+                            resolve(null);
+                        };
+                        img.src = photo.preview_url;
+                    });
+
+                    try {
+                        await faceRecognitionService.indexPhoto(photo.id, img);
+                    } catch (e) {
+                        console.warn(`Foto ${photo.id} falhou na IA:`, e);
+                    }
+
+                    processed++;
+                    setReindexProgress(processed);
                 }
 
-                setReindexProgress(i + 1);
+                // Small delay to prevent browser freeze and allow UI updates
+                await new Promise(r => setTimeout(r, 100));
             }
+
             alert("✅ Atualização Completa! Biometria SaaS recarregada e Banco de Dados atualizado.");
+            fetchData(); // Refresh stats
         } catch (error) {
             console.error(error);
-            alert("Ocorreu um erro massivo lendo o banco de dados.");
+            alert("Ocorreu um erro no processamento das fotos.");
         } finally {
             setIsReindexing(false);
         }
@@ -128,67 +120,23 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setView }) => {
         fetchData();
     }, [fetchData]);
 
-    const totalRevenue = useMemo(() => sales.reduce((sum, sale) => sum + sale.price, 0), [sales]);
-    const activePhotographersCount = useMemo(() => photographers.filter(p => p.is_active).length, [photographers]);
-    const pendingPhotos = useMemo(() => photos.filter(p => p.moderation_status === 'pending'), [photos]);
+    const {
+        totalRevenue = 0,
+        salesCount = 0,
+        activePhotographersCount = 0,
+        pendingPhotosCount = 0,
+        notIndexedPhotosCount = 0, // Added here!
+        pendingPhotos = [],
+        salesLast7Days = [],
+        topPhotographers = [],
+        categoryPhotoCount = []
+    } = stats || {};
 
-    const salesLast7Days = useMemo(() => {
-        const last7Days = Array.from({ length: 7 }, (_, i) => {
-            const d = new Date();
-            d.setDate(d.getDate() - i);
-            return d.toISOString().split('T')[0];
-        }).reverse();
-
-        const dailySales = last7Days.map(date => {
-            const total = sales
-                .filter(sale => sale.sale_date.startsWith(date))
-                .reduce((sum, sale) => sum + sale.price, 0);
-            return { date, total };
-        });
-        return dailySales;
-    }, [sales]);
-
-    const maxDailySale = useMemo(() => Math.max(...salesLast7Days.map(s => s.total), 1), [salesLast7Days]);
-
-    const topPhotographers = useMemo(() => {
-        const revenueByPhotographer = sales.reduce((acc, sale) => {
-            const photo = photos.find(p => p.id === sale.photo_id);
-            if (photo) {
-                acc[photo.photographer_id] = (acc[photo.photographer_id] || 0) + sale.price;
-            }
-            return acc;
-        }, {} as Record<string, number>);
-
-        return photographers
-            .map(p => ({ ...p, totalRevenue: revenueByPhotographer[p.id] || 0 }))
-            .sort((a, b) => b.totalRevenue - a.totalRevenue)
-            .slice(0, 5);
-    }, [sales, photos, photographers]);
-
-    const categoryPhotoCount = useMemo(() => {
-        const counts: { [key: string]: number } = {};
-        categories.forEach(cat => {
-            counts[cat.name] = 0;
-        });
-        counts['Sem Categoria'] = 0;
-
-        photos.forEach(photo => {
-            const category = categories.find(c => c.id === photo.category_id);
-            if (category) {
-                counts[category.name]++;
-            } else {
-                counts['Sem Categoria']++;
-            }
-        });
-
-        return Object.entries(counts)
-            .map(([name, count]) => ({ name, count }))
-            .sort((a, b) => b.count - a.count);
-    }, [photos, categories]);
-
-    const maxCategoryCount = useMemo(() => Math.max(...categoryPhotoCount.map(c => c.count), 1), [categoryPhotoCount]);
+    const maxDailySale = useMemo(() => Math.max(...salesLast7Days.map((s: any) => s.total), 1), [salesLast7Days]);
+    const maxCategoryCount = useMemo(() => Math.max(...categoryPhotoCount.map((c: any) => c.count), 1), [categoryPhotoCount]);
 
     if (loading) return <Spinner />;
+    if (!stats) return <div className="p-8 text-center text-neutral-500">Falha ao carregar estatísticas.</div>;
 
     return (
         <div>
@@ -230,9 +178,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setView }) => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 <StatCard title="Receita Total" value={totalRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} icon={<DollarSignIcon />} colorClass="bg-green-100 text-green-600" />
-                <StatCard title="Vendas Realizadas" value={sales.length} icon={<ShoppingCartIcon />} colorClass="bg-blue-100 text-blue-600" />
+                <StatCard title="Vendas Realizadas" value={salesCount} icon={<ShoppingCartIcon />} colorClass="bg-blue-100 text-blue-600" />
                 <StatCard title="Fotógrafos Ativos" value={activePhotographersCount} icon={<UsersIcon />} colorClass="bg-purple-100 text-purple-600" />
-                <StatCard title="Aguardando Moderação" value={pendingPhotos.length} icon={<ClockIcon />} colorClass="bg-yellow-100 text-yellow-600" />
+                <StatCard title="Aguardando Moderação" value={pendingPhotosCount} icon={<ClockIcon />} colorClass="bg-yellow-100 text-yellow-600" />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
@@ -256,9 +204,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setView }) => {
                     </div>
 
                     <div className="bg-white p-6 rounded-lg shadow-md">
-                        <h2 className="text-xl font-display font-bold text-primary-dark mb-4">Aguardando Moderação ({pendingPhotos.length})</h2>
+                        <h2 className="text-xl font-display font-bold text-primary-dark mb-4">Aguardando Moderação ({pendingPhotosCount})</h2>
                         <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
-                            {pendingPhotos.length > 0 ? pendingPhotos.map(photo => (
+                            {pendingPhotosCount > 0 ? pendingPhotos.map((photo: any) => (
                                 <button
                                     key={photo.id}
                                     onClick={() => setView('photos', { filterByPhotoId: photo.id })}
@@ -267,7 +215,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setView }) => {
                                     <img src={photo.preview_url} alt={photo.title} className="w-16 h-12 object-cover rounded-md mr-4 flex-shrink-0" />
                                     <div className="flex-grow min-w-0">
                                         <p className="font-semibold text-neutral-800 truncate">{photo.title}</p>
-                                        <p className="text-sm text-neutral-500">por {photographers.find(p => p.id === photo.photographer_id)?.name || 'N/A'}</p>
+                                        <p className="text-sm text-neutral-500">por {photo.photographer_name || 'N/A'}</p>
                                     </div>
                                 </button>
                             )) : <p className="text-center text-neutral-500 py-4">Nenhuma foto pendente. Bom trabalho!</p>}
@@ -279,16 +227,24 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setView }) => {
                     <div className="bg-white p-6 rounded-lg shadow-md">
                         <h2 className="text-xl font-display font-bold text-primary-dark mb-4">Fotógrafos em Destaque</h2>
                         <div className="space-y-4">
-                            {topPhotographers.map(p => (
+                            {topPhotographers.map((p: any) => (
                                 <div key={p.id} className="flex items-center justify-between">
                                     <div className="flex items-center">
-                                        <img src={p.avatar_url} alt={p.name} className="w-10 h-10 rounded-full object-cover mr-3" />
+                                        <div className="w-10 h-10 rounded-full bg-neutral-200 overflow-hidden mr-3">
+                                            {p.avatar_url && p.avatar_url !== 'base64_hidden' ? (
+                                                <img src={p.avatar_url} alt={p.name} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-neutral-400 font-bold">
+                                                    {p.name.charAt(0)}
+                                                </div>
+                                            )}
+                                        </div>
                                         <div>
                                             <p className="font-semibold text-neutral-800">{p.name}</p>
                                             <p className="text-xs text-neutral-500">{p.location || 'Local não informado'}</p>
                                         </div>
                                     </div>
-                                    <span className="font-bold text-green-600">{p.totalRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                                    <span className="font-bold text-green-600">{p.totalrevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
                                 </div>
                             ))}
                         </div>
@@ -308,6 +264,45 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setView }) => {
                                 </div>
                             ))}
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Gerenciamento do Sistema */}
+            <div className="mt-8 bg-white p-6 rounded-lg shadow-md border-t-4 border-secondary">
+                <h2 className="text-xl font-display font-bold text-primary-dark mb-4 flex items-center">
+                    <span className="mr-2">⚙️</span> Ferramentas do Sistema
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="p-4 border border-neutral-200 rounded-lg bg-neutral-50">
+                        <h3 className="font-bold text-neutral-800 mb-2">Re-indexação Biométrica</h3>
+                        <p className="text-sm text-neutral-600 mb-4">
+                            Processa fotos no seu navegador para extrair vetores faciais (Human AI).
+                            Útil para fotos antigas ou migrações.
+                            <strong> {notIndexedPhotosCount} fotos pendentes.</strong>
+                        </p>
+
+                        {isReindexing ? (
+                            <div className="space-y-2">
+                                <div className="flex justify-between text-xs font-medium text-neutral-700">
+                                    <span>Processando...</span>
+                                    <span>{reindexProgress} / {reindexTotal}</span>
+                                </div>
+                                <div className="w-full bg-neutral-200 rounded-full h-2.5">
+                                    <div
+                                        className="bg-secondary h-2.5 rounded-full transition-all duration-300"
+                                        style={{ width: `${(reindexProgress / (reindexTotal || 1)) * 100}%` }}
+                                    ></div>
+                                </div>
+                            </div>
+                        ) : (
+                            <button
+                                onClick={handleReindexAllPhotos}
+                                className="px-6 py-2 bg-secondary text-white font-bold rounded-full hover:bg-secondary-light transition-all shadow-sm flex items-center"
+                            >
+                                <span className="mr-2">🚀</span> Iniciar Re-indexação em Massa
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>

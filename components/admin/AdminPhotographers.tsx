@@ -189,8 +189,14 @@ const AdminPhotographers: React.FC<AdminPhotographersProps> = ({ onNavigate }) =
                             <tr key={user.id} className={`border-t ${index % 2 === 0 ? 'bg-white' : 'bg-neutral-50'}`}>
                                 <td className="p-4 text-sm text-neutral-800 font-medium">
                                     <div className="flex items-center">
-                                        <img src={user.avatar_url} alt={user.name} className="w-8 h-8 rounded-full object-cover mr-3" />
-                                        {user.name}
+                                        <div className="w-8 h-8 rounded-full bg-neutral-200 overflow-hidden mr-3 flex-shrink-0 flex items-center justify-center">
+                                            {user.avatar_url ? (
+                                                <img src={user.avatar_url} alt={user.name} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <span className="text-xs text-neutral-500 font-bold">{user.name.charAt(0)}</span>
+                                            )}
+                                        </div>
+                                        <span className="truncate max-w-[200px]">{user.name}</span>
                                     </div>
                                 </td>
                                 <td className="p-4 text-sm text-neutral-500">{user.email}</td>
@@ -257,7 +263,7 @@ const AdminPhotographers: React.FC<AdminPhotographersProps> = ({ onNavigate }) =
                         ))}
                         {filteredPhotographers.length === 0 && (
                             <tr>
-                                <td colSpan={8} className="text-center p-8 text-neutral-500">
+                                <td colSpan={10} className="text-center p-8 text-neutral-500">
                                     {searchTerm ? 'Nenhum fotógrafo encontrado para sua busca.' : 'Nenhum fotógrafo cadastrado.'}
                                 </td>
                             </tr>

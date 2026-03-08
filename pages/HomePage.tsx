@@ -220,7 +220,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
                   {/* Image with zoom effect */}
                   <div className="absolute inset-0 w-full h-full overflow-hidden">
                     <img
-                      src={category.image_url}
+                      src={category.image_url || `https://placehold.co/400x300/e2e8f0/64748b?text=${encodeURIComponent(category.name)}`}
                       alt={category.name}
                       className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                     />

@@ -2,13 +2,14 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Category } from '../../types';
 import api from '../../services/api';
+import { supabase } from '../../services/supabaseClient';
 import Spinner from '../Spinner';
 import Modal from '../Modal';
 import CategoryForm from './CategoryForm';
 
 const EditIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>;
 const TrashIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>;
-const WarningIcon: React.FC<{className?: string}> = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 3.001-1.742 3.001H4.42c-1.53 0-2.493-1.667-1.743-3.001l5.58-9.92zM10 13a1 1 0 110-2 1 1 0 010 2zm-1-8a1 1 0 00-1 1v3a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>;
+const WarningIcon: React.FC<{ className?: string }> = ({ className }) => <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 3.001-1.742 3.001H4.42c-1.53 0-2.493-1.667-1.743-3.001l5.58-9.92zM10 13a1 1 0 110-2 1 1 0 010 2zm-1-8a1 1 0 00-1 1v3a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>;
 const ArrowUpIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>;
 const ArrowDownIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>;
 
@@ -53,10 +54,34 @@ const AdminCategories: React.FC = () => {
         setEditingCategory(null);
     };
 
-    const handleFormSubmit = async (data: { name: string; image_url: string }) => {
+    const handleFormSubmit = async (data: { name: string; image_url: string; image_file?: File }) => {
         try {
+            let finalImageUrl = data.image_url;
+
+            // Se o admin subiu uma nova imagem (temmos o File), vamos fazer upload pro banco de dados em vez de salvar Base64
+            if (data.image_file) {
+                const fileExt = data.image_file.name.split('.').pop() || 'jpg';
+                const fileName = `categories/cat-${Date.now()}.${fileExt}`;
+
+                const { error: uploadError } = await supabase.storage
+                    .from('photos-preview')
+                    .upload(fileName, data.image_file, { upsert: true });
+
+                if (uploadError) {
+                    throw new Error("Falha ao fazer upload da imagem.");
+                }
+
+                const { data: { publicUrl } } = supabase.storage
+                    .from('photos-preview')
+                    .getPublicUrl(fileName);
+
+                finalImageUrl = publicUrl;
+            }
+
+            const finalData = { name: data.name, image_url: finalImageUrl };
+
             if (editingCategory) {
-                const updatedCategory = await api.updateCategory(editingCategory.id, data);
+                const updatedCategory = await api.updateCategory(editingCategory.id, finalData);
                 if (updatedCategory) {
                     setCategories(prev => prev.map(cat => cat.id === updatedCategory.id ? updatedCategory : cat));
                 }
@@ -70,7 +95,7 @@ const AdminCategories: React.FC = () => {
             alert("Ocorreu um erro ao salvar a categoria.");
         }
     };
-    
+
     const handleDelete = async (id: string) => {
         setCategoryToDeleteId(id);
         try {
@@ -110,10 +135,10 @@ const AdminCategories: React.FC = () => {
 
         const newCategories = [...categories];
         const swapIndex = direction === 'up' ? index - 1 : index + 1;
-        
+
         // Swap items in array
         [newCategories[index], newCategories[swapIndex]] = [newCategories[swapIndex], newCategories[index]];
-        
+
         // Optimistic update
         setCategories(newCategories);
         setIsReordering(true);
@@ -155,14 +180,14 @@ const AdminCategories: React.FC = () => {
         <div>
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-display font-bold text-primary-dark">Categorias</h1>
-                <button 
+                <button
                     onClick={() => handleOpenModal()}
                     className="px-4 py-2 text-sm font-medium text-white bg-primary rounded-full hover:bg-opacity-90 transition-colors"
                 >
                     Nova Categoria
                 </button>
             </div>
-            
+
             <div className="bg-white rounded-lg shadow-md overflow-hidden">
                 <table className="w-full">
                     <thead className="bg-neutral-100">
@@ -182,7 +207,7 @@ const AdminCategories: React.FC = () => {
                                 <tr key={cat.id} className={`border-t ${index % 2 === 0 ? 'bg-white' : 'bg-neutral-50'}`}>
                                     <td className="p-4 text-center">
                                         <div className="flex flex-col items-center justify-center space-y-1">
-                                            <button 
+                                            <button
                                                 onClick={() => handleMove(actualIndex, 'up')}
                                                 disabled={actualIndex === 0 || isReordering}
                                                 className={`p-1 rounded hover:bg-neutral-200 transition-colors ${actualIndex === 0 ? 'opacity-30 cursor-not-allowed' : 'text-neutral-600'}`}
@@ -190,7 +215,7 @@ const AdminCategories: React.FC = () => {
                                             >
                                                 <ArrowUpIcon />
                                             </button>
-                                            <button 
+                                            <button
                                                 onClick={() => handleMove(actualIndex, 'down')}
                                                 disabled={actualIndex === categories.length - 1 || isReordering}
                                                 className={`p-1 rounded hover:bg-neutral-200 transition-colors ${actualIndex === categories.length - 1 ? 'opacity-30 cursor-not-allowed' : 'text-neutral-600'}`}
@@ -201,21 +226,21 @@ const AdminCategories: React.FC = () => {
                                         </div>
                                     </td>
                                     <td className="p-2">
-                                        <img src={cat.image_url} alt={cat.name} className="w-20 h-14 object-cover rounded-md" />
+                                        <img src={cat.image_url || `https://placehold.co/100x70/e2e8f0/64748b?text=${encodeURIComponent(cat.name)}`} alt={cat.name} className="w-20 h-14 object-cover rounded-md" />
                                     </td>
                                     <td className="p-4 text-sm text-neutral-800 font-medium">{cat.name}</td>
                                     <td className="p-4 text-sm text-neutral-500">{cat.slug}</td>
                                     <td className="p-4 text-right">
                                         <div className="flex items-center justify-end gap-2">
-                                            <button 
-                                                onClick={() => handleOpenModal(cat)} 
+                                            <button
+                                                onClick={() => handleOpenModal(cat)}
                                                 className="flex items-center justify-center w-9 h-9 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-full transition-colors"
                                                 title="Editar"
                                             >
                                                 <EditIcon />
                                             </button>
-                                            <button 
-                                                onClick={() => handleDelete(cat.id)} 
+                                            <button
+                                                onClick={() => handleDelete(cat.id)}
                                                 className="flex items-center justify-center w-9 h-9 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-full transition-colors"
                                                 title="Excluir"
                                             >
@@ -253,18 +278,18 @@ const AdminCategories: React.FC = () => {
             )}
 
 
-            <Modal 
+            <Modal
                 isOpen={isModalOpen}
                 onClose={handleCloseModal}
                 title={editingCategory ? "Editar Categoria" : "Nova Categoria"}
             >
-                <CategoryForm 
+                <CategoryForm
                     onSubmit={handleFormSubmit}
                     onCancel={handleCloseModal}
                     initialData={editingCategory}
                 />
             </Modal>
-            
+
             <Modal
                 isOpen={isConfirmModalOpen}
                 onClose={() => setIsConfirmModalOpen(false)}
