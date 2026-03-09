@@ -79,14 +79,25 @@ const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({ user, set
     const salesLast7Days = useMemo(() => {
         const last7Days = Array.from({ length: 7 }, (_, i) => {
             const d = new Date();
-            d.setDate(d.getDate() - i);
-            return d.toISOString().split('T')[0];
-        }).reverse();
+            d.setDate(d.getDate() - (6 - i));
+            // Format YYYY-MM-DD in LOCAL browser time
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        });
 
         const dailySales = last7Days.map(date => {
             const total = sales
-                .filter(sale => sale.sale_date.startsWith(date))
-                .reduce((sum, sale) => sum + (sale.price - sale.commission), 0);
+                .filter(sale => {
+                    const d = new Date(sale.sale_date);
+                    const sYear = d.getFullYear();
+                    const sMonth = String(d.getMonth() + 1).padStart(2, '0');
+                    const sDay = String(d.getDate()).padStart(2, '0');
+                    const saleLocalDate = `${sYear}-${sMonth}-${sDay}`;
+                    return saleLocalDate === date;
+                })
+                .reduce((sum, sale) => sum + (Number(sale.price) - Number(sale.commission)), 0);
             return { date, total };
         });
         return dailySales;
@@ -153,19 +164,27 @@ const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({ user, set
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="bg-white p-6 rounded-lg shadow-md">
                     <h2 className="text-xl font-display font-bold text-primary-dark mb-4">Seus Ganhos (Últimos 7 Dias)</h2>
-                    <div className="flex justify-between items-end h-48 space-x-2">
-                        {salesLast7Days.map((day, index) => (
-                            <div key={index} className="flex-1 flex flex-col items-center justify-end group">
-                                <div className="text-sm font-bold text-primary opacity-0 group-hover:opacity-100 transition-opacity -mb-1">
-                                    {day.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                    <div className="flex justify-between items-end h-48 space-x-2 border-b border-neutral-100 pb-2">
+                        {salesLast7Days.map((day, index) => {
+                            const total = Number(day.total);
+                            const h = maxDailyEarning > 0 ? (total / maxDailyEarning) * 100 : 0;
+
+                            return (
+                                <div key={index} className="flex-1 flex flex-col items-center justify-end group h-full relative">
+                                    <div className="text-[10px] font-bold text-secondary opacity-0 group-hover:opacity-100 transition-opacity mb-1 absolute -top-6 bg-white px-1 rounded shadow-sm border border-secondary/10 z-10 whitespace-nowrap">
+                                        {total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                    </div>
+                                    <div
+                                        className="w-full bg-secondary hover:bg-secondary-dark rounded-t-sm transition-all shadow-sm"
+                                        style={{ height: `${total > 0 ? Math.max(h, 4) : 0}%` }}
+                                        title={total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                    ></div>
+                                    <span className="text-[10px] text-neutral-400 mt-2 font-medium">
+                                        {new Date(day.date + 'T12:00:00Z').toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')}
+                                    </span>
                                 </div>
-                                <div
-                                    className="w-full bg-secondary/20 hover:bg-secondary/40 rounded-t-md transition-all"
-                                    style={{ height: `${(day.total / maxDailyEarning) * 100}%` }}
-                                ></div>
-                                <span className="text-xs text-neutral-500 mt-2">{new Date(day.date + 'T12:00:00Z').toLocaleDateString('pt-BR', { weekday: 'short' })}</span>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </div>
 

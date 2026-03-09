@@ -132,7 +132,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setView }) => {
         categoryPhotoCount = []
     } = stats || {};
 
-    const maxDailySale = useMemo(() => Math.max(...salesLast7Days.map((s: any) => s.total), 1), [salesLast7Days]);
+    const maxDailySale = useMemo(() => Math.max(...salesLast7Days.map((s: any) => Number(s.total)), 1), [salesLast7Days]);
     const maxCategoryCount = useMemo(() => Math.max(...categoryPhotoCount.map((c: any) => c.count), 1), [categoryPhotoCount]);
 
     if (loading) return <Spinner />;
@@ -187,19 +187,27 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setView }) => {
                 <div className="lg:col-span-3 space-y-6">
                     <div className="bg-white p-6 rounded-lg shadow-md">
                         <h2 className="text-xl font-display font-bold text-primary-dark mb-4">Vendas nos Últimos 7 Dias</h2>
-                        <div className="flex justify-between items-end h-48 space-x-2">
-                            {salesLast7Days.map((day, index) => (
-                                <div key={index} className="flex-1 flex flex-col items-center justify-end group">
-                                    <div className="text-sm font-bold text-primary opacity-0 group-hover:opacity-100 transition-opacity -mb-1">
-                                        {day.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                        <div className="flex justify-between items-end h-48 space-x-2 border-b border-neutral-100 pb-2">
+                            {salesLast7Days.map((day: any, index: number) => {
+                                const total = Number(day.total);
+                                const h = maxDailySale > 0 ? (total / maxDailySale) * 100 : 0;
+
+                                return (
+                                    <div key={index} className="flex-1 flex flex-col items-center justify-end group h-full relative">
+                                        <div className="text-[10px] font-bold text-primary opacity-0 group-hover:opacity-100 transition-opacity mb-1 absolute -top-6 bg-white px-1 rounded shadow-sm border border-primary/10 z-10 whitespace-nowrap">
+                                            {total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                        </div>
+                                        <div
+                                            className="w-full bg-primary hover:bg-primary-dark rounded-t-sm transition-all shadow-sm"
+                                            style={{ height: `${total > 0 ? Math.max(h, 4) : 0}%` }}
+                                            title={total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                        ></div>
+                                        <span className="text-[10px] text-neutral-400 mt-2 font-medium">
+                                            {new Date(day.date + 'T12:00:00Z').toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')}
+                                        </span>
                                     </div>
-                                    <div
-                                        className="w-full bg-primary/20 hover:bg-primary/40 rounded-t-md transition-all"
-                                        style={{ height: `${(day.total / maxDailySale) * 100}%` }}
-                                    ></div>
-                                    <span className="text-xs text-neutral-500 mt-2">{new Date(day.date + 'T12:00:00Z').toLocaleDateString('pt-BR', { weekday: 'short' })}</span>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     </div>
 

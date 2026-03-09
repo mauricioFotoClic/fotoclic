@@ -91,6 +91,7 @@ export interface Photo {
   liked_by_users: string[];
   is_face_indexed?: boolean;
   event_id?: string;
+  sales_count: number;
 }
 
 export interface PhotoEvent {

@@ -276,12 +276,13 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                 const { data: thumbUrlData } = api.supabase.storage.from('photos-preview').getPublicUrl(`${filePath}-thumb.webp`);
 
                 // 5. Save Metadata to DB
-                // For original, we save the PATH (to be used with createSignedUrl)
-                // For preview/thumb, we save the Public URL
+                const existingCount = photos.filter(p => p.event_id === selectedEvent.id).length;
+                const sequenceNum = existingCount + files.indexOf(file) + 1;
+                const sequence = sequenceNum.toString().padStart(2, '0');
                 const newPhoto = await api.createPhoto({
                     photographer_id: user.id,
                     category_id: selectedEvent.category_id,
-                    title: `${selectedEvent.name} - ${files.indexOf(file) + 1}`,
+                    title: `${sequence}-${selectedEvent.name}`,
                     description: `Foto do evento ${selectedEvent.name}`,
                     price: metadata.price,
                     preview_url: prevUrlData.publicUrl,
@@ -652,6 +653,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                                         <th className="p-4 text-left text-sm font-semibold text-neutral-600">Foto</th>
                                         <th className="p-4 text-left text-sm font-semibold text-neutral-600">Título</th>
                                         <th className="p-4 text-left text-sm font-semibold text-neutral-600">Categoria</th>
+                                        <th className="p-4 text-center text-sm font-semibold text-neutral-600">Qtd Vendas</th>
                                         <th className="p-4 text-right text-sm font-semibold text-neutral-600">Preço</th>
                                         <th className="p-4 text-center text-sm font-semibold text-neutral-600">Visibilidade</th>
                                         <th className="p-4 text-center text-sm font-semibold text-neutral-600">Moderação</th>
@@ -672,6 +674,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                                             </td>
                                             <td className="p-4 text-sm font-medium text-neutral-800">{photo.title}</td>
                                             <td className="p-4 text-sm text-neutral-500">{getCategoryName(photo.category_id)}</td>
+                                            <td className="p-4 text-sm font-bold text-neutral-700 text-center bg-neutral-50/50">{photo.sales_count || 0}</td>
                                             <td className="p-4 text-sm text-green-600 font-medium text-right">{photo.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
                                             <td className="p-4 text-center">
                                                 <span className={`px-2 py-1 text-xs font-semibold rounded-full ${photo.is_public ? 'bg-green-100 text-green-800' : 'bg-neutral-200 text-neutral-600'}`}>
@@ -690,7 +693,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                                         </tr>
                                     ))}
                                     {filteredPhotos.length === 0 && (
-                                        <tr><td colSpan={7} className="text-center p-8 text-neutral-500">Nenhuma foto encontrada neste evento.</td></tr>
+                                        <tr><td colSpan={8} className="text-center p-8 text-neutral-500">Nenhuma foto encontrada neste evento.</td></tr>
                                     )}
                                 </tbody>
                             </table>

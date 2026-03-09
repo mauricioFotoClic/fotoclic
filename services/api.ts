@@ -96,6 +96,7 @@ const mapPhoto = (dbPhoto: any): Photo => {
     quality_analysis: dbPhoto.quality_analysis || undefined,
     is_face_indexed: dbPhoto.is_face_indexed,
     event_id: dbPhoto.event_id,
+    sales_count: dbPhoto.sales_count || 0,
   };
 };
 
@@ -131,7 +132,7 @@ export const api = {
     const { data, error } = await supabase
       .from("photos")
       .select(
-        "id, photographer_id, category_id, title, preview_url, thumb_url, price, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags",
+        "id, photographer_id, category_id, title, preview_url, thumb_url, price, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags, sales_count",
       )
       .eq("is_featured", true)
       .eq("moderation_status", "approved")
@@ -147,15 +148,22 @@ export const api = {
     return result;
   },
 
-  getAllPhotos: async (shuffle: boolean = false): Promise<Photo[]> => {
-    const limit = shuffle ? 100 : 500; // Increase limit for admin view
-    const { data, error } = await supabase
+  getAllPhotos: async (photographerId?: string, shuffle: boolean = false): Promise<Photo[]> => {
+    const limit = shuffle ? 100 : 2000;
+    let query = supabase
       .from("photos")
       .select(
-        "id, photographer_id, category_id, title, preview_url, thumb_url, price, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags, event_id",
-      )
+        "id, photographer_id, category_id, title, preview_url, thumb_url, price, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags, event_id, sales_count",
+      );
+
+    if (photographerId) {
+      query = query.eq("photographer_id", photographerId);
+    }
+
+    const { data, error } = await query
       .order("created_at", { ascending: false })
       .limit(limit);
+
     if (error) {
       console.warn("Error fetching all photos:", error);
       return [];
@@ -174,7 +182,7 @@ export const api = {
     const { data, error } = await supabase
       .from("photos")
       .select(
-        "id, photographer_id, category_id, title, preview_url, thumb_url, price, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags",
+        "id, photographer_id, category_id, title, preview_url, thumb_url, price, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags, sales_count",
       )
       .eq("moderation_status", "approved")
       .eq("is_public", true)
@@ -199,7 +207,7 @@ export const api = {
     const { data, error } = await supabase
       .from("photos")
       .select(
-        "id, photographer_id, category_id, title, preview_url, thumb_url, price, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags",
+        "id, photographer_id, category_id, title, preview_url, thumb_url, price, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags, sales_count",
       )
       .eq("category_id", categoryId)
       .eq("moderation_status", "approved")
@@ -215,7 +223,7 @@ export const api = {
     const { data, error } = await supabase
       .from("photos")
       .select(
-        "id, photographer_id, category_id, title, description, preview_url, file_url, thumb_url, price, resolution, width, height, tags, is_public, created_at, moderation_status, rejection_reason, is_featured, likes_count, quality_analysis, is_face_indexed, event_id, photo_likes(user_id)",
+        "id, photographer_id, category_id, title, description, preview_url, file_url, thumb_url, price, resolution, width, height, tags, is_public, created_at, moderation_status, rejection_reason, is_featured, likes_count, quality_analysis, is_face_indexed, event_id, sales_count, photo_likes(user_id)",
       )
       .eq("id", id)
       .single();
@@ -231,7 +239,7 @@ export const api = {
     const { data, error } = await supabase
       .from("photos")
       .select(
-        "id, photographer_id, category_id, title, description, preview_url, file_url, thumb_url, price, resolution, width, height, tags, is_public, created_at, moderation_status, rejection_reason, is_featured, likes_count, quality_analysis, is_face_indexed, event_id, photo_likes(user_id)",
+        "id, photographer_id, category_id, title, description, preview_url, file_url, thumb_url, price, resolution, width, height, tags, is_public, created_at, moderation_status, rejection_reason, is_featured, likes_count, quality_analysis, is_face_indexed, event_id, sales_count, photo_likes(user_id)",
       )
       .in("id", ids);
 
@@ -245,10 +253,10 @@ export const api = {
     const { data, error } = await supabase
       .from("photos")
       .select(
-        "id, photographer_id, category_id, title, description, preview_url, file_url, thumb_url, price, resolution, width, height, tags, is_public, created_at, moderation_status, rejection_reason, is_featured, likes_count, quality_analysis, is_face_indexed, event_id, photo_likes(user_id)",
+        "id, photographer_id, category_id, title, description, preview_url, file_url, thumb_url, price, resolution, width, height, tags, is_public, created_at, moderation_status, rejection_reason, is_featured, likes_count, quality_analysis, is_face_indexed, event_id, sales_count, photo_likes(user_id)",
       )
       .eq("photographer_id", photographerId)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: true });
     if (error) throw error;
     return data ? data.map(mapPhoto) : [];
   },
@@ -736,6 +744,9 @@ export const api = {
         photoCount: Number(row.photo_cnt),
         salesCount: Number(row.sales_cnt),
         commissionValue: Number(row.comm_val),
+        pendingCount: Number(row.pending_cnt),
+        approvedCount: Number(row.approved_cnt),
+        rejectedCount: Number(row.rejected_cnt),
         commissionRate: effectiveRate,
         likesCount: Number(row.likes_cnt),
         avgRating: 0,
@@ -861,7 +872,8 @@ export const api = {
     id: string,
     updates: Partial<PhotoEvent>,
   ): Promise<PhotoEvent | null> => {
-    const { data, error } = await supabase
+    // 1. Update the event
+    const { data: updatedEvent, error } = await supabase
       .from("events")
       .update(updates)
       .eq("id", id)
@@ -872,7 +884,56 @@ export const api = {
       console.error("Error updating event:", error);
       return null;
     }
-    return data as PhotoEvent;
+
+    // 2. If name or category changed, sync photos
+    if (updates.name || updates.category_id) {
+      try {
+        const { data: photos, error: photosError } = await supabase
+          .from("photos")
+          .select("id, created_at")
+          .eq("event_id", id)
+          .order("created_at", { ascending: true }); // "primeira para a ultima"
+
+        if (!photosError && photos && photos.length > 0) {
+          // Prepare updates for each photo
+          const photoUpdates = photos.map((photo, index) => {
+            const sequence = (index + 1).toString().padStart(2, "0");
+            const newTitle = updates.name
+              ? `${sequence}-${updates.name}`
+              : undefined; // Keep existing title if name didn't change (but logic-wise if category changed we might still want to refresh?)
+
+            // Actually, if only category changed, we still need to fetch existing event name if we want to keep the title format
+            // But usually name AND category are edited together or we can assume name is in updatedEvent
+            const finalTitle = updates.name
+              ? `${sequence}-${updates.name}`
+              : `${sequence}-${updatedEvent.name}`;
+
+            const updateObj: any = { title: finalTitle };
+            if (updates.category_id) {
+              updateObj.category_id = updates.category_id;
+            }
+            return { id: photo.id, ...updateObj };
+          });
+
+          // Supabase doesn't support bulk update with different values per row in a single call easily via .update().
+          // We can use a loop or a specialized RPC if performance is an issue.
+          // For now, since events usually don't have thousands of photos at once (or do they?), a sequence of updates or a single upsert if applicable.
+          // Upsert works if we provide all required fields, but we only want to update.
+          // Let's use promise.all for small batches or just loop.
+
+          // Perform updates in parallel for better performance
+          await Promise.all(
+            photoUpdates.map(pUpdate =>
+              supabase.from("photos").update(pUpdate).eq("id", pUpdate.id)
+            )
+          );
+        }
+      } catch (err) {
+        console.error("Error syncing photo titles with event name:", err);
+      }
+    }
+
+    return updatedEvent as PhotoEvent;
   },
 
   createReview: async (
@@ -900,18 +961,6 @@ export const api = {
 
     if (error) {
       console.error("Error fetching reviews:", error);
-      return [];
-    }
-    return data;
-  },
-  getAllPhotos: async (photographerId?: string): Promise<Photo[]> => {
-    let query = supabase.from("photos").select("*").order("created_at", { ascending: false });
-    if (photographerId) {
-      query = query.eq("photographer_id", photographerId);
-    }
-    const { data, error } = await query;
-    if (error) {
-      console.error("Error fetching photos:", error);
       return [];
     }
     return data;

@@ -40,7 +40,7 @@ const ToggleSwitch: React.FC<{ checked: boolean; onChange: () => void; }> = ({ c
 
 const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
     const [photos, setPhotos] = useState<Photo[]>([]);
-    const [photographers, setPhotographers] = useState<User[]>([]);
+    const [photographers, setPhotographers] = useState<PhotographerWithStats[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
     const [emailTemplates, setEmailTemplates] = useState<EmailTemplates | null>(null);
     const [loading, setLoading] = useState(true);
@@ -106,12 +106,18 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
         fetchData();
     }, [fetchData]);
 
-    // Fetch Events when photographer changes
+    // Fetch Photos when photographer changes
     useEffect(() => {
         if (selectedPhotographerId) {
+            setLoading(true);
             api.getPhotographerEvents(selectedPhotographerId).then(setPhotographerEvents);
+            api.getAllPhotos(selectedPhotographerId).then(data => {
+                setPhotos(data);
+                setLoading(false);
+            });
         } else {
             setPhotographerEvents([]);
+            setPhotos([]); // Clear local photos when in folder view
         }
     }, [selectedPhotographerId]);
     // State for Events (Moved to top level)
@@ -346,24 +352,12 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
         setCurrentPage((page) => Math.max(page - 1, 1));
     };
 
-    // Logic for grouping photographers
+    // Logic for grouping photographers (Use data from getPhotographers RPC!)
     const photographerGroups = useMemo(() => {
-        return photographers.map(photographer => {
-            const userPhotos = photos.filter(p => p.photographer_id === photographer.id);
-            const pendingCount = userPhotos.filter(p => p.moderation_status === 'pending').length;
-            const approvedCount = userPhotos.filter(p => p.moderation_status === 'approved').length;
-            const rejectedCount = userPhotos.filter(p => p.moderation_status === 'rejected').length;
-            return {
-                ...photographer,
-                totalPhotos: userPhotos.length,
-                pendingCount,
-                approvedCount,
-                rejectedCount,
-                hasPhotos: userPhotos.length > 0
-            };
-        }).filter(p => p.hasPhotos) // Only show photographers with at least 1 photo uploaded
-            .sort((a, b) => b.pendingCount - a.pendingCount); // Show pending first
-    }, [photographers, photos]);
+        return photographers
+            .filter(p => p.photoCount > 0)
+            .sort((a, b) => b.pendingCount - a.pendingCount || b.photoCount - a.photoCount);
+    }, [photographers]);
 
     // Group filtered photos by event (Moved to top level)
     const photosByEvent = useMemo(() => {
@@ -450,8 +444,16 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
                             )}
 
                             <div className="flex items-center space-x-4 mb-4">
-                                <img src={group.avatar_url} alt={group.name} className="w-16 h-16 rounded-full object-cover border-2 border-neutral-100" />
-                                <div>
+                                <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-primary/10 shadow-sm flex-shrink-0 flex items-center justify-center bg-neutral-100">
+                                    {group.avatar_url && group.avatar_url !== 'base64_hidden' ? (
+                                        <img src={group.avatar_url} alt={group.name} className="w-full h-full object-cover" />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center bg-primary/10 text-primary uppercase font-bold text-xl">
+                                            {group.name.charAt(0)}
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="min-w-0">
                                     <h3 className="font-bold text-lg text-neutral-800 group-hover:text-primary transition-colors">{group.name}</h3>
                                     <p className="text-sm text-neutral-500">{group.email}</p>
                                 </div>
@@ -469,7 +471,7 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
                                     <div className="text-xs text-neutral-500 uppercase tracking-wide">Aprovadas</div>
                                 </div>
                                 <div className="border-l border-neutral-200">
-                                    <div className="font-bold text-lg text-neutral-800">{group.totalPhotos}</div>
+                                    <div className="font-bold text-lg text-neutral-800">{group.photoCount}</div>
                                     <div className="text-xs text-neutral-500 uppercase tracking-wide">Total</div>
                                 </div>
                             </div>
