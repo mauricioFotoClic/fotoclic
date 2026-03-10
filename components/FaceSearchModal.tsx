@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Upload, Search, Camera } from 'lucide-react';
+import { X, Upload, Search, Camera, Info, ChevronDown, User, Sun, Maximize2, Scan } from 'lucide-react';
 import { faceRecognitionService } from '../services/faceRecognition';
 import api from '../services/api';
 import { Photo } from '../types';
@@ -20,6 +20,7 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({ isOpen, onClose, onNa
     const [isProcessing, setIsProcessing] = useState(false);
     const [results, setResults] = useState<Photo[]>([]);
     const [hasSearched, setHasSearched] = useState(false);
+    const [showTips, setShowTips] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const cameraInputRef = useRef<HTMLInputElement>(null);
 
@@ -214,10 +215,74 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({ isOpen, onClose, onNa
                                             <Camera size={40} className="text-blue-600" />
                                         </div>
                                         <h3 className="text-2xl font-bold text-neutral-900 mb-3">Tire ou envie uma selfie</h3>
-                                        <p className="text-neutral-500 leading-relaxed">
+                                        <p className="text-neutral-500 leading-relaxed mb-6">
                                             Usamos inteligência artificial para encontrar todas as fotos onde você aparece.
                                             <br className="hidden md:block" /> Sua privacidade é protegida.
                                         </p>
+
+                                        {/* Expandable Tips */}
+                                        <div className="max-w-md mx-auto">
+                                            <button
+                                                onClick={() => setShowTips(!showTips)}
+                                                className={`flex items-center justify-between w-full p-4 rounded-2xl border transition-all duration-300 ${
+                                                    showTips 
+                                                    ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-200' 
+                                                    : 'bg-blue-50/50 border-blue-100 text-blue-700 hover:bg-blue-50'
+                                                }`}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <Info size={20} />
+                                                    <span className="font-bold text-sm">Dicas para uma busca perfeita</span>
+                                                </div>
+                                                <ChevronDown size={20} className={`transition-transform duration-500 ${showTips ? 'rotate-180' : ''}`} />
+                                            </button>
+
+                                            {showTips && (
+                                                <div className="mt-2 text-left bg-white rounded-2xl border border-neutral-100 shadow-xl p-5 animate-in slide-in-from-top-4 duration-500">
+                                                    <div className="grid grid-cols-1 gap-4">
+                                                        <div className="flex items-start gap-3">
+                                                            <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center text-green-600 shrink-0">
+                                                                <User size={18} />
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-sm font-bold text-neutral-800">Fique de frente</p>
+                                                                <p className="text-xs text-neutral-500">Fotos de perfil ou rosto muito inclinado dificultam a precisão.</p>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="flex items-start gap-3">
+                                                            <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600 shrink-0">
+                                                                <Sun size={18} />
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-sm font-bold text-neutral-800">Iluminação é a chave</p>
+                                                                <p className="text-xs text-neutral-500">Evite sombras fortes no rosto ou luz forte vindo de trás.</p>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="flex items-start gap-3">
+                                                            <div className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center text-red-600 shrink-0">
+                                                                <Maximize2 size={18} />
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-sm font-bold text-neutral-800">Distância média</p>
+                                                                <p className="text-xs text-neutral-500">Não tire a foto de muito perto. Mantenha o celular a um braço de distância.</p>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="flex items-start gap-3">
+                                                            <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
+                                                                <Scan size={18} />
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-sm font-bold text-neutral-800">Rosto limpo</p>
+                                                                <p className="text-xs text-neutral-500">Evite óculos de sol, bonés exagerados ou máscaras.</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
 
 
