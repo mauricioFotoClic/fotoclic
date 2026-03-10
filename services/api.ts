@@ -148,8 +148,83 @@ export const api = {
     return result;
   },
 
-  getAllPhotos: async (photographerId?: string, shuffle: boolean = false): Promise<Photo[]> => {
-    const limit = shuffle ? 100 : 2000;
+  searchPhotos: async (searchTerm: string, categoryId?: string): Promise<Photo[]> => {
+    const cleanTerm = (searchTerm || "").trim();
+
+    // Conjuntos para armazenar IDs que batem com a busca
+    let matchingCategoryIds: string[] = [];
+    let matchingEventIds: string[] = [];
+    let matchingPhotographerIds: string[] = [];
+
+    if (cleanTerm) {
+      try {
+        // Busca paralela em várias tabelas para agilizar
+        const [catRes, eventRes, photogRes] = await Promise.all([
+          supabase.from("categories").select("id").ilike("name", `%${cleanTerm}%`),
+          supabase.from("events").select("id").ilike("name", `%${cleanTerm}%`),
+          supabase.from("users").select("id").eq("role", "photographer").ilike("name", `%${cleanTerm}%`)
+        ]);
+
+        if (catRes.data) matchingCategoryIds = catRes.data.map(c => c.id);
+        if (eventRes.data) matchingEventIds = eventRes.data.map(e => e.id);
+        if (photogRes.data) matchingPhotographerIds = photogRes.data.map(p => p.id);
+
+      } catch (err) {
+        console.warn("Error fetching related entities for search:", err);
+      }
+    }
+
+    let query = supabase
+      .from("photos")
+      .select(
+        "id, photographer_id, category_id, title, preview_url, thumb_url, price, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags, event_id, sales_count",
+      )
+      .eq("moderation_status", "approved")
+      .eq("is_public", true);
+
+    if (categoryId && categoryId !== 'all') {
+      query = query.eq("category_id", categoryId);
+    }
+
+    if (cleanTerm) {
+      // Filtros básicos: título e tags
+      let conditions = [
+        `title.ilike.%${cleanTerm}%`,
+        `tags.cs.{${cleanTerm}}`
+      ];
+
+      // Adicionamos categorias correspondentes
+      if (matchingCategoryIds.length > 0) {
+        conditions.push(`category_id.in.(${matchingCategoryIds.join(",")})`);
+      }
+
+      // Adicionamos eventos correspondentes
+      if (matchingEventIds.length > 0) {
+        conditions.push(`event_id.in.(${matchingEventIds.join(",")})`);
+      }
+
+      // Adicionamos fotógrafos correspondentes
+      if (matchingPhotographerIds.length > 0) {
+        conditions.push(`photographer_id.in.(${matchingPhotographerIds.join(",")})`);
+      }
+
+      // Aplicamos o filtro OR universal
+      query = query.or(conditions.join(','));
+    }
+
+    const { data, error } = await query
+      .order("created_at", { ascending: false })
+      .limit(500);
+
+    if (error) {
+      console.error("Critical error in searchPhotos:", error);
+      return [];
+    }
+    return data ? data.map(mapPhoto) : [];
+  },
+
+  getAllPhotos: async (photographerId?: string, shuffle: boolean = false, onlyPublic: boolean = false): Promise<Photo[]> => {
+    const limit = shuffle ? 500 : 2000;
     let query = supabase
       .from("photos")
       .select(
@@ -158,6 +233,10 @@ export const api = {
 
     if (photographerId) {
       query = query.eq("photographer_id", photographerId);
+    }
+
+    if (onlyPublic) {
+      query = query.eq("moderation_status", "approved").eq("is_public", true);
     }
 
     const { data, error } = await query
