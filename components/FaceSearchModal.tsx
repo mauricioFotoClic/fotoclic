@@ -66,36 +66,43 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({ isOpen, onClose, onNa
             // Unblock UI to let spinner render
             await new Promise(resolve => setTimeout(resolve, 100));
 
-            // 1. Get descriptor
+            let photos: Photo[] = [];
+            let isHybridFallback = false;
+
+            // 1. Tenta obter descritor facial
             const descriptor = await faceRecognitionService.getFaceDescriptor(img);
 
-            if (!descriptor) {
-                onShowToast("Nenhum rosto detectado na imagem. Tente outra foto.", 'error');
-                setIsProcessing(false);
-                return;
+            if (descriptor) {
+                // 2. Busca rostos compatíveis com limite mais alto (0.46 configurado no serviço)
+                const matches = await faceRecognitionService.searchMatches(descriptor);
+                console.log(`Matched ${matches.length} photos after precision filtering.`);
+                const matchedIds = matches.map(m => m.id);
+
+                if (matchedIds.length > 0) {
+                    // 3. Pega as fotos do banco de dados
+                    photos = await api.getPhotosByIds(matchedIds);
+                }
+            } else {
+                // FALLBACK HÍBRIDO (Similaridade Visual/Contextual): 
+                // Dispara APENAS se o Human não enxergou nenhum rosto na foto (ex: fotos de objetos, paisagens ou de costas)
+                console.warn("Nenhum rosto válido detectado na imagem enviada. Iniciando fallback de Similaridade Visual (IA) baseada no cenário...");
+                isHybridFallback = true;
+                photos = await api.searchImageContext(selectedImage);
             }
-
-            // 2. Search matches
-            const matches = await faceRecognitionService.searchMatches(descriptor);
-            console.log(`Matched ${matches.length} photos after precision filtering.`);
-            const matchedIds = matches.map(m => m.id);
-
-            console.log("Valid Matches after Filter:", matches);
 
             const endTime = performance.now();
             const duration = ((endTime - startTime) / 1000).toFixed(1);
 
-            if (matchedIds.length === 0) {
-                setResults([]);
-            } else {
-                // 3. Fetch photos
-                const photos = await api.getPhotosByIds(matchedIds);
-                setResults(photos);
-                if (photos.length > 0) {
-                    onShowToast(`${photos.length} fotos encontradas em ${duration}s!`, 'success');
+            setResults(photos);
+
+            if (photos.length > 0) {
+                if (isHybridFallback) {
+                    onShowToast(`${photos.length} fotos contextuais encontradas em ${duration}s!`, 'success');
                 } else {
-                    onShowToast(`Nenhuma foto correspondente encontrada (${duration}s).`, 'info');
+                    onShowToast(`${photos.length} fotos encontradas em ${duration}s!`, 'success');
                 }
+            } else {
+                onShowToast(`Nenhuma foto correspondente encontrada (${duration}s).`, 'info');
             }
 
             setHasSearched(true);

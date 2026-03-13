@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Photo, Category } from '../../types';
 import { processImageForUpload } from '../../utils/imageProcessing';
 
-type FormData = Omit<Photo, 'id' | 'upload_date' | 'moderation_status' | 'rejection_reason' | 'likes' | 'liked_by_users'>;
+type FormData = Omit<Photo, 'id' | 'upload_date' | 'moderation_status' | 'rejection_reason' | 'likes' | 'liked_by_users' | 'sales_count'>;
 
 interface PhotoUploadFormProps {
     onSubmit: (data: FormData) => Promise<void> | void;
@@ -224,8 +224,9 @@ const PhotoUploadForm: React.FC<PhotoUploadFormProps> = ({ onSubmit, onCancel, i
             </div>
 
             <div>
-                <label htmlFor="title" className="block text-sm font-medium text-neutral-700 mb-1">Título *</label>
-                <input id="title" name="title" type="text" value={formData.title} onChange={handleChange} className={inputClass} required disabled={isSubmitting} />
+                <label htmlFor="title" className="block text-sm font-medium text-neutral-700 mb-1">Título da Foto</label>
+                <input id="title" name="title" type="text" value={formData.title} className={`${inputClass} bg-neutral-100 text-neutral-500 cursor-not-allowed`} disabled={true} />
+                <p className="text-xs text-neutral-500 mt-1">O nome das fotos segue a regra estrutural do evento. Para repadronizar os nomes, edite e salve o Evento em si.</p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">

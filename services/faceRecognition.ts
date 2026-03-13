@@ -118,12 +118,39 @@ export const faceRecognitionService = {
             throw new Error("Nenhum rosto foi identificado na foto. Verifique a iluminação e qualidade.");
         }
 
-        const encodings = faces
-            .filter(f => f.embedding) // Ensure embedding exists
+        // Adicionando um filtro para evitar rostos muito pequenos no fundo e rostos com baixa confiança
+        const validFaces = faces.filter(f => {
+            if (!f.embedding) return false;
+            
+            // Largura e altura do rosto na imagem processada
+            const width = f.box[2];
+            const height = f.box[3];
+            
+            // Ignorar rostos minúsculos de figurantes (menor que 35x35 pixels)
+            if (width < 35 || height < 35) return false;
+            
+            // Ignorar detecções com muito baixa confiança (menos de 30%)
+            if (f.score < 0.3) return false;
+            
+            return true;
+        });
+
+        // Se o filtro removeu todos, pegamos pelo menos o maior rosto (Pode ser uma foto real muito de longe)
+        let facesToSave = validFaces;
+        if (validFaces.length === 0 && faces.length > 0) {
+           facesToSave = [faces.reduce((prev, current) => (prev.box[2] * prev.box[3] > current.box[2] * current.box[3]) ? prev : current)];
+        }
+
+        const encodings = facesToSave
+            .filter(f => f.embedding) // Segurança adicional
             .map(f => ({
                 photo_id: photoId,
                 descriptor: `[${Array.from(f.embedding!).join(',')}]`
             }));
+
+        if (encodings.length === 0) {
+             throw new Error("Rostos detectados são muito pequenos ou de baixa qualidade para indexação.");
+        }
 
         const { error } = await supabase
             .from('face_encodings')
@@ -141,11 +168,11 @@ export const faceRecognitionService = {
             .eq('id', photoId);
     },
 
-    async searchMatches(descriptor: Float32Array, threshold = 0.45): Promise<{ id: string, distance: number }[]> {
+    async searchMatches(descriptor: Float32Array, threshold = 0.38): Promise<{ id: string, distance: number }[]> {
         const { data: matches, error } = await supabase
             .rpc('match_faces', {
                 query_embedding: Array.from(descriptor),
-                match_threshold: threshold,
+                match_threshold: threshold, // Database limit dynamically set
                 match_count: 50
             });
 
@@ -158,22 +185,17 @@ export const faceRecognitionService = {
 
         console.log("Raw Matches from DB:", matches.map((m: any) => ({ id: m.photo_id, d: m.distance })));
 
-        // strict baseline for Vladmandic/Human MobileFaceNet using Cosine Distance
-        // usually < 0.25 is a great match, > 0.50 is unrelated
-        const STRICT_HARD_CAP = 0.40;
-
         const bestDistance = matches[0].distance;
 
-        if (bestDistance > STRICT_HARD_CAP) {
+        if (bestDistance > threshold) {
             console.log("Best match is too far, returning empty.");
             return [];
         }
 
-        const relativeThreshold = Math.max(bestDistance + 0.12, 0.35); // allowance for different lighting, minimum 0.35 ceiling
+        // Filtra pela tolerância definida (ex: 0.46)
+        const validMatches = matches.filter((m: any) => m.distance <= threshold);
 
-        const validMatches = matches.filter((m: any) => m.distance <= relativeThreshold && m.distance <= STRICT_HARD_CAP);
-
-        console.log(`Filtering (Cosine): Best=${bestDistance.toFixed(4)}, RelativeLimit=${relativeThreshold.toFixed(4)}, HardCap=${STRICT_HARD_CAP} -> Kept ${validMatches.length}/${matches.length}`);
+        console.log(`Filtering (Cosine): Best=${bestDistance.toFixed(4)}, Threshold=${threshold} -> Kept ${validMatches.length}/${matches.length}`);
 
         const uniqueResults = new Map<string, number>();
         validMatches.forEach((m: any) => {

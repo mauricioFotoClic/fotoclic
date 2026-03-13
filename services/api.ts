@@ -2175,6 +2175,54 @@ export const api = {
     }
     return data; // Returns { id, status, created_at, rejection_reason }
   },
+
+  // Busca Inteligente por Contexto Híbrido (Edge Function + Vetores Espaciais)
+  searchImageContext: async (imageBase64: string): Promise<Photo[]> => {
+    try {
+      console.log('Iniciando fallback: busca híbrida via Supabase Edge Function...');
+      
+      const { data: edgeData, error: edgeError } = await supabase.functions.invoke('image-embedding', {
+        body: { image: imageBase64 }
+      });
+
+      if (edgeError) {
+        throw new Error(edgeError.message || "Erro ao consultar IA de imagens");
+      }
+
+      const embedding = edgeData?.embedding;
+
+      if (!embedding) {
+        throw new Error("Embedded image vector is corrupted or missing");
+      }
+
+      const { data: dbMatches, error: dbError } = await supabase.rpc('match_images', {
+        query_embedding: embedding,
+        match_threshold: 0.35, // Distância aceitável (menor é mais rigoroso)
+        match_count: 10
+      });
+
+      if (dbError) throw dbError;
+
+      if (!dbMatches || dbMatches.length === 0) {
+        return [];
+      }
+
+      const matchedIds = dbMatches.map((m: any) => m.id);
+      
+      // Fetch the actual photos
+      const photos = await api.getPhotosByIds(matchedIds);
+      
+      // Order them by the distance provided by the vector similarity search
+      const sortedPhotos = photos.sort((a, b) => {
+        return matchedIds.indexOf(a.id) - matchedIds.indexOf(b.id);
+      });
+
+      return sortedPhotos;
+    } catch (error) {
+       console.error("Falha detalhada ao buscar contexto de imagem na Edge Function:", error);
+       return [];
+    }
+  }
 };
 
 export default api;

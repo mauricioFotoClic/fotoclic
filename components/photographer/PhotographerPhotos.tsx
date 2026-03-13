@@ -158,6 +158,8 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                 setIsEditEventModalOpen(false);
                 setEditingEvent(null);
                 showToast("Evento atualizado com sucesso!", "success");
+                // Atualiza a lista inteira de fotos para refletir de imediato as renomeações que houveram no backend
+                fetchData();
             } else {
                 showToast("Erro ao atualizar evento.", "error");
             }
