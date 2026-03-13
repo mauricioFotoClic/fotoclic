@@ -31,9 +31,10 @@ const PlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height
 interface PhotographerPhotosProps {
     user: User;
     onDataChange?: () => void;
+    isActive?: boolean;
 }
 
-const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataChange }) => {
+const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataChange, isActive }) => {
     const { showToast } = useToast();
     const { confirm } = useConfirm();
 
@@ -41,6 +42,14 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
     const [view, setView] = useState<'events' | 'photos'>('events');
     const [events, setEvents] = useState<PhotoEvent[]>([]);
     const [selectedEvent, setSelectedEvent] = useState<PhotoEvent | null>(null);
+
+    // Reset view when navigating away from this menu
+    useEffect(() => {
+        if (isActive === false) {
+            setView('events');
+            setSelectedEvent(null);
+        }
+    }, [isActive]);
 
     const [photos, setPhotos] = useState<Photo[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);

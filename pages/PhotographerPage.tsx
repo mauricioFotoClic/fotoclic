@@ -129,7 +129,7 @@ const PhotographerPage: React.FC<PhotographerPageProps> = ({ user: initialUser, 
                     <PhotographerDashboard user={currentUser} setView={handleSetView} showToast={showToast} />
                 </KeepAliveView>
                 <KeepAliveView active={view === 'photos'} index={1}>
-                    <PhotographerPhotos user={currentUser} onDataChange={handleDataChange} />
+                    <PhotographerPhotos user={currentUser} onDataChange={handleDataChange} isActive={view === 'photos'} />
                 </KeepAliveView>
                 <KeepAliveView active={view === 'portfolio-preview'} index={2}>
                     <PhotographerPortfolioPreview user={currentUser} onNavigate={onNavigate} editable={true} isActive={view === 'portfolio-preview'} refreshTrigger={portfolioRefreshTrigger} />
