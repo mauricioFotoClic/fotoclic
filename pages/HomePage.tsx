@@ -196,7 +196,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="flex flex-col items-center justify-center mb-16 text-center">
             <span className="text-primary font-bold text-sm uppercase tracking-widest mb-2">Navegue por Temas</span>
-            <h2 className="text-4xl md:text-5xl font-display font-bold text-neutral-900">Categoriassss</h2>
+            <h2 className="text-4xl md:text-5xl font-display font-bold text-neutral-900">Categorias</h2>
             <div className="w-24 h-1 bg-gradient-to-r from-primary to-secondary rounded-full mt-6"></div>
           </div>
 
