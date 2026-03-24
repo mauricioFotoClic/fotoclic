@@ -4,50 +4,43 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 DECLARE
-    v_photo_url TEXT;
+    v_file_url TEXT;
     v_photographer_id UUID;
     v_sale_exists BOOLEAN;
-    v_signed_url TEXT;
 BEGIN
-    -- 1. Get photo details
-    SELECT file_url, photographer_id INTO v_photo_url, v_photographer_id
+    -- 1. Buscar os dados da foto
+    SELECT file_url, photographer_id INTO v_file_url, v_photographer_id
     FROM photos
     WHERE id = p_photo_id;
 
-    IF v_photo_url IS NULL THEN
-        RETURN jsonb_build_object('success', false, 'error', 'Photo not found');
+    IF v_file_url IS NULL THEN
+        RETURN jsonb_build_object('success', false, 'error', 'Foto não encontrada.');
     END IF;
 
-    -- 2. Check access permissions
-    -- Access granted if:
-    -- a) User is the photographer (owner)
-    -- b) User has purchased the photo (in sales table with status 'paid')
-    
-    -- Check ownership
+    -- 2. Verificar permissão de acesso:
+    --    a) Fotógrafo dono da foto → acesso liberado
+    --    b) Cliente que comprou a foto → acesso liberado
     IF v_photographer_id = auth.uid() THEN
-        -- Owner access OK
+        -- Dono da foto, acesso liberado
     ELSE
-        -- Check purchase
+        -- Verificar se existe venda para este comprador e esta foto
         SELECT EXISTS (
-            SELECT 1 FROM sales s
-            JOIN sale_items si ON s.id = si.sale_id
-            WHERE s.user_id = auth.uid()
-            AND si.photo_id = p_photo_id
-            AND s.status = 'paid'
+            SELECT 1 FROM sales
+            WHERE buyer_id  = auth.uid()
+              AND photo_id  = p_photo_id
         ) INTO v_sale_exists;
 
         IF NOT v_sale_exists THEN
-             RETURN jsonb_build_object('success', false, 'error', 'Access denied. You must purchase this photo to download it.');
+            RETURN jsonb_build_object(
+                'success', false,
+                'error', 'Acesso negado. Você precisa comprar a foto para fazer o download.'
+            );
         END IF;
     END IF;
 
-    -- 3. Generate Signed URL (valid for 5 minutes)
-    -- Start by removing the bucket name from the path if stored with it, or assume path is relative.
-    -- Our standard: file_url = "user_id/event_id/uuid-original.jpg" (Relative path inside photos-original bucket)
-    
-    v_signed_url := storage.create_signed_url('photos-original', v_photo_url, 300); -- 300 seconds = 5 mins
+    -- 3. Retornar o file_url (Base64 data URL armazenado diretamente na coluna)
+    RETURN jsonb_build_object('success', true, 'url', v_file_url);
 
-    RETURN jsonb_build_object('success', true, 'url', v_signed_url);
 EXCEPTION WHEN OTHERS THEN
     RETURN jsonb_build_object('success', false, 'error', SQLERRM);
 END;

@@ -36,20 +36,36 @@ const CustomerDashboardPage: React.FC<CustomerDashboardPageProps> = ({ onNavigat
         if (!currentUser) return;
 
         try {
-            // Use the secure method to get a signed URL (valid for 1 hour)
-            const secureUrl = await api.getSecureDownloadUrl(photo.id, currentUser.id);
+            const fileUrl = await api.getSecureDownloadUrl(photo.id, currentUser.id);
 
-            if (!secureUrl) {
+            if (!fileUrl) {
                 alert("Erro ao gerar link seguro. Verifique se você realmente comprou esta foto.");
                 return;
             }
 
-            const link = document.createElement('a');
-            link.href = secureUrl;
-            link.setAttribute('download', `fotoclic-${photo.title.replace(/\s+/g, '-').toLowerCase()}.jpg`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+            const fileName = `fotoclic-${photo.title.replace(/\s+/g, '-').toLowerCase()}.jpg`;
+
+            // Handle Base64 data URL (stored directly in DB)
+            if (fileUrl.startsWith('data:')) {
+                const res = await fetch(fileUrl);
+                const blob = await res.blob();
+                const objectUrl = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = objectUrl;
+                link.setAttribute('download', fileName);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(objectUrl);
+            } else {
+                // Handle regular URL (Supabase Storage signed URL)
+                const link = document.createElement('a');
+                link.href = fileUrl;
+                link.setAttribute('download', fileName);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
         } catch (error) {
             console.error("Download failed:", error);
             alert("Erro ao iniciar download. Tente novamente.");
@@ -99,7 +115,7 @@ const CustomerDashboardPage: React.FC<CustomerDashboardPageProps> = ({ onNavigat
                             <div key={photo.sale_id} className="bg-white border border-neutral-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col">
                                 <div className="h-48 bg-neutral-100 relative">
                                     <img
-                                        src={photo.preview_url}
+                                        src={photo.thumb_url || photo.preview_url}
                                         alt={photo.title}
                                         className="w-full h-full object-cover"
                                     />
