@@ -1562,25 +1562,36 @@ export const api = {
   },
   getSecureDownloadUrl: async (
     photoId: string,
-    userId: string,
+    _userId: string,
   ): Promise<string | null> => {
     try {
-      const { data, error } = await supabase.rpc("get_download_link", {
-        p_photo_id: photoId,
+      // Usa endpoint serverless que verifica compra com service role
+      // e gera signed URL do bucket privado photos-original
+      const session = await supabase.auth.getSession();
+      const jwt = session.data.session?.access_token;
+
+      if (!jwt) {
+        console.error("Usuário não autenticado.");
+        return null;
+      }
+
+      const res = await fetch('/api/get-download-url', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${jwt}`,
+        },
+        body: JSON.stringify({ photoId }),
       });
 
-      if (error) {
-        console.error("RPC Error:", error);
+      const data = await res.json();
+
+      if (!res.ok || !data.url) {
+        console.error("Download negado:", data?.error);
         return null;
       }
 
-      // RPC returns { success, url, error }
-      if (data && data.success && data.url) {
-        return data.url;
-      } else {
-        console.error("Download denied:", data?.error);
-        return null;
-      }
+      return data.url;
     } catch (e) {
       console.error("Exception getting download link:", e);
       return null;
