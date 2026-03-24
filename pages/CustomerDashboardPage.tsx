@@ -36,36 +36,20 @@ const CustomerDashboardPage: React.FC<CustomerDashboardPageProps> = ({ onNavigat
         if (!currentUser) return;
 
         try {
-            const fileUrl = await api.getSecureDownloadUrl(photo.id, currentUser.id);
+            // RPC verifica a compra e retorna signed URL do Supabase Storage (válida 1h)
+            const signedUrl = await api.getSecureDownloadUrl(photo.id, currentUser.id);
 
-            if (!fileUrl) {
+            if (!signedUrl) {
                 alert("Erro ao gerar link seguro. Verifique se você realmente comprou esta foto.");
                 return;
             }
 
-            const fileName = `fotoclic-${photo.title.replace(/\s+/g, '-').toLowerCase()}.jpg`;
-
-            // Handle Base64 data URL (stored directly in DB)
-            if (fileUrl.startsWith('data:')) {
-                const res = await fetch(fileUrl);
-                const blob = await res.blob();
-                const objectUrl = URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.href = objectUrl;
-                link.setAttribute('download', fileName);
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                URL.revokeObjectURL(objectUrl);
-            } else {
-                // Handle regular URL (Supabase Storage signed URL)
-                const link = document.createElement('a');
-                link.href = fileUrl;
-                link.setAttribute('download', fileName);
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            }
+            const link = document.createElement('a');
+            link.href = signedUrl;
+            link.setAttribute('download', `fotoclic-${photo.title.replace(/\s+/g, '-').toLowerCase()}.jpg`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         } catch (error) {
             console.error("Download failed:", error);
             alert("Erro ao iniciar download. Tente novamente.");
