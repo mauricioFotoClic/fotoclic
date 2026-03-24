@@ -36,7 +36,6 @@ const CustomerDashboardPage: React.FC<CustomerDashboardPageProps> = ({ onNavigat
         if (!currentUser) return;
 
         try {
-            // RPC verifica a compra e retorna signed URL do Supabase Storage (válida 1h)
             const signedUrl = await api.getSecureDownloadUrl(photo.id, currentUser.id);
 
             if (!signedUrl) {
@@ -44,12 +43,22 @@ const CustomerDashboardPage: React.FC<CustomerDashboardPageProps> = ({ onNavigat
                 return;
             }
 
+            // Busca a imagem como blob para forçar download em vez de abrir no browser
+            const response = await fetch(signedUrl);
+            if (!response.ok) throw new Error('Falha ao baixar o arquivo.');
+            const blob = await response.blob();
+
+            const ext = blob.type.includes('png') ? 'png' : blob.type.includes('webp') ? 'webp' : 'jpg';
+            const fileName = `fotoclic-${photo.title.replace(/\s+/g, '-').toLowerCase()}.${ext}`;
+
+            const objectUrl = URL.createObjectURL(blob);
             const link = document.createElement('a');
-            link.href = signedUrl;
-            link.setAttribute('download', `fotoclic-${photo.title.replace(/\s+/g, '-').toLowerCase()}.jpg`);
+            link.href = objectUrl;
+            link.setAttribute('download', fileName);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+            URL.revokeObjectURL(objectUrl);
         } catch (error) {
             console.error("Download failed:", error);
             alert("Erro ao iniciar download. Tente novamente.");
