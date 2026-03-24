@@ -121,24 +121,27 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
     const [paymentError, setPaymentError] = useState<string | null>(null);
 
     // Create Payment Intent when Total is ready and Loading is finished
+    // NOTE: amount is NOT sent to the server — the backend fetches real prices from the
+    // database to prevent client-side price manipulation.
     useEffect(() => {
         if (!loading && total > 0 && currentUser && !clientSecret) {
-            setPaymentError(null); // Reset error on retry
+            setPaymentError(null);
             fetch("/api/create-payment-intent", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ items: cartItemIds, amount: Math.round(total * 100) }), // Amount in cents (must be integer)
+                body: JSON.stringify({
+                    items: cartItemIds,
+                    couponCode: appliedCoupon?.code || null,
+                }),
             })
                 .then(async (res) => {
                     if (!res.ok) {
                         const errData = await res.json().catch(() => ({}));
-                        const errorMsg = errData.error || res.statusText || "Erro ao conectar com servidor de pagamento";
-                        throw new Error(errorMsg);
+                        throw new Error(errData.error || res.statusText || "Erro ao conectar com servidor de pagamento");
                     }
                     return res.json();
                 })
                 .then((data) => {
-                    // console.log("Payment Intent Created:", data);
                     setClientSecret(data.clientSecret);
                 })
                 .catch((error) => {
@@ -146,7 +149,7 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
                     setPaymentError(error.message || "Erro desconhecido ao iniciar pagamento.");
                 });
         }
-    }, [loading, total, currentUser, cartItemIds, clientSecret]);
+    }, [loading, total, currentUser, cartItemIds, clientSecret, appliedCoupon]);
 
     const handleSuccess = async () => {
         try {
