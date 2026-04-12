@@ -3,6 +3,8 @@ import api from '../../services/api';
 import { supabase } from '../../services/supabaseClient';
 import { faceRecognitionService } from '../../services/faceRecognition';
 import Spinner from '../Spinner';
+import Modal from '../Modal';
+import Toast from '../Toast';
 import { Photo, User, Category, Sale, PhotographerWithStats } from '../../types';
 
 interface StatCardProps {
@@ -55,17 +57,33 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setView }) => {
         }
     }, []);
 
+    const [currentIndexingPhoto, setCurrentIndexingPhoto] = useState<string | null>(null);
+    const [lastStatus, setLastStatus] = useState<'success' | 'error' | 'none'>('none');
+    
+    // UI Feedback state
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [toast, setToast] = useState<{ show: boolean, message: string, type: 'success' | 'error' | 'info' }>({
+        show: false,
+        message: '',
+        type: 'success'
+    });
+
+    const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
+        setToast({ show: true, message, type });
+    };
+
     const handleReindexAllPhotos = async () => {
-        if (!confirm("Isso iniciará a re-indexação biométrica (Human AI) para TODAS as fotos marcadas como não indexadas. Devido ao hardware de IA rodar no seu navegador, mantenha esta aba ativa durante o processo. Deseja continuar?")) return;
+        setShowConfirmModal(false);
 
         try {
             setIsReindexing(true);
-            const totalToProcess = stats.notIndexedPhotosCount; // Use the count from fetched stats
+            const totalToProcess = stats.notIndexedPhotosCount; 
             setReindexTotal(totalToProcess);
             setReindexProgress(0);
+            setLastStatus('none');
 
             if (totalToProcess === 0) {
-                alert("Todas as fotos do banco de dados já estão indexadas com a nova tecnologia!");
+                showToast("Todas as fotos do banco de dados já estão indexadas com a nova tecnologia!", "info");
                 setIsReindexing(false);
                 return;
             }
@@ -79,38 +97,42 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setView }) => {
 
                 for (const photo of photosToProcess) {
                     try {
+                        setCurrentIndexingPhoto(photo.thumb_url || photo.preview_url);
+                        setLastStatus('none');
+                        
                         const img = new Image();
                         img.crossOrigin = "anonymous";
 
                         await new Promise((resolve, reject) => {
                             img.onload = resolve;
                             img.onerror = () => reject(new Error("Erro ao carregar imagem"));
-                            // Tenta carregar o thumb primeiro (mais leve e menos chance de watermark pesada)
-                            // Se falhar, tenta o preview.
                             img.src = photo.thumb_url || photo.preview_url;
                         });
 
                         await faceRecognitionService.indexPhoto(photo.id, img);
+                        setLastStatus('success');
+                        setStats((prev: any) => ({ ...prev, notIndexedPhotosCount: prev.notIndexedPhotosCount - 1 }));
                     } catch (e) {
                         console.warn(`Foto ${photo.id} falhou na IA:`, e);
-                        // Force mark as indexed to avoid stuck queue if it's an unrecoverable failure
+                        setLastStatus('error');
                         await supabase.from('photos').update({ is_face_indexed: true }).eq('id', photo.id);
                     }
 
                     processedCount++;
                     setReindexProgress(prev => Math.min(prev + 1, totalToProcess));
+                    await new Promise(r => setTimeout(r, 400)); // Delay para a animação ser visível
                 }
-
-                await new Promise(r => setTimeout(r, 200));
             }
 
-            alert("✅ Atualização Completa! Biometria SaaS recarregada e Banco de Dados atualizado.");
-            fetchData(); // Refresh stats
+            showToast("✅ Biometria atualizada com sucesso!", "success");
+            fetchData();
         } catch (error) {
             console.error(error);
-            alert("Ocorreu um erro no processamento das fotos.");
+            showToast("Ocorreu um erro no processamento das fotos.", "error");
         } finally {
             setIsReindexing(false);
+            setCurrentIndexingPhoto(null);
+            setLastStatus('none');
         }
     };
 
@@ -144,34 +166,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setView }) => {
                     <p className="text-neutral-500">Aqui está um resumo da atividade do seu marketplace.</p>
                 </div>
 
-                <div className="mt-4 md:mt-0 bg-white p-4 rounded-lg shadow-sm w-full md:w-auto border border-primary/20">
-                    <h3 className="text-sm font-semibold text-neutral-700 mb-2 flex items-center gap-2">
-                        <LayersIcon /> Ferramentas do Sistema
-                    </h3>
-                    <div className="flex flex-col gap-2">
-                        {isReindexing ? (
-                            <div className="w-full bg-neutral-200 rounded-full h-4 relative overflow-hidden min-w-[200px]">
-                                <div
-                                    className="bg-primary h-4 transition-all duration-300"
-                                    style={{ width: `${(reindexProgress / Math.max(reindexTotal, 1)) * 100}%` }}
-                                ></div>
-                                <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white shadow-sm">
-                                    {reindexProgress} / {reindexTotal} Processando...
-                                </span>
-                            </div>
-                        ) : (
-                            <button
-                                onClick={handleReindexAllPhotos}
-                                className="w-full md:w-auto bg-primary text-white py-2 px-4 rounded hover:bg-primary-dark transition-colors text-sm font-semibold shadow"
-                            >
-                                Re-Indexar Rostos Ausentes (Human AI)
-                            </button>
-                        )}
-                        <p className="text-[11px] text-neutral-400 max-w-xs leading-tight">
-                            Buscador de Biometria. Se você zerou o banco de vetores em uma atualização, aperte para recriá-los com a CPU deste PC.
-                        </p>
-                    </div>
-                </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -280,38 +274,151 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setView }) => {
                     <span className="mr-2">⚙️</span> Ferramentas do Sistema
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="p-4 border border-neutral-200 rounded-lg bg-neutral-50">
-                        <h3 className="font-bold text-neutral-800 mb-2">Re-indexação Biométrica</h3>
-                        <p className="text-sm text-neutral-600 mb-4">
-                            Processa fotos no seu navegador para extrair vetores faciais (Human AI).
-                            Útil para fotos antigas ou migrações.
-                            <strong> {notIndexedPhotosCount} fotos pendentes.</strong>
-                        </p>
+                    <div className="p-4 border border-neutral-200 rounded-lg bg-neutral-50 flex flex-col">
+                        <div className="flex justify-between items-start mb-4">
+                            <div>
+                                <h3 className="font-bold text-neutral-800 mb-1">Re-indexação Biométrica</h3>
+                                <p className="text-sm text-neutral-600">
+                                    Extração de vetores faciais (Human AI).
+                                    <strong> {notIndexedPhotosCount} fotos pendentes.</strong>
+                                </p>
+                            </div>
+                            {!isReindexing ? (
+                                <button
+                                    onClick={() => setShowConfirmModal(true)}
+                                    className="px-6 py-2 bg-secondary text-white font-bold rounded-full hover:bg-secondary-light transition-all shadow-sm flex items-center"
+                                >
+                                    <span className="mr-2">🚀</span> Iniciar
+                                </button>
+                            ) : null}
+                        </div>
 
-                        {isReindexing ? (
-                            <div className="space-y-2">
-                                <div className="flex justify-between text-xs font-medium text-neutral-700">
-                                    <span>Processando...</span>
-                                    <span>{reindexProgress} / {reindexTotal}</span>
+                        {isReindexing && (
+                            <div className="flex flex-col items-center">
+                                {/* Animação de Carrossel / Scanner */}
+                                <div className="w-full flex justify-center items-center gap-4 py-6 overflow-hidden relative">
+                                    <div className="flex gap-4 animate-pulse opacity-20">
+                                        <div className="w-16 h-20 bg-neutral-300 rounded shadow-inner"></div>
+                                        <div className="w-16 h-20 bg-neutral-300 rounded shadow-inner"></div>
+                                    </div>
+                                    
+                                    <div className={`relative w-32 h-40 border-4 rounded-xl overflow-hidden shadow-2xl bg-white transition-all duration-300 transform scale-110 ${
+                                        lastStatus === 'success' ? 'border-green-500 ring-4 ring-green-100' : 
+                                        lastStatus === 'error' ? 'border-red-500 ring-4 ring-red-100' : 'border-primary'
+                                    }`}>
+                                        {/* Imagem sendo indexada */}
+                                        <img 
+                                            src={currentIndexingPhoto || "/placeholder-silhouette.png"} 
+                                            className="w-full h-full object-cover" 
+                                            alt="Scanning..."
+                                        />
+                                        
+                                        {/* Scanner Beam */}
+                                        {lastStatus === 'none' && (
+                                            <div className="absolute top-0 left-0 w-full h-[2px] bg-primary-light shadow-[0_0_15px_rgba(59,130,246,0.8)] animate-scan z-10"></div>
+                                        )}
+                                        
+                                        {/* Overlay Feedback Icon */}
+                                        {lastStatus === 'success' && (
+                                            <div className="absolute inset-0 bg-green-500/20 flex items-center justify-center">
+                                                <div className="bg-white rounded-full p-2 text-green-500 shadow-lg">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                                </div>
+                                            </div>
+                                        )}
+                                        {lastStatus === 'error' && (
+                                            <div className="absolute inset-0 bg-red-500/20 flex items-center justify-center">
+                                                <div className="bg-white rounded-full p-2 text-red-500 shadow-lg">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="flex gap-4 animate-pulse opacity-20">
+                                        <div className="w-16 h-20 bg-neutral-300 rounded shadow-inner"></div>
+                                        <div className="w-16 h-20 bg-neutral-300 rounded shadow-inner"></div>
+                                    </div>
                                 </div>
-                                <div className="w-full bg-neutral-200 rounded-full h-2.5">
-                                    <div
-                                        className="bg-secondary h-2.5 rounded-full transition-all duration-300"
-                                        style={{ width: `${(reindexProgress / (reindexTotal || 1)) * 100}%` }}
-                                    ></div>
+
+                                <div className="w-full space-y-2 mt-4">
+                                    <div className="flex justify-between text-xs font-bold text-neutral-600">
+                                        <span>Rastreando Biometria...</span>
+                                        <span>{reindexProgress} / {reindexTotal}</span>
+                                    </div>
+                                    <div className="w-full bg-neutral-200 rounded-full h-3 shadow-inner overflow-hidden">
+                                        <div
+                                            className="bg-secondary h-full transition-all duration-300 ease-out shadow-[0_0_10px_rgba(var(--color-secondary),0.5)]"
+                                            style={{ width: `${(reindexProgress / (reindexTotal || 1)) * 100}%` }}
+                                        ></div>
+                                    </div>
                                 </div>
                             </div>
-                        ) : (
-                            <button
-                                onClick={handleReindexAllPhotos}
-                                className="px-6 py-2 bg-secondary text-white font-bold rounded-full hover:bg-secondary-light transition-all shadow-sm flex items-center"
-                            >
-                                <span className="mr-2">🚀</span> Iniciar Re-indexação em Massa
-                            </button>
                         )}
+
+                        <style>{`
+                            @keyframes scan {
+                                0% { top: 0%; opacity: 1; }
+                                50% { top: 100%; opacity: 1; }
+                                100% { top: 0%; opacity: 1; }
+                            }
+                            .animate-scan {
+                                animation: scan 2s linear infinite;
+                            }
+                        `}</style>
                     </div>
                 </div>
             </div>
+
+            {/* Modal de Confirmação Personalizado */}
+            <Modal
+                isOpen={showConfirmModal}
+                onClose={() => setShowConfirmModal(false)}
+                title="🚀 Iniciar Re-indexação em Massa"
+                size="md"
+            >
+                <div className="space-y-4">
+                    <div className="p-4 bg-primary/10 rounded-lg text-primary-dark flex items-start gap-4">
+                        <div className="p-2 bg-primary text-white rounded-full flex-shrink-0 mt-1">
+                            <LayersIcon />
+                        </div>
+                        <p className="text-sm leading-relaxed">
+                            Isso iniciará a re-indexação biométrica (**Human AI**) para todas as fotos marcadas como não indexadas. 
+                        </p>
+                    </div>
+
+                    <div className="p-4 bg-yellow-50 border border-yellow-100 rounded-lg text-yellow-800 text-sm flex gap-3">
+                        <span className="text-xl">⚠️</span>
+                        <p>
+                            O processamento é feito usando a **CPU deste computador**. Mantenha esta aba aberta e ativa para garantir a velocidade máxima de processamento.
+                        </p>
+                    </div>
+
+                    <div className="flex gap-3 pt-2">
+                        <button
+                            onClick={() => setShowConfirmModal(false)}
+                            className="flex-1 py-3 px-4 rounded-xl font-bold text-neutral-500 hover:bg-neutral-100 transition-colors"
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            onClick={handleReindexAllPhotos}
+                            className="flex-1 py-3 px-4 rounded-xl font-bold bg-secondary text-white hover:bg-secondary-dark shadow-lg shadow-secondary/20 transition-all"
+                        >
+                            Confirmar
+                        </button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* Toast Dinâmico */}
+            {toast.show && (
+                <Toast 
+                    message={toast.message} 
+                    type={toast.type}
+                    onClose={() => setToast({ ...toast, show: false })}
+                />
+            )}
         </div>
     );
 };

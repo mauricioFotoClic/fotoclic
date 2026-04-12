@@ -47,13 +47,13 @@ const CarouselBtn: React.FC<{ onClick: () => void; dir: 'prev' | 'next'; disable
   <button
     onClick={onClick}
     disabled={disabled}
-    className={`w-10 h-10 rounded-full flex items-center justify-center border transition-all duration-200 ${
+    className={`w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 shadow-md ${
       disabled
-        ? 'border-neutral-200 text-neutral-300 cursor-not-allowed'
-        : 'border-neutral-300 text-neutral-600 hover:border-primary hover:text-primary hover:shadow-sm'
+        ? 'bg-neutral-100 text-neutral-300 cursor-not-allowed shadow-none'
+        : 'bg-white text-neutral-700 hover:bg-primary hover:text-white hover:shadow-lg active:scale-95'
     }`}
   >
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
       <path strokeLinecap="round" strokeLinejoin="round" d={dir === 'prev' ? 'M15 19l-7-7 7-7' : 'M9 5l7 7-7 7'} />
     </svg>
   </button>
