@@ -883,6 +883,19 @@ export const api = {
   },
 
   // --- EVENTS ---
+  getAllPublicEvents: async (): Promise<PhotoEvent[]> => {
+    const { data, error } = await supabase
+      .from("events")
+      .select("*")
+      .order("event_date", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching all events:", error);
+      return [];
+    }
+    return data as PhotoEvent[];
+  },
+
   getEventById: async (eventId: string): Promise<PhotoEvent | null> => {
     const { data, error } = await supabase
       .from("events")

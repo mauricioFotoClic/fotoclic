@@ -28,6 +28,7 @@ const PhotographerPortfolioPage = React.lazy(() => import('./pages/PhotographerP
 const DiscoverPage = React.lazy(() => import('./pages/DiscoverPage'));
 const ResetPasswordPage = React.lazy(() => import('./pages/ResetPasswordPage'));
 const EventPage = React.lazy(() => import('./pages/EventPage'));
+const FindPhotosPage = React.lazy(() => import('./pages/FindPhotosPage'));
 const PhotographersPage = React.lazy(() => import('./pages/PhotographersPage'));
 const CartPage = React.lazy(() => import('./pages/CartPage'));
 const LoginPage = React.lazy(() => import('./pages/LoginPage'));
@@ -125,6 +126,7 @@ const MainApp: React.FC = () => {
     const getUrlFromPage = (page: Page): string => {
         switch (page.name) {
             case 'home': return '/';
+            case 'find-photos': return '/encontrar-fotos';
             case 'login': return '/login';
             case 'register': return '/cadastro';
             case 'pending-approval': return '/aguardando-aprovacao';
@@ -168,6 +170,7 @@ const MainApp: React.FC = () => {
         if (pathname === '/privacidade') return { name: 'privacy' };
         if (pathname === '/fotos-destaque') return { name: 'featured-photos' };
         if (pathname === '/fotografos') return { name: 'photographers' };
+        if (pathname === '/encontrar-fotos') return { name: 'find-photos' };
         if (pathname === '/carrinho') return { name: 'cart' };
         if (pathname === '/checkout') return { name: 'checkout' };
         if (pathname === '/test-stripe') return { name: 'test-stripe' };
@@ -461,6 +464,8 @@ const MainApp: React.FC = () => {
                 return currentUser?.role === UserRole.PHOTOGRAPHER ? <PhotographerPage user={currentUser} onLogout={handleLogout} onNavigate={handleNavigate} showToast={showToast} /> : <HomePage onNavigate={handleNavigate} onAddToCart={handleAddToCart} currentUser={currentUser} />;
             case 'customer-dashboard':
                 return <CustomerDashboardPage onNavigate={handleNavigate} currentUser={currentUser} />;
+            case 'find-photos':
+                return <FindPhotosPage onNavigate={handleNavigate} />;
             case 'category':
                 return <CategoryPage categoryId={currentPage.id} onNavigate={handleNavigate} onAddToCart={handleAddToCart} currentUser={currentUser} />;
             case 'event':

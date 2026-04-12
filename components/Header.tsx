@@ -72,8 +72,8 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigate, currentView
                         <div className="flex items-center space-x-4">
                             {!(isAdminView || isPhotographerView) && (
                                 <nav className="hidden lg:flex items-center space-x-6">
-                                    <button onClick={() => onNavigate({ name: 'discover' })} className="text-sm font-medium text-neutral-800 hover:text-primary transition-colors">Descobrir</button>
-                                    <button onClick={() => onNavigate({ name: 'photographers' })} className="text-sm font-medium text-neutral-800 hover:text-primary transition-colors">Fotógrafos</button>
+                                    <button onClick={() => onNavigate({ name: 'find-photos' })} className={`text-sm font-medium transition-colors ${currentView === 'find-photos' ? 'text-primary' : 'text-neutral-800 hover:text-primary'}`}>Encontrar fotos</button>
+                                    <button onClick={() => onNavigate({ name: 'photographers' })} className={`text-sm font-medium transition-colors ${currentView === 'photographers' ? 'text-primary' : 'text-neutral-800 hover:text-primary'}`}>Encontrar Profissional</button>
                                 </nav>
                             )}
                             <div className="hidden sm:flex items-center space-x-2">
@@ -149,8 +149,8 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigate, currentView
                 <div className="lg:hidden bg-white py-4 px-4 space-y-2">
                     {!(isAdminView || isPhotographerView) && (
                         <>
-                            <button onClick={() => { onNavigate({ name: 'discover' }); setIsMenuOpen(false); }} className="block text-sm font-medium text-neutral-800 hover:text-primary transition-colors w-full text-left py-2">Descobrir</button>
-                            <button onClick={() => { onNavigate({ name: 'photographers' }); setIsMenuOpen(false); }} className="block text-sm font-medium text-neutral-800 hover:text-primary transition-colors w-full text-left py-2">Fotógrafos</button>
+                            <button onClick={() => { onNavigate({ name: 'find-photos' }); setIsMenuOpen(false); }} className="block text-sm font-medium text-neutral-800 hover:text-primary transition-colors w-full text-left py-2">Encontrar fotos</button>
+                            <button onClick={() => { onNavigate({ name: 'photographers' }); setIsMenuOpen(false); }} className="block text-sm font-medium text-neutral-800 hover:text-primary transition-colors w-full text-left py-2">Encontrar Profissional</button>
 
                             <button onClick={() => { onNavigate({ name: 'face-search' }); setIsMenuOpen(false); }} className="block w-full text-left text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors py-2 bg-blue-50 rounded-lg px-2 mt-1 -ml-2 w-[calc(100%+16px)]">
                                 <span className="flex items-center gap-2">
