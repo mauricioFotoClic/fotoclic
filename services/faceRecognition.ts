@@ -115,60 +115,60 @@ export const faceRecognitionService = {
 
         if (!faces || faces.length === 0) {
             console.log('No faces detected in photo', photoId);
-            throw new Error("Nenhum rosto foi identificado na foto. Verifique a iluminação e qualidade.");
+            // Mark as indexed anyway to avoid infinite retry loop
+            await supabase.from('photos').update({ is_face_indexed: true }).eq('id', photoId);
+            return; // Exit gracefully
         }
 
         // Adicionando um filtro para evitar rostos muito pequenos no fundo e rostos com baixa confiança
         const validFaces = faces.filter(f => {
             if (!f.embedding) return false;
             
-            // Largura e altura do rosto na imagem processada
             const width = f.box[2];
             const height = f.box[3];
             
-            // Ignorar rostos minúsculos de figurantes (menor que 35x35 pixels)
-            if (width < 35 || height < 35) return false;
+            // Ignorar rostos minúsculos de figurantes (menor que 30x30 pixels)
+            if (width < 30 || height < 30) return false;
             
-            // Ignorar detecções com muito baixa confiança (menos de 30%)
-            if (f.score < 0.3) return false;
+            // Ignorar detecções com muito baixa confiança (menos de 20%) - Reduzido de 30% para 20%
+            if (f.score < 0.2) return false;
             
             return true;
         });
 
-        // Se o filtro removeu todos, pegamos pelo menos o maior rosto (Pode ser uma foto real muito de longe)
+        // Se o filtro removeu todos, pegamos pelo menos o maior rosto
         let facesToSave = validFaces;
         if (validFaces.length === 0 && faces.length > 0) {
            facesToSave = [faces.reduce((prev, current) => (prev.box[2] * prev.box[3] > current.box[2] * current.box[3]) ? prev : current)];
         }
 
         const encodings = facesToSave
-            .filter(f => f.embedding) // Segurança adicional
+            .filter(f => f.embedding)
             .map(f => ({
                 photo_id: photoId,
-                descriptor: `[${Array.from(f.embedding!).join(',')}]`
+                descriptor: `[${Array.from(f.embedding!).join(',')}]`,
+                model_version: 'human-v1-precise'
             }));
 
-        if (encodings.length === 0) {
-             throw new Error("Rostos detectados são muito pequenos ou de baixa qualidade para indexação.");
+        if (encodings.length > 0) {
+            const { error } = await supabase
+                .from('face_encodings')
+                .insert(encodings);
+
+            if (error) {
+                console.error('Error saving face encodings:', error);
+                throw error;
+            }
         }
 
-        const { error } = await supabase
-            .from('face_encodings')
-            .insert(encodings);
-
-        if (error) {
-            console.error('Error saving face encodings:', error);
-            throw error;
-        }
-
-        // Update photo status
+        // Update photo status (Always mark as indexed)
         await supabase
             .from('photos')
             .update({ is_face_indexed: true })
             .eq('id', photoId);
     },
 
-    async searchMatches(descriptor: Float32Array, threshold = 0.38): Promise<{ id: string, distance: number }[]> {
+    async searchMatches(descriptor: Float32Array, threshold = 0.42): Promise<{ id: string, distance: number }[]> {
         const { data: matches, error } = await supabase
             .rpc('match_faces', {
                 query_embedding: Array.from(descriptor),

@@ -70,40 +70,38 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setView }) => {
                 return;
             }
 
-            let processed = 0;
+            let processedCount = 0;
             const batchSize = 10;
-
-            while (processed < totalToProcess) {
-                // Fetch next batch of non-indexed photos
+            
+            while (processedCount < totalToProcess) {
                 const photosToProcess = await api.getPhotosToReindex(batchSize);
-
-                if (photosToProcess.length === 0) break;
+                if (!photosToProcess || photosToProcess.length === 0) break;
 
                 for (const photo of photosToProcess) {
-                    const img = new Image();
-                    img.crossOrigin = "anonymous";
-
-                    await new Promise((resolve) => {
-                        img.onload = resolve;
-                        img.onerror = () => {
-                            console.error(`Falha ao carregar a imagem para a foto ${photo.id}`);
-                            resolve(null);
-                        };
-                        img.src = photo.preview_url;
-                    });
-
                     try {
+                        const img = new Image();
+                        img.crossOrigin = "anonymous";
+
+                        await new Promise((resolve, reject) => {
+                            img.onload = resolve;
+                            img.onerror = () => reject(new Error("Erro ao carregar imagem"));
+                            // Tenta carregar o thumb primeiro (mais leve e menos chance de watermark pesada)
+                            // Se falhar, tenta o preview.
+                            img.src = photo.thumb_url || photo.preview_url;
+                        });
+
                         await faceRecognitionService.indexPhoto(photo.id, img);
                     } catch (e) {
                         console.warn(`Foto ${photo.id} falhou na IA:`, e);
+                        // Force mark as indexed to avoid stuck queue if it's an unrecoverable failure
+                        await supabase.from('photos').update({ is_face_indexed: true }).eq('id', photo.id);
                     }
 
-                    processed++;
-                    setReindexProgress(processed);
+                    processedCount++;
+                    setReindexProgress(prev => Math.min(prev + 1, totalToProcess));
                 }
 
-                // Small delay to prevent browser freeze and allow UI updates
-                await new Promise(r => setTimeout(r, 100));
+                await new Promise(r => setTimeout(r, 200));
             }
 
             alert("✅ Atualização Completa! Biometria SaaS recarregada e Banco de Dados atualizado.");

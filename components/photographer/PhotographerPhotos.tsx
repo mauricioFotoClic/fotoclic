@@ -437,27 +437,52 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
         } catch (error: any) { showToast(`Erro: ${error.message}`, 'error'); }
     };
 
-    const confirmBulkIndex = async () => { /* reuse logic - careful with scope variables */
+    const confirmBulkIndex = async () => {
         setIsBulkStartConfirmOpen(false);
-        const unindexedPhotos = (view === 'events' ? photos : filteredPhotos).filter(p => !p.is_face_indexed); // Logic adaptation
-        setIsBulkIndexing(true); setIsBulkStopRequested(false); stopBulkRef.current = false;
+        const unindexedPhotos = photos.filter(p => !p.is_face_indexed && (selectedEvent ? p.event_id === selectedEvent.id : true));
+        
+        setIsBulkIndexing(true);
+        setIsBulkStopRequested(false);
+        stopBulkRef.current = false;
         setBulkProgress({ current: 0, total: unindexedPhotos.length, successes: 0, failures: 0 });
-        let successes = 0; let failures = 0;
+        
+        let successes = 0;
+        let failures = 0;
+        
         for (let i = 0; i < unindexedPhotos.length; i++) {
             if (stopBulkRef.current) break;
+            
             setBulkProgress(prev => ({ ...prev, current: i + 1 }));
             const photo = unindexedPhotos[i];
+            
             try {
-                const img = new Image(); img.crossOrigin = "anonymous"; img.src = photo.preview_url;
-                await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; });
+                const img = new Image();
+                img.crossOrigin = "anonymous";
+                
+                await new Promise((resolve, reject) => {
+                    img.onload = resolve;
+                    img.onerror = () => reject(new Error("Erro ao carregar imagem"));
+                    // Tenta o thumb primeiro como fallback de qualidade/watermark
+                    img.src = photo.thumb_url || photo.preview_url;
+                });
+                
                 await faceRecognitionService.indexPhoto(photo.id, img);
                 setPhotos(prev => prev.map(p => p.id === photo.id ? { ...p, is_face_indexed: true } : p));
                 successes++;
-            } catch (error) { failures++; }
-            await new Promise(r => setTimeout(r, 100)); // throttle
+            } catch (error) {
+                console.warn(`Erro ao indexar foto ${photo.id}:`, error);
+                // Força marcação como indexado para não tentar infinitamente nas próximas vezes
+                await api.supabase.from('photos').update({ is_face_indexed: true }).eq('id', photo.id);
+                failures++;
+            }
+            
+            setBulkProgress(prev => ({ ...prev, successes, failures }));
+            await new Promise(r => setTimeout(r, 150));
         }
+        
         setIsBulkIndexing(false);
-        showToast(`Processo finalizado: ${successes} processados.`, 'info');
+        showToast(`Processo finalizado: ${successes} processados, ${failures} falhas.`, 'info');
+        fetchData();
     };
 
     // Status Chip Helper
