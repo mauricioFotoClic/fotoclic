@@ -59,11 +59,9 @@ const FindPhotosPage: React.FC<FindPhotosPageProps> = ({ onNavigate }) => {
     return Array.from(set).sort();
   }, [events]);
 
-  // Unique categories that have events
   const activeCategories = useMemo(() => {
-    const ids = new Set(events.map(e => e.category_id));
-    return Object.values(categories).filter(c => ids.has(c.id));
-  }, [events, categories]);
+    return Object.values(categories).sort((a, b) => (a.sort_order ?? 99) - (b.sort_order ?? 99));
+  }, [categories]);
 
   const filteredEvents = useMemo(() => {
     let result = events;
