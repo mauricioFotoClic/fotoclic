@@ -1,8 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
-import { Photo, User, Category, Page } from '../types';
+import { User, Category, PhotoEvent, Page } from '../types';
 import api from '../services/api';
-import PhotoCard from '../components/PhotoCard';
 import Spinner from '../components/Spinner';
 import SEO from '../components/SEO';
 
@@ -13,50 +12,34 @@ interface CategoryPageProps {
   currentUser?: User | null;
 }
 
-const CategoryPage: React.FC<CategoryPageProps> = ({ categoryId, onNavigate, onAddToCart, currentUser }) => {
+const CategoryPage: React.FC<CategoryPageProps> = ({ categoryId, onNavigate }) => {
   const [category, setCategory] = useState<Category | null>(null);
-  const [photos, setPhotos] = useState<Photo[]>([]);
-  const [photographers, setPhotographers] = useState<User[]>([]);
+  const [events, setEvents] = useState<PhotoEvent[]>([]);
+  const [photographers, setPhotographers] = useState<Record<string, User>>({});
   const [loadingCategory, setLoadingCategory] = useState(true);
-  const [loadingPhotos, setLoadingPhotos] = useState(true);
+  const [loadingEvents, setLoadingEvents] = useState(true);
 
   useEffect(() => {
-    const loadData = async () => {
-      // Fetch category specifically to show header fast
-      api.getCategoryById(categoryId).then((categoryData) => {
-        setCategory(categoryData || null);
-        setLoadingCategory(false);
-      }).catch((e) => {
-        console.error("Failed to load category metadata", e);
-        setLoadingCategory(false);
-      });
+    api.getCategoryById(categoryId).then((categoryData) => {
+      setCategory(categoryData || null);
+      setLoadingCategory(false);
+    }).catch(() => setLoadingCategory(false));
 
-      // Fetch photos and photographers concurrently but separately from category header
-      Promise.all([
-        api.getPhotosByCategoryId(categoryId, true), // Enable shuffling
-        api.getPhotographers(),
-      ]).then(([categoryPhotos, allPhotographers]) => {
-        // Filter photographers to only include active ones for display
-        const activePhotographers = allPhotographers.filter(p => p.is_active);
-        const activeIds = activePhotographers.map(p => p.id);
+    Promise.all([
+      api.getEventsByCategoryId(categoryId),
+      api.getPhotographers(),
+    ]).then(([categoryEvents, allPhotographers]) => {
+      const activePhotographers = allPhotographers.filter(p => p.is_active);
+      const photographerMap: Record<string, User> = {};
+      activePhotographers.forEach(p => { photographerMap[p.id] = p; });
 
-        // Ensure photos belong to active photographers
-        const validPhotos = categoryPhotos.filter(p => activeIds.includes(p.photographer_id));
-
-        setPhotos(validPhotos);
-        setPhotographers(activePhotographers);
-        setLoadingPhotos(false);
-      }).catch(e => {
-        console.error(`Failed to load photos for category ${categoryId}`, e);
-        setLoadingPhotos(false);
-      });
-    };
-    loadData();
+      // Only show events from active photographers
+      const validEvents = categoryEvents.filter(e => photographerMap[e.photographer_id]);
+      setEvents(validEvents);
+      setPhotographers(photographerMap);
+      setLoadingEvents(false);
+    }).catch(() => setLoadingEvents(false));
   }, [categoryId]);
-
-  const getPhotographerForPhoto = (photographerId: string) => {
-    return photographers.find(p => p.id === photographerId);
-  };
 
   if (loadingCategory) {
     return (
@@ -103,7 +86,7 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ categoryId, onNavigate, onA
       <section className="py-12 bg-neutral-100">
         <SEO
           title={category.name}
-          description={`Explore as melhores fotos de ${category.name}. Encontre imagens profissionais de alta qualidade no FotoClic.`}
+          description={`Explore os eventos de ${category.name}. Encontre fotos profissionais de alta qualidade no FotoClic.`}
           image={category.image_url || undefined}
           url={`https://fotoclic.com.br/categoria/${category.id}`}
         />
@@ -111,13 +94,13 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ categoryId, onNavigate, onA
           <h1 className="text-4xl md:text-5xl font-display font-bold text-primary-dark">
             Categoria: <span className="text-primary">{category.name}</span>
           </h1>
-          <p className="mt-2 text-lg text-neutral-600">Explore todas as fotos na categoria {category.name}.</p>
+          <p className="mt-2 text-lg text-neutral-600">Explore os eventos na categoria {category.name}.</p>
         </div>
       </section>
 
       <section className="py-16">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          {loadingPhotos ? (
+          {loadingEvents ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
               {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
                 <div key={i} className="h-72 bg-white shadow-sm rounded-2xl animate-pulse flex flex-col overflow-hidden border border-neutral-100 w-full">
@@ -132,21 +115,68 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ categoryId, onNavigate, onA
                 </div>
               ))}
             </div>
-          ) : photos.length > 0 ? (
+          ) : events.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-              {photos.map(photo => (
-                <PhotoCard
-                  key={photo.id}
-                  photo={photo}
-                  photographer={getPhotographerForPhoto(photo.photographer_id)}
-                  onNavigate={onNavigate}
-                  onAddToCart={onAddToCart}
-                  currentUser={currentUser}
-                />
-              ))}
+              {events.map(event => {
+                const photographer = photographers[event.photographer_id];
+                const eventDate = event.event_date
+                  ? new Date(event.event_date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
+                  : null;
+
+                return (
+                  <div
+                    key={event.id}
+                    className="group bg-white rounded-2xl overflow-hidden shadow-sm border border-neutral-100 hover:shadow-md transition-shadow cursor-pointer flex flex-col"
+                    onClick={() => onNavigate({ name: 'event', id: event.id })}
+                  >
+                    {/* Cover Image */}
+                    <div className="relative h-48 bg-neutral-200 overflow-hidden">
+                      {event.cover_photo_url ? (
+                        <img
+                          src={event.cover_photo_url}
+                          alt={event.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-neutral-200">
+                          <svg className="w-16 h-16 text-neutral-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-3">
+                        <span className="text-white text-xs font-medium">Ver fotos</span>
+                      </div>
+                    </div>
+
+                    {/* Event Info */}
+                    <div className="flex-1 p-4 flex flex-col justify-between">
+                      <div>
+                        <h3 className="font-semibold text-neutral-800 text-sm leading-snug line-clamp-2 mb-1">{event.name}</h3>
+                        {eventDate && (
+                          <p className="text-xs text-neutral-500 mb-1">{eventDate}</p>
+                        )}
+                        {event.location && (
+                          <p className="text-xs text-neutral-400 line-clamp-1">{event.location}</p>
+                        )}
+                      </div>
+                      {photographer && (
+                        <div className="flex items-center gap-2 mt-3">
+                          <img
+                            src={photographer.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(photographer.name)}&size=24`}
+                            alt={photographer.name}
+                            className="w-6 h-6 rounded-full object-cover"
+                          />
+                          <span className="text-xs text-neutral-500 truncate">{photographer.name}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           ) : (
-            <p className="text-center text-neutral-500">Nenhuma foto encontrada nesta categoria ainda.</p>
+            <p className="text-center text-neutral-500">Nenhum evento encontrado nesta categoria ainda.</p>
           )}
         </div>
       </section>

@@ -206,6 +206,7 @@ export type PageRoute =
   { name: 'photographer' } |
   { name: 'customer-dashboard' } |
   { name: 'category', id: string } |
+  { name: 'event', id: string } |
   { name: 'photo-detail', id: string } |
   { name: 'photographer-portfolio', photographerId: string } |
   { name: 'about' } |

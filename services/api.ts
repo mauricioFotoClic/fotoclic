@@ -883,6 +883,50 @@ export const api = {
   },
 
   // --- EVENTS ---
+  getEventById: async (eventId: string): Promise<PhotoEvent | null> => {
+    const { data, error } = await supabase
+      .from("events")
+      .select("*")
+      .eq("id", eventId)
+      .single();
+
+    if (error) {
+      if (error.code === "PGRST116") return null;
+      console.error("Error fetching event:", error);
+      return null;
+    }
+    return data as PhotoEvent;
+  },
+
+  getEventsByCategoryId: async (categoryId: string): Promise<PhotoEvent[]> => {
+    const { data, error } = await supabase
+      .from("events")
+      .select("*")
+      .eq("category_id", categoryId)
+      .order("event_date", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching events by category:", error);
+      return [];
+    }
+    return data as PhotoEvent[];
+  },
+
+  getPhotosByEventId: async (eventId: string): Promise<Photo[]> => {
+    const { data, error } = await supabase
+      .from("photos")
+      .select(
+        "id, photographer_id, category_id, title, preview_url, thumb_url, price, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags, event_id, sales_count",
+      )
+      .eq("event_id", eventId)
+      .eq("moderation_status", "approved")
+      .eq("is_public", true)
+      .order("created_at", { ascending: true });
+
+    if (error) throw error;
+    return data ? data.map(mapPhoto) : [];
+  },
+
   createEvent: async (
     eventData: Omit<PhotoEvent, "id" | "created_at">,
   ): Promise<PhotoEvent> => {

@@ -27,6 +27,7 @@ const PhotographerPage = React.lazy(() => import('./pages/PhotographerPage'));
 const PhotographerPortfolioPage = React.lazy(() => import('./pages/PhotographerPortfolioPage'));
 const DiscoverPage = React.lazy(() => import('./pages/DiscoverPage'));
 const ResetPasswordPage = React.lazy(() => import('./pages/ResetPasswordPage'));
+const EventPage = React.lazy(() => import('./pages/EventPage'));
 const PhotographersPage = React.lazy(() => import('./pages/PhotographersPage'));
 const CartPage = React.lazy(() => import('./pages/CartPage'));
 const LoginPage = React.lazy(() => import('./pages/LoginPage'));
@@ -131,6 +132,7 @@ const MainApp: React.FC = () => {
             case 'photographer': return '/area-fotografo';
             case 'customer-dashboard': return '/minhas-compras';
             case 'category': return `/categoria/${page.id}`;
+            case 'event': return `/evento/${page.id}`;
             case 'photo-detail': return `/foto/${page.id}`;
             case 'photographer-portfolio': return `/portfolio/${page.photographerId}`;
             case 'about': return '/sobre';
@@ -179,6 +181,9 @@ const MainApp: React.FC = () => {
 
         const categoryMatch = pathname.match(/^\/categoria\/(.+)$/);
         if (categoryMatch) return { name: 'category', id: categoryMatch[1] };
+
+        const eventMatch = pathname.match(/^\/evento\/(.+)$/);
+        if (eventMatch) return { name: 'event', id: eventMatch[1] };
 
         const photoMatch = pathname.match(/^\/foto\/(.+)$/);
         if (photoMatch) return { name: 'photo-detail', id: photoMatch[1] };
@@ -458,6 +463,8 @@ const MainApp: React.FC = () => {
                 return <CustomerDashboardPage onNavigate={handleNavigate} currentUser={currentUser} />;
             case 'category':
                 return <CategoryPage categoryId={currentPage.id} onNavigate={handleNavigate} onAddToCart={handleAddToCart} currentUser={currentUser} />;
+            case 'event':
+                return <EventPage eventId={currentPage.id} onNavigate={handleNavigate} onAddToCart={handleAddToCart} currentUser={currentUser} />;
             case 'photo-detail':
                 return <PhotoDetailPage
                     photoId={currentPage.id}
