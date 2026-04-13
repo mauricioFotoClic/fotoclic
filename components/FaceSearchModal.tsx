@@ -6,6 +6,7 @@ import api from '../services/api';
 import { Photo } from '../types';
 import Spinner from './Spinner';
 import { getOptimizedImageUrl } from '../utils/imageOptimization';
+import WatermarkedImage from './WatermarkedImage';
 
 interface FaceSearchModalProps {
     isOpen: boolean;
@@ -13,9 +14,11 @@ interface FaceSearchModalProps {
     onNavigate: (page: any) => void;
     onAddToCart: (id: string) => void;
     onShowToast: (message: string, type: 'success' | 'error' | 'info') => void;
+    eventId?: string;
+    eventName?: string;
 }
 
-const FaceSearchModal: React.FC<FaceSearchModalProps> = ({ isOpen, onClose, onNavigate, onAddToCart, onShowToast }) => {
+const FaceSearchModal: React.FC<FaceSearchModalProps> = ({ isOpen, onClose, onNavigate, onAddToCart, onShowToast, eventId, eventName }) => {
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [results, setResults] = useState<Photo[]>([]);
@@ -81,6 +84,10 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({ isOpen, onClose, onNa
                 if (matchedIds.length > 0) {
                     // 3. Pega as fotos do banco de dados
                     photos = await api.getPhotosByIds(matchedIds);
+                    // 4. Se estiver dentro de um evento, filtra apenas fotos deste evento
+                    if (eventId) {
+                        photos = photos.filter(p => p.event_id === eventId);
+                    }
                 }
             } else {
                 // FALLBACK HÍBRIDO (Similaridade Visual/Contextual): 
@@ -127,7 +134,9 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({ isOpen, onClose, onNa
                         </div>
                         <div>
                             <h2 className="text-xl md:text-2xl font-display font-bold text-neutral-900 tracking-tight">Reconhecimento Facial</h2>
-                            <p className="text-xs md:text-sm text-neutral-500 font-medium">Encontre você nas fotos</p>
+                            <p className="text-xs md:text-sm text-neutral-500 font-medium">
+                                {eventName ? `Buscando em: ${eventName}` : 'Encontre você nas fotos'}
+                            </p>
                         </div>
                     </div>
                     <button
@@ -176,7 +185,7 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({ isOpen, onClose, onNa
                                         {results.map(photo => (
                                             <div key={photo.id} className="group relative bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 ring-1 ring-neutral-100">
                                                 <div className="aspect-[2/3] overflow-hidden bg-neutral-200">
-                                                    <img
+                                                    <WatermarkedImage
                                                         src={getOptimizedImageUrl(photo.thumb_url || photo.preview_url, 400, 75)}
                                                         alt={photo.title}
                                                         loading="lazy"

@@ -54,18 +54,6 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigate, currentView
                             <span className="text-2xl font-display font-bold">FotoClic</span>
                         </button>
 
-                        {!isAuthPage && !isAdminView && !isPhotographerView && (
-                            <button
-                                onClick={() => onNavigate({ name: 'face-search' })}
-                                className="hidden md:flex items-center space-x-2 bg-blue-600/10 hover:bg-blue-600/20 text-blue-700 px-3 py-1.5 rounded-full transition-colors text-sm font-medium"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
-                                    <path d="M12 13m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" />
-                                </svg>
-                                <span>Buscar por Selfie</span>
-                            </button>
-                        )}
                     </div>
 
                     {!isAuthPage && (
@@ -152,15 +140,6 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigate, currentView
                             <button onClick={() => { onNavigate({ name: 'find-photos' }); setIsMenuOpen(false); }} className="block text-sm font-medium text-neutral-800 hover:text-primary transition-colors w-full text-left py-2">Encontrar fotos</button>
                             <button onClick={() => { onNavigate({ name: 'photographers' }); setIsMenuOpen(false); }} className="block text-sm font-medium text-neutral-800 hover:text-primary transition-colors w-full text-left py-2">Encontrar Profissional</button>
 
-                            <button onClick={() => { onNavigate({ name: 'face-search' }); setIsMenuOpen(false); }} className="block w-full text-left text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors py-2 bg-blue-50 rounded-lg px-2 mt-1 -ml-2 w-[calc(100%+16px)]">
-                                <span className="flex items-center gap-2">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
-                                        <path d="M12 13m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" />
-                                    </svg>
-                                    Buscar por Selfie
-                                </span>
-                            </button>
                             <div className="h-px bg-neutral-100 my-2"></div>
                         </>
                     )}
