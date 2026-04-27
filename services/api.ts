@@ -851,35 +851,19 @@ export const api = {
     if (inMemoryCache.activePhotographers.data && (now - inMemoryCache.activePhotographers.ts < CACHE_TTL)) {
       return inMemoryCache.activePhotographers.data;
     }
-    const { data: users, error } = await supabase
-      .from("users")
-      .select("id, name, email, avatar_url, location, is_active, bio, role")
-      .eq("role", "photographer")
-      .eq("is_active", true)
-      .not("avatar_url", "is", null)
-      .limit(10);
 
-    if (error) {
-      console.warn("Could not fetch active photographers", error);
+    try {
+      const allPhotogs = await api.getPhotographers();
+      const result = allPhotogs
+        .filter(p => p.is_active && p.avatar_url && p.approvedCount > 0)
+        .slice(0, 10);
+
+      inMemoryCache.activePhotographers = { data: result, ts: now };
+      return result;
+    } catch (error) {
+      console.warn("Could not fetch active photographers preview", error);
       return [];
     }
-
-    const result = users
-      ? users.map((u) => ({
-        ...mapUser(u),
-        photoCount: 0,
-        salesCount: 0,
-        commissionValue: 0,
-        commissionRate: 0,
-        likesCount: 0,
-        avgRating: 5.0, // Default for preview to avoid heavy review joins
-        reviewCount: 0,
-        approvalPercentage: 100,
-      }))
-      : [];
-
-    inMemoryCache.activePhotographers = { data: result, ts: now };
-    return result;
   },
 
   // --- EVENTS ---

@@ -15,8 +15,8 @@ const PhotographersPage: React.FC<PhotographersPageProps> = ({ onNavigate }) => 
   const [searchCity, setSearchCity] = useState('');
 
   useEffect(() => {
-    api.getPublicPhotographers().then(data => {
-      setPhotographers(data.filter(p => p.is_active));
+    api.getPhotographers().then(data => {
+      setPhotographers(data.filter(p => p.is_active && p.approvedCount > 0));
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);
