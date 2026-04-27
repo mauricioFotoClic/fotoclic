@@ -199,7 +199,7 @@ export interface Review {
 
 export type PageRoute =
   { name: 'home' } |
-  { name: 'find-photos' } |
+  { name: 'find-photos', initialSearch?: string } |
   { name: 'login' } |
   { name: 'register' } |
   { name: 'pending-approval' } |

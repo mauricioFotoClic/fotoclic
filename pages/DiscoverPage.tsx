@@ -34,8 +34,9 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ onNavigate, initialSearch, 
   }, [initialSearch]);
 
   const performSearch = () => {
-    setSearchTerm(inputValue);
-    setCurrentPage(1);
+    if (inputValue.trim()) {
+      onNavigate({ name: 'find-photos', initialSearch: inputValue });
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

@@ -7,15 +7,16 @@ import WatermarkedImage from '../components/WatermarkedImage';
 
 interface FindPhotosPageProps {
   onNavigate: (page: Page) => void;
+  initialSearch?: string;
 }
 
-const FindPhotosPage: React.FC<FindPhotosPageProps> = ({ onNavigate }) => {
+const FindPhotosPage: React.FC<FindPhotosPageProps> = ({ onNavigate, initialSearch }) => {
   const [events, setEvents] = useState<PhotoEvent[]>([]);
   const [photographers, setPhotographers] = useState<Record<string, User>>({});
   const [categories, setCategories] = useState<Record<string, Category>>({});
   const [loading, setLoading] = useState(true);
 
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState(initialSearch || '');
   const [filterCategory, setFilterCategory] = useState('');
   const [filterCity, setFilterCity] = useState('');
   const [filterDate, setFilterDate] = useState('');
@@ -68,11 +69,15 @@ const FindPhotosPage: React.FC<FindPhotosPageProps> = ({ onNavigate }) => {
 
     if (searchTerm.trim()) {
       const lower = searchTerm.toLowerCase();
-      result = result.filter(e =>
-        e.name.toLowerCase().includes(lower) ||
-        (e.location && e.location.toLowerCase().includes(lower)) ||
-        (e.description && e.description.toLowerCase().includes(lower))
-      );
+      result = result.filter(e => {
+        const category = categories[e.category_id];
+        const photographer = photographers[e.photographer_id];
+        return e.name.toLowerCase().includes(lower) ||
+          (e.location && e.location.toLowerCase().includes(lower)) ||
+          (e.description && e.description.toLowerCase().includes(lower)) ||
+          (category && category.name.toLowerCase().includes(lower)) ||
+          (photographer && photographer.name.toLowerCase().includes(lower));
+      });
     }
 
     if (filterCategory) {
@@ -102,7 +107,7 @@ const FindPhotosPage: React.FC<FindPhotosPageProps> = ({ onNavigate }) => {
     }
 
     return result;
-  }, [events, searchTerm, filterCategory, filterCity, filterDate]);
+  }, [events, searchTerm, filterCategory, filterCity, filterDate, categories, photographers]);
 
   const hasFilters = searchTerm || filterCategory || filterCity || filterDate;
 

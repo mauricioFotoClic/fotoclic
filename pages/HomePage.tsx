@@ -117,7 +117,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
   }, []);
 
   const handleSearch = () => {
-    if (searchQuery.trim()) onNavigate({ name: 'discover', initialSearch: searchQuery });
+    if (searchQuery.trim()) onNavigate({ name: 'find-photos', initialSearch: searchQuery });
   };
 
   const getPhotographer = (id: string) => photographersMap[id];

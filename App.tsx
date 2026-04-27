@@ -126,7 +126,7 @@ const MainApp: React.FC = () => {
     const getUrlFromPage = (page: Page): string => {
         switch (page.name) {
             case 'home': return '/';
-            case 'find-photos': return '/encontrar-fotos';
+            case 'find-photos': return page.initialSearch ? `/encontrar-fotos?q=${encodeURIComponent(page.initialSearch)}` : '/encontrar-fotos';
             case 'login': return '/login';
             case 'register': return '/cadastro';
             case 'pending-approval': return '/aguardando-aprovacao';
@@ -170,7 +170,10 @@ const MainApp: React.FC = () => {
         if (pathname === '/privacidade') return { name: 'privacy' };
         if (pathname === '/fotos-destaque') return { name: 'featured-photos' };
         if (pathname === '/fotografos') return { name: 'photographers' };
-        if (pathname === '/encontrar-fotos') return { name: 'find-photos' };
+        if (pathname === '/encontrar-fotos') {
+            const q = searchParams.get('q');
+            return { name: 'find-photos', initialSearch: q || undefined };
+        }
         if (pathname === '/carrinho') return { name: 'cart' };
         if (pathname === '/checkout') return { name: 'checkout' };
         if (pathname === '/test-stripe') return { name: 'test-stripe' };
@@ -465,7 +468,8 @@ const MainApp: React.FC = () => {
             case 'customer-dashboard':
                 return <CustomerDashboardPage onNavigate={handleNavigate} currentUser={currentUser} />;
             case 'find-photos':
-                return <FindPhotosPage onNavigate={handleNavigate} />;
+                const findPhotosSearch = currentPage.name === 'find-photos' ? currentPage.initialSearch : undefined;
+                return <FindPhotosPage onNavigate={handleNavigate} initialSearch={findPhotosSearch} />;
             case 'category':
                 return <CategoryPage categoryId={currentPage.id} onNavigate={handleNavigate} onAddToCart={handleAddToCart} currentUser={currentUser} />;
             case 'event':
