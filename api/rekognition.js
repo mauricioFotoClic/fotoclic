@@ -35,6 +35,20 @@ export default async function handler(req, res) {
 
     const { action } = req.body;
 
+    if (action === 'healthcheck') {
+        let sharpOk = false;
+        try { await sharp(Buffer.from([])).jpeg().toBuffer().catch(() => {}); sharpOk = true; } catch {}
+        return res.json({
+            ok: true,
+            hasAccessKey: !!process.env.AWS_ACCESS_KEY_ID,
+            hasSecretKey: !!process.env.AWS_SECRET_ACCESS_KEY,
+            region: process.env.AWS_REGION,
+            collection: process.env.AWS_REKOGNITION_COLLECTION_ID,
+            sharpLoaded: sharpOk,
+            nodeVersion: process.version,
+        });
+    }
+
     try {
         if (action === 'indexFaces') return await handleIndexFaces(req, res);
         if (action === 'searchFaces') return await handleSearchFaces(req, res);
