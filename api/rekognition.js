@@ -8,6 +8,11 @@ import {
 import { createClient } from '@supabase/supabase-js';
 import sharp from 'sharp';
 
+// Vercel: increase body size limit for base64 image uploads
+export const config = {
+    api: { bodyParser: { sizeLimit: '15mb' } },
+};
+
 const rekognition = new RekognitionClient({
     region: process.env.AWS_REGION || 'us-east-1',
     credentials: {
@@ -38,7 +43,11 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Invalid action' });
     } catch (error) {
         console.error('[Rekognition] Error:', error);
-        return res.status(500).json({ error: error.message });
+        return res.status(500).json({
+            error: error.message || 'Unknown error',
+            name: error.name,
+            action: req.body?.action,
+        });
     }
 }
 
@@ -98,9 +107,10 @@ async function handleSearchFaces(req, res) {
         return res.status(400).json({ error: 'imageBase64 is required' });
     }
 
-    // Strip data URL prefix if present
+    // Strip data URL prefix if present, then convert to JPEG (Rekognition rejects WebP)
     const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
-    const imageBuffer = Buffer.from(base64Data, 'base64');
+    const rawBuffer = Buffer.from(base64Data, 'base64');
+    const imageBuffer = await sharp(rawBuffer).jpeg({ quality: 92 }).toBuffer();
 
     const command = new SearchFacesByImageCommand({
         CollectionId: COLLECTION_ID,

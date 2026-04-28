@@ -31,7 +31,7 @@ export const faceRecognitionService = {
 
         if (!response.ok) {
             const err = await response.json().catch(() => ({ error: response.statusText }));
-            throw new Error(`Rekognition search failed: ${err.error}`);
+            throw new Error(`Rekognition search failed: ${err.error || err.name || response.status}`);
         }
 
         const data = await response.json();
