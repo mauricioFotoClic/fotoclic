@@ -800,26 +800,40 @@ export const api = {
     return true;
   },
   getPhotographers: async (): Promise<PhotographerWithStats[]> => {
-    // 1. Get stats via RPC (Server-side aggregation)
-    const { data, error } = await supabase.rpc("get_photographers_with_stats");
+    // 1. Get stats via RPC + reviews in parallel
+    const [{ data, error }, { data: reviewsData }] = await Promise.all([
+      supabase.rpc("get_photographers_with_stats"),
+      supabase.from("reviews").select("photographer_id, rating"),
+    ]);
 
     if (error) {
       console.error("Error fetching photographer stats via RPC:", error);
       throw error;
     }
 
-    // 2. Get Commission Settings
+    // 2. Build avgRating map from reviews
+    const ratingMap: Record<string, { sum: number; count: number }> = {};
+    for (const r of (reviewsData ?? []) as { photographer_id: string; rating: number }[]) {
+      if (!ratingMap[r.photographer_id]) ratingMap[r.photographer_id] = { sum: 0, count: 0 };
+      ratingMap[r.photographer_id].sum += r.rating;
+      ratingMap[r.photographer_id].count += 1;
+    }
+
+    // 3. Get Commission Settings
     const settings = await api.getCommissionSettings();
 
-    // 3. Map result
+    // 4. Map result
     return (data as any[]).map((row) => {
       const user = mapUser(row.user_data);
 
-      // Determine the effective rate for this photographer
       let effectiveRate = settings.defaultRate;
       if (settings.customRates && settings.customRates[user.id] !== undefined) {
         effectiveRate = settings.customRates[user.id];
       }
+
+      const rm = ratingMap[user.id];
+      const reviewCount = rm?.count ?? 0;
+      const avgRating = reviewCount > 0 ? rm.sum / reviewCount : 0;
 
       return {
         ...user,
@@ -831,9 +845,9 @@ export const api = {
         rejectedCount: Number(row.rejected_cnt),
         commissionRate: effectiveRate,
         likesCount: Number(row.likes_cnt),
-        avgRating: 0,
-        reviewCount: 0,
-        approvalPercentage: 0,
+        avgRating,
+        reviewCount,
+        approvalPercentage: reviewCount > 0 ? (rm.sum / reviewCount / 5) * 100 : 0,
       };
     });
   },
