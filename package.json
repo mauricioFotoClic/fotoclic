@@ -11,7 +11,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@aws-sdk/client-rekognition": "^3.1038.0",
+    "@aws-sdk/client-rekognition": "^3.600.0",
     "@google/generative-ai": "^0.24.1",
     "@stripe/react-stripe-js": "^5.4.1",
     "@stripe/stripe-js": "^8.5.3",
