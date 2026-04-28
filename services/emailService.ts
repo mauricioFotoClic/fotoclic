@@ -150,6 +150,52 @@ export const emailService = {
     );
   },
 
+  sendReportWarningEmail: async (photographerEmail: string, photographerName: string, reportReason: string, adminNote: string) => {
+    const reasonLabels: Record<string, string> = {
+      conteudo_inapropriado: 'Conteúdo Inapropriado',
+      perfil_falso: 'Perfil Falso',
+      violacao_direitos: 'Violação de Direitos',
+      assedio: 'Assédio',
+      spam: 'Spam',
+      outro: 'Outro',
+    };
+    const reasonLabel = reasonLabels[reportReason] || reportReason;
+
+    return emailService.sendEmail(
+      photographerEmail,
+      '⚠️ Aviso Importante sobre sua conta - FotoClic',
+      `<div style="font-family: sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 8px; overflow: hidden;">
+        <div style="background-color: #dc2626; padding: 20px; text-align: center;">
+          <h1 style="color: white; margin: 0; font-size: 22px;">⚠️ Aviso sobre sua Conta</h1>
+        </div>
+        <div style="padding: 24px;">
+          <p style="font-size: 16px;">Olá, <strong>${photographerName}</strong>!</p>
+          <p>Sua conta no FotoClic recebeu uma denúncia que foi analisada pela nossa equipe de moderação.</p>
+
+          <div style="background-color: #fef2f2; border-left: 4px solid #dc2626; padding: 16px; border-radius: 4px; margin: 24px 0;">
+            <p style="margin: 0 0 8px 0; font-weight: bold; color: #991b1b;">Motivo da Denúncia:</p>
+            <p style="margin: 0; color: #7f1d1d;">${reasonLabel}</p>
+          </div>
+
+          ${adminNote ? `<div style="background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
+            <p style="margin: 0 0 8px 0; font-weight: bold; color: #1e293b;">Nota da Moderação:</p>
+            <p style="margin: 0; color: #475569; white-space: pre-wrap;">${adminNote}</p>
+          </div>` : ''}
+
+          <p>Por favor, revise o conteúdo do seu perfil e certifique-se de que está em conformidade com os nossos <a href="${typeof window !== 'undefined' ? window.location.origin : ''}/terms" style="color: #2563EB;">Termos de Uso</a>.</p>
+          <p>Reincidências poderão resultar na suspensão da sua conta.</p>
+
+          <p style="font-size: 14px; color: #64748b; margin-top: 32px; border-top: 1px solid #e2e8f0; padding-top: 16px;">
+            Se você acredita que isso foi um erro, entre em contato com nosso suporte respondendo este e-mail.
+          </p>
+        </div>
+        <div style="background-color: #f1f5f9; padding: 16px; text-align: center; font-size: 12px; color: #94a3b8;">
+          © ${new Date().getFullYear()} FotoClic Marketplace. Todos os direitos reservados.
+        </div>
+      </div>`
+    );
+  },
+
   sendEmail: async (to: string, subject: string, html: string) => {
     try {
       const response = await fetch('/api/send-email', {

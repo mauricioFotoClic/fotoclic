@@ -68,6 +68,10 @@ const AdminPhotographers: React.FC<AdminPhotographersProps> = ({ onNavigate }) =
     // Pending reports per photographer
     const [pendingReportCounts, setPendingReportCounts] = useState<Record<string, number>>({});
 
+    // Inline resolve flow
+    const [resolvingReportId, setResolvingReportId] = useState<string | null>(null);
+    const [resolveNote, setResolveNote] = useState('');
+
     const fetchPhotographers = useCallback(async () => {
         try {
             const [data, allReports] = await Promise.all([
@@ -143,16 +147,30 @@ const AdminPhotographers: React.FC<AdminPhotographersProps> = ({ onNavigate }) =
         setDetailLoading(false);
     };
 
-    const handleResolveReport = async (reportId: string, status: ReportStatus) => {
-        await api.resolveReport(reportId, status);
-        setReports(prev => prev.map(r => r.id === reportId ? { ...r, status } : r));
-        // Update pending badge count for the photographer
+    const handleResolveReport = async (reportId: string, status: ReportStatus, adminNote?: string) => {
+        await api.resolveReport(reportId, status, adminNote);
+        setReports(prev => prev.map(r => r.id === reportId ? { ...r, status, admin_note: adminNote } : r));
+        setResolvingReportId(null);
+        setResolveNote('');
         if (detailPhotographer) {
             setPendingReportCounts(prev => {
                 const current = prev[detailPhotographer.id] ?? 0;
                 const updated = Math.max(0, current - 1);
                 return { ...prev, [detailPhotographer.id]: updated };
             });
+        }
+    };
+
+    const handleConfirmResolve = async (rep: Report) => {
+        await handleResolveReport(rep.id, 'resolved', resolveNote.trim() || undefined);
+        if (detailPhotographer) {
+            const { emailService } = await import('../../services/emailService');
+            await emailService.sendReportWarningEmail(
+                detailPhotographer.email,
+                detailPhotographer.name,
+                rep.reason,
+                resolveNote.trim()
+            );
         }
     };
 
@@ -502,10 +520,10 @@ const AdminPhotographers: React.FC<AdminPhotographersProps> = ({ onNavigate }) =
                                                             por <strong>{(rep as any).reporter?.name || 'Anônimo'}</strong> em {new Date(rep.created_at).toLocaleDateString('pt-BR')}
                                                         </p>
                                                     </div>
-                                                    {rep.status === 'pending' && (
+                                                    {rep.status === 'pending' && resolvingReportId !== rep.id && (
                                                         <div className="flex gap-2 flex-shrink-0">
                                                             <button
-                                                                onClick={() => handleResolveReport(rep.id, 'resolved')}
+                                                                onClick={() => { setResolvingReportId(rep.id); setResolveNote(''); }}
                                                                 className="px-3 py-1.5 text-xs font-semibold bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
                                                             >
                                                                 Resolver
@@ -519,6 +537,33 @@ const AdminPhotographers: React.FC<AdminPhotographersProps> = ({ onNavigate }) =
                                                         </div>
                                                     )}
                                                 </div>
+                                                {resolvingReportId === rep.id && (
+                                                    <div className="mt-3 space-y-2">
+                                                        <label className="block text-xs font-semibold text-neutral-700">Anotação para registro (opcional):</label>
+                                                        <textarea
+                                                            value={resolveNote}
+                                                            onChange={e => setResolveNote(e.target.value)}
+                                                            rows={3}
+                                                            placeholder="Descreva a ação tomada ou o motivo da resolução..."
+                                                            className="w-full text-sm px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-green-400 focus:border-transparent resize-none"
+                                                        />
+                                                        <p className="text-xs text-neutral-400">Um e-mail de aviso será enviado ao fotógrafo.</p>
+                                                        <div className="flex gap-2 justify-end">
+                                                            <button
+                                                                onClick={() => { setResolvingReportId(null); setResolveNote(''); }}
+                                                                className="px-3 py-1.5 text-xs font-semibold bg-neutral-100 text-neutral-600 rounded-lg hover:bg-neutral-200 transition-colors"
+                                                            >
+                                                                Cancelar
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleConfirmResolve(rep)}
+                                                                className="px-3 py-1.5 text-xs font-semibold bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                                                            >
+                                                                Confirmar e Enviar Aviso
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         ))}
                                     </div>
