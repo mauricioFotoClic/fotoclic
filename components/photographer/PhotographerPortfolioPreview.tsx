@@ -7,6 +7,7 @@ import PhotoCard from '../PhotoCard';
 import Modal from '../Modal';
 import PhotoUploadForm from './PhotoUploadForm';
 import ReviewModal from '../ReviewModal';
+import ReportModal from '../ReportModal';
 import { useToast } from '../../contexts/ToastContext';
 
 interface PhotographerPortfolioPreviewProps {
@@ -39,6 +40,7 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
     const [photoToDelete, setPhotoToDelete] = useState<Photo | null>(null);
     const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+    const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
     useEffect(() => {
         // Skip fetching if running in the background and we ALREADY fetched it before.
@@ -211,15 +213,24 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
                             </button>
                         )}
                         {!editable && currentUser && currentUser.id !== user.id && (
-                            <button
-                                onClick={() => setIsReviewModalOpen(true)}
-                                className="px-6 py-2 rounded-full bg-yellow-400 hover:bg-yellow-500 text-neutral-900 font-bold shadow-sm transition-all flex items-center justify-center gap-2"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                                </svg>
-                                Avaliar
-                            </button>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => setIsReviewModalOpen(true)}
+                                    className="px-4 py-2 rounded-full bg-yellow-400 hover:bg-yellow-500 text-neutral-900 font-bold shadow-sm transition-all flex items-center gap-2 text-sm"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                    </svg>
+                                    Avaliar
+                                </button>
+                                <button
+                                    onClick={() => setIsReportModalOpen(true)}
+                                    className="px-4 py-2 rounded-full bg-neutral-100 hover:bg-red-50 hover:text-red-600 hover:border-red-200 border border-neutral-200 text-neutral-500 font-medium shadow-sm transition-all flex items-center gap-2 text-sm"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>
+                                    Denunciar
+                                </button>
+                            </div>
                         )}
                     </div>
                 </div>
@@ -463,9 +474,17 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
                 photographerId={user.id}
                 currentUser={currentUser!}
                 onReviewSubmitted={() => {
-                    // Could refresh data here, but for now simple notification is fine
-                    alert("Avaliação enviada com sucesso!");
+                    setIsReviewModalOpen(false);
+                    showToast('Avaliação enviada com sucesso!', 'success');
                 }}
+            />
+
+            <ReportModal
+                isOpen={isReportModalOpen}
+                onClose={() => setIsReportModalOpen(false)}
+                photographerId={user.id}
+                currentUser={currentUser!}
+                photographerName={displayUser.name}
             />
         </div>
     );

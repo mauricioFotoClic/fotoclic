@@ -195,6 +195,23 @@ export interface Review {
   rating: number; // 1-5
   comment?: string;
   created_at: string;
+  reviewer?: { name: string; avatar_url?: string };
+}
+
+export type ReportReason = 'conteudo_inapropriado' | 'perfil_falso' | 'violacao_direitos' | 'assedio' | 'spam' | 'outro';
+export type ReportStatus = 'pending' | 'resolved' | 'dismissed';
+
+export interface Report {
+  id: string;
+  photographer_id: string;
+  reporter_id: string | null;
+  reason: ReportReason;
+  description?: string;
+  status: ReportStatus;
+  admin_note?: string;
+  created_at: string;
+  resolved_at?: string;
+  reporter?: { name: string; avatar_url?: string };
 }
 
 export type PageRoute =

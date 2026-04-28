@@ -17,6 +17,9 @@ import {
   BankInfo,
   PayoutStatus,
   Review,
+  Report,
+  ReportReason,
+  ReportStatus,
   PhotoEvent,
   RegisterResponse,
 } from "../types";
@@ -1085,6 +1088,50 @@ export const api = {
     }
     return data;
   },
+  deleteReview: async (reviewId: string): Promise<boolean> => {
+    const { error } = await supabase.from("reviews").delete().eq("id", reviewId);
+    if (error) { console.error("Error deleting review:", error); return false; }
+    return true;
+  },
+
+  createReport: async (report: Omit<Report, "id" | "created_at" | "resolved_at" | "status" | "admin_note" | "reporter">): Promise<Report | null> => {
+    const { data, error } = await supabase
+      .from("photographer_reports")
+      .insert(report)
+      .select()
+      .single();
+    if (error) { console.error("Error creating report:", error); return null; }
+    return data;
+  },
+
+  getPhotographerReports: async (photographerId: string): Promise<Report[]> => {
+    const { data, error } = await supabase
+      .from("photographer_reports")
+      .select("*, reporter:reporter_id(name, avatar_url)")
+      .eq("photographer_id", photographerId)
+      .order("created_at", { ascending: false });
+    if (error) { console.error("Error fetching reports:", error); return []; }
+    return data ?? [];
+  },
+
+  getAllReports: async (): Promise<Report[]> => {
+    const { data, error } = await supabase
+      .from("photographer_reports")
+      .select("*, reporter:reporter_id(name, avatar_url)")
+      .order("created_at", { ascending: false });
+    if (error) { console.error("Error fetching all reports:", error); return []; }
+    return data ?? [];
+  },
+
+  resolveReport: async (reportId: string, status: ReportStatus, adminNote?: string): Promise<boolean> => {
+    const { error } = await supabase
+      .from("photographer_reports")
+      .update({ status, admin_note: adminNote ?? null, resolved_at: status !== 'pending' ? new Date().toISOString() : null })
+      .eq("id", reportId);
+    if (error) { console.error("Error resolving report:", error); return false; }
+    return true;
+  },
+
   getPhotosToReindex: async (limit: number = 50): Promise<Photo[]> => {
     const { data, error } = await supabase
       .from("photos")
