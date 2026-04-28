@@ -10,10 +10,11 @@ import AdminSales from '../components/admin/AdminSales';
 import AdminPayouts from '../components/admin/AdminPayouts';
 import AdminSettings from '../components/admin/AdminSettings';
 import AdminStorageRequests from '../components/admin/AdminStorageRequests';
+import AdminRekognitionStats from '../components/admin/AdminRekognitionStats';
 import { Page } from '../types';
 import api from '../services/api';
 
-type AdminView = 'dashboard' | 'photos' | 'photographers' | 'customers' | 'categories' | 'sales' | 'payouts' | 'settings' | 'storage-requests';
+type AdminView = 'dashboard' | 'photos' | 'photographers' | 'customers' | 'categories' | 'sales' | 'payouts' | 'settings' | 'storage-requests' | 'rekognition';
 
 const KeepAliveView = React.memo(
     ({ active, children, index = 0 }: { active: boolean; children: React.ReactNode; index?: number }) => {
@@ -87,6 +88,9 @@ const AdminPage: React.FC<AdminPageProps> = ({ onNavigate }) => {
                 </KeepAliveView>
                 <KeepAliveView active={view === 'settings'} index={8}>
                     <AdminSettings />
+                </KeepAliveView>
+                <KeepAliveView active={view === 'rekognition'} index={9}>
+                    <AdminRekognitionStats />
                 </KeepAliveView>
             </>
         );

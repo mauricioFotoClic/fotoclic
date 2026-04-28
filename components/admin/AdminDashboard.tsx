@@ -5,7 +5,6 @@ import { faceRecognitionService } from '../../services/faceRecognition';
 import Spinner from '../Spinner';
 import Modal from '../Modal';
 import Toast from '../Toast';
-import AdminRekognitionStats from './AdminRekognitionStats';
 import { Photo, User, Category, Sale, PhotographerWithStats } from '../../types';
 
 interface StatCardProps {
@@ -360,11 +359,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setView }) => {
                         `}</style>
                     </div>
                 </div>
-            </div>
-
-            {/* Amazon Rekognition — Custos e Estatísticas */}
-            <div className="mt-8">
-                <AdminRekognitionStats />
             </div>
 
             {/* Modal de Confirmação Personalizado */}
