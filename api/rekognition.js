@@ -6,7 +6,6 @@ import {
     CreateCollectionCommand,
 } from '@aws-sdk/client-rekognition';
 import { createClient } from '@supabase/supabase-js';
-import sharp from 'sharp';
 
 // Vercel: increase body size limit for base64 image uploads
 export const config = {
@@ -36,15 +35,12 @@ export default async function handler(req, res) {
     const { action } = req.body;
 
     if (action === 'healthcheck') {
-        let sharpOk = false;
-        try { await sharp(Buffer.from([])).jpeg().toBuffer().catch(() => {}); sharpOk = true; } catch {}
         return res.json({
             ok: true,
             hasAccessKey: !!process.env.AWS_ACCESS_KEY_ID,
             hasSecretKey: !!process.env.AWS_SECRET_ACCESS_KEY,
             region: process.env.AWS_REGION,
             collection: process.env.AWS_REKOGNITION_COLLECTION_ID,
-            sharpLoaded: sharpOk,
             nodeVersion: process.version,
         });
     }
@@ -65,18 +61,16 @@ export default async function handler(req, res) {
     }
 }
 
+// Browser sends JPEG base64 (already converted from WebP via Canvas)
 async function handleIndexFaces(req, res) {
-    const { photoId, imageUrl } = req.body;
+    const { photoId, imageBase64 } = req.body;
 
-    if (!photoId || !imageUrl) {
-        return res.status(400).json({ error: 'photoId and imageUrl are required' });
+    if (!photoId || !imageBase64) {
+        return res.status(400).json({ error: 'photoId and imageBase64 are required' });
     }
 
-    // Fetch image and convert to JPEG (Rekognition does not support WebP)
-    const imgResponse = await fetch(imageUrl);
-    if (!imgResponse.ok) throw new Error(`Failed to fetch image: ${imgResponse.statusText}`);
-    const rawBuffer = Buffer.from(await imgResponse.arrayBuffer());
-    const imageBuffer = await sharp(rawBuffer).jpeg({ quality: 92 }).toBuffer();
+    const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+    const imageBuffer = Buffer.from(base64Data, 'base64');
 
     const command = new IndexFacesCommand({
         CollectionId: COLLECTION_ID,
@@ -90,13 +84,11 @@ async function handleIndexFaces(req, res) {
     const result = await rekognition.send(command);
     const faceRecords = result.FaceRecords || [];
 
-    // Mark as indexed regardless of face count
     if (faceRecords.length === 0) {
         await supabase.from('photos').update({ is_face_indexed: true }).eq('id', photoId);
         return res.json({ success: true, facesIndexed: 0 });
     }
 
-    // Delete any old encodings for this photo (re-indexing scenario)
     await supabase.from('face_encodings').delete().eq('photo_id', photoId);
 
     const encodings = faceRecords.map((record, idx) => ({
@@ -114,6 +106,7 @@ async function handleIndexFaces(req, res) {
     return res.json({ success: true, facesIndexed: faceRecords.length });
 }
 
+// Browser sends JPEG base64 (already converted from WebP via Canvas)
 async function handleSearchFaces(req, res) {
     const { imageBase64 } = req.body;
 
@@ -121,27 +114,24 @@ async function handleSearchFaces(req, res) {
         return res.status(400).json({ error: 'imageBase64 is required' });
     }
 
-    // Strip data URL prefix if present, then convert to JPEG (Rekognition rejects WebP)
     const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
-    const rawBuffer = Buffer.from(base64Data, 'base64');
-    const imageBuffer = await sharp(rawBuffer).jpeg({ quality: 92 }).toBuffer();
+    const imageBuffer = Buffer.from(base64Data, 'base64');
 
     const command = new SearchFacesByImageCommand({
         CollectionId: COLLECTION_ID,
         Image: { Bytes: imageBuffer },
         MaxFaces: 100,
-        FaceMatchThreshold: 80, // 80% similarity minimum
+        FaceMatchThreshold: 80,
     });
 
     const result = await rekognition.send(command);
     const faceMatches = result.FaceMatches || [];
 
-    // ExternalImageId is our photo_id
     const uniquePhotoIds = [...new Set(faceMatches.map(m => m.Face.ExternalImageId))];
 
     const matches = faceMatches.map(m => ({
-        photoId: m.Face.ExternalImageId,
-        faceId: m.Face.FaceId,
+        photoId:    m.Face.ExternalImageId,
+        faceId:     m.Face.FaceId,
         similarity: m.Similarity,
         confidence: m.Face.Confidence,
     }));
