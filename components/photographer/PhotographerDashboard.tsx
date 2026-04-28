@@ -114,7 +114,7 @@ const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({ user, set
             <p className="text-neutral-500 mb-6">Este é o resumo da sua atividade na plataforma.</p>
 
             {(!user.avatar_url || !user.banner_url) && (
-                <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-8 rounded-r-lg shadow-sm">
+                <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4 rounded-r-lg shadow-sm">
                     <div className="flex items-start">
                         <div className="flex-shrink-0">
                             <svg className="h-5 w-5 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
@@ -124,12 +124,12 @@ const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({ user, set
                         <div className="ml-3">
                             <h3 className="text-sm font-medium text-red-800">Atenção: Perfil Incompleto</h3>
                             <div className="mt-2 text-sm text-red-700">
-                                <p>
-                                    Para que seu perfil seja exibido na <strong>página principal do site</strong>, é obrigatório adicionar uma <strong>foto de perfil</strong> e um <strong>banner</strong>.
-                                </p>
-                                <p className="mt-1">
-                                    Enquanto você não completar estes itens, seu portfólio permanecerá oculto na vitrine principal.
-                                </p>
+                                <p>Seu perfil <strong>não está sendo exibido</strong> na página inicial do FotoClic. Para aparecer na vitrine principal, você precisa:</p>
+                                <ul className="mt-2 list-disc list-inside space-y-1">
+                                    {!user.avatar_url && <li><strong>Adicionar uma foto de perfil</strong></li>}
+                                    {!user.banner_url && <li><strong>Adicionar um banner</strong></li>}
+                                    {balance.photoCount === 0 && <li><strong>Publicar pelo menos 1 foto</strong></li>}
+                                </ul>
                             </div>
                             <div className="mt-4">
                                 <button
@@ -137,7 +137,34 @@ const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({ user, set
                                     onClick={() => setView('profile')}
                                     className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                                 >
-                                    Editar Perfil Agora
+                                    Completar Perfil Agora
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {(user.avatar_url && user.banner_url && balance.photoCount === 0) && (
+                <div className="bg-amber-50 border-l-4 border-amber-400 p-4 mb-4 rounded-r-lg shadow-sm">
+                    <div className="flex items-start">
+                        <div className="flex-shrink-0">
+                            <svg className="h-5 w-5 text-amber-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                            </svg>
+                        </div>
+                        <div className="ml-3">
+                            <h3 className="text-sm font-medium text-amber-800">Quase lá! Publique sua primeira foto</h3>
+                            <div className="mt-2 text-sm text-amber-700">
+                                <p>Seu perfil está completo, mas você ainda <strong>não aparece na página inicial</strong> porque não tem nenhuma foto publicada. Faça seu primeiro upload e sua vitrine estará visível para todos!</p>
+                            </div>
+                            <div className="mt-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setView('photos')}
+                                    className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-amber-700 bg-amber-100 hover:bg-amber-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500"
+                                >
+                                    Publicar Primeira Foto
                                 </button>
                             </div>
                         </div>
