@@ -2144,6 +2144,15 @@ export const api = {
       })) || []
     );
   },
+  getPendingReportsCount: async (): Promise<number> => {
+    const { count, error } = await supabase
+      .from("photographer_reports")
+      .select("*", { count: "exact", head: true })
+      .eq("status", "pending");
+    if (error) throw error;
+    return count || 0;
+  },
+
   getPendingPayoutsCount: async (): Promise<number> => {
     const { count, error } = await supabase
       .from("payouts")

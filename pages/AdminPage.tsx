@@ -55,7 +55,7 @@ interface AdminPageProps {
 const AdminPage: React.FC<AdminPageProps> = ({ onNavigate }) => {
     const [view, setView] = useState<AdminView>('dashboard');
     const [navContext, setNavContext] = useState<any>(null);
-    const [notificationCounts, setNotificationCounts] = useState<{ payouts: number }>({ payouts: 0 });
+    const [notificationCounts, setNotificationCounts] = useState<{ payouts: number; reports: number }>({ payouts: 0, reports: 0 });
 
     // ...
 
@@ -106,8 +106,11 @@ const AdminPage: React.FC<AdminPageProps> = ({ onNavigate }) => {
     useEffect(() => {
         const fetchNotifications = async () => {
             try {
-                const payoutsCount = await api.getPendingPayoutsCount();
-                setNotificationCounts(prev => ({ ...prev, payouts: payoutsCount }));
+                const [payoutsCount, reportsCount] = await Promise.all([
+                    api.getPendingPayoutsCount(),
+                    api.getPendingReportsCount(),
+                ]);
+                setNotificationCounts({ payouts: payoutsCount, reports: reportsCount });
             } catch (error) {
                 console.error("Failed to fetch notifications", error);
             }
@@ -124,7 +127,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ onNavigate }) => {
         <div className="bg-white">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex flex-col md:flex-row min-h-[calc(100vh-128px)]">
-                    <AdminSidebar activeView={view} setView={handleSetView} notificationCounts={notificationCounts} />
+                    <AdminSidebar activeView={view} setView={handleSetView} notificationCounts={{ payouts: notificationCounts.payouts, photographers: notificationCounts.reports }} />
                     <main className="flex-1 p-8 bg-neutral-100 rounded-lg md:ml-4 mt-4 md:mt-0">
                         {renderView()}
                     </main>

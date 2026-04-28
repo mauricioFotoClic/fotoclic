@@ -8,6 +8,7 @@ interface AdminSidebarProps {
     setView: (view: AdminView, context?: any) => void;
     notificationCounts?: {
         payouts?: number;
+        photographers?: number;
     };
 }
 
@@ -57,7 +58,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeView, setView, notifi
             <nav className="space-y-2">
                 <NavLink label="Dashboard" isActive={activeView === 'dashboard'} onClick={() => setView('dashboard')} icon={<HomeIcon />} />
                 <NavLink label="Categorias" isActive={activeView === 'categories'} onClick={() => setView('categories')} icon={<TagIcon />} />
-                <NavLink label="Fotógrafos" isActive={activeView === 'photographers'} onClick={() => setView('photographers')} icon={<UsersIcon />} />
+                <NavLink label="Fotógrafos" isActive={activeView === 'photographers'} onClick={() => setView('photographers')} icon={<UsersIcon />} notificationCount={notificationCounts?.photographers} />
                 <NavLink label="Clientes" isActive={activeView === 'customers'} onClick={() => setView('customers')} icon={<UserGroupIcon />} />
                 <NavLink label="Fotos" isActive={activeView === 'photos'} onClick={() => setView('photos')} icon={<ImageIcon />} />
                 <NavLink label="Vendas" isActive={activeView === 'sales'} onClick={() => setView('sales')} icon={<DollarSignIcon />} />

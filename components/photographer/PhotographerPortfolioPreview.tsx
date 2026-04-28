@@ -212,10 +212,13 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
                                 Copiar Link Público
                             </button>
                         )}
-                        {!editable && currentUser && currentUser.id !== user.id && (
+                        {!editable && (!currentUser || currentUser.id !== user.id) && (
                             <div className="flex gap-2">
                                 <button
-                                    onClick={() => setIsReviewModalOpen(true)}
+                                    onClick={() => {
+                                        if (!currentUser) { onNavigate?.({ name: 'login' }); return; }
+                                        setIsReviewModalOpen(true);
+                                    }}
                                     className="px-4 py-2 rounded-full bg-yellow-400 hover:bg-yellow-500 text-neutral-900 font-bold shadow-sm transition-all flex items-center gap-2 text-sm"
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -224,7 +227,10 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
                                     Avaliar
                                 </button>
                                 <button
-                                    onClick={() => setIsReportModalOpen(true)}
+                                    onClick={() => {
+                                        if (!currentUser) { onNavigate?.({ name: 'login' }); return; }
+                                        setIsReportModalOpen(true);
+                                    }}
                                     className="px-4 py-2 rounded-full bg-neutral-100 hover:bg-red-50 hover:text-red-600 hover:border-red-200 border border-neutral-200 text-neutral-500 font-medium shadow-sm transition-all flex items-center gap-2 text-sm"
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>

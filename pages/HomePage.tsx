@@ -518,7 +518,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
           {/* Carousel track */}
           <div
             ref={photogsRef}
-            className="flex gap-6 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-2"
+            className="flex gap-6 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-2 pt-3"
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
             {loadingPhotogs
