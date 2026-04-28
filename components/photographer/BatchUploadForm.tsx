@@ -7,7 +7,7 @@ interface BatchUploadFormProps {
     photographerId: string;
     onSubmit: (
         files: File[],
-        metadata: { price: number, tags: string[], is_public: boolean, skipIndexing: boolean },
+        metadata: { price: number, tags: string[], is_public: boolean },
         onProgress: (current: number, total: number) => void
     ) => Promise<void>;
     onCancel: () => void;
@@ -45,13 +45,10 @@ const BatchUploadForm: React.FC<BatchUploadFormProps> = ({ event, photographerId
         setUploadProgress({ current: 0, total: selectedFiles.length });
 
         try {
-            const skipIndexing = (document.getElementById('skip_indexing') as HTMLInputElement)?.checked || false;
-
             await onSubmit(selectedFiles, {
                 price: numPrice,
                 tags: tags.split(',').map(t => t.trim()).filter(t => t),
                 is_public: isPublic,
-                skipIndexing: skipIndexing
             }, (current, total) => {
                 setUploadProgress({ current, total });
             });
@@ -159,20 +156,6 @@ const BatchUploadForm: React.FC<BatchUploadFormProps> = ({ event, photographerId
                             <label htmlFor="is_public_batch" className="ml-2 block text-sm text-neutral-900">Tornar estas fotos públicas no marketplace</label>
                         </div>
 
-                        <div className="flex items-center">
-                            <input
-                                id="skip_indexing"
-                                type="checkbox"
-                                defaultChecked={false}
-                                className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-neutral-300 rounded"
-                                disabled={isUploading}
-                                name="skip_indexing"
-                            />
-                            <label htmlFor="skip_indexing" className="ml-2 block text-sm text-neutral-900">
-                                ⚡ Upload Ultra Rápido (pular reconhecimento facial agora)
-                                <span className="block text-[10px] text-neutral-500">Você poderá indexar as fotos depois no painel, se precisar da busca por selfie.</span>
-                            </label>
-                        </div>
                     </div>
 
                     <div className="flex justify-end space-x-2 pt-4 border-t">

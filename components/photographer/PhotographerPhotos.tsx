@@ -205,7 +205,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
 
     const handleBatchUpload = async (
         files: File[],
-        metadata: { price: number, tags: string[], is_public: boolean, skipIndexing: boolean },
+        metadata: { price: number, tags: string[], is_public: boolean },
         onProgress?: (current: number, total: number) => void
     ) => {
         if (!selectedEvent) return;
@@ -313,8 +313,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                 if (newPhoto) {
                     // AUTOMATIC INDEXING:
                     try {
-                        // Index face if enabled and not skipped
-                        if (!metadata.skipIndexing && (user as any).face_indexing_enabled !== false) { // Default true
+                        if ((user as any).face_indexing_enabled !== false) {
                             await faceRecognitionService.indexPhoto(newPhoto.id, newPhoto.preview_url);
                         }
                     } catch (idxError: any) {

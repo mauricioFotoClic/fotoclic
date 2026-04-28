@@ -65,12 +65,25 @@ const AdminPhotographers: React.FC<AdminPhotographersProps> = ({ onNavigate }) =
     const [reports, setReports] = useState<Report[]>([]);
     const [detailLoading, setDetailLoading] = useState(false);
 
-
+    // Pending reports per photographer
+    const [pendingReportCounts, setPendingReportCounts] = useState<Record<string, number>>({});
 
     const fetchPhotographers = useCallback(async () => {
         try {
-            const data = await api.getPhotographers();
+            const [data, allReports] = await Promise.all([
+                api.getPhotographers(),
+                api.getAllReports(),
+            ]);
             setPhotographers(data);
+
+            // Count pending reports per photographer
+            const counts: Record<string, number> = {};
+            for (const r of allReports) {
+                if (r.status === 'pending') {
+                    counts[r.photographer_id] = (counts[r.photographer_id] ?? 0) + 1;
+                }
+            }
+            setPendingReportCounts(counts);
         } catch (error) {
             console.error("Failed to fetch photographers", error);
         } finally {
@@ -133,6 +146,14 @@ const AdminPhotographers: React.FC<AdminPhotographersProps> = ({ onNavigate }) =
     const handleResolveReport = async (reportId: string, status: ReportStatus) => {
         await api.resolveReport(reportId, status);
         setReports(prev => prev.map(r => r.id === reportId ? { ...r, status } : r));
+        // Update pending badge count for the photographer
+        if (detailPhotographer) {
+            setPendingReportCounts(prev => {
+                const current = prev[detailPhotographer.id] ?? 0;
+                const updated = Math.max(0, current - 1);
+                return { ...prev, [detailPhotographer.id]: updated };
+            });
+        }
     };
 
     const handleDeleteReview = async (reviewId: string) => {
@@ -245,7 +266,7 @@ const AdminPhotographers: React.FC<AdminPhotographersProps> = ({ onNavigate }) =
                     </thead>
                     <tbody>
                         {paginatedPhotographers.map((user, index) => (
-                            <tr key={user.id} className={`border-t ${index % 2 === 0 ? 'bg-white' : 'bg-neutral-50'}`}>
+                            <tr key={user.id} className={`border-t ${pendingReportCounts[user.id] ? 'bg-red-50 border-l-4 border-l-red-400' : index % 2 === 0 ? 'bg-white' : 'bg-neutral-50'}`}>
                                 <td className="p-4 text-sm text-neutral-800 font-medium">
                                     <div className="flex items-center">
                                         <div className="w-8 h-8 rounded-full bg-neutral-200 overflow-hidden mr-3 flex-shrink-0 flex items-center justify-center">
@@ -323,10 +344,15 @@ const AdminPhotographers: React.FC<AdminPhotographersProps> = ({ onNavigate }) =
                                     <div className="flex items-center justify-end gap-2">
                                         <button
                                             onClick={() => handleOpenDetail(user, 'reports')}
-                                            className="flex items-center justify-center w-9 h-9 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full transition-colors"
-                                            title="Ver denúncias"
+                                            className="relative flex items-center justify-center w-9 h-9 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full transition-colors"
+                                            title={pendingReportCounts[user.id] ? `${pendingReportCounts[user.id]} denúncia(s) pendente(s)` : 'Ver denúncias'}
                                         >
                                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>
+                                            {pendingReportCounts[user.id] ? (
+                                                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center leading-none">
+                                                    {pendingReportCounts[user.id]}
+                                                </span>
+                                            ) : null}
                                         </button>
                                         <button
                                             onClick={() => handleOpenModal(user)}
