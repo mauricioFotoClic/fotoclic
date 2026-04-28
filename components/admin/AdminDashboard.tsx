@@ -100,16 +100,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setView }) => {
                         setCurrentIndexingPhoto(photo.thumb_url || photo.preview_url);
                         setLastStatus('none');
                         
-                        const img = new Image();
-                        img.crossOrigin = "anonymous";
-
-                        await new Promise((resolve, reject) => {
-                            img.onload = resolve;
-                            img.onerror = () => reject(new Error("Erro ao carregar imagem"));
-                            img.src = photo.thumb_url || photo.preview_url;
-                        });
-
-                        await faceRecognitionService.indexPhoto(photo.id, img);
+                        await faceRecognitionService.indexPhoto(photo.id, photo.preview_url || photo.thumb_url);
                         setLastStatus('success');
                         setStats((prev: any) => ({ ...prev, notIndexedPhotosCount: prev.notIndexedPhotosCount - 1 }));
                     } catch (e) {

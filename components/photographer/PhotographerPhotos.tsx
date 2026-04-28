@@ -315,17 +315,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                     try {
                         // Index face if enabled and not skipped
                         if (!metadata.skipIndexing && (user as any).face_indexing_enabled !== false) { // Default true
-                            // Must create an image element for face-api
-                            const indexingImg = new Image();
-                            indexingImg.src = newPhoto.preview_url;
-                            // CrossOrigin might be needed if public bucket domain differs, usually ok with std supabase
-                            indexingImg.crossOrigin = "anonymous";
-                            await new Promise((resolve, reject) => {
-                                indexingImg.onload = resolve;
-                                indexingImg.onerror = reject;
-                            });
-
-                            await faceRecognitionService.indexPhoto(newPhoto.id, indexingImg); // Use loaded image
+                            await faceRecognitionService.indexPhoto(newPhoto.id, newPhoto.preview_url);
                         }
                     } catch (idxError: any) {
                         // Check if it's a "no face found" error which is expected for some photos
@@ -429,9 +419,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
         if (!photoToIndex) return;
         setIsIndexConfirmModalOpen(false);
         try {
-            const img = new Image(); img.crossOrigin = "anonymous"; img.src = photoToIndex.preview_url;
-            await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; });
-            await faceRecognitionService.indexPhoto(photoToIndex.id, img);
+            await faceRecognitionService.indexPhoto(photoToIndex.id, photoToIndex.preview_url);
             setPhotos(prev => prev.map(p => p.id === photoToIndex.id ? { ...p, is_face_indexed: true } : p));
             showToast("Sucesso! Rostos indexados.", 'success');
         } catch (error: any) { showToast(`Erro: ${error.message}`, 'error'); }
@@ -456,17 +444,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
             const photo = unindexedPhotos[i];
             
             try {
-                const img = new Image();
-                img.crossOrigin = "anonymous";
-                
-                await new Promise((resolve, reject) => {
-                    img.onload = resolve;
-                    img.onerror = () => reject(new Error("Erro ao carregar imagem"));
-                    // Tenta o thumb primeiro como fallback de qualidade/watermark
-                    img.src = photo.thumb_url || photo.preview_url;
-                });
-                
-                await faceRecognitionService.indexPhoto(photo.id, img);
+                await faceRecognitionService.indexPhoto(photo.id, photo.preview_url || photo.thumb_url);
                 setPhotos(prev => prev.map(p => p.id === photo.id ? { ...p, is_face_indexed: true } : p));
                 successes++;
             } catch (error) {

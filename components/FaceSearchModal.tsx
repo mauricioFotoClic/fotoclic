@@ -28,10 +28,7 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({ isOpen, onClose, onNa
     const cameraInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
-        if (isOpen) {
-            // Preload models as soon as the modal opens to save time
-            faceRecognitionService.loadEssentialModels().catch(err => console.error("Failed to preload models", err));
-        }
+        // No-op: Rekognition runs server-side, no local model loading needed
     }, [isOpen]);
 
     if (!isOpen) return null;
@@ -61,40 +58,27 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({ isOpen, onClose, onNa
         const startTime = performance.now();
 
         try {
-            // Create an image element from the data URL
-            const img = new Image();
-            img.src = selectedImage;
-            await new Promise((resolve) => { img.onload = resolve; });
-
             // Unblock UI to let spinner render
-            await new Promise(resolve => setTimeout(resolve, 100));
+            await new Promise(resolve => setTimeout(resolve, 50));
 
             let photos: Photo[] = [];
             let isHybridFallback = false;
 
-            // 1. Tenta obter descritor facial
-            const descriptor = await faceRecognitionService.getFaceDescriptor(img);
+            // 1. Busca via Amazon Rekognition (server-side)
+            const matches = await faceRecognitionService.searchByImage(selectedImage, eventId);
+            console.log(`Rekognition matched ${matches.length} photos.`);
 
-            if (descriptor) {
-                // 2. Busca rostos compatíveis com limite mais alto (0.46 configurado no serviço)
-                const matches = await faceRecognitionService.searchMatches(descriptor);
-                console.log(`Matched ${matches.length} photos after precision filtering.`);
+            if (matches.length > 0) {
                 const matchedIds = matches.map(m => m.id);
-
-                if (matchedIds.length > 0) {
-                    // 3. Pega as fotos do banco de dados
-                    photos = await api.getPhotosByIds(matchedIds);
-                    // 4. Se estiver dentro de um evento, filtra apenas fotos deste evento
-                    if (eventId) {
-                        photos = photos.filter(p => p.event_id === eventId);
-                    }
-                }
+                photos = await api.getPhotosByIds(matchedIds);
             } else {
-                // FALLBACK HÍBRIDO (Similaridade Visual/Contextual): 
-                // Dispara APENAS se o Human não enxergou nenhum rosto na foto (ex: fotos de objetos, paisagens ou de costas)
-                console.warn("Nenhum rosto válido detectado na imagem enviada. Iniciando fallback de Similaridade Visual (IA) baseada no cenário...");
+                // FALLBACK: sem rosto detectado pelo Rekognition, usa similaridade visual (IA)
+                console.warn("Nenhum rosto encontrado pelo Rekognition. Iniciando fallback de Similaridade Visual...");
                 isHybridFallback = true;
                 photos = await api.searchImageContext(selectedImage);
+                if (eventId) {
+                    photos = photos.filter(p => p.event_id === eventId);
+                }
             }
 
             const endTime = performance.now();
