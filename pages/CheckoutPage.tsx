@@ -24,6 +24,7 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
     const [clientSecret, setClientSecret] = useState('');
     const [groupedCart, setGroupedCart] = useState<CartGrouping[]>([]);
     const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
+    const [isProcessing, setIsProcessing] = useState(false);
 
     // Load Cart Items
     useEffect(() => {
@@ -216,45 +217,89 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
                             {/* Card Header */}
                             <div className="flex items-center justify-between mb-8">
                                 <h2 className="text-lg font-bold text-neutral-800 flex items-center gap-2">
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
-                                        <line x1="1" y1="10" x2="23" y2="10"></line>
-                                    </svg>
+                                    <span className="p-1.5 bg-green-50 text-green-600 rounded-lg">🥑</span>
                                     Pagamento Seguro
                                 </h2>
-                                <div className="flex space-x-2 opacity-50 grayscale hover:grayscale-0 transition-all">
-                                    <div className="bg-neutral-100 px-2 py-1 rounded text-[10px] font-bold text-neutral-600 tracking-wider border border-neutral-200">STRIPE</div>
+                                <div className="flex space-x-2">
+                                    <div className="bg-neutral-100 px-2 py-1 rounded text-[10px] font-bold text-neutral-600 tracking-wider border border-neutral-200">ABACATE PAY</div>
                                 </div>
                             </div>
 
-                            {paymentError ? (
-                                <div className="flex flex-col items-center justify-center h-64 text-center px-4">
-                                    <div className="text-red-500 mb-2">
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
+                            <div className="space-y-6">
+                                <div className="bg-neutral-50 rounded-xl p-4 border border-neutral-100">
+                                    <p className="text-sm text-neutral-600 mb-4">Escolha como deseja pagar na próxima tela:</p>
+                                    <div className="flex gap-4">
+                                        <div className="flex items-center gap-2 text-xs font-medium text-neutral-500">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-600"><path d="M20 6 9 17l-5-5"/></svg>
+                                            PIX (Aprovação Instantânea)
+                                        </div>
+                                        <div className="flex items-center gap-2 text-xs font-medium text-neutral-500">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-600"><path d="M20 6 9 17l-5-5"/></svg>
+                                            Cartão de Crédito
+                                        </div>
                                     </div>
-                                    <p className="text-neutral-800 font-bold mb-2">Erro ao iniciar pagamento</p>
-                                    <p className="text-red-600 text-sm bg-red-50 p-3 rounded border border-red-100">{paymentError}</p>
-                                    <button
-                                        onClick={() => window.location.reload()}
-                                        className="mt-4 px-4 py-2 bg-neutral-900 text-white rounded-lg text-sm hover:bg-neutral-800"
-                                    >
-                                        Tentar Novamente
-                                    </button>
                                 </div>
-                            ) : clientSecret ? (
-                                <StripeContainer
-                                    clientSecret={clientSecret}
-                                    amount={total}
-                                    onSuccess={handleSuccess}
-                                />
-                            ) : (
-                                <div className="flex flex-col items-center justify-center h-64 text-neutral-500">
-                                    <Spinner />
-                                    <p className="mt-4 text-sm">Iniciando sessão segura com Stripe...</p>
-                                </div>
-                            )}
+
+                                {paymentError && (
+                                    <div className="p-3 bg-red-50 border border-red-100 rounded-lg text-red-600 text-xs">
+                                        {paymentError}
+                                    </div>
+                                )}
+
+                                <button
+                                    onClick={async () => {
+                                        if (!currentUser) {
+                                            alert("Você precisa estar logado para finalizar a compra.");
+                                            return;
+                                        }
+
+                                        try {
+                                            setIsProcessing(true);
+                                            setPaymentError(null);
+
+                                            // Preparamos os itens para a Abacate Pay
+                                            const items = photos.map(p => ({
+                                                id: p.id,
+                                                title: p.title,
+                                                price: p.price * 100, // Abacate Pay usa centavos
+                                                quantity: 1
+                                            }));
+
+                                            const checkout = await api.createAbacateCheckout(items, {
+                                                name: currentUser.name,
+                                                email: currentUser.email,
+                                                taxId: "" // CPF opcional para iniciar
+                                            }, {
+                                                cartIds: cartItemIds,
+                                                couponCode: appliedCoupon?.code
+                                            });
+
+                                            if (checkout.url) {
+                                                window.location.href = checkout.url;
+                                            } else {
+                                                throw new Error("URL de pagamento não gerada.");
+                                            }
+                                        } catch (error: any) {
+                                            console.error("Abacate Pay Error:", error);
+                                            setPaymentError(error.message || "Falha ao iniciar pagamento.");
+                                        } finally {
+                                            setIsProcessing(false);
+                                        }
+                                    }}
+                                    disabled={isProcessing}
+                                    className="w-full py-4 bg-neutral-900 text-white rounded-xl font-bold shadow-lg hover:bg-neutral-800 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                                >
+                                    {isProcessing ? (
+                                        <><Spinner size="sm" /> Processando...</>
+                                    ) : (
+                                        <>Finalizar Pedido com PIX/Cartão</>
+                                    )}
+                                </button>
+                                
+                                <p className="text-[10px] text-neutral-400 text-center">
+                                    Ao clicar em finalizar, você será redirecionado para o ambiente seguro da Abacate Pay.
+                                </p>
+                            </div>
                         </div>
                     </div>
 

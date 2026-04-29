@@ -37,6 +37,8 @@ export default async function handler(req, res) {
             completionUrl: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:5173'}/sales`,
         };
 
+        console.log('[AbacatePay] Iniciando criação de cobrança...', body);
+
         const response = await fetch('https://api.abacatepay.com/v1/billing/create', {
             method: 'POST',
             headers: {
@@ -48,10 +50,14 @@ export default async function handler(req, res) {
         });
 
         const result = await response.json();
+        console.log('[AbacatePay] Resposta da API:', result);
 
         if (!response.ok) {
-            console.error('[AbacatePay] Erro API:', result);
-            return res.status(response.status).json({ error: result.message || 'Erro ao criar cobrança na Abacate Pay.' });
+            console.error('[AbacatePay] Erro detalhado da API:', JSON.stringify(result, null, 2));
+            return res.status(response.status).json({ 
+                error: result.message || 'Erro na API Abacate Pay',
+                details: result.errors || null
+            });
         }
 
         // Retornamos a URL de checkout para o frontend redirecionar
