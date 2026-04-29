@@ -111,7 +111,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
     }).catch(() => setLoadingPhotogs(false));
 
     api.getAllPublicEvents().then(events => {
-      setRecentEvents(events.slice(0, 8));
+      setRecentEvents(events);
       setLoadingEvents(false);
     }).catch(() => setLoadingEvents(false));
   }, []);
@@ -389,7 +389,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
             <div className="w-20 h-1 bg-gradient-to-r from-primary to-secondary rounded-full mt-4" />
           </div>
 
-          {loadingEvents ? (
+          {(loadingEvents || loadingPhotogs) ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
               {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
                 <div key={i} className="rounded-2xl overflow-hidden border border-neutral-100 shadow-sm animate-pulse">
@@ -405,10 +405,13 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
                 </div>
               ))}
             </div>
-          ) : recentEvents.length > 0 ? (
+          ) : recentEvents.filter(e => photographersMap[e.photographer_id] !== undefined).length > 0 ? (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-                {recentEvents.map(event => {
+                {recentEvents
+                  .filter(e => photographersMap[e.photographer_id] !== undefined)
+                  .slice(0, 8)
+                  .map(event => {
                   const category = categoriesMap[event.category_id];
                   const photographer = photographersMap[event.photographer_id];
                   const eventDate = event.event_date
