@@ -518,7 +518,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
           {/* Carousel track */}
           <div
             ref={photogsRef}
-            className="flex gap-6 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-2 pt-3"
+            className="flex gap-6 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-10 pt-5"
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
             {loadingPhotogs
@@ -526,9 +526,10 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
               : photographers.map((p, index) => (
                 <div
                   key={p.id}
-                  className="group relative flex-none w-4/5 sm:w-1/2 lg:w-[calc(25%-18px)] bg-white rounded-2xl shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden cursor-pointer transform hover:-translate-y-2 snap-start"
+                  className="group relative flex-none w-4/5 sm:w-1/2 lg:w-[calc(25%-18px)] rounded-2xl shadow-sm hover:shadow-xl transition-all duration-500 cursor-pointer transform hover:-translate-y-2 snap-start"
                   onClick={() => onNavigate({ name: 'photographer-portfolio', photographerId: p.id })}
                 >
+                  <div className="bg-white rounded-2xl overflow-hidden">
                   <div className={`h-24 w-full bg-gradient-to-r ${index % 2 === 0 ? 'from-neutral-900 to-neutral-800' : 'from-neutral-800 to-neutral-900'}`} />
                   <div className="px-6 pb-8 relative">
                     <div className="relative -mt-12 mb-4 flex justify-center">
@@ -578,6 +579,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
                         </svg>
                       </button>
                     </div>
+                  </div>
                   </div>
                 </div>
               ))
