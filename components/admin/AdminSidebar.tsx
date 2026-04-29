@@ -97,7 +97,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeView, setView, notifi
                     <NavLink label="Fotógrafos" isActive={activeView === 'photographers'} onClick={() => nav('photographers')} icon={<UsersIcon />} notificationCount={notificationCounts?.photographers} />
                     <NavLink label="Clientes" isActive={activeView === 'customers'} onClick={() => nav('customers')} icon={<UserGroupIcon />} />
                     <NavLink label="Fotos" isActive={activeView === 'photos'} onClick={() => nav('photos')} icon={<ImageIcon />} />
-                    <NavLink label="Vendas" isActive={activeView === 'sales'} onClick={() => nav('sales'} icon={<DollarSignIcon />} />
+                    <NavLink label="Vendas" isActive={activeView === 'sales'} onClick={() => nav('sales')} icon={<DollarSignIcon />} />
                     <NavLink
                         label="Pagamentos"
                         isActive={activeView === 'payouts'}
