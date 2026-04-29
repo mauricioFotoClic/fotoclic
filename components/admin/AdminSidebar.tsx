@@ -1,7 +1,7 @@
 
 import React from 'react';
 
-type AdminView = 'dashboard' | 'photos' | 'photographers' | 'customers' | 'categories' | 'sales' | 'payouts' | 'settings' | 'storage-requests' | 'rekognition';
+type AdminView = 'dashboard' | 'photos' | 'photographers' | 'customers' | 'categories' | 'sales' | 'payouts' | 'settings' | 'storage-requests' | 'rekognition' | 'stripe';
 
 interface AdminSidebarProps {
     activeView: AdminView;
@@ -69,6 +69,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeView, setView, notifi
                     icon={<CreditCardIcon />}
                     notificationCount={notificationCounts?.payouts}
                 />
+                <NavLink label="Stripe" isActive={activeView === 'stripe'} onClick={() => setView('stripe')} icon={<CreditCardIcon />} />
                 {/* <NavLink label="Solicitações" isActive={activeView === 'storage-requests'} onClick={() => setView('storage-requests')} icon={<CloudIcon />} /> */}
                 <NavLink label="Rekognition" isActive={activeView === 'rekognition'} onClick={() => setView('rekognition')} icon={<ScanFaceIcon />} />
                 <div className="pt-2 my-2 border-t"></div>

@@ -2350,6 +2350,22 @@ export const api = {
        console.error("Falha detalhada ao buscar contexto de imagem na Edge Function:", error);
        return [];
     }
+  },
+  async getStripeStats() {
+    const response = await fetch(`${API_URL}/stripe-stats`);
+    if (!response.ok) throw new Error('Failed to fetch stripe stats');
+    return response.json();
+  },
+
+  async refundStripeCharge(chargeId: string, amount?: number) {
+    const response = await fetch(`${API_URL}/stripe-refund`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chargeId, amount }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Failed to process refund');
+    return data;
   }
 };
 
