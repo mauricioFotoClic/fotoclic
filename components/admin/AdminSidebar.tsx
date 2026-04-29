@@ -1,7 +1,7 @@
 
 import React from 'react';
 
-type AdminView = 'dashboard' | 'photos' | 'photographers' | 'customers' | 'categories' | 'sales' | 'payouts' | 'settings' | 'storage-requests' | 'rekognition' | 'stripe';
+type AdminView = 'dashboard' | 'photos' | 'photographers' | 'customers' | 'categories' | 'sales' | 'payouts' | 'settings' | 'storage-requests' | 'rekognition' | 'stripe' | 'abacate';
 
 interface AdminSidebarProps {
     activeView: AdminView;
@@ -97,7 +97,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeView, setView, notifi
                     <NavLink label="Fotógrafos" isActive={activeView === 'photographers'} onClick={() => nav('photographers')} icon={<UsersIcon />} notificationCount={notificationCounts?.photographers} />
                     <NavLink label="Clientes" isActive={activeView === 'customers'} onClick={() => nav('customers')} icon={<UserGroupIcon />} />
                     <NavLink label="Fotos" isActive={activeView === 'photos'} onClick={() => nav('photos')} icon={<ImageIcon />} />
-                    <NavLink label="Vendas" isActive={activeView === 'sales'} onClick={() => nav('sales')} icon={<DollarSignIcon />} />
+                    <NavLink label="Vendas" isActive={activeView === 'sales'} onClick={() => nav('sales'} icon={<DollarSignIcon />} />
                     <NavLink
                         label="Pagamentos"
                         isActive={activeView === 'payouts'}
@@ -106,6 +106,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeView, setView, notifi
                         notificationCount={notificationCounts?.payouts}
                     />
                     <NavLink label="Stripe" isActive={activeView === 'stripe'} onClick={() => nav('stripe')} icon={<CreditCardIcon />} />
+                    <NavLink label="Abacate Pay" isActive={activeView === 'abacate'} onClick={() => nav('abacate')} icon={<CreditCardIcon />} />
                     <NavLink label="Rekognition" isActive={activeView === 'rekognition'} onClick={() => nav('rekognition')} icon={<ScanFaceIcon />} />
                     <div className="pt-2 my-2 border-t"></div>
                     <NavLink label="Configurações" isActive={activeView === 'settings'} onClick={() => nav('settings')} icon={<SettingsIcon />} />

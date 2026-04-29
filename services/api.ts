@@ -2357,6 +2357,17 @@ export const api = {
     return response.json();
   },
 
+  async createAbacateCheckout(items: any[], customer: any, metadata?: any) {
+    const response = await fetch(`${API_URL}/abacate-checkout`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items, customer, metadata }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Failed to create Abacate Pay checkout');
+    return data;
+  },
+
   async refundStripeCharge(chargeId: string, amount?: number) {
     const response = await fetch(`${API_URL}/stripe-refund`, {
       method: 'POST',
