@@ -102,7 +102,51 @@ const AdminPayouts: React.FC = () => {
                 </button>
             </div>
 
-            <div className="bg-white rounded-lg shadow-md overflow-x-auto">
+            {/* Mobile cards */}
+            <div className="md:hidden space-y-3">
+                {filteredPayouts.map((payout) => (
+                    <div key={payout.id} className="bg-white rounded-lg border border-neutral-200 p-4">
+                        <div className="flex items-center justify-between mb-3">
+                            <span className="font-semibold text-neutral-800">{payout.photographer_name}</span>
+                            {payout.status === 'pending' ? (
+                                <button
+                                    onClick={() => handleOpenProcessModal(payout)}
+                                    className="px-3 py-1 text-xs font-medium text-white bg-blue-600 rounded-full hover:bg-blue-700 transition-colors"
+                                >
+                                    Processar
+                                </button>
+                            ) : (
+                                <span className={`px-2 py-1 text-xs font-bold rounded-full ${payout.status === 'paid' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                    {payout.status === 'paid' ? 'Pago' : 'Rejeitado'}
+                                </span>
+                            )}
+                        </div>
+                        <div className="text-2xl font-bold text-green-600 mb-3">
+                            {payout.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                        </div>
+                        <div className="space-y-1 text-xs text-neutral-500">
+                            <div className="flex justify-between">
+                                <span>Solicitado</span>
+                                <span>{new Date(payout.request_date).toLocaleDateString('pt-BR')}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span>Agendado</span>
+                                <span>{new Date(payout.scheduled_date).toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'numeric' })}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span>Chave PIX</span>
+                                <span className={payout.bank_info ? 'text-neutral-700' : 'text-red-500'}>
+                                    {payout.bank_info ? `${payout.bank_info.pixKey} (${payout.bank_info.pixKeyType})` : 'Não cadastrada'}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+                {filteredPayouts.length === 0 && <p className="text-center py-8 text-neutral-500 bg-white rounded-lg">Nenhum registro encontrado.</p>}
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden md:block bg-white rounded-lg shadow-md overflow-x-auto">
                 <table className="w-full min-w-[960px]">
                     <thead className="bg-neutral-100">
                         <tr>

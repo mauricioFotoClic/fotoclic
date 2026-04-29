@@ -56,7 +56,44 @@ const PhotographerSales: React.FC<PhotographerSalesProps> = ({ user }) => {
         <div>
             <h1 className="text-3xl font-display font-bold text-primary-dark mb-6">Histórico de Vendas</h1>
 
-             <div className="bg-white rounded-lg shadow-md overflow-x-auto">
+            {/* Mobile cards */}
+            <div className="md:hidden space-y-3">
+                {paginatedSales.map((sale) => {
+                    const photo = getPhotoInfo(sale.photo_id);
+                    const earning = sale.price - sale.commission;
+                    return (
+                        <div key={sale.id} className="bg-white rounded-lg border border-neutral-200 p-4">
+                            {photo ? (
+                                <div className="flex items-center mb-3">
+                                    <img src={photo.preview_url} alt={photo.title} className="w-14 h-10 object-cover rounded-md mr-3 flex-shrink-0" />
+                                    <span className="font-medium text-neutral-800 text-sm">{photo.title}</span>
+                                </div>
+                            ) : (
+                                <p className="text-sm text-neutral-500 mb-3">Foto não encontrada</p>
+                            )}
+                            <div className="grid grid-cols-3 gap-2 mb-2">
+                                <div className="bg-neutral-50 rounded-lg p-2 text-center">
+                                    <p className="text-xs text-neutral-500 mb-1">Preço</p>
+                                    <p className="text-xs font-medium text-neutral-800">{sale.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+                                </div>
+                                <div className="bg-red-50 rounded-lg p-2 text-center">
+                                    <p className="text-xs text-red-500 mb-1">Comissão</p>
+                                    <p className="text-xs font-medium text-red-600">{sale.commission.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+                                </div>
+                                <div className="bg-green-50 rounded-lg p-2 text-center">
+                                    <p className="text-xs text-green-600 mb-1">Seu Ganho</p>
+                                    <p className="text-xs font-bold text-green-700">{earning.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+                                </div>
+                            </div>
+                            <p className="text-xs text-neutral-400">{new Date(sale.sale_date).toLocaleDateString('pt-BR')}</p>
+                        </div>
+                    );
+                })}
+                {sales.length === 0 && <p className="text-center py-8 text-neutral-500 bg-white rounded-lg">Nenhuma venda encontrada.</p>}
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden md:block bg-white rounded-lg shadow-md overflow-x-auto">
                  <table className="w-full min-w-[960px]">
                     <thead className="bg-neutral-100">
                         <tr>

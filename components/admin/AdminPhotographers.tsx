@@ -265,7 +265,73 @@ const AdminPhotographers: React.FC<AdminPhotographersProps> = ({ onNavigate }) =
                 </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow-md overflow-x-auto">
+            {/* Mobile cards */}
+            <div className="md:hidden space-y-3">
+                {paginatedPhotographers.map((user) => (
+                    <div key={user.id} className={`bg-white rounded-lg border p-4 ${pendingReportCounts[user.id] ? 'border-red-300 border-l-4 border-l-red-400' : 'border-neutral-200'}`}>
+                        <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-10 h-10 rounded-full bg-neutral-200 overflow-hidden flex-shrink-0 flex items-center justify-center">
+                                    {user.avatar_url ? (
+                                        <img src={user.avatar_url} alt={user.name} className="w-full h-full object-cover" />
+                                    ) : (
+                                        <span className="text-sm text-neutral-500 font-bold">{user.name.charAt(0)}</span>
+                                    )}
+                                </div>
+                                <div className="min-w-0">
+                                    <p className="font-semibold text-neutral-800 truncate">{user.name}</p>
+                                    <p className="text-xs text-neutral-500 truncate">{user.email}</p>
+                                </div>
+                            </div>
+                            <ToggleSwitch checked={user.is_active} onChange={() => handleToggleStatus(user.id, !user.is_active)} />
+                        </div>
+                        <div className="grid grid-cols-3 gap-2 mb-3 text-center">
+                            <div className="bg-neutral-50 rounded-lg p-2">
+                                <p className="text-xs text-neutral-500">Fotos</p>
+                                <p className="font-bold text-neutral-800">{user.photoCount}</p>
+                            </div>
+                            <div className="bg-neutral-50 rounded-lg p-2">
+                                <p className="text-xs text-neutral-500">Vendas</p>
+                                <p className="font-bold text-neutral-800">{user.salesCount}</p>
+                            </div>
+                            <div className="bg-green-50 rounded-lg p-2">
+                                <p className="text-xs text-green-600">Comissão</p>
+                                <p className="font-bold text-green-700 text-xs">{user.commissionValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center justify-end gap-2">
+                            <button
+                                onClick={() => onNavigate({ name: 'photographer-portfolio', photographerId: user.id })}
+                                className="p-2 text-secondary hover:bg-neutral-100 rounded-full transition-colors"
+                                title="Ver Portfólio"
+                            >
+                                <ExternalLinkIcon />
+                            </button>
+                            <button
+                                onClick={() => handleOpenDetail(user, 'reports')}
+                                className="relative p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                                title="Ver denúncias"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>
+                                {pendingReportCounts[user.id] ? (
+                                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">{pendingReportCounts[user.id]}</span>
+                                ) : null}
+                            </button>
+                            <button
+                                onClick={() => handleOpenModal(user)}
+                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                                title="Editar"
+                            >
+                                <EditIcon />
+                            </button>
+                        </div>
+                    </div>
+                ))}
+                {filteredPhotographers.length === 0 && <p className="text-center py-8 text-neutral-500 bg-white rounded-lg">{searchTerm ? 'Nenhum fotógrafo encontrado.' : 'Nenhum fotógrafo cadastrado.'}</p>}
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden md:block bg-white rounded-lg shadow-md overflow-x-auto">
                 <table className="w-full min-w-[1200px]">
                     <thead className="bg-neutral-100">
                         <tr>
@@ -392,6 +458,7 @@ const AdminPhotographers: React.FC<AdminPhotographersProps> = ({ onNavigate }) =
                         )}
                     </tbody>
                 </table>
+            </div>
             </div>
 
             {totalPages > 1 && (

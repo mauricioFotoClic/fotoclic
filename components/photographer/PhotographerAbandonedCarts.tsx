@@ -129,7 +129,73 @@ const PhotographerAbandonedCarts: React.FC<PhotographerAbandonedCartsProps> = ({
                         <p className="text-neutral-500">Ótima notícia! Seus clientes estão finalizando as compras.</p>
                     </div>
                 ) : (
-                    <div className="overflow-x-auto">
+                    {/* Mobile cards */}
+                    <div className="md:hidden divide-y divide-neutral-100">
+                        {carts.map((cart) => {
+                            const rawTotal = cart.items.reduce((acc, item) => acc + item.price, 0);
+                            let discountAmount = 0;
+                            const rules = user.bulkDiscountRules || [];
+                            const sortedRules = [...rules].sort((a, b) => b.minQuantity - a.minQuantity);
+                            const appliedRule = sortedRules.find(r => cart.items.length >= r.minQuantity) || null;
+                            if (appliedRule) discountAmount = rawTotal * (appliedRule.discountPercent / 100);
+                            const totalValue = rawTotal - discountAmount;
+
+                            return (
+                                <div key={cart.id} className="p-4">
+                                    <div className="flex items-start justify-between mb-2">
+                                        <div>
+                                            <p className="font-semibold text-neutral-800">{cart.userName}</p>
+                                            <p className="text-xs text-neutral-500">{cart.userEmail}</p>
+                                            {cart.userPhone && <p className="text-xs text-neutral-400 mt-0.5">📱 {cart.userPhone}</p>}
+                                        </div>
+                                        <span className={`px-2 py-1 text-xs font-semibold rounded-full flex-shrink-0
+                                            ${cart.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                                cart.status === 'contacted' ? 'bg-blue-100 text-blue-800' :
+                                                    'bg-green-100 text-green-800'}`}>
+                                            {cart.status === 'pending' ? 'Pendente' : cart.status === 'contacted' ? 'Contactado' : 'Recuperado'}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center justify-between mb-3">
+                                        <div className="flex items-center gap-2">
+                                            <div className="flex -space-x-2">
+                                                {cart.items.slice(0, 3).map((item, i) => (
+                                                    <img key={i} src={item.preview_url} alt="item" className="inline-block h-8 w-8 rounded-full ring-2 ring-white object-cover" title={item.title} />
+                                                ))}
+                                            </div>
+                                            <span className="text-xs text-neutral-500">{cart.items.length} foto(s)</span>
+                                        </div>
+                                        <div className="text-right">
+                                            {appliedRule && (
+                                                <p className="text-xs text-neutral-400 line-through">R$ {rawTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                                            )}
+                                            <p className="font-bold text-green-600">R$ {totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <a
+                                            href={`mailto:${cart.userEmail}?subject=${encodeURIComponent("Você esqueceu algo especial no FotoClic!")}&body=${encodeURIComponent(`Olá ${cart.userName},\n\nNotamos que você deixou algumas fotos incríveis no seu carrinho:\n${cart.items.map(i => `- ${i.title}`).join('\n')}\n\nElas ainda estão esperando por você.\n\nAtenciosamente,\n${user.name}`)}`}
+                                            target="_blank" rel="noopener noreferrer"
+                                            onClick={() => { setNotification({ message: 'E-mail aberto!', type: 'info' }); updateCartStatus(cart.id, 'contacted'); }}
+                                            className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                                        >
+                                            <EmailIcon /> E-mail
+                                        </a>
+                                        <a
+                                            href={`https://wa.me/55${cart.userPhone?.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${cart.userName}, aqui é ${user.name} da FotoClic!\n\nVi que você deixou fotos no carrinho.\n\nGostaria de ajuda para finalizar sua compra?`)}`}
+                                            target="_blank" rel="noopener noreferrer"
+                                            onClick={(e) => { if (!cart.userPhone) { e.preventDefault(); setNotification({ message: 'Cliente sem telefone.', type: 'info' }); } else { setNotification({ message: 'WhatsApp aberto!', type: 'info' }); updateCartStatus(cart.id, 'contacted'); } }}
+                                            className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-green-600 bg-green-50 rounded-lg hover:bg-green-100 transition-colors"
+                                        >
+                                            <WhatsAppIcon /> WhatsApp
+                                        </a>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    {/* Desktop table */}
+                    <div className="hidden md:block overflow-x-auto">
                         <table className="w-full min-w-[800px]">
                             <thead className="bg-neutral-100">
                                 <tr>
@@ -245,6 +311,7 @@ const PhotographerAbandonedCarts: React.FC<PhotographerAbandonedCartsProps> = ({
                                 })}
                             </tbody>
                         </table>
+                    </div>
                     </div>
                 )}
             </div>

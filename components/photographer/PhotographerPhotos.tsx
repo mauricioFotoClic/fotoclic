@@ -659,7 +659,46 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                     </div>
 
                     <div className="bg-white rounded-lg shadow-md overflow-hidden">
-                        <div className="overflow-x-auto">
+                        {/* Mobile cards */}
+                        <div className="md:hidden divide-y divide-neutral-100">
+                            {paginatedPhotos.map((photo) => (
+                                <div key={photo.id} className="p-4">
+                                    <div className="flex items-start gap-3">
+                                        <img
+                                            src={getOptimizedImageUrl(photo.thumb_url || photo.preview_url, 150, 70)}
+                                            alt={photo.title}
+                                            loading="lazy"
+                                            decoding="async"
+                                            className="w-20 h-14 object-cover rounded-md border border-neutral-200 flex-shrink-0"
+                                        />
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-medium text-neutral-800 text-sm truncate">{photo.title}</p>
+                                            <p className="text-xs text-neutral-500 mt-0.5">{getCategoryName(photo.category_id)}</p>
+                                            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                                                <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${photo.is_public ? 'bg-green-100 text-green-800' : 'bg-neutral-200 text-neutral-600'}`}>
+                                                    {photo.is_public ? 'Pública' : 'Privada'}
+                                                </span>
+                                                {getStatusChip(photo.moderation_status, photo.rejection_reason)}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center justify-between mt-3">
+                                        <div className="flex items-center gap-3 text-xs text-neutral-500">
+                                            <span className="font-bold text-green-600">{photo.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                                            <span>{photo.sales_count || 0} venda(s)</span>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                            <button onClick={() => { setEditingPhoto(photo); setIsModalOpen(true); }} className="text-blue-600 p-2 hover:bg-blue-50 rounded-full" title="Editar"><EditIcon /></button>
+                                            <button onClick={() => handleDelete(photo)} className="text-red-600 p-2 hover:bg-red-50 rounded-full" title="Excluir"><TrashIcon /></button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                            {filteredPhotos.length === 0 && <p className="text-center p-8 text-neutral-500">Nenhuma foto encontrada neste evento.</p>}
+                        </div>
+
+                        {/* Desktop table */}
+                        <div className="hidden md:block overflow-x-auto">
                             <table className="w-full min-w-[960px]">
                                 <thead className="bg-neutral-100">
                                     <tr>

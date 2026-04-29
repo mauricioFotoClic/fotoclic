@@ -516,7 +516,65 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
                 </button>
 
                 {isExpanded && (
-                    <div className="overflow-x-auto">
+                    <div>
+                    {/* Mobile cards */}
+                    <div className="md:hidden divide-y divide-neutral-100">
+                        {photos.map((photo) => (
+                            <div key={photo.id} className={`p-4 ${photo.moderation_status === 'pending' ? 'bg-yellow-50/50' : ''}`}>
+                                <div className="flex items-start gap-3">
+                                    <img
+                                        src={getOptimizedImageUrl(photo.thumb_url || photo.preview_url, 150, 75)}
+                                        alt={photo.title}
+                                        loading="lazy"
+                                        decoding="async"
+                                        className="w-20 h-14 object-cover rounded-md flex-shrink-0"
+                                    />
+                                    <div className="flex-1 min-w-0">
+                                        <p className="font-medium text-neutral-800 text-sm truncate">{photo.title}</p>
+                                        {photo.width && <p className="text-xs text-neutral-400">{photo.width}x{photo.height}</p>}
+                                        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                                            <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${photo.is_public ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                                {photo.is_public ? 'Pública' : 'Privada'}
+                                            </span>
+                                            <span className="text-xs font-bold text-green-600">{photo.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex items-center justify-between mt-3">
+                                    <div className="flex items-center gap-2">
+                                        {photo.moderation_status === 'pending' && (
+                                            <>
+                                                <button onClick={() => handleAnalyze(photo)} className="p-1.5 text-purple-600 bg-purple-50 rounded-full" title="Análise IA">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path></svg>
+                                                </button>
+                                                <button onClick={() => handleApprove(photo.id)} className="px-2 py-1 text-xs text-white bg-green-500 rounded-full">Aprovar</button>
+                                                <button onClick={() => handleOpenRejectModal(photo)} className="px-2 py-1 text-xs text-white bg-red-500 rounded-full">Rejeitar</button>
+                                            </>
+                                        )}
+                                        {photo.moderation_status === 'approved' && (
+                                            <>
+                                                <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-green-100 text-green-800">Aprovado</span>
+                                                <button onClick={() => handleOpenRejectModal(photo)} className="px-2 py-1 text-xs text-white bg-red-500 rounded-full">Rejeitar</button>
+                                            </>
+                                        )}
+                                        {photo.moderation_status === 'rejected' && (
+                                            <>
+                                                <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-red-100 text-red-800">Rejeitado</span>
+                                                <button onClick={() => handleApprove(photo.id)} className="px-2 py-0.5 text-xs text-white bg-green-500 rounded-full">Aprovar</button>
+                                            </>
+                                        )}
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        <button onClick={() => handleOpenModal(photo)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-full" title="Editar"><EditIcon /></button>
+                                        <button onClick={() => handleDelete(photo)} className="p-2 text-red-600 hover:bg-red-50 rounded-full" title="Excluir"><TrashIcon /></button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Desktop table */}
+                    <div className="hidden md:block overflow-x-auto">
                         <table className="w-full min-w-[1200px]">
                             <thead className="bg-white border-b border-neutral-100">
                                 <tr>
@@ -611,6 +669,7 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
                                 ))}
                             </tbody>
                         </table>
+                    </div>
                     </div>
                 )}
             </div>
