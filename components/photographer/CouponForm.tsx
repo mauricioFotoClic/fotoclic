@@ -61,7 +61,7 @@ const CouponForm: React.FC<CouponFormProps> = ({ onSubmit, onCancel, photographe
                 <p className="text-xs text-neutral-500 mt-1">Este é o código que seus clientes utilizarão no checkout.</p>
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label htmlFor="discount_percent" className="block text-sm font-medium text-neutral-700 mb-1">Desconto (%) *</label>
                     <div className="relative">

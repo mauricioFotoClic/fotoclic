@@ -106,7 +106,7 @@ const PhotoForm: React.FC<PhotoFormProps> = ({ onSubmit, onCancel, initialData, 
                 <input id="title" name="title" type="text" value={formData.title} onChange={handleChange} className={inputClass} required />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label htmlFor="photographer_id" className="block text-sm font-medium text-neutral-700 mb-1">Fotógrafo *</label>
                     <select id="photographer_id" name="photographer_id" value={formData.photographer_id} onChange={handleChange} className={inputClass} required>
@@ -153,7 +153,7 @@ const PhotoForm: React.FC<PhotoFormProps> = ({ onSubmit, onCancel, initialData, 
                 <textarea id="description" name="description" value={formData.description} onChange={handleChange} className={inputClass} rows={3}></textarea>
             </div>
             
-             <div className="grid grid-cols-2 gap-4">
+             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label htmlFor="price" className="block text-sm font-medium text-neutral-700 mb-1">Preço (R$) *</label>
                     <input id="price" name="price" type="number" step="0.01" value={formData.price} onChange={handleChange} className={inputClass} required />

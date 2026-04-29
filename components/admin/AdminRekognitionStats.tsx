@@ -248,7 +248,7 @@ const AdminRekognitionStats: React.FC = () => {
                         </div>
                     )}
 
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div className="border border-neutral-100 rounded-xl p-3 text-center">
                             <p className="text-xs text-neutral-500 mb-1">Armazenamento/mês</p>
                             <p className="font-bold text-neutral-800">{fmt(cost.storageCostPerMonth)}</p>
