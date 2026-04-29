@@ -59,6 +59,23 @@ const PhotographerProfile: React.FC<PhotographerProfileProps> = ({ user, onProfi
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
+    const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const digits = e.target.value.replace(/\D/g, '').slice(0, 11);
+        let masked = digits;
+        if (digits.length > 10) {
+            // Mobile: (XX) XXXXX-XXXX
+            masked = digits.replace(/^(\d{2})(\d{5})(\d{0,4})/, '($1) $2-$3').replace(/-$/, '');
+        } else if (digits.length > 6) {
+            // Landline: (XX) XXXX-XXXX
+            masked = digits.replace(/^(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3').replace(/-$/, '');
+        } else if (digits.length > 2) {
+            masked = digits.replace(/^(\d{2})(\d+)/, '($1) $2');
+        } else if (digits.length > 0) {
+            masked = digits.replace(/^(\d+)/, '($1');
+        }
+        setFormData(prev => ({ ...prev, phone: masked }));
+    };
+
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, field: 'avatar' | 'banner') => {
         const file = e.target.files?.[0];
         if (file) {
@@ -241,7 +258,7 @@ const PhotographerProfile: React.FC<PhotographerProfileProps> = ({ user, onProfi
 
                         <div>
                             <label htmlFor="phone" className="block text-sm font-medium text-neutral-700 mb-1">WhatsApp / Telefone</label>
-                            <input id="phone" name="phone" type="tel" value={formData.phone || ''} onChange={handleChange} className={inputClass} placeholder="(00) 00000-0000" />
+                            <input id="phone" name="phone" type="tel" value={formData.phone || ''} onChange={handlePhoneChange} className={inputClass} placeholder="(00) 00000-0000" maxLength={15} />
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
