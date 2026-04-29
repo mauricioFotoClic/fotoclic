@@ -10,6 +10,8 @@ interface AdminSidebarProps {
         payouts?: number;
         photographers?: number;
     };
+    isOpen: boolean;
+    onClose: () => void;
 }
 
 const NavLink: React.FC<{
@@ -48,34 +50,68 @@ const TagIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height=
 const DollarSignIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>;
 const CreditCardIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>;
 const SettingsIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>;
-const CloudIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.5 19c0-1.7-1.3-3-3-3h-1.1c-.1-2.9-2.5-5.3-5.4-5.3-2.6 0-4.8 1.9-5.3 4.4C1.9 15.6 1.4 17.6 1.7 19.6c.2 1.3 1.3 2.4 2.6 2.4h13.2c1.7 0 3-1.3 3-3z"></path></svg>;
 const ScanFaceIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path><circle cx="12" cy="12" r="3"></circle><path d="M12 5v2"></path><path d="M12 17v2"></path><path d="M5 12h2"></path><path d="M17 12h2"></path></svg>;
+const XIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>;
 
-const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeView, setView, notificationCounts }) => {
+const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeView, setView, notificationCounts, isOpen, onClose }) => {
+    const nav = (view: AdminView) => {
+        setView(view);
+        onClose();
+    };
+
     return (
-        <aside className="md:w-64 bg-white p-4 rounded-lg shadow-md md:self-start sticky top-20">
-            <h2 className="text-xl font-display font-bold text-primary-dark mb-6">Painel Admin</h2>
-            <nav className="space-y-2">
-                <NavLink label="Dashboard" isActive={activeView === 'dashboard'} onClick={() => setView('dashboard')} icon={<HomeIcon />} />
-                <NavLink label="Categorias" isActive={activeView === 'categories'} onClick={() => setView('categories')} icon={<TagIcon />} />
-                <NavLink label="Fotógrafos" isActive={activeView === 'photographers'} onClick={() => setView('photographers')} icon={<UsersIcon />} notificationCount={notificationCounts?.photographers} />
-                <NavLink label="Clientes" isActive={activeView === 'customers'} onClick={() => setView('customers')} icon={<UserGroupIcon />} />
-                <NavLink label="Fotos" isActive={activeView === 'photos'} onClick={() => setView('photos')} icon={<ImageIcon />} />
-                <NavLink label="Vendas" isActive={activeView === 'sales'} onClick={() => setView('sales')} icon={<DollarSignIcon />} />
-                <NavLink
-                    label="Pagamentos"
-                    isActive={activeView === 'payouts'}
-                    onClick={() => setView('payouts')}
-                    icon={<CreditCardIcon />}
-                    notificationCount={notificationCounts?.payouts}
-                />
-                <NavLink label="Stripe" isActive={activeView === 'stripe'} onClick={() => setView('stripe')} icon={<CreditCardIcon />} />
-                {/* <NavLink label="Solicitações" isActive={activeView === 'storage-requests'} onClick={() => setView('storage-requests')} icon={<CloudIcon />} /> */}
-                <NavLink label="Rekognition" isActive={activeView === 'rekognition'} onClick={() => setView('rekognition')} icon={<ScanFaceIcon />} />
-                <div className="pt-2 my-2 border-t"></div>
-                <NavLink label="Configurações" isActive={activeView === 'settings'} onClick={() => setView('settings')} icon={<SettingsIcon />} />
-            </nav>
-        </aside>
+        <>
+            {/* Mobile overlay */}
+            <div
+                className={`fixed inset-0 bg-black/50 z-40 md:hidden transition-opacity duration-300 backdrop-blur-sm ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+                onClick={onClose}
+            />
+
+            {/* Sidebar */}
+            <aside
+                className={`
+                    fixed md:sticky top-0 md:top-20 left-0 z-50
+                    h-full md:h-auto w-72 md:w-64
+                    bg-white p-4 rounded-lg shadow-2xl md:shadow-md
+                    md:self-start
+                    overflow-y-auto
+                    transform transition-transform duration-300 ease-in-out
+                    ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+                `}
+            >
+                {/* Mobile header with close button */}
+                <div className="md:hidden flex items-center justify-between mb-4 pb-3 border-b border-neutral-100">
+                    <span className="font-display font-bold text-lg text-primary-dark">Menu Admin</span>
+                    <button
+                        onClick={onClose}
+                        className="p-2 text-neutral-500 hover:bg-neutral-100 rounded-full transition-colors"
+                    >
+                        <XIcon />
+                    </button>
+                </div>
+
+                <h2 className="hidden md:block text-xl font-display font-bold text-primary-dark mb-6">Painel Admin</h2>
+                <nav className="space-y-2">
+                    <NavLink label="Dashboard" isActive={activeView === 'dashboard'} onClick={() => nav('dashboard')} icon={<HomeIcon />} />
+                    <NavLink label="Categorias" isActive={activeView === 'categories'} onClick={() => nav('categories')} icon={<TagIcon />} />
+                    <NavLink label="Fotógrafos" isActive={activeView === 'photographers'} onClick={() => nav('photographers')} icon={<UsersIcon />} notificationCount={notificationCounts?.photographers} />
+                    <NavLink label="Clientes" isActive={activeView === 'customers'} onClick={() => nav('customers')} icon={<UserGroupIcon />} />
+                    <NavLink label="Fotos" isActive={activeView === 'photos'} onClick={() => nav('photos')} icon={<ImageIcon />} />
+                    <NavLink label="Vendas" isActive={activeView === 'sales'} onClick={() => nav('sales')} icon={<DollarSignIcon />} />
+                    <NavLink
+                        label="Pagamentos"
+                        isActive={activeView === 'payouts'}
+                        onClick={() => nav('payouts')}
+                        icon={<CreditCardIcon />}
+                        notificationCount={notificationCounts?.payouts}
+                    />
+                    <NavLink label="Stripe" isActive={activeView === 'stripe'} onClick={() => nav('stripe')} icon={<CreditCardIcon />} />
+                    <NavLink label="Rekognition" isActive={activeView === 'rekognition'} onClick={() => nav('rekognition')} icon={<ScanFaceIcon />} />
+                    <div className="pt-2 my-2 border-t"></div>
+                    <NavLink label="Configurações" isActive={activeView === 'settings'} onClick={() => nav('settings')} icon={<SettingsIcon />} />
+                </nav>
+            </aside>
+        </>
     );
 };
 

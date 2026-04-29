@@ -57,6 +57,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ onNavigate }) => {
     const [view, setView] = useState<AdminView>('dashboard');
     const [navContext, setNavContext] = useState<any>(null);
     const [notificationCounts, setNotificationCounts] = useState<{ payouts: number; reports: number }>({ payouts: 0, reports: 0 });
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     // ...
 
@@ -130,9 +131,26 @@ const AdminPage: React.FC<AdminPageProps> = ({ onNavigate }) => {
     return (
         <div className="bg-white">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+                {/* Mobile header toggle */}
+                <div className="md:hidden flex items-center justify-between py-4 mb-2">
+                    <h1 className="text-xl font-display font-bold text-neutral-900">Painel Admin</h1>
+                    <button
+                        onClick={() => setIsSidebarOpen(true)}
+                        className="p-2 -mr-2 text-neutral-600 hover:bg-neutral-100 rounded-full transition-colors"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" y1="12" x2="20" y2="12"></line><line x1="4" y1="6" x2="20" y2="6"></line><line x1="4" y1="18" x2="20" y2="18"></line></svg>
+                    </button>
+                </div>
+
                 <div className="flex flex-col md:flex-row min-h-[calc(100vh-128px)]">
-                    <AdminSidebar activeView={view} setView={handleSetView} notificationCounts={{ payouts: notificationCounts.payouts, photographers: notificationCounts.reports }} />
-                    <main className="flex-1 p-8 bg-neutral-100 rounded-lg md:ml-4 mt-4 md:mt-0">
+                    <AdminSidebar
+                        activeView={view}
+                        setView={handleSetView}
+                        notificationCounts={{ payouts: notificationCounts.payouts, photographers: notificationCounts.reports }}
+                        isOpen={isSidebarOpen}
+                        onClose={() => setIsSidebarOpen(false)}
+                    />
+                    <main className="flex-1 p-4 md:p-6 lg:p-8 bg-neutral-100 rounded-lg md:ml-4 mt-0 min-w-0 overflow-x-hidden">
                         {renderView()}
                     </main>
                 </div>
