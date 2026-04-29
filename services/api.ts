@@ -880,7 +880,7 @@ export const api = {
     try {
       const allPhotogs = await api.getPhotographers();
       const result = allPhotogs
-        .filter(p => p.is_active && p.avatar_url && p.approvedCount > 0)
+        .filter(p => p.is_active && p.avatar_url)
         .slice(0, 10);
 
       inMemoryCache.activePhotographers = { data: result, ts: now };
@@ -895,14 +895,19 @@ export const api = {
   getAllPublicEvents: async (): Promise<PhotoEvent[]> => {
     const { data, error } = await supabase
       .from("events")
-      .select("*")
+      .select("*, photographer:photographer_id(name, avatar_url, is_active)")
       .order("event_date", { ascending: false });
 
     if (error) {
       console.error("Error fetching all events:", error);
       return [];
     }
-    return data as PhotoEvent[];
+
+    const validEvents = (data || []).filter((e: any) => {
+      return e.photographer && e.photographer.is_active && e.photographer.avatar_url;
+    });
+
+    return validEvents as PhotoEvent[];
   },
 
   getEventById: async (eventId: string): Promise<PhotoEvent | null> => {

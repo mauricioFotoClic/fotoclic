@@ -410,7 +410,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
                 {recentEvents.map(event => {
                   const category = categoriesMap[event.category_id];
-                  const photographer = photographersMap[event.photographer_id];
+                  const photographer = photographersMap[event.photographer_id] || event.photographer;
                   const eventDate = event.event_date
                     ? new Date(event.event_date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
                     : null;

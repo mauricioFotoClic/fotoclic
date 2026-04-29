@@ -104,6 +104,11 @@ export interface PhotoEvent {
   event_date: string;
   cover_photo_url?: string;
   created_at: string;
+  photographer?: {
+    name: string;
+    avatar_url?: string;
+    is_active?: boolean;
+  };
 }
 
 export interface CartItem {
