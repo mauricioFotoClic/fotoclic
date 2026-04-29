@@ -118,8 +118,19 @@ const PhotographerPayouts: React.FC<PhotographerPayoutsProps> = ({ user }) => {
                         {balance ? balance.totalSalesGross.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'R$ 0,00'}
                     </p>
                 </div>
-                <div className="bg-white p-6 rounded-lg shadow-sm border border-neutral-100">
-                    <p className="text-xs text-neutral-500 font-bold uppercase tracking-wider mb-1">Taxas da Plataforma ({(balance?.commissionRate || 0) * 100}%)</p>
+                <div className="bg-white p-6 rounded-lg shadow-sm border border-neutral-100 relative group">
+                    <div className="flex items-center gap-1 mb-1">
+                        <p className="text-xs text-neutral-500 font-bold uppercase tracking-wider">Taxas da Plataforma ({( (balance?.commissionRate || 0) * 100).toFixed(0)}%)</p>
+                        <div className="relative flex items-center">
+                            <div className="text-neutral-300 hover:text-neutral-500 cursor-help transition-colors">
+                                <InfoIcon />
+                            </div>
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-neutral-800 text-white text-[10px] rounded shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20 pointer-events-none text-center leading-tight normal-case font-normal">
+                                Esta taxa cobre custos de manutenção da plataforma, processamento de pagamentos (cartão/pix) e marketing para atrair clientes.
+                                <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-neutral-800"></div>
+                            </div>
+                        </div>
+                    </div>
                     <p className="text-2xl font-bold text-red-500">
                         - {balance ? balance.totalPlatformFees.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'R$ 0,00'}
                     </p>

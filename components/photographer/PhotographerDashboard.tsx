@@ -8,6 +8,7 @@ interface StatCardProps {
     value: number | string;
     icon: React.ReactNode;
     colorClass: string;
+    tooltip?: string;
 }
 
 interface PhotographerDashboardProps {
@@ -16,13 +17,27 @@ interface PhotographerDashboardProps {
     showToast?: (message: string, type?: 'success' | 'error' | 'info') => void;
 }
 
-const StatCard: React.FC<StatCardProps> = ({ title, value, icon, colorClass }) => (
-    <div className="bg-white p-5 rounded-lg shadow-md flex items-center">
+const StatCard: React.FC<StatCardProps> = ({ title, value, icon, colorClass, tooltip }) => (
+    <div className="bg-white p-5 rounded-lg shadow-md flex items-center relative group">
         <div className={`p-3 rounded-full mr-4 ${colorClass}`}>
             {icon}
         </div>
         <div>
-            <p className="text-sm text-neutral-500 font-medium">{title}</p>
+            <div className="flex items-center gap-1">
+                <p className="text-sm text-neutral-500 font-medium">{title}</p>
+                {tooltip && (
+                    <div className="relative flex items-center">
+                        <div className="text-neutral-300 hover:text-neutral-500 cursor-help transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                        </div>
+                        {/* Tooltip content */}
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-neutral-800 text-white text-[10px] rounded shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20 pointer-events-none text-center leading-tight">
+                            {tooltip}
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-neutral-800"></div>
+                        </div>
+                    </div>
+                )}
+            </div>
             <p className="text-2xl font-display font-bold text-primary-dark">{value}</p>
         </div>
     </div>
@@ -33,6 +48,7 @@ const ShoppingCartIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24
 const DollarSignIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>;
 const CreditCardIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>;
 const HeartIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>;
+const PercentIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="5" x2="5" y2="19"></line><circle cx="6.5" cy="6.5" r="2.5"></circle><circle cx="17.5" cy="17.5" r="2.5"></circle></svg>;
 
 const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({ user, setView, showToast }) => {
     const [balance, setBalance] = useState<PhotographerBalance | null>(null);
@@ -176,6 +192,13 @@ const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({ user, set
                 <StatCard title="Total de Fotos" value={balance.photoCount} icon={<ImageIcon />} colorClass="bg-blue-100 text-blue-600" />
                 <StatCard title="Total de Vendas" value={balance.salesCount} icon={<ShoppingCartIcon />} colorClass="bg-purple-100 text-purple-600" />
                 <StatCard title="Total de Curtidas" value={balance.likesCount || 0} icon={<HeartIcon />} colorClass="bg-red-100 text-red-600" />
+                <StatCard 
+                    title="Taxa de Serviço" 
+                    value={`${(balance.commissionRate * 100).toFixed(0)}%`} 
+                    icon={<PercentIcon />} 
+                    colorClass="bg-cyan-100 text-cyan-600" 
+                    tooltip="Esta taxa cobre custos de manutenção da plataforma, processamento de pagamentos (cartão/pix) e marketing para atrair clientes."
+                />
                 <div onClick={() => setView('abandoned-carts')} className="cursor-pointer transition-transform hover:scale-105">
                     <StatCard
                         title="Carrinhos Pendentes"

@@ -534,12 +534,18 @@ export const api = {
         ? photos.reduce((sum, p) => sum + (p.likes_count || 0), 0)
         : 0;
 
+      const settings = await api.getCommissionSettings();
+      let effectiveRate = settings.defaultRate;
+      if (settings.customRates && settings.customRates[photographerId] !== undefined) {
+        effectiveRate = settings.customRates[photographerId];
+      }
+
       return {
         ...user,
         photoCount: photoCount || 0,
         salesCount: sales.length,
         commissionValue: totalPlatformFees,
-        commissionRate: 0.15,
+        commissionRate: effectiveRate,
         totalSalesGross,
         totalPlatformFees,
         totalEarnings: totalEarnings,
