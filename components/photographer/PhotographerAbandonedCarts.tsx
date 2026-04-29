@@ -129,6 +129,7 @@ const PhotographerAbandonedCarts: React.FC<PhotographerAbandonedCartsProps> = ({
                         <p className="text-neutral-500">Ótima notícia! Seus clientes estão finalizando as compras.</p>
                     </div>
                 ) : (
+                    <>
                     {/* Mobile cards */}
                     <div className="md:hidden divide-y divide-neutral-100">
                         {carts.map((cart) => {
@@ -312,7 +313,7 @@ const PhotographerAbandonedCarts: React.FC<PhotographerAbandonedCartsProps> = ({
                             </tbody>
                         </table>
                     </div>
-                    </div>
+                    </>
                 )}
             </div>
 

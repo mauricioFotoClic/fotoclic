@@ -459,7 +459,6 @@ const AdminPhotographers: React.FC<AdminPhotographersProps> = ({ onNavigate }) =
                     </tbody>
                 </table>
             </div>
-            </div>
 
             {totalPages > 1 && (
                 <div className="flex justify-between items-center mt-4">
