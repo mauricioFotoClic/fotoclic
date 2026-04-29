@@ -26,6 +26,8 @@ import {
 import { supabase } from "./supabaseClient";
 import bcrypt from "bcryptjs";
 
+const API_URL = '/api';
+
 // --- HELPER FUNCTIONS ---
 
 // Formatar nome: "MARCIA M FEITOSA" -> "Marcia M Feitosa"

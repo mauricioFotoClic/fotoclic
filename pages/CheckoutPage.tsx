@@ -25,6 +25,16 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
     const [groupedCart, setGroupedCart] = useState<CartGrouping[]>([]);
     const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
+    const [customerTaxId, setCustomerTaxId] = useState('');
+
+    const formatCPF = (value: string) => {
+        return value
+            .replace(/\D/g, '')
+            .replace(/(\d{3})(\d)/, '$1.$2')
+            .replace(/(\d{3})(\d)/, '$1.$2')
+            .replace(/(\d{3})(\d{1,2})/, '$1-$2')
+            .replace(/(-\d{2})\d+?$/, '$1');
+    };
 
     // Load Cart Items
     useEffect(() => {
@@ -124,33 +134,14 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
     // Create Payment Intent when Total is ready and Loading is finished
     // NOTE: amount is NOT sent to the server — the backend fetches real prices from the
     // database to prevent client-side price manipulation.
+    /* 
+    // Stripe Payment Intent (Stand-by)
     useEffect(() => {
         if (!loading && total > 0 && currentUser && !clientSecret) {
-            setPaymentError(null);
-            fetch("/api/create-payment-intent", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    items: cartItemIds,
-                    couponCode: appliedCoupon?.code || null,
-                }),
-            })
-                .then(async (res) => {
-                    if (!res.ok) {
-                        const errData = await res.json().catch(() => ({}));
-                        throw new Error(errData.error || res.statusText || "Erro ao conectar com servidor de pagamento");
-                    }
-                    return res.json();
-                })
-                .then((data) => {
-                    setClientSecret(data.clientSecret);
-                })
-                .catch((error) => {
-                    console.error("Error creating payment intent:", error);
-                    setPaymentError(error.message || "Erro desconhecido ao iniciar pagamento.");
-                });
+            // Chamada do Stripe desativada temporariamente
         }
     }, [loading, total, currentUser, cartItemIds, clientSecret, appliedCoupon]);
+    */
 
     const handleSuccess = async () => {
         try {
@@ -226,18 +217,32 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
                             </div>
 
                             <div className="space-y-6">
-                                <div className="bg-neutral-50 rounded-xl p-4 border border-neutral-100">
-                                    <p className="text-sm text-neutral-600 mb-4">Escolha como deseja pagar na próxima tela:</p>
-                                    <div className="flex gap-4">
-                                        <div className="flex items-center gap-2 text-xs font-medium text-neutral-500">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-600"><path d="M20 6 9 17l-5-5"/></svg>
-                                            PIX (Aprovação Instantânea)
-                                        </div>
-                                        <div className="flex items-center gap-2 text-xs font-medium text-neutral-500">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-600"><path d="M20 6 9 17l-5-5"/></svg>
-                                            Cartão de Crédito
-                                        </div>
+                                {/* Dados do Cliente (Automático) */}
+                                <div className="bg-neutral-50 rounded-xl p-4 border border-neutral-100 grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-neutral-400 uppercase tracking-widest mb-1">Nome</label>
+                                        <p className="text-sm font-semibold text-neutral-800 truncate">{currentUser?.name}</p>
                                     </div>
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-neutral-400 uppercase tracking-widest mb-1">E-mail</label>
+                                        <p className="text-sm font-semibold text-neutral-800 truncate">{currentUser?.email}</p>
+                                    </div>
+                                </div>
+
+                                <div className="bg-neutral-50 rounded-xl p-4 border border-neutral-100">
+                                    <label className="block text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2">
+                                        CPF do Comprador (Obrigatório)
+                                    </label>
+                                    <input
+                                        type="text"
+                                        placeholder="000.000.000-00"
+                                        value={customerTaxId}
+                                        onChange={(e) => setCustomerTaxId(formatCPF(e.target.value))}
+                                        className="w-full p-3 bg-white border border-neutral-200 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                                    />
+                                    <p className="text-[10px] text-neutral-400 mt-2 italic">
+                                        Necessário para emissão do PIX ou Boleto/Cartão.
+                                    </p>
                                 </div>
 
                                 {paymentError && (
@@ -250,6 +255,11 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
                                     onClick={async () => {
                                         if (!currentUser) {
                                             alert("Você precisa estar logado para finalizar a compra.");
+                                            return;
+                                        }
+
+                                        if (customerTaxId.replace(/\D/g, '').length !== 11) {
+                                            setPaymentError("Por favor, informe um CPF válido.");
                                             return;
                                         }
 
@@ -268,7 +278,7 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
                                             const checkout = await api.createAbacateCheckout(items, {
                                                 name: currentUser.name,
                                                 email: currentUser.email,
-                                                taxId: "" // CPF opcional para iniciar
+                                                taxId: customerTaxId.replace(/\D/g, '') // Remove pontos e traços
                                             }, {
                                                 cartIds: cartItemIds,
                                                 couponCode: appliedCoupon?.code
@@ -281,7 +291,9 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
                                             }
                                         } catch (error: any) {
                                             console.error("Abacate Pay Error:", error);
-                                            setPaymentError(error.message || "Falha ao iniciar pagamento.");
+                                            // Se o erro vier do nosso backend, ele pode ter uma mensagem específica
+                                            const msg = error.message || "Falha ao iniciar pagamento.";
+                                            setPaymentError(msg);
                                         } finally {
                                             setIsProcessing(false);
                                         }

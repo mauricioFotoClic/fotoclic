@@ -29,9 +29,9 @@ export default async function handler(req, res) {
                 description: item.description || ''
             })),
             customer: {
-                name: customer.name,
+                name: customer.name || 'Cliente FotoClic',
                 email: customer.email,
-                taxId: customer.taxId || '00000000000', // CPF/CNPJ opcional em alguns fluxos mas recomendado
+                taxId: customer.taxId || '12345678909', // CPF de teste se estiver vazio
             },
             returnUrl: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:5173'}/checkout-success`,
             completionUrl: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:5173'}/sales`,
@@ -49,7 +49,16 @@ export default async function handler(req, res) {
             body: JSON.stringify(body)
         });
 
-        const result = await response.json();
+        let result;
+        const textResponse = await response.text();
+        
+        try {
+            result = JSON.parse(textResponse);
+        } catch (e) {
+            console.error('[AbacatePay] Resposta não é JSON:', textResponse);
+            return res.status(500).json({ error: 'Resposta inválida da Abacate Pay.' });
+        }
+
         console.log('[AbacatePay] Resposta da API:', result);
 
         if (!response.ok) {
