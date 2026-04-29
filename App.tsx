@@ -86,7 +86,8 @@ const MainApp: React.FC = () => {
                 if (user) {
                     if (user.role === UserRole.ADMIN || user.role === UserRole.PHOTOGRAPHER) {
                         const hasActiveSession = sessionStorage.getItem('active_session_panel');
-                        if (!hasActiveSession) {
+                        const isResetPassword = window.location.pathname === '/reset-password' || window.location.pathname.startsWith('/reset-password');
+                        if (!hasActiveSession && !isResetPassword) {
                             console.log("Sessão antiga de painel detectada, mas a aba foi fechada. Deslogando.");
                             await api.logout();
                             setCurrentUser(null);
