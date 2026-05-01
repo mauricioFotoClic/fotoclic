@@ -2366,7 +2366,7 @@ export const api = {
       body: JSON.stringify({ items, customer, metadata }),
     });
     const data = await response.json();
-    if (!response.ok) throw new Error(data.error || 'Failed to create Abacate Pay checkout');
+    if (!response.ok) { const detailStr = data.details ? JSON.stringify(data.details) : ''; throw new Error((data.error + ' ' + detailStr).trim() || 'Failed to create Abacate Pay checkout'); }
     return data;
   },
 

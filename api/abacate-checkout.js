@@ -25,7 +25,7 @@ export default async function handler(req, res) {
             products: items.map(item => ({
                 externalId: item.id || 'photo-id',
                 name: item.title || item.name,
-                unitPrice: Math.round(item.price * 100), // Converte de Reais para Centavos
+                unitPrice: Math.round(item.price), // Converte de Reais para Centavos
                 quantity: item.quantity || 1,
                 description: item.description || ''
             })),
@@ -66,7 +66,7 @@ export default async function handler(req, res) {
             console.error('[AbacatePay] Erro detalhado da API:', JSON.stringify(result, null, 2));
             return res.status(response.status).json({ 
                 error: 'Erro no gateway de pagamento',
-                details: result.errors || null
+                details: result.errors || result.message || null
             });
         }
 
@@ -78,7 +78,7 @@ export default async function handler(req, res) {
             const supabase = createClient(supabaseUrl, supabaseKey);
             
             // Calculamos o total em centavos que está sendo cobrado
-            const totalCents = items.reduce((acc, item) => acc + Math.round(item.price * 100), 0);
+            const totalCents = items.reduce((acc, item) => acc + Math.round(item.price), 0);
 
             const { error: dbError } = await supabase
                 .from('abacate_pay_billings')
