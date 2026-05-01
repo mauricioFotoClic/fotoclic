@@ -104,6 +104,11 @@ export interface PhotoEvent {
   event_date: string;
   cover_photo_url?: string;
   created_at: string;
+  photographer?: {
+    name: string;
+    avatar_url?: string;
+    is_active?: boolean;
+  };
 }
 
 export interface CartItem {
@@ -237,6 +242,7 @@ export type PageRoute =
   { name: 'photographers' } |
   { name: 'cart' } |
   { name: 'checkout' } |
+  { name: 'checkout-success' } |
   { name: 'test-stripe' } |
   { name: 'face-search' } |
   { name: 'reset-password', token?: string };

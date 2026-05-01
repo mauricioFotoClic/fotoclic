@@ -37,6 +37,7 @@ const PendingApprovalPage = React.lazy(() => import('./pages/PendingApprovalPage
 const PhotoDetailPage = React.lazy(() => import('./pages/PhotoDetailPage'));
 const CustomerDashboardPage = React.lazy(() => import('./pages/CustomerDashboardPage'));
 const CheckoutPage = React.lazy(() => import('./pages/CheckoutPage'));
+const CheckoutSuccessPage = React.lazy(() => import('./pages/CheckoutSuccessPage'));
 const HelpCenterPage = React.lazy(() => import('./pages/HelpCenterPage'));
 const TestStripePage = React.lazy(() => import('./pages/TestStripePage'));
 
@@ -148,6 +149,7 @@ const MainApp: React.FC = () => {
             case 'photographers': return '/fotografos';
             case 'cart': return '/carrinho';
             case 'checkout': return '/checkout';
+            case 'checkout-success': return '/checkout-success';
             case 'test-stripe': return '/test-stripe';
             // case 'face-search': return '/busca-facial'; // Modal usually
             case 'reset-password': return page.token ? `/reset-password?token=${page.token}` : '/reset-password';
@@ -177,6 +179,7 @@ const MainApp: React.FC = () => {
         }
         if (pathname === '/carrinho') return { name: 'cart' };
         if (pathname === '/checkout') return { name: 'checkout' };
+        if (pathname === '/checkout-success') return { name: 'checkout-success' };
         if (pathname === '/test-stripe') return { name: 'test-stripe' };
         if (pathname === '/reset-password') return { name: 'reset-password', token: searchParams.get('token') || undefined };
 
@@ -505,6 +508,8 @@ const MainApp: React.FC = () => {
                 return <CartPage cartItemIds={cartItems} onRemoveItem={handleRemoveFromCart} onCheckout={handleCheckoutInit} onNavigate={handleNavigate} />;
             case 'checkout':
                 return <CheckoutPage cartItemIds={cartItems} currentUser={currentUser} onPurchaseComplete={handlePurchaseComplete} onNavigate={handleNavigate} />;
+            case 'checkout-success':
+                return <CheckoutSuccessPage onNavigate={handleNavigate} />;
             case 'test-stripe':
                 return <TestStripePage />;
             case 'reset-password':
@@ -514,7 +519,7 @@ const MainApp: React.FC = () => {
         }
     }
 
-    const showFooter = !['admin', 'photographer', 'login', 'register', 'pending-approval', 'checkout'].includes(currentPage.name);
+    const showFooter = !['admin', 'photographer', 'login', 'register', 'pending-approval', 'checkout', 'checkout-success'].includes(currentPage.name);
 
     return (
         <div className="bg-neutral-100 text-neutral-800 min-h-screen flex flex-col font-sans">

@@ -208,11 +208,10 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
                             {/* Card Header */}
                             <div className="flex items-center justify-between mb-8">
                                 <h2 className="text-lg font-bold text-neutral-800 flex items-center gap-2">
-                                    <span className="p-1.5 bg-green-50 text-green-600 rounded-lg">🥑</span>
+                                    <span className="p-1.5 bg-neutral-100 text-neutral-600 rounded-lg">🔒</span>
                                     Pagamento Seguro
                                 </h2>
                                 <div className="flex space-x-2">
-                                    <div className="bg-neutral-100 px-2 py-1 rounded text-[10px] font-bold text-neutral-600 tracking-wider border border-neutral-200">ABACATE PAY</div>
                                 </div>
                             </div>
 
@@ -281,7 +280,8 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
                                                 taxId: customerTaxId.replace(/\D/g, '') // Remove pontos e traços
                                             }, {
                                                 cartIds: cartItemIds,
-                                                couponCode: appliedCoupon?.code
+                                                couponCode: appliedCoupon?.code,
+                                                userId: currentUser.id
                                             });
 
                                             if (checkout.url) {
@@ -309,7 +309,7 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
                                 </button>
                                 
                                 <p className="text-[10px] text-neutral-400 text-center">
-                                    Ao clicar em finalizar, você será redirecionado para o ambiente seguro da Abacate Pay.
+                                    Ao clicar em finalizar, você será redirecionado para o ambiente de pagamento seguro.
                                 </p>
                             </div>
                         </div>
