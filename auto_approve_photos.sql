@@ -9,18 +9,8 @@ DECLARE
     v_limit INTEGER;
     MAX_DIMENSION CONSTANT INTEGER := 8000;
 BEGIN
-    -- 0. Check User Limit
-    SELECT photo_limit INTO v_limit FROM users WHERE id = auth.uid();
-    -- Fallback if user row missing or null
-    IF v_limit IS NULL THEN v_limit := 50; END IF;
-
-    SELECT count(*) INTO v_current_count FROM photos WHERE photographer_id = auth.uid();
-
-    IF v_current_count >= v_limit THEN
-        INSERT INTO audit_logs (user_id, action, details)
-        VALUES (auth.uid(), 'UPLOAD_BLOCKED', 'Photo limit reached: ' || v_current_count || '/' || v_limit);
-        RETURN jsonb_build_object('success', false, 'error', 'Limite de fotos atingido (' || v_current_count || '/' || v_limit || '). Contate o suporte para aumentar.');
-    END IF;
+    -- 0. Limit check removed as per user request
+    -- v_limit is no longer used for blocking uploads
 
     -- 1. Validate Base64/URL Length (Legacy check kept but safe for URLs)
     IF length(p_file_url) > 22000000 THEN
