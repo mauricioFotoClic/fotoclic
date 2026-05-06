@@ -5,6 +5,8 @@ import api from '../services/api';
 import Spinner from '../components/Spinner';
 import PhotographerPortfolioPreview from '../components/photographer/PhotographerPortfolioPreview';
 import SEO from '../components/SEO';
+import FloatingShareButton from '../components/FloatingShareButton';
+
 
 interface PhotographerPortfolioPageProps {
     photographerId: string;
@@ -106,6 +108,14 @@ const PhotographerPortfolioPage: React.FC<PhotographerPortfolioPageProps> = ({ p
                     currentUser={currentUser}
                 />
             </div>
+            
+            {!loading && photographer && (
+                <FloatingShareButton 
+                    title={`Portfólio de ${photographer.name}`}
+                    text={`Confira o portfólio de ${photographer.name} no FotoClic`}
+                    url={window.location.href}
+                />
+            )}
         </div>
     );
 };

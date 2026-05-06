@@ -10,13 +10,13 @@ interface SEOProps {
 }
 
 const SEO: React.FC<SEOProps> = ({
-    title = 'FotoClic - Marketplace de Fotos Esportivas',
+    title = 'Suas Melhores Fotos Sempre em um Clique',
     description = 'Descubra e compre as melhores fotos esportivas de alta qualidade. Plataforma para fotógrafos e atletas.',
     image = 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?q=80&w=1920&auto=format&fit=crop',
     url = typeof window !== 'undefined' ? window.location.href : '',
     type = 'website'
 }) => {
-    const siteTitle = title === 'FotoClic - Marketplace de Fotos Esportivas' ? title : `${title} | FotoClic`;
+    const siteTitle = title === 'Suas Melhores Fotos Sempre em um Clique' ? title : `${title} | FotoClic`;
 
     return (
         <Helmet>

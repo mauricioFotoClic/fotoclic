@@ -4,6 +4,8 @@ import { Photo, User, PhotoEvent, Page } from '../types';
 import api from '../services/api';
 import PhotoCard from '../components/PhotoCard';
 import SEO from '../components/SEO';
+import FloatingShareButton from '../components/FloatingShareButton';
+
 import FaceSearchModal from '../components/FaceSearchModal';
 import { useToast } from '../contexts/ToastContext';
 
@@ -521,6 +523,14 @@ const EventPage: React.FC<EventPageProps> = ({ eventId, onNavigate, onAddToCart,
           onShowToast={showToast}
           eventId={event.id}
           eventName={event.name}
+        />
+      )}
+      
+      {!loadingEvent && event && (
+        <FloatingShareButton 
+            title={event.name}
+            text={`Confira as fotos do evento ${event.name} no FotoClic`}
+            url={window.location.href}
         />
       )}
     </div>
