@@ -14,15 +14,15 @@ export default {
         'display': ['Poppins', 'sans-serif'],
       },
       colors: {
-        primary: '#0047FF',
-        'primary-dark': '#0A1A2F',
-        secondary: '#8A2BE2',
-        'secondary-light': '#C13AFF',
+        primary: '#f97316', // Laranja FotoClic (exato solicitado)
+        'primary-dark': '#ea580c',
+        secondary: '#000000', // Preto
+        'secondary-light': '#1A1A1A',
         neutral: {
           100: '#F5F5F5',
           200: '#E5E5E5',
           800: '#1A1A1A',
-          900: '#111111',
+          900: '#000000',
         },
       },
     },

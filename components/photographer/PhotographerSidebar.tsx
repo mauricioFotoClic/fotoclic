@@ -1,7 +1,8 @@
 
 import React from 'react';
-import { User } from '../../types';
+import type { User } from '../../types';
 import { useToast } from '../../contexts/ToastContext';
+import Logo from '../Logo';
 
 type PhotographerView = 'dashboard' | 'photos' | 'sales' | 'payouts' | 'profile' | 'portfolio-preview' | 'coupons' | 'abandoned-carts' | 'discounts';
 
@@ -26,16 +27,16 @@ const NavLink: React.FC<{
         <button
             onClick={onClick}
             className={`group relative flex items-center w-full px-3 py-3 mb-1 text-[13px] font-medium rounded-lg transition-all duration-200 whitespace-nowrap ${isActive
-                ? 'bg-[#F3E8FF] text-[#8A2BE2]'
+                ? 'bg-primary/10 text-primary'
                 : 'text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900'
                 }`}
         >
             {isActive && (
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 bg-[#8A2BE2] rounded-r-md"></div>
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 bg-primary rounded-r-md"></div>
             )}
 
             <div className="relative flex-shrink-0 mr-2">
-                <span className={`flex transition-colors duration-200 ${isActive ? 'text-[#8A2BE2]' : 'text-neutral-400 group-hover:text-neutral-600'}`}>
+                <span className={`flex transition-colors duration-200 ${isActive ? 'text-primary' : 'text-neutral-400 group-hover:text-neutral-600'}`}>
                     {icon}
                 </span>
                 {badge && (
@@ -92,7 +93,7 @@ const PhotographerSidebar: React.FC<PhotographerSidebarProps> = ({ user, activeV
             >
                 {/* Mobile Header with Close Button */}
                 <div className="md:hidden flex items-center justify-between p-4 border-b border-neutral-100">
-                    <span className="font-display font-bold text-lg">Menu</span>
+                    <Logo size={20} useImage={true} />
                     <button
                         onClick={onClose}
                         className="p-2 text-neutral-500 hover:bg-neutral-100 rounded-full transition-colors"
@@ -169,3 +170,5 @@ const PhotographerSidebar: React.FC<PhotographerSidebarProps> = ({ user, activeV
 };
 
 export default PhotographerSidebar;
+
+

@@ -4,6 +4,7 @@
 import React, { useState } from 'react';
 import { Page, User, UserRole } from '../types';
 import api from '../services/api';
+import Logo from '../components/Logo';
 
 interface RegisterPageProps {
     onNavigate: (page: Page) => void;
@@ -40,12 +41,34 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onLoginSuccess 
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value, type, checked } = e.target;
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        const { name, value, type } = e.target;
+        const checked = (e.target as HTMLInputElement).checked;
         setFormData(prev => ({
             ...prev,
-            [name]: type === 'checkbox' ? checked : value
+            [name]: type === 'checkbox' ? checked : value,
+            ...(name === 'ddi' ? { phone: '' } : {})
         }));
+    };
+
+    const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (formData.ddi !== '+55') {
+            const digits = e.target.value.replace(/\D/g, '').slice(0, 15);
+            setFormData(prev => ({ ...prev, phone: digits }));
+            return;
+        }
+        const digits = e.target.value.replace(/\D/g, '').slice(0, 11);
+        let masked = digits;
+        if (digits.length > 10) {
+            masked = digits.replace(/^(\d{2})(\d{5})(\d{0,4})/, '($1) $2-$3').replace(/-$/, '');
+        } else if (digits.length > 6) {
+            masked = digits.replace(/^(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3').replace(/-$/, '');
+        } else if (digits.length > 2) {
+            masked = digits.replace(/^(\d{2})(\d+)/, '($1) $2');
+        } else if (digits.length > 0) {
+            masked = digits.replace(/^(\d+)/, '($1');
+        }
+        setFormData(prev => ({ ...prev, phone: masked }));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -93,8 +116,9 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onLoginSuccess 
 
     return (
         <div className="min-h-screen bg-neutral-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-            <div className="sm:mx-auto sm:w-full sm:max-w-md">
-                <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 font-display">
+            <div className="sm:mx-auto sm:w-full sm:max-w-md flex flex-col items-center">
+                <Logo size={48} className="mb-6" useImage={true} />
+                <h2 className="text-center text-3xl font-extrabold text-gray-900 font-display">
                     Crie sua conta
                 </h2>
                 <p className="mt-2 text-center text-sm text-gray-600">
@@ -152,7 +176,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onLoginSuccess 
                                 <select
                                     name="ddi"
                                     value={formData.ddi}
-                                    onChange={handleChange as any}
+                                    onChange={handleChange}
                                     className="w-1/3 min-w-[100px] block px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm cursor-pointer"
                                 >
                                     {ddiList.map(item => (
@@ -169,7 +193,8 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onLoginSuccess 
                                     placeholder="(11) 99999-9999"
                                     required
                                     value={formData.phone}
-                                    onChange={handleChange}
+                                    onChange={handlePhoneChange}
+                                    maxLength={15}
                                     className="appearance-none block w-2/3 px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
                                 />
                             </div>
@@ -246,3 +271,4 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onLoginSuccess 
 };
 
 export default RegisterPage;
+

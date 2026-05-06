@@ -59,3 +59,5 @@ const WatermarkedImage: React.FC<WatermarkedImageProps> = ({
 };
 
 export default WatermarkedImage;
+
+

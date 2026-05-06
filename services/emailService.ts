@@ -99,7 +99,7 @@ export const emailService = {
       buyerEmail,
       '✅ Confirmação de Compra - FotoClic',
       `<div style="font-family: sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 8px; overflow: hidden;">
-            <div style="background-color: #2563EB; padding: 20px; text-align: center;">
+            <div style="background-color: #FF6B00; padding: 20px; text-align: center;">
                 <h1 style="color: white; margin: 0; font-size: 24px;">Compra Confirmada!</h1>
             </div>
             <div style="padding: 24px;">
@@ -113,7 +113,7 @@ export const emailService = {
                 </div>
 
                 <div style="text-align: center; margin: 32px 0;">
-                    <a href="${window.location.origin}/customer-dashboard" style="background-color: #2563EB; color: white; padding: 12px 24px; text-decoration: none; border-radius: 24px; font-weight: bold; display: inline-block;">
+                    <a href="${window.location.origin}/customer-dashboard" style="background-color: #FF6B00; color: white; padding: 12px 24px; text-decoration: none; border-radius: 24px; font-weight: bold; display: inline-block;">
                         Baixar Minhas Fotos
                     </a>
                 </div>
@@ -138,7 +138,7 @@ export const emailService = {
             <p>Recebemos uma solicitação para recuperar sua senha no FotoClic.</p>
             <p>Clique no botão abaixo para criar uma nova senha:</p>
             <div style="text-align: center; margin: 32px 0;">
-                <a href="${resetLink}" style="background-color: #2563EB; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+                <a href="${resetLink}" style="background-color: #FF6B00; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
                     Redefinir Senha
                 </a>
             </div>
@@ -182,7 +182,7 @@ export const emailService = {
             <p style="margin: 0; color: #475569; white-space: pre-wrap;">${adminNote}</p>
           </div>` : ''}
 
-          <p>Por favor, revise o conteúdo do seu perfil e certifique-se de que está em conformidade com os nossos <a href="${typeof window !== 'undefined' ? window.location.origin : ''}/terms" style="color: #2563EB;">Termos de Uso</a>.</p>
+          <p>Por favor, revise o conteúdo do seu perfil e certifique-se de que está em conformidade com os nossos <a href="${typeof window !== 'undefined' ? window.location.origin : ''}/terms" style="color: #FF6B00;">Termos de Uso</a>.</p>
           <p>Reincidências poderão resultar na suspensão da sua conta.</p>
 
           <p style="font-size: 14px; color: #64748b; margin-top: 32px; border-top: 1px solid #e2e8f0; padding-top: 16px;">
@@ -223,4 +223,5 @@ export const emailService = {
     }
   }
 };
+
 

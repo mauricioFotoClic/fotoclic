@@ -180,3 +180,5 @@ const PhotographersPage: React.FC<PhotographersPageProps> = ({ onNavigate }) => 
 };
 
 export default PhotographersPage;
+
+

@@ -117,3 +117,5 @@ const FeaturedPhotosPage: React.FC<FeaturedPhotosPageProps> = ({ onNavigate, onA
 };
 
 export default FeaturedPhotosPage;
+
+

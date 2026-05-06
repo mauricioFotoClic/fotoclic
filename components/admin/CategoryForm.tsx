@@ -117,3 +117,4 @@ const CategoryForm: React.FC<CategoryFormProps> = ({ onSubmit, onCancel, initial
 };
 
 export default CategoryForm;
+

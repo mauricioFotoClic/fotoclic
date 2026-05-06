@@ -510,7 +510,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                         <div className="flex gap-2">
                             <button
                                 onClick={() => setIsBulkStartConfirmOpen(true)}
-                                className="px-4 py-2 text-sm font-medium text-purple-600 bg-purple-50 border border-purple-200 rounded-full hover:bg-purple-100 transition-colors shadow-sm"
+                                className="px-4 py-2 text-sm font-medium text-primary-dark bg-primary/10 border border-primary-dark rounded-full hover:bg-primary/20 transition-colors shadow-sm"
                             >
                                 Indexar Rosto
                             </button>
@@ -572,7 +572,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                                                         setEditingEvent(event);
                                                         setIsEditEventModalOpen(true);
                                                     }}
-                                                    className="p-2 bg-white rounded-full text-blue-600 hover:bg-blue-50 shadow-sm transition-transform hover:scale-110"
+                                                    className="p-2 bg-white rounded-full text-primary-dark hover:bg-primary/10 shadow-sm transition-transform hover:scale-110"
                                                     title="Editar Evento"
                                                 >
                                                     <EditIcon />
@@ -688,7 +688,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                                             <span>{photo.sales_count || 0} venda(s)</span>
                                         </div>
                                         <div className="flex items-center gap-1">
-                                            <button onClick={() => { setEditingPhoto(photo); setIsModalOpen(true); }} className="text-blue-600 p-2 hover:bg-blue-50 rounded-full" title="Editar"><EditIcon /></button>
+                                            <button onClick={() => { setEditingPhoto(photo); setIsModalOpen(true); }} className="text-primary-dark p-2 hover:bg-primary/10 rounded-full" title="Editar"><EditIcon /></button>
                                             <button onClick={() => handleDelete(photo)} className="text-red-600 p-2 hover:bg-red-50 rounded-full" title="Excluir"><TrashIcon /></button>
                                         </div>
                                     </div>
@@ -738,7 +738,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                                             </td>
                                             <td className="p-4 text-right whitespace-nowrap">
                                                 <div className="flex items-center justify-end gap-2">
-                                                    <button onClick={() => { setEditingPhoto(photo); setIsModalOpen(true); }} className="text-blue-600 p-2 hover:bg-blue-50 rounded-full" title="Editar"><EditIcon /></button>
+                                                    <button onClick={() => { setEditingPhoto(photo); setIsModalOpen(true); }} className="text-primary-dark p-2 hover:bg-primary/10 rounded-full" title="Editar"><EditIcon /></button>
                                                     <button onClick={() => handleDelete(photo)} className="text-red-600 p-2 hover:bg-red-50 rounded-full" title="Excluir"><TrashIcon /></button>
                                                 </div>
                                             </td>
@@ -886,7 +886,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                 </Modal>
             )}
 
-            <Modal isOpen={isBulkStartConfirmOpen} onClose={() => setIsBulkStartConfirmOpen(false)} title="Confirmar Indexação"><div className="p-4"><p>Deseja indexar todas as fotos pendentes?</p><div className="flex justify-end mt-4"><button onClick={() => setIsBulkStartConfirmOpen(false)} className="mr-2 border px-4 rounded">Cancelar</button><button onClick={confirmBulkIndex} className="bg-purple-600 text-white px-4 rounded">Confirmar</button></div></div></Modal>
+            <Modal isOpen={isBulkStartConfirmOpen} onClose={() => setIsBulkStartConfirmOpen(false)} title="Confirmar Indexação"><div className="p-4"><p>Deseja indexar todas as fotos pendentes?</p><div className="flex justify-end mt-4"><button onClick={() => setIsBulkStartConfirmOpen(false)} className="mr-2 border px-4 rounded">Cancelar</button><button onClick={confirmBulkIndex} className="bg-primary-dark text-white px-4 rounded">Confirmar</button></div></div></Modal>
 
             {/* showToast && <Toast ... /> removed */}
         </div>
@@ -894,3 +894,5 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
 };
 
 export default PhotographerPhotos;
+
+

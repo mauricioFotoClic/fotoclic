@@ -194,3 +194,4 @@ const PhotographerPage: React.FC<PhotographerPageProps> = ({ user: initialUser, 
 };
 
 export default PhotographerPage;
+

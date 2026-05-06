@@ -232,3 +232,4 @@ const PhotographerDiscounts: React.FC<PhotographerDiscountsProps> = ({ user, sho
 };
 
 export default PhotographerDiscounts;
+

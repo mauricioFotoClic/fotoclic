@@ -164,3 +164,5 @@ const PhotographerSales: React.FC<PhotographerSalesProps> = ({ user }) => {
 }
 
 export default PhotographerSales;
+
+

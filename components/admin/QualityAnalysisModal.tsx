@@ -177,3 +177,5 @@ const MetricBar: React.FC<{ label: string; value: number; color: string }> = ({ 
 );
 
 export default QualityAnalysisModal;
+
+

@@ -173,7 +173,7 @@ const AdminCustomers: React.FC = () => {
                                     <div className="flex items-center justify-end gap-2">
                                         <button
                                             onClick={() => handleOpenModal(user)}
-                                            className="flex items-center justify-center w-9 h-9 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-full transition-colors"
+                                            className="flex items-center justify-center w-9 h-9 text-primary-dark hover:text-primary hover:bg-primary/10 rounded-full transition-colors"
                                             title="Editar"
                                         >
                                             <EditIcon />
@@ -282,3 +282,5 @@ const AdminCustomers: React.FC = () => {
 };
 
 export default AdminCustomers;
+
+

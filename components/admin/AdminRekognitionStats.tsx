@@ -109,7 +109,7 @@ const AdminRekognitionStats: React.FC = () => {
 
     if (loading) return (
         <div className="bg-white rounded-2xl shadow p-8 flex items-center justify-center gap-3 text-neutral-400">
-            <div className="w-5 h-5 border-2 border-neutral-300 border-t-blue-500 rounded-full animate-spin" />
+            <div className="w-5 h-5 border-2 border-neutral-300 border-t-primary rounded-full animate-spin" />
             Carregando dados do Rekognition...
         </div>
     );
@@ -155,10 +155,10 @@ const AdminRekognitionStats: React.FC = () => {
                 <div>
                     <h4 className="text-sm font-bold text-neutral-500 uppercase tracking-wider mb-3">Collection AWS</h4>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        <Pill label="Rostos indexados" value={collection.faceCount.toLocaleString('pt-BR')} color="bg-blue-50 text-blue-800" />
+                        <Pill label="Rostos indexados" value={collection.faceCount.toLocaleString('pt-BR')} color="bg-primary/10 text-primary" />
                         <Pill label="Fotos totais" value={database.totalPhotos.toLocaleString('pt-BR')} color="bg-neutral-50 text-neutral-800" />
                         <Pill label="Fotos indexadas" value={`${database.indexedPhotos} (${indexedPct}%)`} color="bg-green-50 text-green-800" />
-                        <Pill label="Modelo facial" value={collection.faceModelVersion} color="bg-purple-50 text-purple-800" />
+                        <Pill label="Modelo facial" value={collection.faceModelVersion} color="bg-primary/10 text-primary-dark" />
                     </div>
                 </div>
 
@@ -170,7 +170,7 @@ const AdminRekognitionStats: React.FC = () => {
                     </div>
                     <div className="h-2 bg-neutral-100 rounded-full overflow-hidden">
                         <div
-                            className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full transition-all"
+                            className="h-full bg-gradient-to-r from-primary to-primary rounded-full transition-all"
                             style={{ width: `${indexedPct}%` }}
                         />
                     </div>
@@ -294,3 +294,5 @@ const AdminRekognitionStats: React.FC = () => {
 };
 
 export default AdminRekognitionStats;
+
+

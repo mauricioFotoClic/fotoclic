@@ -213,7 +213,7 @@ const PhotoUploadForm: React.FC<PhotoUploadFormProps> = ({ onSubmit, onCancel, i
                                     <p className="text-xs text-neutral-500 italic bg-yellow-50 p-2 rounded border border-yellow-100 inline-block mb-2">
                                         A imagem original não pode ser substituída após o envio para garantir a integridade da moderação.
                                     </p>
-                                    <p className="text-xs text-blue-500 p-2 rounded border border-blue-100 bg-blue-50 inline-block">
+                                    <p className="text-xs text-primary p-2 rounded border border-primary/20 bg-primary/10 inline-block">
                                         Nota: Fotos maiores que 10MB serão automaticamente reduzidas pelo sistema.
                                     </p>
                                 </>
@@ -296,3 +296,5 @@ const PhotoUploadForm: React.FC<PhotoUploadFormProps> = ({ onSubmit, onCancel, i
 };
 
 export default PhotoUploadForm;
+
+

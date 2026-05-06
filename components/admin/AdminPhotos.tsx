@@ -544,7 +544,7 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
                                     <div className="flex items-center gap-2">
                                         {photo.moderation_status === 'pending' && (
                                             <>
-                                                <button onClick={() => handleAnalyze(photo)} className="p-1.5 text-purple-600 bg-purple-50 rounded-full" title="Análise IA">
+                                                <button onClick={() => handleAnalyze(photo)} className="p-1.5 text-primary-dark bg-primary/10 rounded-full" title="Análise IA">
                                                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path></svg>
                                                 </button>
                                                 <button onClick={() => handleApprove(photo.id)} className="px-2 py-1 text-xs text-white bg-green-500 rounded-full">Aprovar</button>
@@ -565,7 +565,7 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
                                         )}
                                     </div>
                                     <div className="flex items-center gap-1">
-                                        <button onClick={() => handleOpenModal(photo)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-full" title="Editar"><EditIcon /></button>
+                                        <button onClick={() => handleOpenModal(photo)} className="p-2 text-primary-dark hover:bg-primary/10 rounded-full" title="Editar"><EditIcon /></button>
                                         <button onClick={() => handleDelete(photo)} className="p-2 text-red-600 hover:bg-red-50 rounded-full" title="Excluir"><TrashIcon /></button>
                                     </div>
                                 </div>
@@ -620,7 +620,7 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
                                                 <div className="flex justify-center items-center gap-2">
                                                     <button
                                                         onClick={() => handleAnalyze(photo)}
-                                                        className="p-1.5 text-purple-600 bg-purple-50 rounded-full hover:bg-purple-100 transition-colors"
+                                                        className="p-1.5 text-primary-dark bg-primary/10 rounded-full hover:bg-primary/20 transition-colors"
                                                         title="Análise IA"
                                                     >
                                                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path></svg>
@@ -642,7 +642,7 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
                                                     </span>
                                                     <div className="flex items-center gap-2 mt-1">
                                                         <button onClick={() => handleApprove(photo.id)} className="px-2 py-0.5 text-xs text-white bg-green-500 rounded-full hover:bg-green-600 transition-colors">Aprovar</button>
-                                                        <button onClick={() => handleOpenRejectModal(photo)} className="px-2 py-0.5 text-xs text-white bg-blue-500 rounded-full hover:bg-blue-600 transition-colors">Editar</button>
+                                                        <button onClick={() => handleOpenRejectModal(photo)} className="px-2 py-0.5 text-xs text-white bg-primary rounded-full hover:bg-primary-dark transition-colors">Editar</button>
                                                     </div>
                                                 </div>
                                             )}
@@ -651,7 +651,7 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
                                             <div className="flex items-center justify-end gap-2">
                                                 <button
                                                     onClick={() => handleOpenModal(photo)}
-                                                    className="flex items-center justify-center w-9 h-9 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-full transition-colors"
+                                                    className="flex items-center justify-center w-9 h-9 text-primary-dark hover:text-primary hover:bg-primary/10 rounded-full transition-colors"
                                                     title="Editar"
                                                 >
                                                     <EditIcon />
@@ -990,3 +990,5 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
 };
 
 export default AdminPhotos;
+
+

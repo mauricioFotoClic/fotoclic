@@ -151,7 +151,7 @@ const PhotographerAbandonedCarts: React.FC<PhotographerAbandonedCartsProps> = ({
                                         </div>
                                         <span className={`px-2 py-1 text-xs font-semibold rounded-full flex-shrink-0
                                             ${cart.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                                cart.status === 'contacted' ? 'bg-blue-100 text-blue-800' :
+                                                cart.status === 'contacted' ? 'bg-primary/20 text-primary' :
                                                     'bg-green-100 text-green-800'}`}>
                                             {cart.status === 'pending' ? 'Pendente' : cart.status === 'contacted' ? 'Contactado' : 'Recuperado'}
                                         </span>
@@ -177,7 +177,7 @@ const PhotographerAbandonedCarts: React.FC<PhotographerAbandonedCartsProps> = ({
                                             href={`mailto:${cart.userEmail}?subject=${encodeURIComponent("Você esqueceu algo especial no FotoClic!")}&body=${encodeURIComponent(`Olá ${cart.userName},\n\nNotamos que você deixou algumas fotos incríveis no seu carrinho:\n${cart.items.map(i => `- ${i.title}`).join('\n')}\n\nElas ainda estão esperando por você.\n\nAtenciosamente,\n${user.name}`)}`}
                                             target="_blank" rel="noopener noreferrer"
                                             onClick={() => { setNotification({ message: 'E-mail aberto!', type: 'info' }); updateCartStatus(cart.id, 'contacted'); }}
-                                            className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                                            className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-primary-dark bg-primary/10 rounded-lg hover:bg-primary/20 transition-colors"
                                         >
                                             <EmailIcon /> E-mail
                                         </a>
@@ -267,7 +267,7 @@ const PhotographerAbandonedCarts: React.FC<PhotographerAbandonedCartsProps> = ({
                                             <td className="p-4 text-center">
                                                 <span className={`px-2 py-1 text-xs font-semibold rounded-full 
                                                     ${cart.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                                        cart.status === 'contacted' ? 'bg-blue-100 text-blue-800' :
+                                                        cart.status === 'contacted' ? 'bg-primary/20 text-primary' :
                                                             'bg-green-100 text-green-800'}`}>
                                                     {cart.status === 'pending' ? 'Pendente' : cart.status === 'contacted' ? 'Contactado' : 'Recuperado'}
                                                 </span>
@@ -282,7 +282,7 @@ const PhotographerAbandonedCarts: React.FC<PhotographerAbandonedCartsProps> = ({
                                                             setNotification({ message: 'Cliente de e-mail aberto!', type: 'info' });
                                                             updateCartStatus(cart.id, 'contacted');
                                                         }}
-                                                        className="p-2 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors flex items-center justify-center"
+                                                        className="p-2 hover:text-primary-dark hover:bg-primary/10 rounded-full transition-colors flex items-center justify-center"
                                                         title="Enviar E-mail Lembrete"
                                                     >
                                                         <EmailIcon />
@@ -388,3 +388,5 @@ const PhotographerAbandonedCarts: React.FC<PhotographerAbandonedCartsProps> = ({
 };
 
 export default PhotographerAbandonedCarts;
+
+

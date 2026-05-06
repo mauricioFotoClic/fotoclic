@@ -1,5 +1,6 @@
 
 import React from 'react';
+import Logo from '../Logo';
 
 type AdminView = 'dashboard' | 'photos' | 'photographers' | 'customers' | 'categories' | 'sales' | 'payouts' | 'settings' | 'storage-requests' | 'rekognition' | 'stripe' | 'abacate';
 
@@ -81,7 +82,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeView, setView, notifi
             >
                 {/* Mobile header with close button */}
                 <div className="md:hidden flex items-center justify-between mb-4 pb-3 border-b border-neutral-100">
-                    <span className="font-display font-bold text-lg text-primary-dark">Menu Admin</span>
+                    <Logo size={20} useImage={true} />
                     <button
                         onClick={onClose}
                         className="p-2 text-neutral-500 hover:bg-neutral-100 rounded-full transition-colors"
@@ -90,7 +91,9 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeView, setView, notifi
                     </button>
                 </div>
 
-                <h2 className="hidden md:block text-xl font-display font-bold text-primary-dark mb-6">Painel Admin</h2>
+                <div className="hidden md:block mb-6 px-2 transition-transform hover:scale-105 active:scale-95 cursor-pointer" onClick={() => nav('dashboard')}>
+                    <Logo size={24} useImage={true} />
+                </div>
                 <nav className="space-y-2">
                     <NavLink label="Dashboard" isActive={activeView === 'dashboard'} onClick={() => nav('dashboard')} icon={<HomeIcon />} />
                     <NavLink label="Categorias" isActive={activeView === 'categories'} onClick={() => nav('categories')} icon={<TagIcon />} />
@@ -117,3 +120,5 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeView, setView, notifi
 };
 
 export default AdminSidebar;
+
+

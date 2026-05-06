@@ -208,3 +208,5 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ onNavigate, initialSearch, 
 };
 
 export default DiscoverPage;
+
+

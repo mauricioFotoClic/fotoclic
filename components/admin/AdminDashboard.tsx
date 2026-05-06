@@ -161,8 +161,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setView }) => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 <StatCard title="Receita Total" value={totalRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} icon={<DollarSignIcon />} colorClass="bg-green-100 text-green-600" />
-                <StatCard title="Vendas Realizadas" value={salesCount} icon={<ShoppingCartIcon />} colorClass="bg-blue-100 text-blue-600" />
-                <StatCard title="Fotógrafos Ativos" value={activePhotographersCount} icon={<UsersIcon />} colorClass="bg-purple-100 text-purple-600" />
+                <StatCard title="Vendas Realizadas" value={salesCount} icon={<ShoppingCartIcon />} colorClass="bg-primary/20 text-primary-dark" />
+                <StatCard title="Fotógrafos Ativos" value={activePhotographersCount} icon={<UsersIcon />} colorClass="bg-primary/20 text-primary-dark" />
                 <StatCard title="Aguardando Moderação" value={pendingPhotosCount} icon={<ClockIcon />} colorClass="bg-yellow-100 text-yellow-600" />
             </div>
 
@@ -415,3 +415,5 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setView }) => {
 };
 
 export default AdminDashboard;
+
+

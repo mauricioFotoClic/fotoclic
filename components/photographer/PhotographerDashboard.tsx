@@ -189,8 +189,8 @@ const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({ user, set
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
-                <StatCard title="Total de Fotos" value={balance.photoCount} icon={<ImageIcon />} colorClass="bg-blue-100 text-blue-600" />
-                <StatCard title="Total de Vendas" value={balance.salesCount} icon={<ShoppingCartIcon />} colorClass="bg-purple-100 text-purple-600" />
+                <StatCard title="Total de Fotos" value={balance.photoCount} icon={<ImageIcon />} colorClass="bg-primary/20 text-primary-dark" />
+                <StatCard title="Total de Vendas" value={balance.salesCount} icon={<ShoppingCartIcon />} colorClass="bg-primary/20 text-primary-dark" />
                 <StatCard title="Total de Curtidas" value={balance.likesCount || 0} icon={<HeartIcon />} colorClass="bg-red-100 text-red-600" />
                 <StatCard 
                     title="Taxa de Serviço" 
@@ -268,3 +268,5 @@ const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({ user, set
 };
 
 export default PhotographerDashboard;
+
+

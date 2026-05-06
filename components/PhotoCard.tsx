@@ -170,3 +170,5 @@ const PhotoCard: React.FC<PhotoCardProps> = ({ photo, photographer, onNavigate, 
 };
 
 export default PhotoCard;
+
+

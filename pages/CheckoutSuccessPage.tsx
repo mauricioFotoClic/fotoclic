@@ -62,3 +62,5 @@ const CheckoutSuccessPage: React.FC<CheckoutSuccessPageProps> = ({ onNavigate })
 };
 
 export default CheckoutSuccessPage;
+
+

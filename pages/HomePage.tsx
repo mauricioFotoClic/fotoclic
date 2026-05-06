@@ -1,6 +1,7 @@
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { Photo, User, PhotographerWithStats, Category, PhotoEvent, Page } from '../types';
+import type { Photo, User, PhotographerWithStats, Category, PhotoEvent, Page } from '../types';
+import { User as UserIcon, Camera } from 'lucide-react';
 import api from '../services/api';
 import PhotoCard from '../components/PhotoCard';
 import WatermarkedImage from '../components/WatermarkedImage';
@@ -193,13 +194,13 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
         <div className="absolute inset-0 bg-neutral-900/60 backdrop-blur-[2px]" />
         <div className="relative z-10 text-center p-4 max-w-4xl mx-auto animate-fade-in-up">
           <h1 className="text-4xl md:text-7xl font-display font-bold mb-6 leading-tight">
-            Descubra a <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-secondary-light">Foto Perfeita</span>
+            Encontre suas fotos.<br /><span className="text-primary">Reviva</span> seus melhores momentos.
           </h1>
           <p className="text-lg md:text-xl mb-10 max-w-2xl mx-auto text-neutral-200 font-light">
-            Imagens de alta qualidade dos fotógrafos mais talentosos do Brasil.
+            Busque, encontre e compre as fotos dos eventos que você participou.
           </p>
           <div className="relative w-full max-w-xl mx-auto group">
-            <div className="absolute -inset-1 bg-gradient-to-r from-primary to-secondary rounded-full blur opacity-25 group-hover:opacity-50 transition duration-1000" />
+            <div className="absolute -inset-1 bg-gradient-to-r from-primary to-neutral-900 rounded-full blur opacity-25 group-hover:opacity-50 transition duration-1000" />
             <div className="relative flex">
               <input
                 type="text"
@@ -219,10 +220,74 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
               </button>
             </div>
           </div>
+
+          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+              <button 
+                onClick={() => onNavigate({ name: 'find-photos' })}
+                className="w-full sm:w-auto flex items-center gap-3 px-6 py-3 bg-black/40 backdrop-blur-md border border-white/20 rounded-2xl hover:bg-black/60 transition-all text-left"
+              >
+                <div className="p-2 bg-primary/20 rounded-lg text-primary">
+                  <UserIcon size={20} strokeWidth={2.5} />
+                </div>
+                <div>
+                  <p className="text-xs text-neutral-300 font-medium">Sou atleta, quero</p>
+                  <p className="text-sm font-bold">encontrar minhas fotos</p>
+                </div>
+              </button>
+
+              <button 
+                onClick={() => onNavigate({ name: 'register' })}
+                className="w-full sm:w-auto flex items-center gap-3 px-6 py-3 bg-black/40 backdrop-blur-md border border-white/20 rounded-2xl hover:bg-black/60 transition-all text-left"
+              >
+                <div className="p-2 bg-primary/20 rounded-lg text-primary">
+                  <Camera size={20} strokeWidth={2.5} />
+                </div>
+                <div>
+                  <p className="text-xs text-neutral-300 font-medium">Sou fotógrafo, quero</p>
+                  <p className="text-sm font-bold">vender minhas fotos</p>
+                </div>
+              </button>
+          </div>
+        </div>
+      </section>
+      
+      {/* ── Features ──────────────────────────────────────────────────────── */}
+      <section className="py-8 bg-neutral-900 text-white">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="flex items-center gap-4 justify-center">
+               <div className="p-3 bg-primary/10 rounded-xl text-primary">
+                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+               </div>
+               <div>
+                 <p className="font-bold text-sm">Fotos profissionais</p>
+                 <p className="text-xs text-neutral-400">de alta qualidade</p>
+               </div>
+            </div>
+            <div className="flex items-center gap-4 justify-center">
+               <div className="p-3 bg-primary/10 rounded-xl text-primary">
+                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>
+               </div>
+               <div>
+                 <p className="font-bold text-sm">Encontre-se nas fotos</p>
+                 <p className="text-xs text-neutral-400">dos eventos</p>
+               </div>
+            </div>
+            <div className="flex items-center gap-4 justify-center">
+               <div className="p-3 bg-primary/10 rounded-xl text-primary">
+                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+               </div>
+               <div>
+                 <p className="font-bold text-sm">Compra segura e</p>
+                 <p className="text-xs text-neutral-400">entrega imediata</p>
+               </div>
+            </div>
+          </div>
         </div>
       </section>
 
       {/* ── 1. Categorias (Carousel) ──────────────────────────────────────── */}
+
       <section className="py-20 bg-neutral-50 relative overflow-hidden">
         <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
         <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-96 h-96 bg-secondary/5 rounded-full blur-3xl" />
@@ -281,7 +346,40 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
         </div>
       </section>
 
+      {/* ── Photographer Banner ─────────────────────────────────────────── */}
+      <section className="py-12 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="bg-neutral-900 rounded-3xl overflow-hidden flex flex-col md:flex-row items-center">
+            <div className="p-8 md:p-12 flex-1">
+              <span className="text-primary font-bold text-xs uppercase tracking-widest mb-2 block">Para Fotógrafos</span>
+              <h2 className="text-3xl md:text-4xl font-display font-bold text-white mb-4">
+                Mostre seu talento.<br />
+                <span className="text-primary">Venda suas fotos.</span>
+              </h2>
+              <p className="text-neutral-400 mb-8 max-w-md">
+                Publique suas fotos dos eventos, alcance milhares de atletas e transforme seu trabalho em renda de forma simples e rápida.
+              </p>
+              <button 
+                onClick={() => onNavigate({ name: 'register' })}
+                className="bg-primary hover:bg-primary-dark text-white font-bold py-4 px-8 rounded-full transition-all flex items-center gap-2"
+              >
+                <Camera size={20} />
+                Quero vender minhas fotos
+              </button>
+            </div>
+            <div className="flex-1 h-64 md:h-full min-h-[300px] w-full">
+               <img 
+                 src="https://images.unsplash.com/photo-1542038784456-1ea8e935640e?q=80&w=1000&auto=format&fit=crop" 
+                 alt="Fotógrafo" 
+                 className="w-full h-full object-cover"
+               />
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── 2. Fotos em Destaque ──────────────────────────────────────────── */}
+
       <section className="py-24 bg-[#0F0F0F] relative overflow-hidden">
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px] pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-secondary/10 rounded-full blur-[120px] pointer-events-none" />
@@ -328,7 +426,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
           <div className="flex flex-col items-center justify-center mb-12 text-center">
             <span className="text-primary font-bold text-xs uppercase tracking-widest mb-2">O que há de novo</span>
             <h2 className="text-3xl md:text-4xl font-display font-bold text-neutral-900">Fotos Recentes</h2>
-            <div className="w-20 h-1 bg-gradient-to-r from-primary to-secondary rounded-full mt-4" />
+            <div className="w-20 h-1 bg-gradient-to-r from-primary to-neutral-900 rounded-full mt-4" />
           </div>
 
           {loadingRecent ? (
@@ -543,7 +641,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
                           className="w-24 h-24 rounded-full object-cover border-2 border-white"
                         />
                       </div>
-                      <div className="absolute bottom-1 right-[calc(50%-2.5rem)] bg-blue-500 text-white p-1 rounded-full border-2 border-white" title="Fotógrafo Verificado">
+                      <div className="absolute bottom-1 right-[calc(50%-2.5rem)] bg-primary text-white p-1 rounded-full border-2 border-white" title="Fotógrafo Verificado">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
                           <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                         </svg>
@@ -610,3 +708,5 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
 };
 
 export default HomePage;
+
+

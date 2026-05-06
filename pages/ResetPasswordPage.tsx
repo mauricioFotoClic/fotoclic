@@ -149,7 +149,7 @@ export function ResetPasswordPage({ token, onNavigate }: ResetPasswordPageProps)
         <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12">
             <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
                 <div className="text-center mb-8">
-                    <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
                         <Lock className="w-8 h-8 text-primary" />
                     </div>
                     <h2 className="text-2xl font-bold text-gray-900">Nova Senha</h2>
@@ -229,3 +229,5 @@ export function ResetPasswordPage({ token, onNavigate }: ResetPasswordPageProps)
 }
 
 export default ResetPasswordPage;
+
+

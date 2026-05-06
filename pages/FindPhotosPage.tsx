@@ -331,3 +331,5 @@ const FindPhotosPage: React.FC<FindPhotosPageProps> = ({ onNavigate, initialSear
 };
 
 export default FindPhotosPage;
+
+

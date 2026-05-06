@@ -48,7 +48,7 @@ const AboutPage: React.FC = () => {
                             </p>
                         </div>
                         <div className="bg-neutral-50 p-8 rounded-2xl border border-neutral-100 hover:shadow-lg transition-shadow duration-300 flex flex-col items-center text-center">
-                            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-6 text-3xl shadow-sm">🚀</div>
+                            <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mb-6 text-3xl shadow-sm">🚀</div>
                             <h2 className="text-2xl font-display font-bold text-neutral-900 mb-4">Nossa Visão</h2>
                             <p className="text-neutral-600 leading-relaxed">
                                 Construir a maior e mais confiável comunidade online de fotografia, onde cada projeto — seja pessoal, comercial ou artístico — encontra a imagem ideal. Queremos ser referência global em conteúdo visual de qualidade, valorizando tanto quem cria quanto quem compra.
@@ -59,7 +59,7 @@ const AboutPage: React.FC = () => {
                     {/* Values */}
                     <div className="mb-20">
                         <div className="text-center mb-12">
-                            <div className="inline-block p-3 rounded-full bg-purple-50 text-purple-600 mb-4 shadow-sm border border-purple-100">
+                            <div className="inline-block p-3 rounded-full bg-primary/10 text-primary-dark mb-4 shadow-sm border border-primary/20">
                                 <span className="text-3xl">💎</span>
                             </div>
                             <h2 className="text-3xl font-display font-bold text-neutral-900">Nossos Valores</h2>
@@ -131,3 +131,5 @@ const AboutPage: React.FC = () => {
 };
 
 export default AboutPage;
+
+

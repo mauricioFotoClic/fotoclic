@@ -30,7 +30,7 @@ const Toast: React.FC<ToastProps> = ({ message, type = 'success', onClose, durat
   const bgColors = {
     success: 'bg-green-600',
     error: 'bg-red-600',
-    info: 'bg-blue-600',
+    info: 'bg-primary-dark',
   };
 
   const icons = {
@@ -66,3 +66,5 @@ const Toast: React.FC<ToastProps> = ({ message, type = 'success', onClose, durat
 };
 
 export default Toast;
+
+

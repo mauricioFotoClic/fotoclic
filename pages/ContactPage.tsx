@@ -36,7 +36,7 @@ const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
                     
                     {/* Card Clientes */}
                     <div className="bg-white rounded-2xl shadow-xl p-8 border border-neutral-100 hover:shadow-2xl transition-shadow duration-300 group">
-                        <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center text-primary mb-6 group-hover:scale-110 transition-transform duration-300">
+                        <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center text-primary mb-6 group-hover:scale-110 transition-transform duration-300">
                             <UserGroupIcon />
                         </div>
                         <h2 className="text-2xl font-display font-bold text-neutral-900 mb-3">Suporte ao Cliente</h2>
@@ -58,7 +58,7 @@ const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
 
                     {/* Card Fotógrafos */}
                     <div className="bg-white rounded-2xl shadow-xl p-8 border border-neutral-100 hover:shadow-2xl transition-shadow duration-300 group">
-                        <div className="w-16 h-16 bg-purple-50 rounded-full flex items-center justify-center text-secondary mb-6 group-hover:scale-110 transition-transform duration-300">
+                        <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center text-secondary mb-6 group-hover:scale-110 transition-transform duration-300">
                             <CameraIcon />
                         </div>
                         <h2 className="text-2xl font-display font-bold text-neutral-900 mb-3">Suporte ao Fotógrafo</h2>
@@ -121,3 +121,5 @@ const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
 };
 
 export default ContactPage;
+
+

@@ -246,3 +246,5 @@ const AdminSales: React.FC = () => {
 }
 
 export default AdminSales;
+
+

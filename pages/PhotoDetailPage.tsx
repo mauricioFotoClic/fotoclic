@@ -160,14 +160,14 @@ const PhotoDetailPage: React.FC<PhotoDetailPageProps> = ({ photoId, onNavigate, 
 
                                         {/* Bulk Discount Banner */}
                                         {photographer?.bulkDiscountRules && photographer.bulkDiscountRules.length > 0 && (
-                                            <div className="mb-4 p-3 bg-blue-50 border border-blue-100 rounded-lg">
-                                                <p className="text-xs font-bold text-blue-800 uppercase tracking-wider mb-1 flex items-center">
+                                            <div className="mb-4 p-3 bg-primary/10 border border-primary/20 rounded-lg">
+                                                <p className="text-xs font-bold text-primary uppercase tracking-wider mb-1 flex items-center">
                                                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="mr-1"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                                                     Leve mais, pague menos!
                                                 </p>
                                                 <ul className="space-y-1">
                                                     {photographer.bulkDiscountRules.map((rule, idx) => (
-                                                        <li key={idx} className="text-sm text-blue-700 flex justify-between">
+                                                        <li key={idx} className="text-sm text-primary-dark flex justify-between">
                                                             <span>{rule.minQuantity} fotos</span>
                                                             <span className="font-bold">{rule.discountPercent}% OFF</span>
                                                         </li>
@@ -208,3 +208,5 @@ const PhotoDetailPage: React.FC<PhotoDetailPageProps> = ({ photoId, onNavigate, 
 };
 
 export default PhotoDetailPage;
+
+

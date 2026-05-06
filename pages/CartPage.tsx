@@ -189,7 +189,7 @@ const CartPage: React.FC<CartPageProps> = ({ cartItemIds, onRemoveItem, onChecko
                                             <p className="text-sm text-neutral-500">{photo.resolution} • Royalty-Free</p>
 
                                             {hasBulk && (
-                                                <span className="text-xs text-blue-600 font-semibold bg-blue-50 px-2 py-0.5 rounded-full mt-1 inline-block mr-1">
+                                                <span className="text-xs text-primary-dark font-semibold bg-primary/10 px-2 py-0.5 rounded-full mt-1 inline-block mr-1">
                                                     Volume: {group?.appliedBulkRule?.discountPercent}% OFF
                                                 </span>
                                             )}
@@ -227,7 +227,7 @@ const CartPage: React.FC<CartPageProps> = ({ cartItemIds, onRemoveItem, onChecko
                                         <span>R$ {subtotal.toFixed(2).replace('.', ',')}</span>
                                     </div>
                                     {bulkDiscountTotal > 0 && (
-                                        <div className="flex justify-between text-blue-600 font-medium">
+                                        <div className="flex justify-between text-primary-dark font-medium">
                                             <span>Desconto por Volume</span>
                                             <span>- R$ {bulkDiscountTotal.toFixed(2).replace('.', ',')}</span>
                                         </div>
@@ -311,3 +311,4 @@ const CartPage: React.FC<CartPageProps> = ({ cartItemIds, onRemoveItem, onChecko
 };
 
 export default CartPage;
+

@@ -343,7 +343,7 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
                                     <span>R$ {subtotal.toFixed(2).replace('.', ',')}</span>
                                 </div>
                                 {bulkDiscountTotal > 0 && (
-                                    <div className="flex justify-between text-sm text-blue-600 font-medium">
+                                    <div className="flex justify-between text-sm text-primary-dark font-medium">
                                         <span>Desconto por Volume</span>
                                         <span>- R$ {bulkDiscountTotal.toFixed(2).replace('.', ',')}</span>
                                     </div>
@@ -365,11 +365,11 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
                                 <span className="font-display font-bold text-3xl text-primary">R$ {total.toFixed(2).replace('.', ',')}</span>
                             </div>
 
-                            <div className="mt-6 bg-blue-50 p-3 rounded-lg border border-blue-100 flex items-start">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-500 mr-2 flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+                            <div className="mt-6 bg-primary/10 p-3 rounded-lg border border-primary/20 flex items-start">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-primary mr-2 flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
                                     <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                                 </svg>
-                                <p className="text-xs text-blue-700 leading-relaxed">
+                                <p className="text-xs text-primary-dark leading-relaxed">
                                     Ao confirmar o pagamento, você concorda com nossos Termos de Uso e recebe uma licença imediata para uso das imagens.
                                 </p>
                             </div>
@@ -384,3 +384,5 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
 export default CheckoutPage;
 
 // End of file
+
+

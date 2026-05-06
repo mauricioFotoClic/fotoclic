@@ -58,3 +58,5 @@ export const CheckoutForm = ({ amount, onSuccess, onClose }: { amount: number, o
         </form>
     );
 };
+
+

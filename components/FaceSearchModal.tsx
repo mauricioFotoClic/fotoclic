@@ -113,7 +113,7 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({ isOpen, onClose, onNa
                 {/* Mobile Header / Desktop Header */}
                 <div className="flex-none p-4 md:p-6 border-b border-neutral-100 flex justify-between items-center bg-white/90 backdrop-blur-md sticky top-0 z-20">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white shadow-blue-200 shadow-lg">
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-primary-dark flex items-center justify-center text-white shadow-primary/20 shadow-lg">
                             <Camera size={24} strokeWidth={2.5} />
                         </div>
                         <div>
@@ -142,7 +142,7 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({ isOpen, onClose, onNa
                                 <div className="flex items-center justify-between mb-6 bg-white p-4 rounded-2xl shadow-sm border border-neutral-100">
                                     <div className="flex items-center gap-4">
                                         <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-                                            <div className="w-16 h-16 rounded-xl overflow-hidden border-2 border-white shadow-md ring-2 ring-blue-100">
+                                            <div className="w-16 h-16 rounded-xl overflow-hidden border-2 border-white shadow-md ring-2 ring-primary/20">
                                                 <img src={selectedImage!} alt="Sua selfie" className="w-full h-full object-cover" />
                                             </div>
                                             <div className="absolute inset-0 bg-black/30 flex items-center justify-center rounded-xl opacity-0 group-hover:opacity-100 transition-opacity">
@@ -155,7 +155,7 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({ isOpen, onClose, onNa
                                             </h3>
                                             <button
                                                 onClick={() => fileInputRef.current?.click()}
-                                                className="text-blue-600 text-sm font-medium hover:underline"
+                                                className="text-primary text-sm font-medium hover:underline"
                                             >
                                                 Tentar outra foto
                                             </button>
@@ -207,12 +207,12 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({ isOpen, onClose, onNa
                         {!hasSearched && (
                             <div className="flex-1 flex flex-col items-center justify-center max-w-lg mx-auto w-full animate-in zoom-in-95 duration-300">
                                 <div className="w-full bg-white rounded-3xl p-6 md:p-10 shadow-xl border border-neutral-100 text-center relative overflow-hidden">
-                                    <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 to-purple-600"></div>
+                                    <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-primary to-neutral-900"></div>
 
                                     <div className="mb-8">
-                                        <div className="w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6 relative">
-                                            <div className="absolute inset-0 bg-blue-100 rounded-full animate-ping opacity-20"></div>
-                                            <Camera size={40} className="text-blue-600" />
+                                        <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6 relative">
+                                            <div className="absolute inset-0 bg-primary/20 rounded-full animate-ping opacity-20"></div>
+                                            <Camera size={40} className="text-primary" />
                                         </div>
                                         <h3 className="text-2xl font-bold text-neutral-900 mb-3">Tire ou envie uma selfie</h3>
                                         <p className="text-neutral-500 leading-relaxed mb-6">
@@ -226,8 +226,8 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({ isOpen, onClose, onNa
                                                 onClick={() => setShowTips(!showTips)}
                                                 className={`flex items-center justify-between w-full p-4 rounded-2xl border transition-all duration-300 ${
                                                     showTips 
-                                                    ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-200' 
-                                                    : 'bg-blue-50/50 border-blue-100 text-blue-700 hover:bg-blue-50'
+                                                    ? 'bg-primary-dark border-primary-dark text-white shadow-lg shadow-primary' 
+                                                    : 'bg-primary/10 border-primary/20 text-primary-dark hover:bg-primary/10'
                                                 }`}
                                             >
                                                 <div className="flex items-center gap-3">
@@ -271,7 +271,7 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({ isOpen, onClose, onNa
                                                         </div>
 
                                                         <div className="flex items-start gap-3">
-                                                            <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
+                                                            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary-dark shrink-0">
                                                                 <Scan size={18} />
                                                             </div>
                                                             <div>
@@ -289,9 +289,9 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({ isOpen, onClose, onNa
                                     <div className="grid grid-cols-2 gap-3 md:gap-4 mb-6">
                                         <div
                                             onClick={() => cameraInputRef.current?.click()}
-                                            className="border-2 border-dashed border-neutral-200 hover:border-blue-400 hover:bg-blue-50/50 rounded-2xl p-4 md:p-6 cursor-pointer transition-all duration-300 group flex flex-col items-center justify-center text-center h-36 md:h-48"
+                                            className="border-2 border-dashed border-neutral-200 hover:border-primary hover:bg-primary/10 rounded-2xl p-4 md:p-6 cursor-pointer transition-all duration-300 group flex flex-col items-center justify-center text-center h-36 md:h-48"
                                         >
-                                            <div className="w-12 h-12 md:w-14 md:h-14 bg-blue-100 rounded-full flex items-center justify-center mb-2 md:mb-3 group-hover:scale-110 transition-transform text-blue-600">
+                                            <div className="w-12 h-12 md:w-14 md:h-14 bg-primary/20 rounded-full flex items-center justify-center mb-2 md:mb-3 group-hover:scale-110 transition-transform text-primary-dark">
                                                 <Camera className="w-6 h-6 md:w-7 md:h-7" />
                                             </div>
                                             <span className="font-semibold text-neutral-800 text-sm">Tirar Selfie</span>
@@ -300,7 +300,7 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({ isOpen, onClose, onNa
 
                                         <div
                                             onClick={() => fileInputRef.current?.click()}
-                                            className="border-2 border-dashed border-neutral-200 hover:border-purple-400 hover:bg-purple-50/50 rounded-2xl p-4 md:p-6 cursor-pointer transition-all duration-300 group flex flex-col items-center justify-center text-center h-36 md:h-48"
+                                            className="border-2 border-dashed border-neutral-200 hover:border-primary-dark hover:bg-primary/10 rounded-2xl p-4 md:p-6 cursor-pointer transition-all duration-300 group flex flex-col items-center justify-center text-center h-36 md:h-48"
                                         >
                                             {selectedImage ? (
                                                 <div className="relative w-full h-full rounded-xl overflow-hidden">
@@ -311,7 +311,7 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({ isOpen, onClose, onNa
                                                 </div>
                                             ) : (
                                                 <>
-                                                    <div className="w-12 h-12 md:w-14 md:h-14 bg-purple-100 rounded-full flex items-center justify-center mb-2 md:mb-3 group-hover:scale-110 transition-transform text-purple-600">
+                                                    <div className="w-12 h-12 md:w-14 md:h-14 bg-primary/20 rounded-full flex items-center justify-center mb-2 md:mb-3 group-hover:scale-110 transition-transform text-primary-dark">
                                                         <Upload className="w-6 h-6 md:w-7 md:h-7" />
                                                     </div>
                                                     <span className="font-semibold text-neutral-800 text-sm">Enviar Foto</span>
@@ -325,7 +325,7 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({ isOpen, onClose, onNa
                                         <button
                                             onClick={handleSearch}
                                             disabled={!selectedImage || isProcessing}
-                                            className="w-full py-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-lg shadow-lg hover:shadow-blue-500/40 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-95 flex items-center justify-center gap-3 relative overflow-hidden"
+                                            className="w-full py-4 rounded-xl bg-gradient-to-r from-primary to-primary-dark text-white font-bold text-lg shadow-lg hover:shadow-primary/40 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-95 flex items-center justify-center gap-3 relative overflow-hidden"
                                         >
                                             {/* Standard Spinner inside button */}
                                             {isProcessing ? (
@@ -346,7 +346,7 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({ isOpen, onClose, onNa
                                 {/* Full Modal Spinner Overlay */}
                                 {isProcessing && (
                                     <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center animate-in fade-in duration-200">
-                                        <div className="w-16 h-16 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin mb-4 shadow-lg"></div>
+                                        <div className="w-16 h-16 border-4 border-primary/10 border-t-primary rounded-full animate-spin mb-4 shadow-lg"></div>
                                         <p className="text-lg font-semibold text-neutral-800 animate-pulse">Buscando você...</p>
                                         <p className="text-sm text-neutral-500">Isso leva apenas alguns segundos</p>
                                     </div>
@@ -386,3 +386,5 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({ isOpen, onClose, onNa
 };
 
 export default FaceSearchModal;
+
+

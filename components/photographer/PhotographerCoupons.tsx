@@ -205,3 +205,4 @@ const PhotographerCoupons: React.FC<PhotographerCouponsProps> = ({ user }) => {
 };
 
 export default PhotographerCoupons;
+

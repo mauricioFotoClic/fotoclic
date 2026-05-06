@@ -111,7 +111,7 @@ const AdminPayouts: React.FC = () => {
                             {payout.status === 'pending' ? (
                                 <button
                                     onClick={() => handleOpenProcessModal(payout)}
-                                    className="px-3 py-1 text-xs font-medium text-white bg-blue-600 rounded-full hover:bg-blue-700 transition-colors"
+                                    className="px-3 py-1 text-xs font-medium text-white bg-primary-dark rounded-full hover:bg-primary-dark transition-colors"
                                 >
                                     Processar
                                 </button>
@@ -176,7 +176,7 @@ const AdminPayouts: React.FC = () => {
                                     {payout.status === 'pending' ? (
                                         <button
                                             onClick={() => handleOpenProcessModal(payout)}
-                                            className="px-3 py-1 text-xs font-medium text-white bg-blue-600 rounded-full hover:bg-blue-700 transition-colors shadow-sm"
+                                            className="px-3 py-1 text-xs font-medium text-white bg-primary-dark rounded-full hover:bg-primary-dark transition-colors shadow-sm"
                                         >
                                             Processar
                                         </button>
@@ -250,3 +250,5 @@ const AdminPayouts: React.FC = () => {
 };
 
 export default AdminPayouts;
+
+

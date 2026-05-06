@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Page, User, UserRole } from '../types';
 import api from '../services/api';
 import Spinner from '../components/Spinner';
+import Logo from '../components/Logo';
 
 interface LoginPageProps {
     onNavigate: (page: Page) => void;
@@ -48,9 +49,11 @@ const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onLoginSuccess }) => 
     };
 
     return (
+
         <div className="min-h-screen bg-neutral-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-            <div className="sm:mx-auto sm:w-full sm:max-w-md">
-                <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 font-display">
+            <div className="sm:mx-auto sm:w-full sm:max-w-md flex flex-col items-center">
+                <Logo size={48} className="mb-6" useImage={true} />
+                <h2 className="text-center text-3xl font-extrabold text-gray-900 font-display">
                     Entrar na sua conta
                 </h2>
                 <p className="mt-2 text-center text-sm text-gray-600">
@@ -125,3 +128,5 @@ const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onLoginSuccess }) => 
 };
 
 export default LoginPage;
+
+

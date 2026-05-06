@@ -111,10 +111,10 @@ const AdminStripe: React.FC = () => {
 
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-neutral-200">
                     <div className="flex items-center justify-between mb-4">
-                        <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                        <div className="p-2 bg-primary/10 text-primary-dark rounded-lg">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
                         </div>
-                        <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Aguardando (Pending)</span>
+                        <span className="text-[10px] font-bold text-primary-dark uppercase tracking-wider">Aguardando (Pending)</span>
                     </div>
                     <p className="text-3xl font-display font-bold text-neutral-900">
                         {stats ? formatBRL(stats.pending[0]?.amount || 0) : 'R$ 0,00'}
@@ -207,3 +207,5 @@ const AdminStripe: React.FC = () => {
 };
 
 export default AdminStripe;
+
+

@@ -528,3 +528,5 @@ const EventPage: React.FC<EventPageProps> = ({ eventId, onNavigate, onAddToCart,
 };
 
 export default EventPage;
+
+

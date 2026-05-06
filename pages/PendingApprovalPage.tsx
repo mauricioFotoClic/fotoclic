@@ -1,6 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Page } from '../types';
+import Logo from '../components/Logo';
 
 interface PendingApprovalPageProps {
     onNavigate: (page: Page) => void;
@@ -30,7 +31,8 @@ const PendingApprovalPage: React.FC<PendingApprovalPageProps> = ({ onNavigate })
                  <div className="absolute bottom-[-20%] left-[-10%] w-[700px] h-[700px] bg-secondary/5 rounded-full blur-[150px]"></div>
             </div>
 
-            <div className="max-w-2xl text-center relative z-10">
+            <div className="max-w-2xl text-center relative z-10 flex flex-col items-center">
+                <Logo size={48} className="mb-12" useImage={true} />
                 <div className="mb-8 inline-block p-6 rounded-full bg-green-50 shadow-sm">
                      <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-green-500">
                         <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
@@ -72,3 +74,5 @@ const PendingApprovalPage: React.FC<PendingApprovalPageProps> = ({ onNavigate })
 };
 
 export default PendingApprovalPage;
+
+

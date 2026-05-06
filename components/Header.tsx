@@ -1,7 +1,8 @@
 
 import React, { useState } from 'react';
-import { User, UserRole, Page } from '../types';
+import { type User, UserRole, type Page } from '../types';
 import { useToast } from '../contexts/ToastContext';
+import Logo from './Logo';
 
 const CameraIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
     <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -49,9 +50,8 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigate, currentView
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between h-16">
                     <div className="flex items-center gap-4">
-                        <button onClick={() => onNavigate({ name: 'home' })} className="flex items-center space-x-2 text-primary-dark hover:text-primary transition-colors">
-                            <CameraIcon className="h-7 w-7" />
-                            <span className="text-2xl font-display font-bold">FotoClic</span>
+                        <button onClick={() => onNavigate({ name: 'home' })} className="transition-transform hover:scale-105 active:scale-95">
+                            <Logo size={35} useImage={true} />
                         </button>
 
                     </div>
@@ -82,7 +82,7 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigate, currentView
                                             </button>
                                         )}
                                         {user.role === UserRole.PHOTOGRAPHER && !isPhotographerView && (
-                                            <button onClick={() => onNavigate({ name: 'photographer' })} className="px-4 py-2 text-sm font-medium text-white bg-secondary rounded-full hover:bg-opacity-90 transition-colors">
+                                            <button onClick={() => onNavigate({ name: 'photographer' })} className="px-4 py-2 text-sm font-medium text-white bg-neutral-900 rounded-full hover:bg-neutral-800 transition-colors">
                                                 Painel do Fotógrafo
                                             </button>
                                         )}
@@ -112,11 +112,11 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigate, currentView
                                 <button
                                     id="cart-btn"
                                     onClick={() => onNavigate({ name: 'cart' })}
-                                    className="relative text-neutral-800 hover:text-primary transition-colors p-2"
+                                    className="relative text-neutral-900 hover:text-primary transition-colors p-2"
                                 >
                                     <ShoppingCartIcon className="h-6 w-6" />
                                     {cartCount > 0 && (
-                                        <span className="absolute -top-1 -right-1 bg-secondary text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center shadow-sm">
+                                        <span className="absolute -top-1 -right-1 bg-primary text-white text-[10px] font-bold rounded-full h-4 w-4 flex items-center justify-center shadow-sm">
                                             {cartCount}
                                         </span>
                                     )}
@@ -184,3 +184,5 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigate, currentView
 };
 
 export default Header;
+
+

@@ -51,12 +51,34 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginS
     const [pendingUser, setPendingUser] = useState<User | null>(null);
     const [acceptingLiability, setAcceptingLiability] = useState(false);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value, type, checked } = e.target;
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        const { name, value, type } = e.target;
+        const checked = (e.target as HTMLInputElement).checked;
         setFormData(prev => ({
             ...prev,
-            [name]: type === 'checkbox' ? checked : value
+            [name]: type === 'checkbox' ? checked : value,
+            ...(name === 'ddi' ? { phone: '' } : {})
         }));
+    };
+
+    const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (formData.ddi !== '+55') {
+            const digits = e.target.value.replace(/\D/g, '').slice(0, 15);
+            setFormData(prev => ({ ...prev, phone: digits }));
+            return;
+        }
+        const digits = e.target.value.replace(/\D/g, '').slice(0, 11);
+        let masked = digits;
+        if (digits.length > 10) {
+            masked = digits.replace(/^(\d{2})(\d{5})(\d{0,4})/, '($1) $2-$3').replace(/-$/, '');
+        } else if (digits.length > 6) {
+            masked = digits.replace(/^(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3').replace(/-$/, '');
+        } else if (digits.length > 2) {
+            masked = digits.replace(/^(\d{2})(\d+)/, '($1) $2');
+        } else if (digits.length > 0) {
+            masked = digits.replace(/^(\d+)/, '($1');
+        }
+        setFormData(prev => ({ ...prev, phone: masked }));
     };
 
     const performRegister = async () => {
@@ -220,7 +242,7 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginS
                             <select
                                 name="ddi"
                                 value={formData.ddi}
-                                onChange={handleChange as any}
+                                onChange={handleChange}
                                 className="w-1/3 min-w-[100px] px-3 py-3 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none text-gray-900 cursor-pointer"
                             >
                                 {ddiList.map(item => (
@@ -235,8 +257,9 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginS
                                 type="tel"
                                 required
                                 value={formData.phone}
-                                onChange={handleChange}
+                                onChange={handlePhoneChange}
                                 placeholder="(11) 99999-9999"
+                                maxLength={15}
                                 className="w-2/3 px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none text-gray-900 placeholder-gray-400"
                             />
                         </div>
@@ -355,3 +378,5 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginS
 };
 
 export default RegisterModal;
+
+

@@ -185,3 +185,5 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ categoryId, onNavigate }) =
 };
 
 export default CategoryPage;
+
+

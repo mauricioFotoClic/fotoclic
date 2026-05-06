@@ -319,7 +319,7 @@ const AdminPhotographers: React.FC<AdminPhotographersProps> = ({ onNavigate }) =
                             </button>
                             <button
                                 onClick={() => handleOpenModal(user)}
-                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                                className="p-2 text-primary-dark hover:bg-primary/10 rounded-full transition-colors"
                                 title="Editar"
                             >
                                 <EditIcon />
@@ -440,7 +440,7 @@ const AdminPhotographers: React.FC<AdminPhotographersProps> = ({ onNavigate }) =
                                         </button>
                                         <button
                                             onClick={() => handleOpenModal(user)}
-                                            className="flex items-center justify-center w-9 h-9 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-full transition-colors"
+                                            className="flex items-center justify-center w-9 h-9 text-primary-dark hover:text-primary hover:bg-primary/10 rounded-full transition-colors"
                                             title="Editar"
                                         >
                                             <EditIcon />
@@ -644,3 +644,5 @@ const AdminPhotographers: React.FC<AdminPhotographersProps> = ({ onNavigate }) =
 };
 
 export default AdminPhotographers;
+
+

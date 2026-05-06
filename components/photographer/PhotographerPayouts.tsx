@@ -135,23 +135,23 @@ const PhotographerPayouts: React.FC<PhotographerPayoutsProps> = ({ user }) => {
                         - {balance ? balance.totalPlatformFees.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'R$ 0,00'}
                     </p>
                 </div>
-                <div className="bg-blue-50 p-6 rounded-lg shadow-sm border border-blue-100 relative overflow-hidden">
+                <div className="bg-primary/10 p-6 rounded-lg shadow-sm border border-primary/20 relative overflow-hidden">
                     <div className="relative z-10">
-                        <p className="text-xs text-blue-600 font-bold uppercase tracking-wider mb-1">Saldo Disponível</p>
-                        <p className="text-3xl font-display font-bold text-blue-700">
+                        <p className="text-xs text-primary-dark font-bold uppercase tracking-wider mb-1">Saldo Disponível</p>
+                        <p className="text-3xl font-display font-bold text-primary-dark">
                             {balance ? balance.currentBalance.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'R$ 0,00'}
                         </p>
 
                         {/* Progress Bar for Minimum Threshold */}
                         {balance && balance.currentBalance < 70 && (
                             <div className="mt-3">
-                                <div className="flex justify-between text-[10px] text-blue-600 mb-1">
+                                <div className="flex justify-between text-[10px] text-primary-dark mb-1">
                                     <span>Mínimo: R$ 70,00</span>
                                     <span>{Math.round((balance.currentBalance / 70) * 100)}%</span>
                                 </div>
-                                <div className="w-full bg-blue-200 rounded-full h-1.5">
+                                <div className="w-full bg-primary rounded-full h-1.5">
                                     <div
-                                        className="bg-blue-500 h-1.5 rounded-full transition-all duration-500"
+                                        className="bg-primary h-1.5 rounded-full transition-all duration-500"
                                         style={{ width: `${Math.min((balance.currentBalance / 70) * 100, 100)}%` }}
                                     ></div>
                                 </div>
@@ -269,7 +269,7 @@ const PhotographerPayouts: React.FC<PhotographerPayoutsProps> = ({ user }) => {
                 title="Dados de Recebimento"
             >
                 <form onSubmit={handleSaveBankInfo}>
-                    <div className="bg-blue-50 p-3 rounded-md mb-6 flex items-start text-sm text-blue-800">
+                    <div className="bg-primary/10 p-3 rounded-md mb-6 flex items-start text-sm text-primary">
                         <span className="mr-2 mt-0.5"><InfoIcon /></span>
                         O pagamento é feito exclusivamente via PIX para garantir agilidade e segurança.
                     </div>
@@ -326,3 +326,4 @@ const PhotographerPayouts: React.FC<PhotographerPayoutsProps> = ({ user }) => {
 }
 
 export default PhotographerPayouts;
+

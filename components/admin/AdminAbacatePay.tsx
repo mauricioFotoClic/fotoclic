@@ -94,7 +94,7 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
         case 'PAID':      return <span className="inline-flex items-center bg-green-100 text-green-800 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide">Pago</span>;
         case 'PENDING':   return <span className="inline-flex items-center bg-amber-100 text-amber-800 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide">Pendente</span>;
         case 'CANCELLED': return <span className="inline-flex items-center bg-red-100 text-red-700 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide">Cancelado</span>;
-        case 'REFUNDED':  return <span className="inline-flex items-center bg-blue-100 text-blue-800 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide">Estornado</span>;
+        case 'REFUNDED':  return <span className="inline-flex items-center bg-primary/20 text-primary px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide">Estornado</span>;
         default:          return <span className="inline-flex items-center bg-neutral-100 text-neutral-700 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide">{status}</span>;
     }
 };
@@ -102,7 +102,7 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
 const MethodBadge: React.FC<{ method?: string | null }> = ({ method }) => {
     if (!method) return <span className="text-neutral-400 text-[11px]">—</span>;
     if (method === 'PIX')  return <span className="inline-flex items-center bg-teal-100 text-teal-800 px-2 py-0.5 rounded text-[10px] font-bold tracking-wider">PIX</span>;
-    if (method === 'CARD') return <span className="inline-flex items-center bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded text-[10px] font-bold tracking-wider">CARTÃO</span>;
+    if (method === 'CARD') return <span className="inline-flex items-center bg-primary text-primary px-2 py-0.5 rounded text-[10px] font-bold tracking-wider">CARTÃO</span>;
     return <span className="text-neutral-500 text-[10px]">{method}</span>;
 };
 
@@ -115,7 +115,7 @@ const cardStyles: Record<CardColor, { wrap: string; label: string; value: string
     dark:   { wrap: 'bg-neutral-900 border-neutral-900', label: 'text-white/50', value: 'text-white',       sub: 'text-white/40' },
     green:  { wrap: 'bg-green-50 border-green-200', label: 'text-green-700',   value: 'text-green-900',   sub: 'text-green-600' },
     teal:   { wrap: 'bg-teal-50 border-teal-200',   label: 'text-teal-700',    value: 'text-teal-900',    sub: 'text-teal-600' },
-    blue:   { wrap: 'bg-blue-50 border-blue-200',   label: 'text-blue-700',    value: 'text-blue-900',    sub: 'text-blue-600' },
+    blue:   { wrap: 'bg-primary/10 border-primary',   label: 'text-primary-dark',    value: 'text-primary',    sub: 'text-primary-dark' },
     amber:  { wrap: 'bg-amber-50 border-amber-200', label: 'text-amber-700',   value: 'text-amber-900',   sub: 'text-amber-600' },
     red:    { wrap: 'bg-red-50 border-red-200',     label: 'text-red-700',     value: 'text-red-900',     sub: 'text-red-500' },
     orange: { wrap: 'bg-orange-50 border-orange-200', label: 'text-orange-700', value: 'text-orange-900', sub: 'text-orange-600' },
@@ -662,3 +662,5 @@ const AdminAbacatePay: React.FC = () => {
 };
 
 export default AdminAbacatePay;
+
+

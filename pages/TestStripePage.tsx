@@ -7,14 +7,14 @@ const TestStripePage = () => {
     return (
         <div className="min-h-screen bg-neutral-100 flex flex-col items-center justify-center p-4">
             <div className="bg-white p-8 rounded-xl shadow-lg max-w-md w-full text-center">
-                <h1 className="text-2xl font-bold mb-4 text-purple-600">Stripe Integration Test</h1>
+                <h1 className="text-2xl font-bold mb-4 text-primary-dark">Stripe Integration Test</h1>
                 <p className="mb-8 text-gray-600">
                     Click the button below to simulate a payment of <span className="font-bold">R$ 10,00</span>.
                 </p>
 
                 <button
                     onClick={() => setIsOpen(true)}
-                    className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg transition-colors shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                    className="w-full bg-primary-dark hover:bg-primary-dark text-white font-bold py-3 px-6 rounded-lg transition-colors shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
                 >
                     Test Payment Modal
                 </button>
@@ -36,3 +36,5 @@ const TestStripePage = () => {
 };
 
 export default TestStripePage;
+
+

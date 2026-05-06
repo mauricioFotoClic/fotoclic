@@ -1,7 +1,7 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import Header from './components/Header';
 import Footer from './components/Footer';
-import { User, UserRole, Page } from './types';
+import { type User, UserRole, type Page } from './types';
 import api from './services/api';
 import PhotoDetailModal from './components/PhotoDetailModal';
 import LoginModal from './components/LoginModal';
@@ -602,3 +602,4 @@ const App: React.FC = () => {
 };
 
 export default App;
+

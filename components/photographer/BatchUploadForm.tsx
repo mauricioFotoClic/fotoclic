@@ -64,9 +64,9 @@ const BatchUploadForm: React.FC<BatchUploadFormProps> = ({ event, photographerId
 
     return (
         <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="bg-blue-50 p-4 rounded-md border border-blue-100">
-                <h4 className="font-semibold text-blue-800 mb-1">Evento: {event.name}</h4>
-                <p className="text-sm text-blue-600">As fotos serão adicionadas automaticamente a este evento.</p>
+            <div className="bg-primary/10 p-4 rounded-md border border-primary/20">
+                <h4 className="font-semibold text-primary mb-1">Evento: {event.name}</h4>
+                <p className="text-sm text-primary-dark">As fotos serão adicionadas automaticamente a este evento.</p>
             </div>
 
             {isUploading ? (
@@ -104,7 +104,7 @@ const BatchUploadForm: React.FC<BatchUploadFormProps> = ({ event, photographerId
                                     <span className="pl-1">ou arraste e solte</span>
                                 </div>
                                 <p className="text-xs text-neutral-500">JPG, PNG, WebP</p>
-                                <p className="text-xs text-blue-500 p-1 bg-blue-50 mt-1 rounded inline-block">Nota: Fotos &gt; 10MB serão automaticamente reduzidas.</p>
+                                <p className="text-xs text-primary p-1 bg-primary/10 mt-1 rounded inline-block">Nota: Fotos &gt; 10MB serão automaticamente reduzidas.</p>
                             </div>
                         </div>
                         {selectedFiles.length > 0 && (
@@ -182,3 +182,5 @@ const BatchUploadForm: React.FC<BatchUploadFormProps> = ({ event, photographerId
 };
 
 export default BatchUploadForm;
+
+

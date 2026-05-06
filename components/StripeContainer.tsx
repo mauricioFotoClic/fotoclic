@@ -29,7 +29,7 @@ export const StripeContainer: React.FC<StripeContainerProps> = ({ clientSecret, 
         appearance: {
             theme: 'stripe' as const,
             variables: {
-                colorPrimary: '#2563eb',
+                colorPrimary: '#FF6B00',
                 borderRadius: '12px',
             },
         },
@@ -45,3 +45,5 @@ export const StripeContainer: React.FC<StripeContainerProps> = ({ clientSecret, 
         </Elements>
     );
 };
+
+
