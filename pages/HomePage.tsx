@@ -188,7 +188,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
 
       {/* ── Hero ──────────────────────────────────────────────────────────── */}
       <section
-        className="relative h-[60vh] bg-cover bg-center text-white flex items-center justify-center"
+        className="relative min-h-[70vh] md:h-[60vh] pt-20 md:pt-0 bg-cover bg-center text-white flex items-center justify-center"
         style={{ backgroundImage: "url('https://images.unsplash.com/photo-1461896836934-ffe607ba8211?q=80&w=1920&auto=format&fit=crop')" }}
       >
         <div className="absolute inset-0 bg-neutral-900/60 backdrop-blur-[2px]" />
