@@ -254,32 +254,32 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
       {/* ── Features ──────────────────────────────────────────────────────── */}
       <section className="py-8 bg-neutral-900 text-white">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="flex items-center gap-4 justify-center">
-               <div className="p-3 bg-primary/10 rounded-xl text-primary">
-                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          <div className="grid grid-cols-3 md:grid-cols-3 gap-2 md:gap-8">
+            <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-center sm:text-left justify-center">
+               <div className="p-2 sm:p-3 bg-primary/10 rounded-xl text-primary flex-shrink-0">
+                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                </div>
                <div>
-                 <p className="font-bold text-sm">Fotos profissionais</p>
-                 <p className="text-xs text-neutral-400">de alta qualidade</p>
+                 <p className="font-bold text-[10px] sm:text-sm leading-tight">Fotos profissionais</p>
+                 <p className="hidden sm:block text-xs text-neutral-400">de alta qualidade</p>
                </div>
             </div>
-            <div className="flex items-center gap-4 justify-center">
-               <div className="p-3 bg-primary/10 rounded-xl text-primary">
-                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>
+            <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-center sm:text-left justify-center">
+               <div className="p-2 sm:p-3 bg-primary/10 rounded-xl text-primary flex-shrink-0">
+                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>
                </div>
                <div>
-                 <p className="font-bold text-sm">Encontre-se nas fotos</p>
-                 <p className="text-xs text-neutral-400">dos eventos</p>
+                 <p className="font-bold text-[10px] sm:text-sm leading-tight">Encontre-se nas fotos</p>
+                 <p className="hidden sm:block text-xs text-neutral-400">dos eventos</p>
                </div>
             </div>
-            <div className="flex items-center gap-4 justify-center">
-               <div className="p-3 bg-primary/10 rounded-xl text-primary">
-                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+            <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-center sm:text-left justify-center">
+               <div className="p-2 sm:p-3 bg-primary/10 rounded-xl text-primary flex-shrink-0">
+                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
                </div>
                <div>
-                 <p className="font-bold text-sm">Compra segura e</p>
-                 <p className="text-xs text-neutral-400">entrega imediata</p>
+                 <p className="font-bold text-[10px] sm:text-sm leading-tight">Compra segura e entrega</p>
+                 <p className="hidden sm:block text-xs text-neutral-400">imediata</p>
                </div>
             </div>
           </div>
