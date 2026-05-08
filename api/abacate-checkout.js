@@ -27,33 +27,55 @@ export default async function handler(req, res) {
         const siteUrl = (process.env.VITE_SITE_URL || 'http://localhost:3000').replace(/\/$/, '');
         console.log('[AbacatePay] siteUrl normalizada:', siteUrl);
 
+        // Na API v2 do Abacate Pay, precisamos criar os produtos antes do checkout
+        const itemsV2 = await Promise.all(items.map(async (item) => {
+            const prodRes = await fetch('https://api.abacatepay.com/v2/products/create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({
+                    externalId: String(item.id || Date.now()),
+                    name: String(item.title || 'Foto FotoClic'),
+                    description: 'Foto digital',
+                    price: Math.round(Number(item.price)),
+                    currency: "BRL"
+                })
+            });
+            const prodData = await prodRes.json();
+            if (!prodData.success) {
+                console.error('[AbacatePay] Erro ao criar produto v2:', prodData.error);
+                throw new Error('Falha ao registrar produto na API v2.');
+            }
+            return {
+                id: prodData.data.id,
+                quantity: 1
+            };
+        }));
+
         const body = {
             frequency: "ONE_TIME",
             methods: ["PIX", "CARD"],
-            products: items.map(item => ({
-                externalId: String(item.id || Date.now()),
-                name: String(item.title || 'Foto FotoClic'),
-                price: Number(item.price), // Campo correto da API (em centavos)
-                quantity: Number(1)
-            })),
+            items: itemsV2,
             customer: {
                 name: String(customer.name).substring(0, 100),
                 email: String(customer.email),
                 taxId: String(customer.taxId).replace(/\D/g, ''), 
-                cellphone: "11999999999" // Campo obrigatório exigido pela API
+                cellphone: "11999999999"
             },
             returnUrl: siteUrl + '/checkout-success',
             completionUrl: siteUrl + '/sales',
             metadata: {
-                cartIds: items.map(i => i.id), // Array de IDs para o Webhook liberar
-                userId: customer.id || 'guest-id', // ID do usuário para registrar a venda
+                cartIds: items.map(i => i.id),
+                userId: customer.id || 'guest-id',
                 customerName: String(customer.name).substring(0, 50)
             }
         };
 
-        console.log('[AbacatePay] Iniciando criação de cobrança...', body);
+        console.log('[AbacatePay] Iniciando criação de cobrança V2...', body);
 
-        const response = await fetch('https://api.abacatepay.com/v1/billing/create', {
+        const response = await fetch('https://api.abacatepay.com/v2/checkouts/create', {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${apiKey}`,
