@@ -33,7 +33,7 @@ export default async function handler(req, res) {
             products: items.map(item => ({
                 externalId: String(item.id || Date.now()),
                 name: String(item.title || 'Foto FotoClic'),
-                unitPrice: Number(item.price), 
+                price: Number(item.price), // Campo correto da API (em centavos)
                 quantity: Number(1)
             })),
             customer: {
