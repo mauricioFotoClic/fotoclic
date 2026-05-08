@@ -2,7 +2,7 @@
 import React from 'react';
 import Logo from '../Logo';
 
-type AdminView = 'dashboard' | 'photos' | 'photographers' | 'customers' | 'categories' | 'sales' | 'payouts' | 'settings' | 'storage-requests' | 'rekognition' | 'stripe' | 'abacate';
+type AdminView = 'dashboard' | 'photos' | 'photographers' | 'customers' | 'categories' | 'sales' | 'payouts' | 'settings' | 'storage-requests' | 'rekognition' | 'abacate';
 
 interface AdminSidebarProps {
     activeView: AdminView;
@@ -108,7 +108,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeView, setView, notifi
                         icon={<CreditCardIcon />}
                         notificationCount={notificationCounts?.payouts}
                     />
-                    <NavLink label="Stripe" isActive={activeView === 'stripe'} onClick={() => nav('stripe')} icon={<CreditCardIcon />} />
+
                     <NavLink label="Abacate Pay" isActive={activeView === 'abacate'} onClick={() => nav('abacate')} icon={<CreditCardIcon />} />
                     <NavLink label="Rekognition" isActive={activeView === 'rekognition'} onClick={() => nav('rekognition')} icon={<ScanFaceIcon />} />
                     <div className="pt-2 my-2 border-t"></div>

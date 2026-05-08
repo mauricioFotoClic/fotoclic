@@ -11,12 +11,12 @@ import AdminPayouts from '../components/admin/AdminPayouts';
 import AdminSettings from '../components/admin/AdminSettings';
 import AdminStorageRequests from '../components/admin/AdminStorageRequests';
 import AdminRekognitionStats from '../components/admin/AdminRekognitionStats';
-import AdminStripe from '../components/admin/AdminStripe';
+
 import AdminAbacatePay from '../components/admin/AdminAbacatePay';
 import { Page } from '../types';
 import api from '../services/api';
 
-type AdminView = 'dashboard' | 'photos' | 'photographers' | 'customers' | 'categories' | 'sales' | 'payouts' | 'settings' | 'storage-requests' | 'rekognition' | 'stripe' | 'abacate';
+type AdminView = 'dashboard' | 'photos' | 'photographers' | 'customers' | 'categories' | 'sales' | 'payouts' | 'settings' | 'storage-requests' | 'rekognition' | 'abacate';
 
 const KeepAliveView = React.memo(
     ({ active, children, index = 0 }: { active: boolean; children: React.ReactNode; index?: number }) => {
@@ -95,9 +95,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ onNavigate }) => {
                 <KeepAliveView active={view === 'rekognition'} index={9}>
                     <AdminRekognitionStats />
                 </KeepAliveView>
-                <KeepAliveView active={view === 'stripe'} index={10}>
-                    <AdminStripe />
-                </KeepAliveView>
+
                 <KeepAliveView active={view === 'abacate'} index={11}>
                     <AdminAbacatePay />
                 </KeepAliveView>

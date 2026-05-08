@@ -2372,11 +2372,7 @@ export const api = {
        return [];
     }
   },
-  async getStripeStats() {
-    const response = await fetch(`${API_URL}/stripe-stats`);
-    if (!response.ok) throw new Error('Failed to fetch stripe stats');
-    return response.json();
-  },
+
 
   async createAbacateCheckout(items: any[], customer: any, metadata?: any) {
     const response = await fetch(`${API_URL}/abacate-checkout`, {
@@ -2389,16 +2385,7 @@ export const api = {
     return data;
   },
 
-  async refundStripeCharge(chargeId: string, amount?: number) {
-    const response = await fetch(`${API_URL}/stripe-refund`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chargeId, amount }),
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || 'Failed to process refund');
-    return data;
-  }
+
 };
 
 export default api;

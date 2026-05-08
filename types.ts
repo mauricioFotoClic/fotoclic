@@ -246,7 +246,7 @@ export type PageRoute =
   { name: 'cart' } |
   { name: 'checkout' } |
   { name: 'checkout-success' } |
-  { name: 'test-stripe' } |
+
   { name: 'face-search' } |
   { name: 'reset-password', token?: string };
 

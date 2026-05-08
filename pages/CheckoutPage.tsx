@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Photo, User, Page, Coupon, BulkDiscountRule } from '../types';
 import api from '../services/api';
 import Spinner from '../components/Spinner';
-import { StripeContainer } from '../components/StripeContainer';
+
 
 interface CheckoutPageProps {
     cartItemIds: string[];
@@ -21,7 +21,7 @@ interface CartGrouping {
 const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, onPurchaseComplete, onNavigate }) => {
     const [photos, setPhotos] = useState<Photo[]>([]);
     const [loading, setLoading] = useState(true);
-    const [clientSecret, setClientSecret] = useState('');
+
     const [groupedCart, setGroupedCart] = useState<CartGrouping[]>([]);
     const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
@@ -131,17 +131,7 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
 
     const [paymentError, setPaymentError] = useState<string | null>(null);
 
-    // Create Payment Intent when Total is ready and Loading is finished
-    // NOTE: amount is NOT sent to the server — the backend fetches real prices from the
-    // database to prevent client-side price manipulation.
-    /* 
-    // Stripe Payment Intent (Stand-by)
-    useEffect(() => {
-        if (!loading && total > 0 && currentUser && !clientSecret) {
-            // Chamada do Stripe desativada temporariamente
-        }
-    }, [loading, total, currentUser, cartItemIds, clientSecret, appliedCoupon]);
-    */
+
 
     const handleSuccess = async () => {
         try {
@@ -180,7 +170,7 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
         } catch (error) {
             console.error("Purchase recording failed", error);
             const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
-            alert(`Pagamento processado no Stripe, mas houve erro ao salvar no banco: ${errorMessage}. Entre em contato com o suporte.`);
+            alert(`Houve um erro ao salvar a compra no banco: ${errorMessage}. Por favor, entre em contato com o suporte.`);
         }
     };
 

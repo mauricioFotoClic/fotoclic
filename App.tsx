@@ -39,7 +39,7 @@ const CustomerDashboardPage = React.lazy(() => import('./pages/CustomerDashboard
 const CheckoutPage = React.lazy(() => import('./pages/CheckoutPage'));
 const CheckoutSuccessPage = React.lazy(() => import('./pages/CheckoutSuccessPage'));
 const HelpCenterPage = React.lazy(() => import('./pages/HelpCenterPage'));
-const TestStripePage = React.lazy(() => import('./pages/TestStripePage'));
+
 
 interface FlyingImage {
     src: string;
@@ -150,7 +150,7 @@ const MainApp: React.FC = () => {
             case 'cart': return '/carrinho';
             case 'checkout': return '/checkout';
             case 'checkout-success': return '/checkout-success';
-            case 'test-stripe': return '/test-stripe';
+
             // case 'face-search': return '/busca-facial'; // Modal usually
             case 'reset-password': return page.token ? `/reset-password?token=${page.token}` : '/reset-password';
             default: return '/';
@@ -180,7 +180,7 @@ const MainApp: React.FC = () => {
         if (pathname === '/carrinho') return { name: 'cart' };
         if (pathname === '/checkout') return { name: 'checkout' };
         if (pathname === '/checkout-success') return { name: 'checkout-success' };
-        if (pathname === '/test-stripe') return { name: 'test-stripe' };
+
         if (pathname === '/reset-password') return { name: 'reset-password', token: searchParams.get('token') || undefined };
 
         // Dynamic routes
@@ -510,8 +510,7 @@ const MainApp: React.FC = () => {
                 return <CheckoutPage cartItemIds={cartItems} currentUser={currentUser} onPurchaseComplete={handlePurchaseComplete} onNavigate={handleNavigate} />;
             case 'checkout-success':
                 return <CheckoutSuccessPage onNavigate={handleNavigate} />;
-            case 'test-stripe':
-                return <TestStripePage />;
+
             case 'reset-password':
                 return <ResetPasswordPage token={currentPage.token} onNavigate={handleNavigate} />;
             default:
