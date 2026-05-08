@@ -45,7 +45,8 @@ export default async function handler(req, res) {
             returnUrl: siteUrl + '/checkout-success',
             completionUrl: siteUrl + '/sales',
             metadata: {
-                cartId: String(Date.now()),
+                cartIds: items.map(i => i.id), // Array de IDs para o Webhook liberar
+                userId: customer.id || 'guest-id', // ID do usuário para registrar a venda
                 customerName: String(customer.name).substring(0, 50)
             }
         };
