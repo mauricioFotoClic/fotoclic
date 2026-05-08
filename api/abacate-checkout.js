@@ -15,28 +15,39 @@ export default async function handler(req, res) {
     }
 
     try {
+        console.log('[AbacatePay] Corpo da requisição recebido:', JSON.stringify(req.body, null, 2));
         const { items, customer, metadata } = req.body;
+
+        if (!items || !customer) {
+            console.error('[AbacatePay] Erro: items ou customer ausentes no corpo da requisição.');
+            return res.status(400).json({ error: 'Dados do checkout (items/customer) são obrigatórios.' });
+        }
 
         // Normalizar a URL do site (remover barra final se existir para evitar barras duplas)
         const siteUrl = (process.env.VITE_SITE_URL || 'http://localhost:3000').replace(/\/$/, '');
+        console.log('[AbacatePay] siteUrl normalizada:', siteUrl);
 
         const body = {
             frequency: "ONE_TIME",
             methods: ["PIX", "CARD"],
             products: items.map(item => ({
-                externalId: item.id || 'photo-id',
-                name: item.title || item.name,
-                unitPrice: Math.round(item.price), // Converte de Reais para Centavos
-                quantity: item.quantity || 1,
-                description: item.description || ''
+                externalId: String(item.id || Date.now()),
+                name: String(item.title || 'Foto FotoClic'),
+                unitPrice: Number(item.price), 
+                quantity: Number(1)
             })),
             customer: {
-                name: customer.name || 'Cliente FotoClic',
-                email: customer.email,
-                taxId: customer.taxId || '12345678909', // CPF de teste se estiver vazio
+                name: String(customer.name).substring(0, 100),
+                email: String(customer.email),
+                taxId: String(customer.taxId).replace(/\D/g, ''), 
+                cellphone: "11999999999" // Campo obrigatório exigido pela API
             },
-            returnUrl: `${siteUrl}/checkout-success`,
-            completionUrl: `${siteUrl}/sales`,
+            returnUrl: siteUrl + '/checkout-success',
+            completionUrl: siteUrl + '/sales',
+            metadata: {
+                cartId: String(Date.now()),
+                customerName: String(customer.name).substring(0, 50)
+            }
         };
 
         console.log('[AbacatePay] Iniciando criação de cobrança...', body);
@@ -65,9 +76,10 @@ export default async function handler(req, res) {
 
         if (!response.ok) {
             console.error('[AbacatePay] Erro detalhado da API:', JSON.stringify(result, null, 2));
+            const errorMessage = result.error || result.message || (result.errors && result.errors[0]?.message);
             return res.status(response.status).json({ 
                 error: 'Erro no gateway de pagamento',
-                details: result.errors || result.message || null
+                details: errorMessage || result
             });
         }
 
