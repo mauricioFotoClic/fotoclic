@@ -17,8 +17,9 @@ export default async function handler(req, res) {
     try {
         const { items, customer, metadata } = req.body;
 
-        // Abacate Pay exige dados básicos do cliente para cobranças
-        // Items format: [{ title, price, quantity }] - price in CENTS
+        // Normalizar a URL do site (remover barra final se existir para evitar barras duplas)
+        const siteUrl = (process.env.VITE_SITE_URL || 'http://localhost:3000').replace(/\/$/, '');
+
         const body = {
             frequency: "ONE_TIME",
             methods: ["PIX", "CARD"],
@@ -34,8 +35,8 @@ export default async function handler(req, res) {
                 email: customer.email,
                 taxId: customer.taxId || '12345678909', // CPF de teste se estiver vazio
             },
-            returnUrl: `${process.env.VITE_SITE_URL || 'http://localhost:3000'}/checkout-success`,
-            completionUrl: `${process.env.VITE_SITE_URL || 'http://localhost:3000'}/sales`,
+            returnUrl: `${siteUrl}/checkout-success`,
+            completionUrl: `${siteUrl}/sales`,
         };
 
         console.log('[AbacatePay] Iniciando criação de cobrança...', body);
