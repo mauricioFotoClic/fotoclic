@@ -1,10 +1,20 @@
 
 import React from 'react';
 
-const Spinner: React.FC = () => {
+interface SpinnerProps {
+  size?: 'sm' | 'md' | 'lg';
+}
+
+const Spinner: React.FC<SpinnerProps> = ({ size = 'md' }) => {
+  const sizeClasses = {
+    sm: 'w-5 h-5 border-2',
+    md: 'w-8 h-8 border-3',
+    lg: 'w-12 h-12 border-4',
+  };
+
   return (
-    <div className="flex justify-center items-center p-8">
-      <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+    <div className={`flex justify-center items-center ${size === 'sm' ? 'p-0' : 'p-4'}`}>
+      <div className={`${sizeClasses[size]} border-primary border-t-transparent rounded-full animate-spin`}></div>
     </div>
   );
 };

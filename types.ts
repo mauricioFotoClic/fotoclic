@@ -46,6 +46,9 @@ export interface PhotographerWithStats extends User {
   avgRating: number; // 0-5
   reviewCount: number;
   approvalPercentage: number; // 0-100
+  approvedCount: number;
+  rejectedCount: number;
+  pendingCount: number;
 }
 
 export interface Category {

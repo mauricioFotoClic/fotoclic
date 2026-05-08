@@ -506,6 +506,9 @@ export const api = {
           avgRating: 0,
           reviewCount: 0,
           approvalPercentage: 0,
+          approvedCount: 0,
+          rejectedCount: 0,
+          pendingCount: 0,
         };
       }
 
@@ -559,9 +562,12 @@ export const api = {
         totalPaid,
         currentBalance,
         likesCount: totalLikes,
-        avgRating: 0, // Not fetching for balance currently
-        reviewCount: 0, // Not fetching for balance currently
-        approvalPercentage: 0, // Not fetching for balance currently
+        avgRating: 0,
+        reviewCount: 0,
+        approvalPercentage: 0,
+        approvedCount: 0,
+        rejectedCount: 0,
+        pendingCount: 0,
       };
     } catch (error) {
       console.error(
@@ -1206,6 +1212,9 @@ export const api = {
         avgRating,
         reviewCount,
         approvalPercentage,
+        approvedCount: 0,
+        rejectedCount: 0,
+        pendingCount: 0,
       };
     });
   },

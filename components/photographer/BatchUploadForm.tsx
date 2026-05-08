@@ -70,6 +70,7 @@ const BatchUploadForm: React.FC<BatchUploadFormProps> = ({ event, photographerId
             </div>
 
             {isUploading ? (
+                <div className="py-8 text-center space-y-4">
                     <div className="flex justify-between text-xs font-semibold px-1">
                         <span className="text-green-600">{uploadProgress.successes} Sucessos</span>
                         <span className="text-red-500">{uploadProgress.failures} Falhas</span>
