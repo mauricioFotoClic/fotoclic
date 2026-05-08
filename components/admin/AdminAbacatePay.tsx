@@ -518,7 +518,12 @@ const AdminAbacatePay: React.FC = () => {
                                         <p className="text-[11px] text-neutral-400">{b.customer_email || '—'}</p>
                                     </td>
                                     <td className="px-5 py-4">
-                                        <MethodBadge method={b.payment_method} />
+                                        <div className="flex flex-col">
+                                            <MethodBadge method={b.payment_method} />
+                                            {!b.payment_method && b.status === 'PENDING' && (
+                                                <span className="text-[10px] text-neutral-400 italic">Aguardando escolha...</span>
+                                            )}
+                                        </div>
                                     </td>
                                     <td className="px-5 py-4">
                                         <p className="text-sm font-bold text-neutral-900">{formatBRL(b.amount)}</p>
@@ -528,15 +533,14 @@ const AdminAbacatePay: React.FC = () => {
                                     </td>
                                     <td className="px-5 py-4">
                                         <div className="flex items-center justify-end gap-2">
-                                            {b.checkout_url && (
+                                            {b.checkout_url && b.status === 'PENDING' && (
                                                 <a
                                                     href={b.checkout_url}
                                                     target="_blank"
                                                     rel="noreferrer"
-                                                    title="Ver link de checkout"
-                                                    className="p-1.5 text-neutral-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                                                    className="text-[10px] font-bold text-primary hover:text-white hover:bg-primary border border-primary/30 px-2.5 py-1.5 rounded-lg transition-all whitespace-nowrap flex items-center gap-1"
                                                 >
-                                                    <ExternalLinkIcon />
+                                                    <ExternalLinkIcon /> Link de Pagamento
                                                 </a>
                                             )}
                                             {b.status.toUpperCase() === 'PAID' && (
@@ -546,9 +550,6 @@ const AdminAbacatePay: React.FC = () => {
                                                 >
                                                     Estornar
                                                 </button>
-                                            )}
-                                            {b.status.toUpperCase() === 'REFUNDED' && (
-                                                <span className="text-[10px] text-neutral-400 italic">Estornado</span>
                                             )}
                                         </div>
                                     </td>
