@@ -8,7 +8,7 @@ interface BatchUploadFormProps {
     onSubmit: (
         files: File[],
         metadata: { price: number, tags: string[], is_public: boolean },
-        onProgress: (current: number, total: number) => void
+        onProgress: (stats: { current: number, total: number, successes: number, failures: number }) => void
     ) => Promise<void>;
     onCancel: () => void;
 }
@@ -19,7 +19,7 @@ const BatchUploadForm: React.FC<BatchUploadFormProps> = ({ event, photographerId
     const [tags, setTags] = useState<string>('');
     const [isPublic, setIsPublic] = useState(true);
     const [isUploading, setIsUploading] = useState(false);
-    const [uploadProgress, setUploadProgress] = useState<{ current: number, total: number }>({ current: 0, total: 0 });
+    const [uploadProgress, setUploadProgress] = useState<{ current: number, total: number, successes: number, failures: number }>({ current: 0, total: 0, successes: 0, failures: 0 });
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
@@ -49,8 +49,8 @@ const BatchUploadForm: React.FC<BatchUploadFormProps> = ({ event, photographerId
                 price: numPrice,
                 tags: tags.split(',').map(t => t.trim()).filter(t => t),
                 is_public: isPublic,
-            }, (current, total) => {
-                setUploadProgress({ current, total });
+            }, (stats) => {
+                setUploadProgress(stats);
             });
         } catch (error) {
             console.error("Upload error:", error);
@@ -70,17 +70,25 @@ const BatchUploadForm: React.FC<BatchUploadFormProps> = ({ event, photographerId
             </div>
 
             {isUploading ? (
-                <div className="py-8 text-center space-y-4">
+                    <div className="flex justify-between text-xs font-semibold px-1">
+                        <span className="text-green-600">{uploadProgress.successes} Sucessos</span>
+                        <span className="text-red-500">{uploadProgress.failures} Falhas</span>
+                    </div>
                     <div className="w-full bg-neutral-200 rounded-full h-4 overflow-hidden">
                         <div
-                            className="bg-primary h-4 rounded-full transition-all duration-300 ease-out"
+                            className={`h-4 rounded-full transition-all duration-300 ease-out ${uploadProgress.failures > 0 ? 'bg-amber-500' : 'bg-green-500'}`}
                             style={{ width: `${(uploadProgress.current / Math.max(uploadProgress.total, 1)) * 100}%` }}
                         ></div>
                     </div>
                     <p className="text-neutral-600 font-medium">
-                        Enviando foto {uploadProgress.current} de {uploadProgress.total}...
+                        Processando foto {uploadProgress.current} de {uploadProgress.total}...
                     </p>
-                    <p className="text-sm text-neutral-400">Por favor, não feche esta janela.</p>
+                    {uploadProgress.failures > 0 && (
+                        <p className="text-xs text-red-500 bg-red-50 p-2 rounded border border-red-100">
+                            Algumas fotos falharam. Verifique sua conexão ou se atingiu o limite de fotos.
+                        </p>
+                    )}
+                    <p className="text-sm text-neutral-400">Por favor, não feche esta janela ou mude de página.</p>
                 </div>
             ) : (
                 <>

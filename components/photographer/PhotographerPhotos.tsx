@@ -210,86 +210,75 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
     ) => {
         if (!selectedEvent) return;
 
-        // Don't close modal here, let it show progress
-        // setIsBatchUploadModalOpen(false); 
-
         let successCount = 0;
         let failCount = 0;
+        let processedCount = 0;
 
         showToast(`Iniciando envio de ${files.length} fotos...`, "info");
 
-        for (let i = 0; i < files.length; i++) {
-            const file = files[i];
+        // Helper to convert base64 to Blob
+        const base64ToBlob = async (b64Data: string) => {
+            const res = await fetch(b64Data);
+            return await res.blob();
+        };
 
-            // Report progress
-            if (onProgress) onProgress(i + 1, files.length);
-
-            // 1. Validation: File Size (Max 50MB, will be compressed to 10MB)
+        const uploadSingleFile = async (file: File, index: number) => {
+            // 1. Validation: File Size (Max 50MB)
             const MAX_SIZE_MB = 50;
             if (file.size > MAX_SIZE_MB * 1024 * 1024) {
                 console.error(`File ${file.name} is too large (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
                 failCount++;
-                continue; // Skip this file
+                processedCount++;
+                if (onProgress) onProgress(processedCount, files.length);
+                return;
             }
 
-            // 2. Validation: File Type (Allow JPG, WebP, PNG)
+            // 2. Validation: File Type
             const validTypes = ['image/jpeg', 'image/jpg', 'image/webp', 'image/png'];
             if (!validTypes.includes(file.type)) {
                 console.error(`File ${file.name} has invalid type: ${file.type}`);
                 failCount++;
-                continue;
+                processedCount++;
+                if (onProgress) onProgress(processedCount, files.length);
+                return;
             }
 
             try {
                 // 3. Process Image (Original, Preview, Thumb)
-                // Note: processImageForUpload returns base64 strings.
-                // We need to convert them back to Blobs for Storage upload.
                 const processed = await processImageForUpload(file);
 
-                // Helper to convert base64 to Blob
-                const base64ToBlob = async (b64Data: string) => {
-                    const res = await fetch(b64Data);
-                    return await res.blob();
-                };
+                // Convert base64 back to Blobs in parallel
+                const [originalBlob, previewBlob, thumbBlob] = await Promise.all([
+                    base64ToBlob(processed.original),
+                    base64ToBlob(processed.preview),
+                    base64ToBlob(processed.thumb)
+                ]);
 
-                const originalBlob = await base64ToBlob(processed.original);
-                const previewBlob = await base64ToBlob(processed.preview);
-                const thumbBlob = await base64ToBlob(processed.thumb);
-
-                // 4. Upload to Storage
+                // 4. Upload to Storage in parallel
                 const fileExt = file.name.split('.').pop();
                 const fileName = `${self.crypto.randomUUID()}`; // Base name
                 const filePath = `${user.id}/${selectedEvent.id}/${fileName}`;
 
-                // Upload Original (Private Bucket)
-                const { data: origData, error: origError } = await api.supabase.storage
-                    .from('photos-original')
-                    .upload(`${filePath}-original.${fileExt}`, originalBlob);
+                const [origRes, prevRes, thumbRes] = await Promise.all([
+                    api.supabase.storage.from('photos-original').upload(`${filePath}-original.${fileExt}`, originalBlob),
+                    api.supabase.storage.from('photos-preview').upload(`${filePath}-preview.webp`, previewBlob),
+                    api.supabase.storage.from('photos-preview').upload(`${filePath}-thumb.webp`, thumbBlob)
+                ]);
 
-                if (origError) throw origError;
+                if (origRes.error) throw origRes.error;
+                if (prevRes.error) throw prevRes.error;
+                if (thumbRes.error) throw thumbRes.error;
 
-                // Upload Preview (Public Bucket)
-                const { data: prevData, error: prevError } = await api.supabase.storage
-                    .from('photos-preview')
-                    .upload(`${filePath}-preview.webp`, previewBlob); // Preview is always webp
-
-                if (prevError) throw prevError;
-
-                // Upload Thumb (Public Bucket)
-                const { data: thumbData, error: thumbError } = await api.supabase.storage
-                    .from('photos-preview')
-                    .upload(`${filePath}-thumb.webp`, thumbBlob); // Thumb is always webp
-
-                if (thumbError) throw thumbError;
-
-                // Get Public URLs for Preview and Thumb
+                // Get Public URLs
                 const { data: prevUrlData } = api.supabase.storage.from('photos-preview').getPublicUrl(`${filePath}-preview.webp`);
                 const { data: thumbUrlData } = api.supabase.storage.from('photos-preview').getPublicUrl(`${filePath}-thumb.webp`);
 
                 // 5. Save Metadata to DB
-                const existingCount = photos.filter(p => p.event_id === selectedEvent.id).length;
-                const sequenceNum = existingCount + files.indexOf(file) + 1;
+                // Note: existingCount calculation might be slightly off due to concurrency, but sequence logic was already race-prone
+                // We'll use the index passed to ensure uniqueness in sequence for this batch
+                const sequenceNum = photos.filter(p => p.event_id === selectedEvent.id).length + index + 1;
                 const sequence = sequenceNum.toString().padStart(2, '0');
+
                 const newPhoto = await api.createPhoto({
                     photographer_id: user.id,
                     category_id: selectedEvent.category_id,
@@ -297,7 +286,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                     description: `Foto do evento ${selectedEvent.name}`,
                     price: metadata.price,
                     preview_url: prevUrlData.publicUrl,
-                    file_url: `${filePath}-original.${fileExt}`, // Store relative path for private access
+                    file_url: `${filePath}-original.${fileExt}`,
                     thumb_url: thumbUrlData.publicUrl,
                     resolution: '4K',
                     width: processed.width,
@@ -308,39 +297,57 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                     event_id: selectedEvent.id
                 });
 
-                // ... (Indexing logic stays same) ...
-
                 if (newPhoto) {
-                    // AUTOMATIC INDEXING:
-                    try {
-                        if ((user as any).face_indexing_enabled !== false) {
-                            await faceRecognitionService.indexPhoto(newPhoto.id, newPhoto.preview_url);
-                        }
-                    } catch (idxError: any) {
-                        // Check if it's a "no face found" error which is expected for some photos
-                        if (idxError.message && idxError.message.includes("Nenhum rosto")) {
-                            console.warn(`Aviso: Indexação facial pulada para foto ${newPhoto.id} (Nenhum rosto detectado).`);
-                        } else {
-                            console.warn("Falha na indexação facial (não impede o upload):", idxError);
-                        }
+                    // 6. Automatic Indexing (don't block the upload for this)
+                    if ((user as any).face_indexing_enabled !== false) {
+                        faceRecognitionService.indexPhoto(newPhoto.id, newPhoto.preview_url)
+                            .catch(err => console.warn("Face indexing failed:", err));
                     }
-
                     successCount++;
                 }
 
             } catch (err: any) {
                 console.error(`Upload error for ${file.name}:`, err);
                 failCount++;
+            } finally {
+                processedCount++;
+                if (onProgress) onProgress({ 
+                    current: processedCount, 
+                    total: files.length, 
+                    successes: successCount, 
+                    failures: failCount 
+                });
             }
+        };
 
-            // ... (Progress update call if I had passed one, but loop handles batch) ...
-        } // End Loop
+        // Execution with concurrency limit (e.g., 3 files at a time)
+        const CONCURRENCY = 3;
+        const fileEntries = Array.from(files.entries());
+        const executeTasks = async () => {
+            const workers = [];
+            const queue = [...fileEntries];
+            
+            for (let i = 0; i < Math.min(CONCURRENCY, files.length); i++) {
+                workers.push((async () => {
+                    while (queue.length > 0) {
+                        const task = queue.shift();
+                        if (task) {
+                            const [index, file] = task;
+                            await uploadSingleFile(file, index);
+                        }
+                    }
+                })());
+            }
+            await Promise.all(workers);
+        };
+
+        await executeTasks();
 
         setIsBatchUploadModalOpen(false);
 
         if (failCount > 0) {
             if (successCount === 0) {
-                showToast(`Falha no envio. Verifique permissões e conexão.`, "error");
+                showToast(`Falha no envio de todas as fotos.`, "error");
             } else {
                 showToast(`Envio parcial: ${successCount} sucessos, ${failCount} falhas.`, "info");
             }
@@ -785,7 +792,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
             </Modal>
 
             {/* Batch Upload Modal */}
-            <Modal isOpen={isBatchUploadModalOpen} onClose={() => setIsBatchUploadModalOpen(false)} title="Adicionar Fotos em Lote" size="lg">
+            <Modal isOpen={isBatchUploadModalOpen} onClose={() => setIsBatchUploadModalOpen(false)} title="Adicionar Fotos em Lote" size="lg" closeOnOverlayClick={false}>
                 {selectedEvent && (
                     <BatchUploadForm
                         event={selectedEvent}

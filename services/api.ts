@@ -370,8 +370,13 @@ export const api = {
     // We need to parse/check it.
     // Note: Supabase RPC returns the JSONB directly as data.
 
+    if (error) {
+      console.error("Supabase RPC Error (upload_photo):", error);
+      throw new Error(error.message || "Erro de comunicação com o servidor de fotos.");
+    }
+
     if (!result || !result.success) {
-      throw new Error(result?.error || "Erro desconhecido ao enviar foto.");
+      throw new Error(result?.error || "O servidor recusou o envio da foto.");
     }
 
     // Map the returned data (which is the raw photo row) to our Photo type
