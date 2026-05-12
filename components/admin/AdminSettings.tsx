@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { CommissionSettings, User, EmailTemplates, EmailTemplate } from '../../types';
 import api from '../../services/api';
 import Spinner from '../Spinner';
@@ -49,6 +49,10 @@ const AdminSettings: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
+
 
     const fetchData = useCallback(async () => {
         try {
@@ -120,6 +124,35 @@ const AdminSettings: React.FC = () => {
         }
     };
 
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setSearchTerm(e.target.value);
+        setCurrentPage(1);
+    };
+
+    const filteredPhotographers = useMemo(() => {
+        return photographers.filter(p =>
+            p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            p.email.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+    }, [photographers, searchTerm]);
+
+    const totalPages = Math.ceil(filteredPhotographers.length / itemsPerPage);
+    const paginatedPhotographers = useMemo(() => {
+        return filteredPhotographers.slice(
+            (currentPage - 1) * itemsPerPage,
+            currentPage * itemsPerPage
+        );
+    }, [filteredPhotographers, currentPage]);
+
+    const goToNextPage = () => {
+        setCurrentPage((page) => Math.min(page + 1, totalPages));
+    };
+
+    const goToPreviousPage = () => {
+        setCurrentPage((page) => Math.max(page - 1, 1));
+    };
+
+
     if (loading) return <Spinner />;
     if (!commissionSettings || !emailTemplates) return <p>Não foi possível carregar as configurações.</p>;
 
@@ -160,8 +193,22 @@ const AdminSettings: React.FC = () => {
                     <p className="text-sm text-neutral-600 mb-4">
                         Defina uma comissão diferente para fotógrafos específicos. Deixe em branco para usar a taxa padrão.
                     </p>
+                    <div className="mb-4">
+                        <div className="relative">
+                            <input
+                                type="text"
+                                placeholder="Buscar fotógrafo por nome ou email..."
+                                value={searchTerm}
+                                onChange={handleSearchChange}
+                                className="w-full pl-10 pr-4 py-2 bg-white border border-neutral-300 rounded-full focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                            />
+                            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                            </div>
+                        </div>
+                    </div>
                     <div className="space-y-4">
-                        {photographers.map(p => (
+                        {paginatedPhotographers.map(p => (
                             <div key={p.id} className="flex items-center justify-between p-3 rounded-md bg-neutral-50 border">
                                 <div className="flex items-center">
                                     <img src={p.avatar_url} alt={p.name} className="w-10 h-10 rounded-full object-cover mr-4" />
@@ -182,7 +229,32 @@ const AdminSettings: React.FC = () => {
                                 </div>
                             </div>
                         ))}
+                        {filteredPhotographers.length === 0 && (
+                            <p className="text-center py-4 text-neutral-500">Nenhum fotógrafo encontrado.</p>
+                        )}
                     </div>
+
+                    {totalPages > 1 && (
+                        <div className="flex justify-between items-center mt-6 pt-4 border-t">
+                            <button
+                                onClick={goToPreviousPage}
+                                disabled={currentPage === 1}
+                                className="px-4 py-2 text-sm font-medium text-neutral-700 bg-white border border-neutral-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-neutral-50 transition-colors"
+                            >
+                                Anterior
+                            </button>
+                            <span className="text-sm text-neutral-500">
+                                Página {currentPage} de {totalPages}
+                            </span>
+                            <button
+                                onClick={goToNextPage}
+                                disabled={currentPage === totalPages}
+                                className="px-4 py-2 text-sm font-medium text-neutral-700 bg-white border border-neutral-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-neutral-50 transition-colors"
+                            >
+                                Próxima
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
 
