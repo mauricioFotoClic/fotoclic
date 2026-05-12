@@ -65,6 +65,7 @@ const mapUser = (dbUser: any): User => {
     bank_info: dbUser.bank_info || undefined,
     liability_waiver_accepted_at: dbUser.liability_waiver_accepted_at,
     phone: dbUser.phone,
+    communication_templates: dbUser.communication_templates || undefined,
   };
 };
 

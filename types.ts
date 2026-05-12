@@ -35,6 +35,13 @@ export interface User {
   bank_info?: BankInfo;
   liability_waiver_accepted_at?: string;
   phone?: string;
+  communication_templates?: {
+    abandoned_cart?: {
+      email_subject?: string;
+      email_body?: string;
+      whatsapp_text?: string;
+    }
+  };
 }
 
 export interface PhotographerWithStats extends User {

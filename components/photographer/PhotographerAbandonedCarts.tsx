@@ -42,10 +42,37 @@ const PhotographerAbandonedCarts: React.FC<PhotographerAbandonedCartsProps> = ({
         fetchCarts();
     }, [user.id]);
 
-    const handleSendEmail = (cart: AbandonedCart) => {
+    const buildMessage = (cart: AbandonedCart, type: 'email_subject' | 'email_body' | 'whatsapp_text') => {
+        const templates = user.communication_templates?.abandoned_cart || {
+            email_subject: "Você esqueceu algo especial no FotoClic!",
+            email_body: "Olá {{nome_cliente}},\n\nNotamos que você deixou algumas fotos incríveis no seu carrinho:\n\n{{lista_fotos}}\n\nElas ainda estão esperando por você. Clique aqui para finalizar sua compra!\n\nAtenciosamente,\n{{nome_fotografo}}",
+            whatsapp_text: "Olá {{nome_cliente}}, aqui é {{nome_fotografo}} da FotoClic! \n\nVi que você deixou algumas fotos no seu carrinho: \n{{lista_fotos}} \n\nElas estão incríveis! Gostaria de alguma ajuda para finalizar sua compra?"
+        };
+
+        let text = templates[type] || "";
+        
+        const rawTotal = cart.items.reduce((acc, item) => acc + item.price, 0);
+        let discountAmount = 0;
+        const rules = user.bulkDiscountRules || [];
+        const sortedRules = [...rules].sort((a, b) => b.minQuantity - a.minQuantity);
+        const appliedRule = sortedRules.find(r => cart.items.length >= r.minQuantity) || null;
+        if (appliedRule) discountAmount = rawTotal * (appliedRule.discountPercent / 100);
+        const totalValue = rawTotal - discountAmount;
+
         const itemsList = cart.items.map(i => `- ${i.title}`).join('\n');
-        const subject = encodeURIComponent("Você esqueceu algo especial no FotoClic!");
-        const body = encodeURIComponent(`Olá ${cart.userName},\n\nNotamos que você deixou algumas fotos incríveis no seu carrinho:\n\n${itemsList}\n\nElas ainda estão esperando por você. Clique aqui para finalizar sua compra!\n\nAtenciosamente,\n${user.name}`);
+        
+        text = text.replace(/{{nome_cliente}}/g, cart.userName);
+        text = text.replace(/{{lista_fotos}}/g, itemsList);
+        text = text.replace(/{{nome_fotografo}}/g, user.name);
+        text = text.replace(/{{valor_total}}/g, `R$ ${totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`);
+        text = text.replace(/{{link_carrinho}}/g, "https://fotoclic.app/cart"); // Optional but good to have
+        
+        return text;
+    };
+
+    const handleSendEmail = (cart: AbandonedCart) => {
+        const subject = encodeURIComponent(buildMessage(cart, 'email_subject'));
+        const body = encodeURIComponent(buildMessage(cart, 'email_body'));
 
         window.open(`mailto:${cart.userEmail}?subject=${subject}&body=${body}`, '_blank');
         setNotification({ message: 'Cliente de e-mail aberto com sucesso!', type: 'info' });
@@ -61,8 +88,7 @@ const PhotographerAbandonedCarts: React.FC<PhotographerAbandonedCartsProps> = ({
         }
 
         const cleanPhone = cart.userPhone.replace(/\D/g, '');
-        const itemsList = cart.items.map(i => `- ${i.title}`).join('%0A');
-        const text = `Olá ${cart.userName}, aqui é ${user.name} da FotoClic! %0A%0AVi que você deixou algumas fotos no seu carrinho: %0A${itemsList} %0A%0AElas estão incríveis! Gostaria de alguma ajuda para finalizar sua compra?`;
+        const text = encodeURIComponent(buildMessage(cart, 'whatsapp_text'));
 
         window.open(`https://wa.me/55${cleanPhone}?text=${text}`, '_blank');
         setNotification({ message: 'WhatsApp aberto com sucesso!', type: 'info' });
@@ -174,7 +200,7 @@ const PhotographerAbandonedCarts: React.FC<PhotographerAbandonedCartsProps> = ({
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <a
-                                            href={`mailto:${cart.userEmail}?subject=${encodeURIComponent("Você esqueceu algo especial no FotoClic!")}&body=${encodeURIComponent(`Olá ${cart.userName},\n\nNotamos que você deixou algumas fotos incríveis no seu carrinho:\n${cart.items.map(i => `- ${i.title}`).join('\n')}\n\nElas ainda estão esperando por você.\n\nAtenciosamente,\n${user.name}`)}`}
+                                            href={`mailto:${cart.userEmail}?subject=${encodeURIComponent(buildMessage(cart, 'email_subject'))}&body=${encodeURIComponent(buildMessage(cart, 'email_body'))}`}
                                             target="_blank" rel="noopener noreferrer"
                                             onClick={() => { setNotification({ message: 'E-mail aberto!', type: 'info' }); updateCartStatus(cart.id, 'contacted'); }}
                                             className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-primary-dark bg-primary/10 rounded-lg hover:bg-primary/20 transition-colors"
@@ -182,7 +208,7 @@ const PhotographerAbandonedCarts: React.FC<PhotographerAbandonedCartsProps> = ({
                                             <EmailIcon /> E-mail
                                         </a>
                                         <a
-                                            href={`https://wa.me/55${cart.userPhone?.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${cart.userName}, aqui é ${user.name} da FotoClic!\n\nVi que você deixou fotos no carrinho.\n\nGostaria de ajuda para finalizar sua compra?`)}`}
+                                            href={`https://wa.me/55${cart.userPhone?.replace(/\D/g, '')}?text=${encodeURIComponent(buildMessage(cart, 'whatsapp_text'))}`}
                                             target="_blank" rel="noopener noreferrer"
                                             onClick={(e) => { if (!cart.userPhone) { e.preventDefault(); setNotification({ message: 'Cliente sem telefone.', type: 'info' }); } else { setNotification({ message: 'WhatsApp aberto!', type: 'info' }); updateCartStatus(cart.id, 'contacted'); } }}
                                             className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-green-600 bg-green-50 rounded-lg hover:bg-green-100 transition-colors"
@@ -275,7 +301,7 @@ const PhotographerAbandonedCarts: React.FC<PhotographerAbandonedCartsProps> = ({
                                             <td className="p-4 text-right">
                                                 <div className="flex justify-end gap-2 text-neutral-500">
                                                     <a
-                                                        href={`mailto:${cart.userEmail}?subject=${encodeURIComponent("Você esqueceu algo especial no FotoClic!")}&body=${encodeURIComponent(`Olá ${cart.userName},\n\nNotamos que você deixou algumas fotos incríveis no seu carrinho:\n${cart.items.map(i => `- ${i.title}`).join('\n')}\n\nElas ainda estão esperando por você. Clique aqui para finalizar sua compra!\n\nAtenciosamente,\n${user.name}`)}`}
+                                                        href={`mailto:${cart.userEmail}?subject=${encodeURIComponent(buildMessage(cart, 'email_subject'))}&body=${encodeURIComponent(buildMessage(cart, 'email_body'))}`}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
                                                         onClick={() => {
@@ -288,7 +314,7 @@ const PhotographerAbandonedCarts: React.FC<PhotographerAbandonedCartsProps> = ({
                                                         <EmailIcon />
                                                     </a>
                                                     <a
-                                                        href={`https://wa.me/55${cart.userPhone?.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${cart.userName}, aqui é ${user.name} da FotoClic! \n\nVi que você deixou algumas fotos no seu carrinho: \n${cart.items.map(i => `- ${i.title}`).join('\n')} \n\nElas estão incríveis! Gostaria de alguma ajuda para finalizar sua compra?`)}`}
+                                                        href={`https://wa.me/55${cart.userPhone?.replace(/\D/g, '')}?text=${encodeURIComponent(buildMessage(cart, 'whatsapp_text'))}`}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
                                                         onClick={(e) => {

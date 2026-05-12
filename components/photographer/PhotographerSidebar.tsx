@@ -4,7 +4,7 @@ import type { User } from '../../types';
 import { useToast } from '../../contexts/ToastContext';
 import Logo from '../Logo';
 
-type PhotographerView = 'dashboard' | 'photos' | 'sales' | 'payouts' | 'profile' | 'portfolio-preview' | 'coupons' | 'abandoned-carts' | 'discounts';
+type PhotographerView = 'dashboard' | 'photos' | 'sales' | 'payouts' | 'profile' | 'portfolio-preview' | 'coupons' | 'abandoned-carts' | 'discounts' | 'communications';
 
 interface PhotographerSidebarProps {
     user: User;
@@ -148,6 +148,7 @@ const PhotographerSidebar: React.FC<PhotographerSidebarProps> = ({ user, activeV
                         <SectionLabel label="Marketing" />
                         <NavLink label="Cupons" isActive={activeView === 'coupons'} onClick={() => { setView('coupons'); onClose(); }} icon={<TicketIcon />} />
                         <NavLink label="Descontos Progressivos" isActive={activeView === 'discounts'} onClick={() => { setView('discounts'); onClose(); }} icon={<PercentIcon />} />
+                        <NavLink label="Mensagens" isActive={activeView === 'communications'} onClick={() => { setView('communications'); onClose(); }} icon={<UserIcon />} />
 
                         <SectionLabel label="Conta" />
                         <NavLink label="Meu Perfil" isActive={activeView === 'profile'} onClick={() => { setView('profile'); onClose(); }} icon={<UserIcon />} />

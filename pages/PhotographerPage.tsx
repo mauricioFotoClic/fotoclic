@@ -11,8 +11,9 @@ import PhotographerPortfolioPreview from '../components/photographer/Photographe
 import PhotographerCoupons from '../components/photographer/PhotographerCoupons';
 import PhotographerAbandonedCarts from '../components/photographer/PhotographerAbandonedCarts';
 import PhotographerDiscounts from '../components/photographer/PhotographerDiscounts';
+import CommunicationSettings from '../components/photographer/CommunicationSettings';
 
-type PhotographerView = 'dashboard' | 'photos' | 'sales' | 'payouts' | 'profile' | 'portfolio-preview' | 'coupons' | 'abandoned-carts' | 'discounts';
+type PhotographerView = 'dashboard' | 'photos' | 'sales' | 'payouts' | 'profile' | 'portfolio-preview' | 'coupons' | 'abandoned-carts' | 'discounts' | 'communications';
 
 const KeepAliveView = React.memo(
     ({ active, children, index = 0 }: { active: boolean; children: React.ReactNode; index?: number }) => {
@@ -151,6 +152,9 @@ const PhotographerPage: React.FC<PhotographerPageProps> = ({ user: initialUser, 
                 </KeepAliveView>
                 <KeepAliveView active={view === 'discounts'} index={8}>
                     <PhotographerDiscounts user={currentUser} showToast={showToast} />
+                </KeepAliveView>
+                <KeepAliveView active={view === 'communications'} index={9}>
+                    <CommunicationSettings user={currentUser} onUpdate={handleRefreshUser} />
                 </KeepAliveView>
             </>
         );
