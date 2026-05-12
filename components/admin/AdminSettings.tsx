@@ -3,6 +3,7 @@ import { CommissionSettings, User, EmailTemplates, EmailTemplate } from '../../t
 import api from '../../services/api';
 import Spinner from '../Spinner';
 import Toast from '../Toast';
+import { includesNormalized } from '../../utils/stringUtils';
 
 const EmailTemplateEditor: React.FC<{
     title: string;
@@ -131,8 +132,8 @@ const AdminSettings: React.FC = () => {
 
     const filteredPhotographers = useMemo(() => {
         return photographers.filter(p =>
-            p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            p.email.toLowerCase().includes(searchTerm.toLowerCase())
+            includesNormalized(p.name, searchTerm) ||
+            includesNormalized(p.email, searchTerm)
         );
     }, [photographers, searchTerm]);
 

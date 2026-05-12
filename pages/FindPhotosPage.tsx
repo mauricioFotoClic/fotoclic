@@ -4,6 +4,7 @@ import { PhotoEvent, User, Category, Page } from '../types';
 import api from '../services/api';
 import SEO from '../components/SEO';
 import WatermarkedImage from '../components/WatermarkedImage';
+import { includesNormalized } from '../utils/stringUtils';
 
 interface FindPhotosPageProps {
   onNavigate: (page: Page) => void;
@@ -68,15 +69,14 @@ const FindPhotosPage: React.FC<FindPhotosPageProps> = ({ onNavigate, initialSear
     let result = events;
 
     if (searchTerm.trim()) {
-      const lower = searchTerm.toLowerCase();
       result = result.filter(e => {
         const category = categories[e.category_id];
         const photographer = photographers[e.photographer_id];
-        return e.name.toLowerCase().includes(lower) ||
-          (e.location && e.location.toLowerCase().includes(lower)) ||
-          (e.description && e.description.toLowerCase().includes(lower)) ||
-          (category && category.name.toLowerCase().includes(lower)) ||
-          (photographer && photographer.name.toLowerCase().includes(lower));
+        return includesNormalized(e.name, searchTerm) ||
+          (e.location && includesNormalized(e.location, searchTerm)) ||
+          (e.description && includesNormalized(e.description, searchTerm)) ||
+          (category && includesNormalized(category.name, searchTerm)) ||
+          (photographer && includesNormalized(photographer.name, searchTerm));
       });
     }
 

@@ -3,6 +3,7 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { User, PhotographerWithStats, Page, Review, Report, ReportStatus } from '../../types';
 import api from '../../services/api';
 import Spinner from '../Spinner';
+import { includesNormalized } from '../../utils/stringUtils';
 import Modal from '../Modal';
 import PhotographerForm from './PhotographerForm';
 
@@ -213,8 +214,8 @@ const AdminPhotographers: React.FC<AdminPhotographersProps> = ({ onNavigate }) =
 
     const filteredPhotographers = useMemo(() => {
         return photographers.filter(p =>
-            p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            p.email.toLowerCase().includes(searchTerm.toLowerCase())
+            includesNormalized(p.name, searchTerm) ||
+            includesNormalized(p.email, searchTerm)
         );
     }, [photographers, searchTerm]);
 

@@ -155,6 +155,7 @@ export const api = {
   },
 
   searchPhotos: async (searchTerm: string, categoryId?: string): Promise<Photo[]> => {
+    const { normalizeString, includesNormalized } = await import("../utils/stringUtils");
     const cleanTerm = (searchTerm || "").trim();
 
     // Conjuntos para armazenar IDs que batem com a busca
@@ -164,16 +165,29 @@ export const api = {
 
     if (cleanTerm) {
       try {
-        // Busca paralela em várias tabelas para agilizar
+        // Para busca verdadeiramente insensível a acentos no Supabase sem a extensão unaccent,
+        // buscamos os registros e filtramos no JS para obter os IDs.
         const [catRes, eventRes, photogRes] = await Promise.all([
-          supabase.from("categories").select("id").ilike("name", `%${cleanTerm}%`),
-          supabase.from("events").select("id").ilike("name", `%${cleanTerm}%`),
-          supabase.from("users").select("id").eq("role", "photographer").ilike("name", `%${cleanTerm}%`)
+          supabase.from("categories").select("id, name"),
+          supabase.from("events").select("id, name"),
+          supabase.from("users").select("id, name").eq("role", "photographer")
         ]);
 
-        if (catRes.data) matchingCategoryIds = catRes.data.map(c => c.id);
-        if (eventRes.data) matchingEventIds = eventRes.data.map(e => e.id);
-        if (photogRes.data) matchingPhotographerIds = photogRes.data.map(p => p.id);
+        if (catRes.data) {
+          matchingCategoryIds = catRes.data
+            .filter(c => includesNormalized(c.name, cleanTerm))
+            .map(c => c.id);
+        }
+        if (eventRes.data) {
+          matchingEventIds = eventRes.data
+            .filter(e => includesNormalized(e.name, cleanTerm))
+            .map(e => e.id);
+        }
+        if (photogRes.data) {
+          matchingPhotographerIds = photogRes.data
+            .filter(p => includesNormalized(p.name, cleanTerm))
+            .map(p => p.id);
+        }
 
       } catch (err) {
         console.warn("Error fetching related entities for search:", err);
