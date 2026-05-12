@@ -940,7 +940,7 @@ export const api = {
   getEventsByCategoryId: async (categoryId: string): Promise<PhotoEvent[]> => {
     const { data, error } = await supabase
       .from("events")
-      .select("*")
+      .select("*, photographer:photographer_id(name, avatar_url, is_active)")
       .eq("category_id", categoryId)
       .order("event_date", { ascending: false });
 
@@ -948,7 +948,12 @@ export const api = {
       console.error("Error fetching events by category:", error);
       return [];
     }
-    return data as PhotoEvent[];
+
+    const validEvents = (data || []).filter((e: any) => {
+      return e.photographer && e.photographer.is_active && e.photographer.avatar_url;
+    });
+
+    return validEvents as PhotoEvent[];
   },
 
   getPhotosByEventId: async (eventId: string): Promise<Photo[]> => {

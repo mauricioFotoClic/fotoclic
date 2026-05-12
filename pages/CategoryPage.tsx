@@ -4,6 +4,8 @@ import { User, Category, PhotoEvent, Page } from '../types';
 import api from '../services/api';
 import Spinner from '../components/Spinner';
 import SEO from '../components/SEO';
+import WatermarkedImage from '../components/WatermarkedImage';
+import { getOptimizedImageUrl } from '../utils/imageOptimization';
 
 interface CategoryPageProps {
   categoryId: string;
@@ -132,8 +134,8 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ categoryId, onNavigate }) =
                     {/* Cover Image */}
                     <div className="relative h-48 bg-neutral-200 overflow-hidden">
                       {event.cover_photo_url ? (
-                        <img
-                          src={event.cover_photo_url}
+                        <WatermarkedImage
+                          src={getOptimizedImageUrl(event.cover_photo_url, 600, 75)}
                           alt={event.name}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />

@@ -6,6 +6,7 @@ import api from '../services/api';
 import PhotoCard from '../components/PhotoCard';
 import WatermarkedImage from '../components/WatermarkedImage';
 import SEO from '../components/SEO';
+import { getOptimizedImageUrl } from '../utils/imageOptimization';
 
 interface HomePageProps {
   onNavigate: (page: Page) => void;
@@ -525,7 +526,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
                       <div className="relative h-44 bg-neutral-100 overflow-hidden">
                         {event.cover_photo_url ? (
                           <WatermarkedImage
-                            src={event.cover_photo_url}
+                            src={getOptimizedImageUrl(event.cover_photo_url, 600, 75)}
                             alt={event.name}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                             loading="lazy"

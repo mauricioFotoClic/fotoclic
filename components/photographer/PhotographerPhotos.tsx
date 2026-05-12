@@ -4,6 +4,7 @@ import { User, Photo, Category, PhotoEvent } from '../../types';
 import api from '../../services/api';
 import Spinner from '../Spinner';
 import Modal from '../Modal';
+import WatermarkedImage from '../WatermarkedImage';
 import { getOptimizedImageUrl } from '../../utils/imageOptimization';
 import PhotoUploadForm from './PhotoUploadForm';
 import PhotoLikesModal from './PhotoLikesModal';
@@ -562,8 +563,8 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                                     >
                                         <div className="h-40 bg-neutral-200 relative">
                                             {event.cover_photo_url || eventPhotos.length > 0 ? (
-                                                <img
-                                                    src={event.cover_photo_url || eventPhotos[0].preview_url}
+                                                <WatermarkedImage
+                                                    src={getOptimizedImageUrl(event.cover_photo_url || eventPhotos[0].preview_url, 600, 75)}
                                                     alt="Capa"
                                                     className="w-full h-full object-cover"
                                                 />

@@ -4,6 +4,8 @@ import { User, Photo, Page, Category, PhotoEvent } from '../../types';
 import api from '../../services/api';
 import Spinner from '../Spinner';
 import PhotoCard from '../PhotoCard';
+import WatermarkedImage from '../WatermarkedImage';
+import { getOptimizedImageUrl } from '../../utils/imageOptimization';
 import Modal from '../Modal';
 import PhotoUploadForm from './PhotoUploadForm';
 import ReviewModal from '../ReviewModal';
@@ -327,8 +329,8 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
                                     >
                                         <div className="h-48 bg-neutral-200 relative overflow-hidden">
                                             {coverPhotoUrl ? (
-                                                <img
-                                                    src={coverPhotoUrl}
+                                                <WatermarkedImage
+                                                    src={getOptimizedImageUrl(coverPhotoUrl, 600, 75)}
                                                     alt={event.name}
                                                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                                                 />
