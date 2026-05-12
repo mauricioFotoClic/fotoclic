@@ -265,6 +265,18 @@ const AdminSettings: React.FC = () => {
                 </p>
                 <div className="space-y-6">
                     <EmailTemplateEditor
+                        title="Boas-vindas (Fotógrafo)"
+                        template={emailTemplates.welcomePhotographer || { subject: '', body: '' }}
+                        onUpdate={(t) => handleTemplateChange('welcomePhotographer', t)}
+                        placeholders={['nome_fotografo']}
+                    />
+                    <EmailTemplateEditor
+                        title="Boas-vindas (Cliente)"
+                        template={emailTemplates.welcomeCustomer || { subject: '', body: '' }}
+                        onUpdate={(t) => handleTemplateChange('welcomeCustomer', t)}
+                        placeholders={['nome_cliente']}
+                    />
+                    <EmailTemplateEditor
                         title="Ativação de Fotógrafo"
                         template={emailTemplates.photographerActivated}
                         onUpdate={(t) => handleTemplateChange('photographerActivated', t)}

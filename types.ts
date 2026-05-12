@@ -201,6 +201,8 @@ export interface EmailTemplates {
   photographerDeactivated: EmailTemplate;
   photoRejected: EmailTemplate;
   payoutProcessed: EmailTemplate;
+  welcomePhotographer: EmailTemplate;
+  welcomeCustomer: EmailTemplate;
 }
 
 export interface Review {

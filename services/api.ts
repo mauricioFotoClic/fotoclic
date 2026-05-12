@@ -1937,6 +1937,14 @@ export const api = {
           subject: "Pagamento processado",
           body: "Olá {{nome_fotografo}}, seu pagamento de {{valor_pagamento}} foi processado em {{data_pagamento}}.",
         },
+        welcomePhotographer: {
+          subject: "Bem-vindo ao FotoClic!",
+          body: "Olá {{nome_fotografo}}, estamos felizes em ter você conosco! Sua conta foi criada com sucesso e em breve nossa equipe irá analisá-la.",
+        },
+        welcomeCustomer: {
+          subject: "Bem-vindo ao FotoClic!",
+          body: "Olá {{nome_cliente}}, estamos felizes em ter você conosco! Agora você pode comprar as melhores fotos dos seus eventos favoritos.",
+        },
       };
     }
     return data.email_templates;

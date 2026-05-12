@@ -94,6 +94,47 @@ export const emailService = {
     return emailService.sendEmail(photographerEmail, subject, htmlBody);
   },
 
+  sendWelcomeEmail: async (userEmail: string, userName: string, role: 'photographer' | 'customer') => {
+    const templates = await emailService.getTemplates();
+    if (!templates) return false;
+
+    const isPhotographer = role === 'photographer';
+    const template = isPhotographer ? templates.welcomePhotographer : templates.welcomeCustomer;
+
+    if (!template) return false;
+
+    const placeholders = isPhotographer ? { nome_fotografo: userName } : { nome_cliente: userName };
+    const subject = replacePlaceholders(template.subject, placeholders);
+    const body = replacePlaceholders(template.body, placeholders);
+
+    const htmlBody = `
+      <div style="font-family: sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+        <div style="background: linear-gradient(135deg, #FF6B00 0%, #FF8533 100%); padding: 32px 20px; text-align: center;">
+          <h1 style="color: white; margin: 0; font-size: 28px; font-weight: 800;">Bem-vindo ao FotoClic!</h1>
+        </div>
+        <div style="padding: 32px 24px; background-color: white;">
+          <p style="font-size: 18px; margin-bottom: 24px;">Olá, <strong>${userName}</strong>!</p>
+          <div style="font-size: 16px; line-height: 1.6; color: #4b5563; white-space: pre-wrap; margin-bottom: 32px;">${body}</div>
+          
+          <div style="text-align: center; margin: 40px 0;">
+            <a href="${window.location.origin}" style="background-color: #FF6B00; color: white; padding: 14px 32px; text-decoration: none; border-radius: 30px; font-weight: bold; display: inline-block; box-shadow: 0 4px 6px rgba(255, 107, 0, 0.2);">
+              Começar Agora
+            </a>
+          </div>
+          
+          <p style="font-size: 14px; color: #9ca3af; text-align: center; margin-top: 40px; border-top: 1px solid #f3f4f6; padding-top: 24px;">
+            Estamos ansiosos para ver suas fotos! <br />
+            Equipe FotoClic
+          </p>
+        </div>
+        <div style="background-color: #f9fafb; padding: 20px; text-align: center; font-size: 12px; color: #9ca3af;">
+          © ${new Date().getFullYear()} FotoClic Marketplace. Todos os direitos reservados.
+        </div>
+      </div>`;
+
+    return emailService.sendEmail(userEmail, subject, htmlBody);
+  },
+
   sendPurchaseConfirmation: async (buyerEmail: string, buyerName: string, orderTotal: number, itemCount: number) => {
     return emailService.sendEmail(
       buyerEmail,

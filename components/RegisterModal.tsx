@@ -126,14 +126,23 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginS
                 if (user.role === UserRole.PHOTOGRAPHER) {
                     try {
                         const { emailService } = await import('../services/emailService');
-                        await emailService.sendNewPhotographerNotification(user.name, user.email);
+                        await Promise.all([
+                            emailService.sendNewPhotographerNotification(user.name, user.email),
+                            emailService.sendWelcomeEmail(user.email, user.name, 'photographer')
+                        ]);
                     } catch (emailError) {
-                        console.error("Failed to send notification email:", emailError);
+                        console.error("Failed to send photographer emails:", emailError);
                     }
                     setPendingUser(user);
                     setShowLiabilityModal(true);
                 } else {
                     // Cliente - Fluxo normal
+                    try {
+                        const { emailService } = await import('../services/emailService');
+                        await emailService.sendWelcomeEmail(user.email, user.name, 'customer');
+                    } catch (emailError) {
+                        console.error("Failed to send customer welcome email:", emailError);
+                    }
                     onClose();
                     onLoginSuccess(user);
                     onNavigate({ name: 'home' });
