@@ -38,6 +38,8 @@ const LayersIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" heig
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ setView }) => {
     const [stats, setStats] = useState<any>(null);
+    const [sales, setSales] = useState<Sale[]>([]);
+    const [timeRange, setTimeRange] = useState(7);
     const [loading, setLoading] = useState(true);
 
     // Engine Reindex State
@@ -48,8 +50,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setView }) => {
     const fetchData = useCallback(async () => {
         try {
             setLoading(true);
-            const statsData = await api.getAdminStats();
+            const [statsData, salesData] = await Promise.all([
+                api.getAdminStats(),
+                api.getSales()
+            ]);
             setStats(statsData);
+            setSales(salesData);
         } catch (error) {
             console.error("Failed to fetch dashboard data", error);
         } finally {
@@ -135,15 +141,37 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setView }) => {
         totalRevenue = 0,
         salesCount = 0,
         activePhotographersCount = 0,
-        pendingPhotosCount = 0,
-        notIndexedPhotosCount = 0, // Added here!
-        pendingPhotos = [],
-        salesLast7Days = [],
+        notIndexedPhotosCount = 0,
         topPhotographers = [],
         categoryPhotoCount = []
     } = stats || {};
 
-    const maxDailySale = useMemo(() => Math.max(...salesLast7Days.map((s: any) => Number(s.total)), 1), [salesLast7Days]);
+    const salesChartData = useMemo(() => {
+        const lastDays = Array.from({ length: timeRange }, (_, i) => {
+            const d = new Date();
+            d.setDate(d.getDate() - (timeRange - 1 - i));
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        });
+
+        return lastDays.map(date => {
+            const total = sales
+                .filter(sale => {
+                    const d = new Date(sale.sale_date);
+                    const sYear = d.getFullYear();
+                    const sMonth = String(d.getMonth() + 1).padStart(2, '0');
+                    const sDay = String(d.getDate()).padStart(2, '0');
+                    const saleLocalDate = `${sYear}-${sMonth}-${sDay}`;
+                    return saleLocalDate === date;
+                })
+                .reduce((sum, sale) => sum + Number(sale.price), 0);
+            return { date, total };
+        });
+    }, [sales, timeRange]);
+
+    const maxDailySale = useMemo(() => Math.max(...salesChartData.map((s: any) => Number(s.total)), 1), [salesChartData]);
     const maxCategoryCount = useMemo(() => Math.max(...categoryPhotoCount.map((c: any) => c.count), 1), [categoryPhotoCount]);
 
     if (loading) return <Spinner />;
@@ -159,57 +187,75 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setView }) => {
 
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                 <StatCard title="Receita Total" value={totalRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} icon={<DollarSignIcon />} colorClass="bg-green-100 text-green-600" />
                 <StatCard title="Vendas Realizadas" value={salesCount} icon={<ShoppingCartIcon />} colorClass="bg-primary/20 text-primary-dark" />
                 <StatCard title="Fotógrafos Ativos" value={activePhotographersCount} icon={<UsersIcon />} colorClass="bg-primary/20 text-primary-dark" />
-                <StatCard title="Aguardando Moderação" value={pendingPhotosCount} icon={<ClockIcon />} colorClass="bg-yellow-100 text-yellow-600" />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
                 <div className="lg:col-span-3 space-y-6">
-                    <div className="bg-white p-6 rounded-lg shadow-md">
-                        <h2 className="text-xl font-display font-bold text-primary-dark mb-4">Vendas nos Últimos 7 Dias</h2>
-                        <div className="flex justify-between items-end h-48 space-x-2 border-b border-neutral-100 pb-2">
-                            {salesLast7Days.map((day: any, index: number) => {
+                <div className="lg:col-span-3 space-y-6">
+                    <div className="bg-white p-6 rounded-lg shadow-md h-full flex flex-col">
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="text-xl font-display font-bold text-primary-dark">Desempenho de Vendas</h2>
+                            <div className="flex bg-neutral-100 p-1 rounded-lg">
+                                {[7, 15, 30].map((range) => (
+                                    <button
+                                        key={range}
+                                        onClick={() => setTimeRange(range)}
+                                        className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${
+                                            timeRange === range 
+                                            ? 'bg-white text-primary shadow-sm' 
+                                            : 'text-neutral-500 hover:text-neutral-700'
+                                        }`}
+                                    >
+                                        {range === 30 ? 'Mensal' : `${range} Dias`}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        
+                        <div className="flex-grow flex items-end h-64 space-x-1 sm:space-x-2 border-b border-neutral-100 pb-2 mb-4">
+                            {salesChartData.map((day: any, index: number) => {
                                 const total = Number(day.total);
                                 const h = maxDailySale > 0 ? (total / maxDailySale) * 100 : 0;
 
                                 return (
                                     <div key={index} className="flex-1 flex flex-col items-center justify-end group h-full relative">
-                                        <div className="text-[10px] font-bold text-primary opacity-0 group-hover:opacity-100 transition-opacity mb-1 absolute -top-6 bg-white px-1 rounded shadow-sm border border-primary/10 z-10 whitespace-nowrap">
+                                        <div className="text-[10px] font-bold text-primary opacity-0 group-hover:opacity-100 transition-opacity mb-1 absolute -top-10 bg-white px-2 py-1 rounded shadow-lg border border-primary/10 z-20 whitespace-nowrap">
                                             {total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                            <div className="text-[8px] text-neutral-400 font-normal">
+                                                {new Date(day.date + 'T12:00:00Z').toLocaleDateString('pt-BR')}
+                                            </div>
                                         </div>
                                         <div
-                                            className="w-full bg-primary hover:bg-primary-dark rounded-t-sm transition-all shadow-sm"
-                                            style={{ height: `${total > 0 ? Math.max(h, 4) : 0}%` }}
-                                            title={total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                            className={`w-full bg-primary hover:bg-primary-dark rounded-t-sm transition-all shadow-sm ${total > 0 ? 'opacity-100' : 'opacity-20'}`}
+                                            style={{ height: `${total > 0 ? Math.max(h, 4) : 2}%` }}
                                         ></div>
-                                        <span className="text-[10px] text-neutral-400 mt-2 font-medium">
-                                            {new Date(day.date + 'T12:00:00Z').toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')}
-                                        </span>
+                                        {timeRange <= 15 && (
+                                            <span className="text-[8px] sm:text-[10px] text-neutral-400 mt-2 font-medium">
+                                                {new Date(day.date + 'T12:00:00Z').toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')}
+                                            </span>
+                                        )}
                                     </div>
                                 );
                             })}
                         </div>
-                    </div>
-
-                    <div className="bg-white p-6 rounded-lg shadow-md">
-                        <h2 className="text-xl font-display font-bold text-primary-dark mb-4">Aguardando Moderação ({pendingPhotosCount})</h2>
-                        <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
-                            {pendingPhotosCount > 0 ? pendingPhotos.map((photo: any) => (
-                                <button
-                                    key={photo.id}
-                                    onClick={() => setView('photos', { filterByPhotoId: photo.id })}
-                                    className="w-full flex items-center p-2 rounded-md hover:bg-neutral-100 text-left transition-colors"
-                                >
-                                    <img src={photo.preview_url} alt={photo.title} className="w-16 h-12 object-cover rounded-md mr-4 flex-shrink-0" />
-                                    <div className="flex-grow min-w-0">
-                                        <p className="font-semibold text-neutral-800 truncate">{photo.title}</p>
-                                        <p className="text-sm text-neutral-500">por {photo.photographer_name || 'N/A'}</p>
-                                    </div>
-                                </button>
-                            )) : <p className="text-center text-neutral-500 py-4">Nenhuma foto pendente. Bom trabalho!</p>}
+                        
+                        <div className="grid grid-cols-2 gap-4 mt-2">
+                            <div className="p-3 bg-primary/5 rounded-xl border border-primary/10 text-center">
+                                <p className="text-[10px] text-neutral-500 uppercase font-bold tracking-wider">Média Diária</p>
+                                <p className="text-lg font-display font-bold text-primary">
+                                    {(salesChartData.reduce((acc, curr) => acc + curr.total, 0) / timeRange).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                </p>
+                            </div>
+                            <div className="p-3 bg-secondary/5 rounded-xl border border-secondary/10 text-center">
+                                <p className="text-[10px] text-neutral-500 uppercase font-bold tracking-wider">Total Período</p>
+                                <p className="text-lg font-display font-bold text-secondary">
+                                    {salesChartData.reduce((acc, curr) => acc + curr.total, 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </div>
