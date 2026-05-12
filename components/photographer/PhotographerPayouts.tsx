@@ -25,6 +25,44 @@ const PhotographerPayouts: React.FC<PhotographerPayoutsProps> = ({ user }) => {
     const [bankInfo, setBankInfo] = useState<BankInfo>({ pixKey: '', pixKeyType: 'email' });
     const [isSavingBank, setIsSavingBank] = useState(false);
 
+    const applyMask = (value: string, type: string) => {
+        if (!value) return '';
+        if (type === 'cpf') {
+            return value
+                .replace(/\D/g, '')
+                .replace(/(\d{3})(\d)/, '$1.$2')
+                .replace(/(\d{3})(\d)/, '$1.$2')
+                .replace(/(\d{3})(\d{1,2})/, '$1-$2')
+                .substring(0, 14);
+        }
+        if (type === 'cnpj') {
+            return value
+                .replace(/\D/g, '')
+                .replace(/(\d{2})(\d)/, '$1.$2')
+                .replace(/(\d{3})(\d)/, '$1.$2')
+                .replace(/(\d{3})(\d)/, '$1/$2')
+                .replace(/(\d{4})(\d{1,2})/, '$1-$2')
+                .substring(0, 18);
+        }
+        if (type === 'phone') {
+            let v = value.replace(/\D/g, '');
+            if (v.length > 11) v = v.substring(0, 11);
+            if (v.length > 10) {
+                return v.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+            } else if (v.length > 6) {
+                return v.replace(/(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3');
+            } else if (v.length > 2) {
+                return v.replace(/(\d{2})(\d{0,5})/, '($1) $2');
+            } else {
+                return v;
+            }
+        }
+        if (type === 'email') {
+            return value.trim();
+        }
+        return value;
+    };
+
     const fetchData = useCallback(async () => {
         try {
             setLoading(true);
@@ -279,7 +317,7 @@ const PhotographerPayouts: React.FC<PhotographerPayoutsProps> = ({ user }) => {
                             <label className="block text-sm font-medium text-neutral-700 mb-1">Tipo de Chave PIX</label>
                             <select
                                 value={bankInfo.pixKeyType}
-                                onChange={(e) => setBankInfo({ ...bankInfo, pixKeyType: e.target.value as any })}
+                                onChange={(e) => setBankInfo({ ...bankInfo, pixKeyType: e.target.value as any, pixKey: '' })}
                                 className={inputClass}
                             >
                                 <option value="cpf">CPF</option>
@@ -293,10 +331,16 @@ const PhotographerPayouts: React.FC<PhotographerPayoutsProps> = ({ user }) => {
                         <div>
                             <label className="block text-sm font-medium text-neutral-700 mb-1">Chave PIX</label>
                             <input
-                                type="text"
+                                type={bankInfo.pixKeyType === 'email' ? 'email' : 'text'}
                                 value={bankInfo.pixKey}
-                                onChange={(e) => setBankInfo({ ...bankInfo, pixKey: e.target.value })}
-                                placeholder="Digite sua chave pix..."
+                                onChange={(e) => setBankInfo({ ...bankInfo, pixKey: applyMask(e.target.value, bankInfo.pixKeyType) })}
+                                placeholder={
+                                    bankInfo.pixKeyType === 'cpf' ? '000.000.000-00' :
+                                    bankInfo.pixKeyType === 'cnpj' ? '00.000.000/0000-00' :
+                                    bankInfo.pixKeyType === 'phone' ? '(00) 00000-0000' :
+                                    bankInfo.pixKeyType === 'email' ? 'email@exemplo.com' :
+                                    'Digite sua chave aleatória...'
+                                }
                                 className={inputClass}
                                 required
                             />
