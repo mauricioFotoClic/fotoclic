@@ -56,7 +56,7 @@ const AdminPhotographers: React.FC<AdminPhotographersProps> = ({ onNavigate }) =
     const [editingPhotographer, setEditingPhotographer] = useState<User | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [searchTerm, setSearchTerm] = useState('');
-    const itemsPerPage = 8;
+    const [itemsPerPage, setItemsPerPage] = useState(10);
 
     // Reviews & Reports modal
     const [detailPhotographer, setDetailPhotographer] = useState<PhotographerWithStats | null>(null);
@@ -225,7 +225,7 @@ const AdminPhotographers: React.FC<AdminPhotographersProps> = ({ onNavigate }) =
             (currentPage - 1) * itemsPerPage,
             currentPage * itemsPerPage
         );
-    }, [filteredPhotographers, currentPage]);
+    }, [filteredPhotographers, currentPage, itemsPerPage]);
 
     const goToNextPage = () => {
         setCurrentPage((page) => Math.min(page + 1, totalPages));
@@ -252,8 +252,8 @@ const AdminPhotographers: React.FC<AdminPhotographersProps> = ({ onNavigate }) =
                 </button>
             </div>
 
-            <div className="mb-4">
-                <div className="relative">
+            <div className="mb-4 flex flex-col sm:flex-row gap-4 items-center">
+                <div className="relative flex-1">
                     <input
                         type="text"
                         placeholder="Pesquisar por nome ou e-mail..."
@@ -262,6 +262,22 @@ const AdminPhotographers: React.FC<AdminPhotographersProps> = ({ onNavigate }) =
                         className="w-full pl-10 pr-4 py-2 bg-white border border-neutral-300 rounded-full focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
                     />
                     <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-neutral-400" />
+                </div>
+                <div className="flex items-center gap-2">
+                    <span className="text-sm text-neutral-500 whitespace-nowrap">Mostrar:</span>
+                    <select
+                        value={itemsPerPage}
+                        onChange={(e) => {
+                            setItemsPerPage(Number(e.target.value));
+                            setCurrentPage(1);
+                        }}
+                        className="bg-white border border-neutral-300 rounded-lg px-2 py-1.5 text-sm focus:ring-2 focus:ring-primary outline-none"
+                    >
+                        <option value={10}>10</option>
+                        <option value={20}>20</option>
+                        <option value={50}>50</option>
+                        <option value={100}>100</option>
+                    </select>
                 </div>
             </div>
 
