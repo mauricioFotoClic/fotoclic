@@ -3,6 +3,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { User, Page } from '../types';
 import api from '../services/api';
 import SEO from '../components/SEO';
+import { includesNormalized } from '../utils/stringUtils';
 
 interface PhotographersPageProps {
   onNavigate: (page: Page) => void;
@@ -24,16 +25,14 @@ const PhotographersPage: React.FC<PhotographersPageProps> = ({ onNavigate }) => 
   const filteredPhotographers = useMemo(() => {
     let result = photographers;
     if (searchName.trim()) {
-      const lower = searchName.toLowerCase();
       result = result.filter(p =>
-        p.name.toLowerCase().includes(lower) ||
-        (p.bio && p.bio.toLowerCase().includes(lower))
+        includesNormalized(p.name, searchName) ||
+        (p.bio && includesNormalized(p.bio, searchName))
       );
     }
     if (searchCity.trim()) {
-      const lower = searchCity.toLowerCase();
       result = result.filter(p =>
-        p.location && p.location.toLowerCase().includes(lower)
+        p.location && includesNormalized(p.location, searchCity)
       );
     }
     return result;

@@ -7,6 +7,7 @@ import Modal from '../Modal';
 import PhotoForm from './PhotoForm';
 import QualityAnalysisModal from './QualityAnalysisModal';
 import { getOptimizedImageUrl } from '../../utils/imageOptimization';
+import { includesNormalized } from '../../utils/stringUtils';
 
 interface AdminPhotosProps {
     context: any;
@@ -326,7 +327,7 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
             // Base filter: Must belong to selected photographer
             if (photo.photographer_id !== selectedPhotographerId) return false;
 
-            const searchMatch = searchTerm ? photo.title.toLowerCase().includes(searchTerm.toLowerCase()) : true;
+            const searchMatch = searchTerm ? includesNormalized(photo.title, searchTerm) : true;
             const categoryMatch = filters.category ? photo.category_id === filters.category : true;
             const statusMatch = filters.status ? (filters.status === 'public' ? photo.is_public : !photo.is_public) : true;
             const moderationMatch = filters.moderation ? photo.moderation_status === filters.moderation : true;
