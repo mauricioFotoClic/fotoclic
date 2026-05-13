@@ -1279,6 +1279,8 @@ export const api = {
       alert("Error Customers: " + JSON.stringify(error));
       return [];
     }
+    
+    alert("Users length from DB: " + (users ? users.length : "null"));
 
     if (!users || users.length === 0) return [];
 
