@@ -256,13 +256,28 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
                                             setIsProcessing(true);
                                             setPaymentError(null);
 
-                                            // Preparamos os itens para a Abacate Pay
-                                            const items = photos.map(p => ({
-                                                id: p.id,
-                                                title: p.title,
-                                                price: p.price * 100, // Abacate Pay usa centavos
-                                                quantity: 1
-                                            }));
+                                            // Preparamos os itens para a Abacate Pay calculando os descontos proporcionais
+                                            const items = photos.map(p => {
+                                                let discountedPrice = p.price;
+
+                                                // 1. Aplica desconto de cupom (se o fotógrafo for o mesmo do cupom)
+                                                if (appliedCoupon && p.photographer_id === appliedCoupon.photographer_id) {
+                                                    discountedPrice -= (p.price * (appliedCoupon.discount_percent / 100));
+                                                }
+
+                                                // 2. Aplica desconto por volume do fotógrafo
+                                                const group = groupedCart.find(g => g.photographerId === p.photographer_id);
+                                                if (group && group.appliedBulkRule) {
+                                                    discountedPrice -= (p.price * (group.appliedBulkRule.discountPercent / 100));
+                                                }
+
+                                                return {
+                                                    id: p.id,
+                                                    title: p.title,
+                                                    price: Math.max(0, discountedPrice) * 100, // Abacate Pay usa centavos
+                                                    quantity: 1
+                                                };
+                                            });
 
                                             const checkout = await api.createAbacateCheckout(items, {
                                                 name: currentUser.name,
