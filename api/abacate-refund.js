@@ -28,27 +28,34 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'Apenas cobranças com status PAID podem ser estornadas.' });
         }
 
-        // Best-effort: try to notify AbacatePay refund endpoint
+        // Critical: call AbacatePay refund endpoint
         const targetBillingId = billing_id || billing.billing_id;
-        if (apiKey && targetBillingId) {
-            try {
-                const abacateRes = await fetch(
-                    `https://api.abacatepay.com/v1/billing/${targetBillingId}/refund`,
-                    {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${apiKey}`,
-                            'Content-Type': 'application/json',
-                        },
-                    }
-                );
-                if (!abacateRes.ok) {
-                    const txt = await abacateRes.text().catch(() => '');
-                    console.warn('[AbacateRefund] API retornou erro (continuando com update local):', abacateRes.status, txt);
+        if (!apiKey || !targetBillingId) {
+            throw new Error('Configuração de API ou ID da cobrança ausente.');
+        }
+
+        try {
+            const abacateRes = await fetch(
+                `https://api.abacatepay.com/v1/billing/${targetBillingId}/refund`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Content-Type': 'application/json',
+                    },
                 }
-            } catch (apiErr) {
-                console.warn('[AbacateRefund] Falha ao contatar API AbacatePay (atualizando DB local):', apiErr.message);
+            );
+            
+            const apiData = await abacateRes.json().catch(() => ({}));
+            
+            if (!abacateRes.ok) {
+                const errorMessage = apiData.error || apiData.message || `Erro da API (${abacateRes.status})`;
+                console.error('[AbacateRefund] Falha na API do AbacatePay:', apiData);
+                throw new Error(`O Abacate Pay não processou o estorno: ${errorMessage}`);
             }
+        } catch (apiErr) {
+            console.error('[AbacateRefund] Erro na comunicação:', apiErr);
+            throw apiErr;
         }
 
         // Update status in our DB
