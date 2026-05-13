@@ -35,6 +35,7 @@ export default async function handler(req, res) {
         }
 
         try {
+            console.log('[AbacateRefund] Tentando estorno via V1 para ID:', targetBillingId);
             const abacateRes = await fetch(
                 `https://api.abacatepay.com/v1/billing/${targetBillingId}/refund`,
                 {
@@ -49,16 +50,10 @@ export default async function handler(req, res) {
             const apiData = await abacateRes.json().catch(() => ({}));
             
             if (!abacateRes.ok) {
-                const errorMessage = apiData.error || apiData.message || `Erro da API (${abacateRes.status})`;
-                console.error('[AbacateRefund] Falha na API do AbacatePay:', apiData);
-                throw new Error(`O Abacate Pay não processou o estorno: ${errorMessage}`);
-            }
-        } catch (apiErr) {
-            console.error('[AbacateRefund] Erro na comunicação:', apiErr);
-            // Tentar v2 como fallback se v1 falhar
-            try {
+                console.warn('[AbacateRefund] V1 falhou, tentando V2/Billing...');
+                // Tentar v2/billing como fallback
                 const abacateResV2 = await fetch(
-                    `https://api.abacatepay.com/v2/checkouts/${targetBillingId}/refund`,
+                    `https://api.abacatepay.com/v2/billing/${targetBillingId}/refund`,
                     {
                         method: 'POST',
                         headers: {
@@ -67,14 +62,19 @@ export default async function handler(req, res) {
                         },
                     }
                 );
+                
+                const apiDataV2 = await abacateResV2.json().catch(() => ({}));
+                
                 if (abacateResV2.ok) {
-                    console.log('[AbacateRefund] Estorno via V2 funcionou.');
+                    console.log('[AbacateRefund] Estorno via V2/Billing funcionou.');
                 } else {
-                    throw apiErr; // Se v2 também falhar, mantém o erro original
+                    const errorMessage = apiDataV2.error || apiDataV2.message || apiData.error || apiData.message || `Erro da API (${abacateResV2.status})`;
+                    throw new Error(`O Abacate Pay não processou o estorno: ${errorMessage}`);
                 }
-            } catch (v2Err) {
-                throw apiErr;
             }
+        } catch (apiErr) {
+            console.error('[AbacateRefund] Erro na comunicação:', apiErr);
+            throw apiErr;
         }
 
         // Update status in our DB
