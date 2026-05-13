@@ -69,24 +69,56 @@ export default async function handler(req, res) {
                 }
             }));
 
-            const body = {
-                frequency: "ONE_TIME",
-                methods: ["PIX", "CARD"],
-                items: itemsV2,
-                customer: {
+            // 1. Criar ou buscar o cliente no Abacate Pay (Padrão v2)
+        let customerId = null;
+        try {
+            const customerRes = await fetch('https://api.abacatepay.com/v2/customer/create', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${apiKey}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
                     name: String(customer.name).substring(0, 100),
                     email: String(customer.email),
-                    taxId: String(customer.taxId).replace(/\D/g, ''), 
-                    cellphone: customer.phone ? String(customer.phone).replace(/\D/g, '') : "11999999999"
-                },
+                    taxId: String(customer.taxId || customer.cpf || '').replace(/\D/g, '').substring(0, 11),
+                    cellphone: String(customer.phone || '').replace(/\D/g, '').substring(0, 15),
+                }),
+            });
+            const customerData = await customerRes.json();
+            if (customerData.success && customerData.data?.id) {
+                customerId = customerData.data.id;
+                console.log('[AbacatePay] Cliente criado/encontrado:', customerId);
+            } else {
+                console.warn('[AbacatePay] Falha ao criar cliente (continuando sem ID):', customerData);
+            }
+        } catch (err) {
+            console.error('[AbacatePay] Erro na criação de cliente:', err);
+        }
+
+        const body = {
+            frequency: "ONE_TIME",
+            methods: ["PIX", "CARD"],
+            items: itemsV2,
             returnUrl: siteUrl + '/checkout-success',
             completionUrl: siteUrl + '/sales',
+            customerId: customerId, // Aqui vinculamos o cliente criado
             metadata: {
                 cartIds: items.map(i => i.id),
                 userId: customer.id || 'guest-id',
                 customerName: String(customer.name).substring(0, 50)
             }
         };
+
+        // Se não conseguimos o customerId, tentamos passar o objeto customer como fallback (v1 style)
+        if (!customerId) {
+            body.customer = {
+                name: String(customer.name).substring(0, 100),
+                email: String(customer.email),
+                taxId: String(customer.taxId || customer.cpf || '').replace(/\D/g, ''), 
+                cellphone: customer.phone ? String(customer.phone).replace(/\D/g, '') : "11999999999"
+            };
+        }
 
         console.log('[AbacatePay] Iniciando criação de cobrança V2...', body);
 
