@@ -23,7 +23,40 @@ export default async function handler(req, res) {
         process.env.SUPABASE_SERVICE_ROLE_KEY
     );
 
+    const apiKey = process.env.ABACATEPAY_API_KEY;
+
     try {
+        // 1. Tentar sincronizar com a API do Abacate Pay se tivermos a chave
+        if (apiKey) {
+            try {
+                const apiRes = await fetch('https://api.abacatepay.com/v2/checkouts/list', {
+                    headers: { 'Authorization': `Bearer ${apiKey}` }
+                });
+                const apiData = await apiRes.json();
+                
+                if (apiData.success && apiData.data) {
+                    // Sincronizar as cobranças que mudaram de status
+                    for (const remote of apiData.data) {
+                        if (remote.status === 'PAID') {
+                            // Atualizar no nosso banco se estiver pendente
+                            await supabase
+                                .from('abacate_pay_billings')
+                                .update({ 
+                                    status: 'PAID',
+                                    payment_method: remote.methods?.[0] || 'PIX',
+                                    updated_at: new Date().toISOString()
+                                })
+                                .eq('billing_id', remote.id)
+                                .eq('status', 'PENDING');
+                        }
+                    }
+                }
+            } catch (syncErr) {
+                console.error('[AbacateStats] Erro ao sincronizar com API:', syncErr);
+            }
+        }
+
+        // 2. Buscar dados atualizados do banco
         const { data: billings, error } = await supabase
             .from('abacate_pay_billings')
             .select('*')
@@ -46,7 +79,6 @@ export default async function handler(req, res) {
         const totalPending  = pending.reduce((s, b) => s + (b.amount || 0), 0);
         const totalRefunded = refunded.reduce((s, b) => s + (b.amount || 0), 0);
 
-        // payment_method column (populated by webhook when billing is paid)
         const totalPix  = paid.filter(b => b.payment_method === 'PIX').reduce((s, b) => s + (b.amount || 0), 0);
         const totalCard = paid.filter(b => b.payment_method === 'CARD').reduce((s, b) => s + (b.amount || 0), 0);
 
