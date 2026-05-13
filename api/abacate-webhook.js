@@ -84,14 +84,19 @@ export default async function handler(req, res) {
                         .in('id', cartIds);
 
                     if (photos && photos.length > 0) {
-                        const { data: settingsRow } = await supabaseAdmin
-                            .from('settings')
-                            .select('value')
-                            .eq('key', 'commission_settings')
+                        const { data: settingsRow, error: settingsError } = await supabaseAdmin
+                            .from('system_settings')
+                            .select('*')
                             .single();
 
-                        let settings = { defaultRate: 0.15, customRates: {} };
-                        if (settingsRow?.value) settings = settingsRow.value;
+                        if (settingsError) {
+                            console.warn('[AbacatePay Webhook] Erro ao buscar system_settings, usando taxas padrão:', settingsError.message);
+                        }
+
+                        let settings = { 
+                            defaultRate: settingsRow?.commission_default_rate || 0.15, 
+                            customRates: settingsRow?.commission_custom_rates || {} 
+                        };
 
                         for (const photo of photos) {
                             let rate = settings.defaultRate;
