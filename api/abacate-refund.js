@@ -55,7 +55,26 @@ export default async function handler(req, res) {
             }
         } catch (apiErr) {
             console.error('[AbacateRefund] Erro na comunicação:', apiErr);
-            throw apiErr;
+            // Tentar v2 como fallback se v1 falhar
+            try {
+                const abacateResV2 = await fetch(
+                    `https://api.abacatepay.com/v2/checkouts/${targetBillingId}/refund`,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${apiKey}`,
+                            'Content-Type': 'application/json',
+                        },
+                    }
+                );
+                if (abacateResV2.ok) {
+                    console.log('[AbacateRefund] Estorno via V2 funcionou.');
+                } else {
+                    throw apiErr; // Se v2 também falhar, mantém o erro original
+                }
+            } catch (v2Err) {
+                throw apiErr;
+            }
         }
 
         // Update status in our DB
@@ -71,6 +90,9 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error('[AbacateRefund] Erro:', error);
-        return res.status(500).json({ error: 'Erro ao processar estorno.' });
+        return res.status(500).json({ 
+            error: error.message || 'Erro ao processar estorno.',
+            details: error.toString()
+        });
     }
 }
