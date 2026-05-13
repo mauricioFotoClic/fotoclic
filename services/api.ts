@@ -842,6 +842,7 @@ export const api = {
 
     if (error) {
       console.error("Error fetching photographer stats via RPC:", error);
+      alert("Error RPC Photographers: " + JSON.stringify(error));
       throw error;
     }
 
@@ -1275,6 +1276,7 @@ export const api = {
 
     if (error) {
       console.warn("Error fetching customers:", error);
+      alert("Error Customers: " + JSON.stringify(error));
       return [];
     }
 
