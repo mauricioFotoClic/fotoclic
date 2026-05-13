@@ -22,6 +22,13 @@ const FindPhotosPage: React.FC<FindPhotosPageProps> = ({ onNavigate, initialSear
   const [filterCity, setFilterCity] = useState('');
   const [filterDate, setFilterDate] = useState('');
 
+  // Sync searchTerm with URL prop changes
+  useEffect(() => {
+    if (initialSearch !== undefined) {
+      setSearchTerm(initialSearch);
+    }
+  }, [initialSearch]);
+
   useEffect(() => {
     Promise.all([
       api.getAllPublicEvents(),
@@ -67,16 +74,17 @@ const FindPhotosPage: React.FC<FindPhotosPageProps> = ({ onNavigate, initialSear
 
   const filteredEvents = useMemo(() => {
     let result = events;
+    const cleanSearch = searchTerm.trim();
 
-    if (searchTerm.trim()) {
+    if (cleanSearch) {
       result = result.filter(e => {
         const category = categories[e.category_id];
         const photographer = photographers[e.photographer_id];
-        return includesNormalized(e.name, searchTerm) ||
-          (e.location && includesNormalized(e.location, searchTerm)) ||
-          (e.description && includesNormalized(e.description, searchTerm)) ||
-          (category && includesNormalized(category.name, searchTerm)) ||
-          (photographer && includesNormalized(photographer.name, searchTerm));
+        return includesNormalized(e.name, cleanSearch) ||
+          (e.location && includesNormalized(e.location, cleanSearch)) ||
+          (e.description && includesNormalized(e.description, cleanSearch)) ||
+          (category && includesNormalized(category.name, cleanSearch)) ||
+          (photographer && includesNormalized(photographer.name, cleanSearch));
       });
     }
 
@@ -86,7 +94,7 @@ const FindPhotosPage: React.FC<FindPhotosPageProps> = ({ onNavigate, initialSear
 
     if (filterCity) {
       result = result.filter(e =>
-        e.location && e.location.toLowerCase().includes(filterCity.toLowerCase())
+        e.location && includesNormalized(e.location, filterCity)
       );
     }
 
