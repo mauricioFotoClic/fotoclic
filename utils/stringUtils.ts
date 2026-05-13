@@ -15,7 +15,8 @@ export const normalizeString = (str: string): string => {
 /**
  * Checks if a search term is contained within a target string, ignoring accents and case.
  */
-export const includesNormalized = (target: string, search: string): boolean => {
-  if (!target || !search) return false;
+export const includesNormalized = (target?: string | null, search?: string | null): boolean => {
+  if (!search || search.trim() === '') return true;
+  if (!target) return false;
   return normalizeString(target).includes(normalizeString(search));
 };

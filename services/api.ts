@@ -1276,11 +1276,8 @@ export const api = {
 
     if (error) {
       console.warn("Error fetching customers:", error);
-      alert("Error Customers: " + JSON.stringify(error));
       return [];
     }
-    
-    alert("Users length from DB: " + (users ? users.length : "null"));
 
     if (!users || users.length === 0) return [];
 
