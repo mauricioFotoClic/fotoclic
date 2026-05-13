@@ -267,7 +267,8 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
                                             const checkout = await api.createAbacateCheckout(items, {
                                                 name: currentUser.name,
                                                 email: currentUser.email,
-                                                taxId: customerTaxId.replace(/\D/g, '') // Remove pontos e traços
+                                                taxId: customerTaxId.replace(/\D/g, ''), // Remove pontos e traços
+                                                phone: currentUser.phone
                                             }, {
                                                 cartIds: cartItemIds,
                                                 couponCode: appliedCoupon?.code,

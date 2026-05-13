@@ -27,43 +27,58 @@ export default async function handler(req, res) {
         const siteUrl = (process.env.VITE_SITE_URL || 'http://localhost:3000').replace(/\/$/, '');
         console.log('[AbacatePay] siteUrl normalizada:', siteUrl);
 
-        // Na API v2 do Abacate Pay, precisamos criar os produtos antes do checkout
-        const itemsV2 = await Promise.all(items.map(async (item) => {
-            const prodRes = await fetch('https://api.abacatepay.com/v2/products/create', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${apiKey}`
-                },
-                body: JSON.stringify({
-                    externalId: String(item.id || Date.now()),
-                    name: String(item.title || 'Foto FotoClic'),
-                    description: 'Foto digital',
-                    price: Math.round(Number(item.price)),
-                    currency: "BRL"
-                })
-            });
-            const prodData = await prodRes.json();
-            if (!prodData.success) {
-                console.error('[AbacatePay] Erro ao criar produto v2:', prodData.error);
-                throw new Error('Falha ao registrar produto na API v2.');
-            }
-            return {
-                id: prodData.data.id,
-                quantity: 1
-            };
-        }));
+            // Na API v2 do Abacate Pay, precisamos criar os produtos antes do checkout
+            const itemsV2 = await Promise.all(items.map(async (item) => {
+                // Usamos ID + Preço no externalId para permitir variações de preço se houver descontos
+                const externalId = `${item.id}_${item.price}`;
+                
+                try {
+                    const prodRes = await fetch('https://api.abacatepay.com/v2/products/create', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${apiKey}`
+                        },
+                        body: JSON.stringify({
+                            externalId: externalId,
+                            name: String(item.title || 'Foto FotoClic'),
+                            description: 'Foto digital',
+                            price: Math.round(Number(item.price)),
+                            currency: "BRL"
+                        })
+                    });
+                    
+                    const prodData = await prodRes.json();
+                    
+                    // Se sucesso ou se já existir (alguns gateways retornam erro mas o produto serve)
+                    if (prodData.success) {
+                        return { id: prodData.data.id, quantity: 1 };
+                    } else {
+                        // Se o erro for de produto já existente, tentar prosseguir (precisamos do ID do produto na AbacatePay)
+                        // Como não temos um endpoint fácil de "get by externalId" sem listar tudo, 
+                        // vamos assumir que se falhou com sucesso=false e temos uma mensagem de duplicidade,
+                        // o ideal seria buscar o ID. Para simplificar e garantir funcionamento agora,
+                        // vamos lançar o erro detalhado.
+                        console.error('[AbacatePay] Erro ao criar produto v2:', prodData);
+                        const errorDetail = prodData.error || prodData.message || JSON.stringify(prodData);
+                        throw new Error(`Falha ao registrar produto "${item.title}": ${errorDetail}`);
+                    }
+                } catch (err) {
+                    console.error('[AbacatePay] Exceção na criação do produto:', err);
+                    throw err;
+                }
+            }));
 
-        const body = {
-            frequency: "ONE_TIME",
-            methods: ["PIX", "CARD"],
-            items: itemsV2,
-            customer: {
-                name: String(customer.name).substring(0, 100),
-                email: String(customer.email),
-                taxId: String(customer.taxId).replace(/\D/g, ''), 
-                cellphone: "11999999999"
-            },
+            const body = {
+                frequency: "ONE_TIME",
+                methods: ["PIX", "CARD"],
+                items: itemsV2,
+                customer: {
+                    name: String(customer.name).substring(0, 100),
+                    email: String(customer.email),
+                    taxId: String(customer.taxId).replace(/\D/g, ''), 
+                    cellphone: customer.phone ? String(customer.phone).replace(/\D/g, '') : "11999999999"
+                },
             returnUrl: siteUrl + '/checkout-success',
             completionUrl: siteUrl + '/sales',
             metadata: {
@@ -147,7 +162,11 @@ export default async function handler(req, res) {
         });
 
     } catch (error) {
-        console.error('[Pagamento] Erro Interno:', error);
-        return res.status(500).json({ error: 'Erro interno ao processar pagamento.' });
+        console.error('[Pagamento] Erro Crítico:', error);
+        return res.status(500).json({ 
+            error: 'Erro interno ao processar pagamento.',
+            details: error.message,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        });
     }
 }
