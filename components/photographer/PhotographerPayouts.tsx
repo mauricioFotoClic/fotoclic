@@ -287,6 +287,7 @@ const PhotographerPayouts: React.FC<PhotographerPayoutsProps> = ({ user }) => {
                         O pagamento é feito exclusivamente via PIX para garantir agilidade e segurança.
                     </div>
 
+                    <div className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-neutral-700 mb-1">Tipo de Chave PIX</label>
