@@ -119,11 +119,12 @@ export default async function handler(req, res) {
                             const { error: saleError } = await supabaseAdmin.from('sales').insert({
                                 photo_id: photo.id,
                                 buyer_id: userId,
+                                buyer_name: metadata.customerName || null,
                                 price: finalPrice,
                                 commission: commissionValue,
                                 photographer_id: photo.photographer_id,
                                 commission_rate: rate,
-                                sale_date: new Date()
+                                sale_date: new Date().toISOString()
                             });
 
                             if (saleError) {
