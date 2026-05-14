@@ -4,7 +4,7 @@ import type { User } from '../../types';
 import { useToast } from '../../contexts/ToastContext';
 import Logo from '../Logo';
 
-type PhotographerView = 'dashboard' | 'photos' | 'sales' | 'payouts' | 'profile' | 'portfolio-preview' | 'coupons' | 'abandoned-carts' | 'discounts' | 'communications';
+type PhotographerView = 'dashboard' | 'photos' | 'sales' | 'payouts' | 'profile' | 'portfolio-preview' | 'coupons' | 'abandoned-carts' | 'discounts' | 'communications' | 'business-card';
 
 interface PhotographerSidebarProps {
     user: User;
@@ -68,6 +68,7 @@ const TicketIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" heig
 const LogOutIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>;
 const CartIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>;
 const PercentIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="5" x2="5" y2="19"></line><circle cx="6.5" cy="6.5" r="2.5"></circle><circle cx="17.5" cy="17.5" r="2.5"></circle></svg>;
+const QrCodeIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><rect x="7" y="7" width="3" height="3"></rect><rect x="14" y="7" width="3" height="3"></rect><rect x="7" y="14" width="3" height="3"></rect><rect x="14" y="14" width="3" height="3"></rect></svg>;
 import { X } from 'lucide-react';
 
 const PhotographerSidebar: React.FC<PhotographerSidebarProps> = ({ user, activeView, setView, onLogout, isOpen, onClose, abandonedCartsCount }) => {
@@ -148,6 +149,7 @@ const PhotographerSidebar: React.FC<PhotographerSidebarProps> = ({ user, activeV
                         <SectionLabel label="Marketing" />
                         <NavLink label="Cupons" isActive={activeView === 'coupons'} onClick={() => { setView('coupons'); onClose(); }} icon={<TicketIcon />} />
                         <NavLink label="Descontos Progressivos" isActive={activeView === 'discounts'} onClick={() => { setView('discounts'); onClose(); }} icon={<PercentIcon />} />
+                        <NavLink label="Cartão Virtual" isActive={activeView === 'business-card'} onClick={() => { setView('business-card'); onClose(); }} icon={<QrCodeIcon />} />
                         <NavLink label="Mensagens" isActive={activeView === 'communications'} onClick={() => { setView('communications'); onClose(); }} icon={<UserIcon />} />
 
                         <SectionLabel label="Conta" />

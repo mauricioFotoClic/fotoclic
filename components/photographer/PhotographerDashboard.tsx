@@ -126,8 +126,21 @@ const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({ user, set
 
     return (
         <div>
-            <h1 className="text-3xl font-display font-bold text-primary-dark mb-2">Bem-vindo, {user.name}!</h1>
-            <p className="text-neutral-500 mb-6">Este é o resumo da sua atividade na plataforma.</p>
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+                <div>
+                    <h1 className="text-3xl font-display font-bold text-primary-dark mb-2">Bem-vindo, {user.name}!</h1>
+                    <p className="text-neutral-500">Este é o resumo da sua atividade na plataforma.</p>
+                </div>
+                <button
+                    onClick={() => setView('business-card')}
+                    className="flex items-center px-4 py-2 bg-neutral-900 text-white rounded-xl font-bold shadow-lg hover:bg-neutral-800 transition-all transform hover:scale-105"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                    </svg>
+                    Meu Cartão Virtual
+                </button>
+            </div>
 
             {(!user.avatar_url || !user.banner_url) && (
                 <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4 rounded-r-lg shadow-sm">
