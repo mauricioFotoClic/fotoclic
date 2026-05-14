@@ -179,28 +179,30 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
         }
     };
 
-    const handleDeleteEvent = async (eventId: string, e: React.MouseEvent) => {
-        e.stopPropagation();
-
+    const handleDeleteEvent = async (event: PhotoEvent, photoCount: number) => {
         const isConfirmed = await confirm({
-            title: "Excluir Evento",
-            message: "Você tem certeza que deseja excluir este evento? Todas as fotos dentro dele também serão excluídas.",
-            confirmText: "Excluir",
+            title: "Excluir Evento Permanentemente",
+            message: `Você tem certeza que deseja excluir o evento "${event.name}"? Esta ação removerá o evento e todas as ${photoCount} fotos vinculadas a ele. Esta ação não pode ser desfeita.`,
+            confirmText: "Sim, excluir tudo",
+            cancelText: "Cancelar",
             variant: "danger"
         });
 
         if (!isConfirmed) return;
 
         try {
-            const success = await api.deleteEvent(eventId);
+            setLoading(true);
+            const success = await api.deleteEvent(event.id);
             if (success) {
-                setEvents(prev => prev.filter(ev => ev.id !== eventId));
-                setPhotos(prev => prev.filter(p => p.event_id !== eventId));
-                showToast("Evento excluído com sucesso.", "success");
+                setEvents(prev => prev.filter(ev => ev.id !== event.id));
+                setPhotos(prev => prev.filter(p => p.event_id !== event.id));
+                showToast("Evento e fotos excluídos com sucesso.", "success");
             }
         } catch (error) {
             console.error(error);
-            showToast("Erro ao excluir evento.", "error");
+            showToast("Erro ao excluir evento. Verifique se existem fotos vinculadas que impedem a exclusão.", "error");
+        } finally {
+            setLoading(false);
         }
     }
 
@@ -586,7 +588,11 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                                                     <EditIcon />
                                                 </button>
                                                 <button
-                                                    onClick={(e) => handleDeleteEvent(event.id, e)}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        e.preventDefault();
+                                                        handleDeleteEvent(event, eventPhotos.length);
+                                                    }}
                                                     className="p-2 bg-white rounded-full text-red-600 hover:bg-red-50 shadow-sm transition-transform hover:scale-110"
                                                     title="Excluir Evento"
                                                 >
