@@ -26,6 +26,7 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
     const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [customerTaxId, setCustomerTaxId] = useState('');
+    const [termsAccepted, setTermsAccepted] = useState(false);
 
     const formatCPF = (value: string) => {
         return value
@@ -234,11 +235,26 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
                                     </p>
                                 </div>
 
-                                {paymentError && (
-                                    <div className="p-3 bg-red-50 border border-red-100 rounded-lg text-red-600 text-xs">
-                                        {paymentError}
                                     </div>
                                 )}
+
+                                <div className="space-y-4">
+                                    <label className="flex items-start gap-3 p-4 bg-neutral-50 rounded-xl border border-neutral-100 cursor-pointer group hover:bg-neutral-100 transition-colors">
+                                        <div className="flex items-center h-5">
+                                            <input
+                                                id="terms-checkbox"
+                                                type="checkbox"
+                                                checked={termsAccepted}
+                                                onChange={(e) => setTermsAccepted(e.target.checked)}
+                                                className="w-4 h-4 text-primary border-neutral-300 rounded focus:ring-primary/20 cursor-pointer"
+                                            />
+                                        </div>
+                                        <div className="text-xs leading-relaxed text-neutral-600 select-none">
+                                            Li e concordo com os <button onClick={(e) => { e.preventDefault(); onNavigate({ name: 'terms' }); }} className="text-primary font-semibold hover:underline">termos de compra de produto digital</button>. 
+                                            Compreendo que a liberação é imediata e não haverá reembolso após o download da imagem.
+                                        </div>
+                                    </label>
+                                </div>
 
                                 <button
                                     onClick={async () => {
@@ -249,6 +265,11 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
 
                                         if (customerTaxId.replace(/\D/g, '').length !== 11) {
                                             setPaymentError("Por favor, informe um CPF válido.");
+                                            return;
+                                        }
+
+                                        if (!termsAccepted) {
+                                            setPaymentError("Você precisa aceitar os termos de compra digital para continuar.");
                                             return;
                                         }
 
@@ -287,7 +308,8 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
                                             }, {
                                                 cartIds: cartItemIds,
                                                 couponCode: appliedCoupon?.code,
-                                                userId: currentUser.id
+                                                userId: currentUser.id,
+                                                termsAccepted: termsAccepted
                                             });
 
                                             if (checkout.url) {

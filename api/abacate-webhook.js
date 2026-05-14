@@ -63,6 +63,44 @@ export default async function handler(req, res) {
                 ? checkout.methods[0]
                 : (payerInfo?.cardBrand ? 'CARD' : 'PIX');
 
+            // 1. Garantir que o Cliente (Customer) exista no nosso sistema (tabela users)
+            let userId = 'guest-id';
+            const customerEmail = checkout.customer?.email || payerInfo?.email;
+            const customerName = checkout.customer?.name || payerInfo?.name || 'Cliente FotoClic';
+
+            if (customerEmail) {
+                // Verificar se o usuário já existe
+                const { data: existingUser } = await supabaseAdmin
+                    .from('users')
+                    .select('id')
+                    .eq('email', customerEmail)
+                    .maybeSingle();
+
+                if (existingUser) {
+                    userId = existingUser.id;
+                    console.log('[AbacatePay Webhook] Usuário já existente encontrado:', userId);
+                } else {
+                    // Criar novo usuário com role 'customer'
+                    const { data: newUser, error: createError } = await supabaseAdmin
+                        .from('users')
+                        .insert({
+                            email: customerEmail,
+                            name: customerName,
+                            role: 'customer',
+                            is_active: true
+                        })
+                        .select('id')
+                        .single();
+
+                    if (!createError && newUser) {
+                        userId = newUser.id;
+                        console.log('[AbacatePay Webhook] Novo cliente cadastrado no sistema:', userId);
+                    } else {
+                        console.error('[AbacatePay Webhook] Erro ao cadastrar novo cliente:', createError);
+                    }
+                }
+            }
+
             const { data: billingRecord, error: updateError } = await supabaseAdmin
                 .from('abacate_pay_billings')
                 .update({ status: 'PAID', payment_method: method })
@@ -95,7 +133,8 @@ export default async function handler(req, res) {
             if (metadata && Object.keys(metadata).length > 0) {
                 try {
                     const cartIds = metadata.cartIds || [];
-                    const userId = metadata.userId || 'guest-id';
+                    // Usamos o userId que acabamos de encontrar ou criar
+                    const finalUserId = userId !== 'guest-id' ? userId : (metadata.userId || 'guest-id');
 
                     if (cartIds.length > 0) {
                         const { data: photos, error: photosError } = await supabaseAdmin
@@ -131,13 +170,14 @@ export default async function handler(req, res) {
 
                                 const { error: saleError } = await supabaseAdmin.from('sales').insert({
                                     photo_id: photo.id,
-                                    buyer_id: userId,
-                                    buyer_name: metadata.customerName || null,
+                                    buyer_id: finalUserId,
+                                    buyer_name: customerName || metadata.customerName || null,
                                     price: finalPrice,
                                     commission: commissionValue,
                                     photographer_id: photo.photographer_id,
                                     commission_rate: rate,
-                                    sale_date: new Date().toISOString()
+                                    sale_date: new Date().toISOString(),
+                                    billing_id: checkout.id
                                 });
 
                                 if (saleError) {
@@ -168,11 +208,24 @@ export default async function handler(req, res) {
         if (body.event === 'checkout.refunded') {
             const checkout = body.data?.checkout;
             if (checkout?.id) {
+                // 1. Atualizar o billing
                 await supabaseAdmin
                     .from('abacate_pay_billings')
                     .update({ status: 'REFUNDED' })
                     .eq('billing_id', checkout.id);
-                console.log('[AbacatePay Webhook] Estorno registrado para checkout:', checkout.id);
+                
+                // 2. Atualizar as Vendas vinculadas para status 'refunded' (Anti-Fraude)
+                // Isso fará com que o valor seja subtraído do saldo disponível na View
+                const { error: saleRefundError } = await supabaseAdmin
+                    .from('sales')
+                    .update({ status: 'refunded' })
+                    .eq('billing_id', checkout.id);
+
+                if (saleRefundError) {
+                    console.error('[AbacatePay Webhook] Erro ao estornar vendas no banco:', saleRefundError);
+                } else {
+                    console.log('[AbacatePay Webhook] Vendas marcadas como estornadas para billing:', checkout.id);
+                }
             }
         }
 

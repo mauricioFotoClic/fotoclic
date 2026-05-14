@@ -165,6 +165,7 @@ export interface Sale {
   sale_date: string;
   price: number;
   commission: number;
+  status?: string;
 }
 
 export interface Payout {

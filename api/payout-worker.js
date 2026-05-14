@@ -44,24 +44,24 @@ export default async function handler(req, res) {
       console.log(`Processando saque para ${user.email}: R$ ${photographer.balance_available}`);
 
       try {
-        // 3. Call AbacatePay API to send PIX
-        const abacateResponse = await fetch('https://api.abacatepay.com/v1/transfers', {
+        // 3. Call AbacatePay API to send Payout (V2)
+        const abacateResponse = await fetch('https://api.abacatepay.com/v2/payouts/create', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${ABACATE_PAY_API_KEY}`,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            amount: Math.round(photographer.balance_available * 100), // in cents
+            amount: Math.round(photographer.balance_available * 100), // em centavos
             pixKey: user.pix_key,
             pixKeyType: user.pix_key_type,
-            description: `Saque FotoClic - ${new Date().toLocaleDateString('pt-BR')}`
+            externalId: `payout_${photographer.photographer_id}_${Date.now()}`
           })
         });
 
         const abacateData = await abacateResponse.json();
 
-        if (!abacateResponse.ok) {
+        if (!abacateResponse.ok || !abacateData.success) {
           throw new Error(`AbacatePay Error: ${JSON.stringify(abacateData)}`);
         }
 

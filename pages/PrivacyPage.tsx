@@ -95,6 +95,11 @@ const PrivacyPage: React.FC = () => {
                         Você pode desativar os cookies nas configurações do seu navegador, porém isso pode impactar algumas funcionalidades da plataforma.
                     </p>
 
+                    <h2>5. Produtos Digitais e Reembolso</h2>
+                    <p>
+                        O FotoClic comercializa produtos digitais com liberação imediata após a confirmação do pagamento. Devido à natureza digital do produto e à possibilidade de download imediato, não haverá reembolso dos valores pagos após o download da imagem, salvo exceções expressamente previstas em lei ou falhas técnicas comprovadas no arquivo.
+                    </p>
+
                 </div>
             </section>
         </div>

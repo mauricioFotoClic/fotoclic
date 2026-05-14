@@ -1,33 +1,22 @@
-
-import dotenv from 'dotenv';
+import 'dotenv/config';
 import { createClient } from '@supabase/supabase-js';
 
+import dotenv from 'dotenv';
 dotenv.config({ path: '.env.local' });
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-if (!supabaseUrl || !supabaseKey) {
-    console.error('Missing Supabase credentials');
-    process.exit(1);
-}
-
-const supabase = createClient(supabaseUrl, supabaseKey);
-
 async function checkBillings() {
-    const { data, error } = await supabase
-        .from('abacate_pay_billings')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(5);
+  const supabase = createClient(
+    process.env.VITE_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+  );
 
-    if (error) {
-        console.error('Error fetching billings:', error);
-        return;
-    }
-
-    console.log('Recent Billings:');
-    console.log(JSON.stringify(data, null, 2));
+  console.log('--- Colunas da tabela abacate_pay_billings ---');
+  const { data, error } = await supabase.from('abacate_pay_billings').select('*').limit(1);
+  if (error) {
+    console.error('Erro:', error);
+  } else {
+    console.log('Registro exemplo:', JSON.stringify(data[0] || {}, null, 2));
+  }
 }
 
 checkBillings();

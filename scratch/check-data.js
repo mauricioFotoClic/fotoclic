@@ -1,27 +1,24 @@
+import 'dotenv/config';
 import { createClient } from '@supabase/supabase-js';
+
 import dotenv from 'dotenv';
-import path from 'path';
-import { fileURLToPath } from 'url';
+dotenv.config({ path: '.env.local' });
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: path.join(__dirname, '../.env.local') });
+async function checkData() {
+  const supabase = createClient(
+    process.env.VITE_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+  );
 
-async function checkRealData() {
-    const supabaseUrl = process.env.VITE_SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+  console.log('--- Dados na tabela customers ---');
+  const { data: cust, error: custErr } = await supabase.from('customers').select('*').limit(1);
+  if (custErr) console.error('Customers Err:', custErr.message);
+  else console.log('Customer sample:', cust[0]);
 
-    const { data, error } = await supabase
-        .from('abacate_pay_billings')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(2);
-
-    if (error) {
-        console.error('ERRO:', error);
-    } else {
-        console.log('DADOS REAIS:', JSON.stringify(data, null, 2));
-    }
+  console.log('--- Dados na tabela buyers ---');
+  const { data: buy, error: buyErr } = await supabase.from('buyers').select('*').limit(1);
+  if (buyErr) console.error('Buyers Err:', buyErr.message);
+  else console.log('Buyer sample:', buy[0]);
 }
 
-checkRealData();
+checkData();

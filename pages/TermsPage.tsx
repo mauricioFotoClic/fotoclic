@@ -70,6 +70,14 @@ const TermsPage: React.FC = () => {
                     <p>
                         O FotoClic reserva-se o direito de suspender ou encerrar contas que violem estes Termos ou que comprometam a integridade da comunidade.
                     </p>
+
+                    <h2>5. Política de Reembolso e Produtos Digitais</h2>
+                    <p>
+                        As fotografias comercializadas no FotoClic são produtos digitais com liberação imediata após a confirmação do pagamento. Ao concluir a compra e realizar o download da imagem, o usuário declara estar ciente de que o serviço foi integralmente prestado.
+                    </p>
+                    <p>
+                        <strong>Não haverá reembolso</strong> após o download da imagem ter sido iniciado ou concluído, salvo em casos de defeitos técnicos insanáveis no arquivo digital ou outras exceções previstas na legislação de proteção ao consumidor.
+                    </p>
                 </div>
             </section>
         </div>

@@ -63,6 +63,12 @@ const PhotographerSales: React.FC<PhotographerSalesProps> = ({ user }) => {
                     const earning = sale.price - sale.commission;
                     return (
                         <div key={sale.id} className="bg-white rounded-lg border border-neutral-200 p-4">
+                            <div className="flex justify-between items-start mb-2">
+                                <p className="text-xs font-bold text-neutral-400 uppercase tracking-tighter">{sale.buyer_name || 'Cliente'}</p>
+                                {sale.status === 'refunded' && (
+                                    <span className="px-1.5 py-0.5 bg-red-100 text-red-700 text-[9px] font-bold rounded-full uppercase tracking-tighter">Reembolsado</span>
+                                )}
+                            </div>
                             {photo ? (
                                 <div className="flex items-center mb-3">
                                     <img src={photo.preview_url} alt={photo.title} className="w-14 h-10 object-cover rounded-md mr-3 flex-shrink-0" />
@@ -82,7 +88,7 @@ const PhotographerSales: React.FC<PhotographerSalesProps> = ({ user }) => {
                                 </div>
                                 <div className="bg-green-50 rounded-lg p-2 text-center">
                                     <p className="text-xs text-green-600 mb-1">Seu Ganho</p>
-                                    <p className="text-xs font-bold text-green-700">{earning.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+                                    <p className={`text-xs font-bold ${sale.status === 'refunded' ? 'text-red-400 line-through' : 'text-green-700'}`}>{earning.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
                                 </div>
                             </div>
                             <p className="text-xs text-neutral-400">{new Date(sale.sale_date).toLocaleDateString('pt-BR')}</p>
@@ -98,11 +104,12 @@ const PhotographerSales: React.FC<PhotographerSalesProps> = ({ user }) => {
                     <thead className="bg-neutral-100">
                         <tr>
                             <th className="p-4 text-left text-sm font-semibold text-neutral-600">ID da Venda</th>
+                            <th className="p-4 text-left text-sm font-semibold text-neutral-600">Comprador</th>
                             <th className="p-4 text-left text-sm font-semibold text-neutral-600">Foto Vendida</th>
                             <th className="p-4 text-left text-sm font-semibold text-neutral-600">Data</th>
-                            <th className="p-4 text-right text-sm font-semibold text-neutral-600">Preço de Venda</th>
-                            <th className="p-4 text-right text-sm font-semibold text-neutral-600">Comissão</th>
+                            <th className="p-4 text-right text-sm font-semibold text-neutral-600">Preço</th>
                             <th className="p-4 text-right text-sm font-semibold text-neutral-600">Seu Ganho</th>
+                            <th className="p-4 text-center text-sm font-semibold text-neutral-600">Status</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -112,6 +119,7 @@ const PhotographerSales: React.FC<PhotographerSalesProps> = ({ user }) => {
                              return (
                                 <tr key={sale.id} className={`border-t ${index % 2 === 0 ? 'bg-white' : 'bg-neutral-50'}`}>
                                     <td className="p-4 text-sm text-neutral-500">{sale.id}</td>
+                                    <td className="p-4 text-sm text-neutral-800 font-medium">{sale.buyer_name || 'Cliente'}</td>
                                     <td className="p-4 text-sm text-neutral-800 font-medium">
                                         {photo ? (
                                             <div className="flex items-center">
@@ -124,8 +132,16 @@ const PhotographerSales: React.FC<PhotographerSalesProps> = ({ user }) => {
                                     </td>
                                     <td className="p-4 text-sm text-neutral-500">{new Date(sale.sale_date).toLocaleDateString('pt-BR')}</td>
                                     <td className="p-4 text-sm text-neutral-800 text-right">{sale.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
-                                    <td className="p-4 text-sm text-red-600 text-right">- {sale.commission.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
-                                    <td className="p-4 text-sm text-green-600 font-bold text-right">{earning.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+                                    <td className={`p-4 text-sm font-bold text-right ${sale.status === 'refunded' ? 'text-red-500 line-through' : 'text-green-600'}`}>
+                                        {earning.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                    </td>
+                                    <td className="p-4 text-center">
+                                        {sale.status === 'refunded' ? (
+                                            <span className="px-2 py-1 bg-red-100 text-red-700 text-[10px] font-bold rounded-full uppercase tracking-tighter">Reembolsado</span>
+                                        ) : (
+                                            <span className="px-2 py-1 bg-green-100 text-green-700 text-[10px] font-bold rounded-full uppercase tracking-tighter">Sucesso</span>
+                                        )}
+                                    </td>
                                 </tr>
                             );
                         })}

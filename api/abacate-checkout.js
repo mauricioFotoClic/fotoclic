@@ -222,7 +222,8 @@ export default async function handler(req, res) {
                     customer_name: customer.name || 'Cliente FotoClic',
                     customer_email: customer.email,
                     customer_cpf: customer.taxId || '12345678909',
-                    metadata: metadata || {}
+                    metadata: metadata || {},
+                    terms_accepted: metadata?.termsAccepted || false
                 });
 
             if (dbError) {
