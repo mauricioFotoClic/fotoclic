@@ -49,6 +49,7 @@ const DollarSignIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" 
 const CreditCardIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>;
 const HeartIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>;
 const PercentIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="5" x2="5" y2="19"></line><circle cx="6.5" cy="6.5" r="2.5"></circle><circle cx="17.5" cy="17.5" r="2.5"></circle></svg>;
+const SpinnerIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin-slow"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"></path></svg>;
 
 const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({ user, setView, showToast }) => {
     const [balance, setBalance] = useState<PhotographerBalance | null>(null);
@@ -220,8 +221,34 @@ const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({ user, set
                         colorClass={`${abandonedCartsCount > 0 ? 'bg-orange-100 text-orange-600 animate-pulse' : 'bg-neutral-100 text-neutral-400'}`}
                     />
                 </div>
-                <StatCard title="Ganhos Totais" value={balance.totalEarnings.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} icon={<DollarSignIcon />} colorClass="bg-green-100 text-green-600" />
-                <StatCard title="Saldo Atual" value={balance.currentBalance.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} icon={<CreditCardIcon />} colorClass="bg-yellow-100 text-yellow-600" />
+                <StatCard 
+                    title="Ganhos Totais" 
+                    value={balance.totalEarnings.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} 
+                    icon={<DollarSignIcon />} 
+                    colorClass="bg-green-100 text-green-600" 
+                    tooltip="Soma total de todas as suas vendas líquidas (já descontada a comissão da plataforma) desde o início."
+                />
+                <StatCard 
+                    title="Saldo Pendente" 
+                    value={(balance.balance_pending || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} 
+                    icon={<SpinnerIcon />} 
+                    colorClass="bg-orange-100 text-orange-600" 
+                    tooltip="Vendas realizadas nos últimos 7 dias que ainda estão em período de retenção para segurança contra estornos."
+                />
+                <StatCard 
+                    title="Saldo Disponível" 
+                    value={(balance.balance_available || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} 
+                    icon={<CreditCardIcon />} 
+                    colorClass="bg-emerald-100 text-emerald-600" 
+                    tooltip="Saldo liberado para saque. O pagamento automático ocorre quando este valor atinge R$ 100,00."
+                />
+                <StatCard 
+                    title="Total Sacado" 
+                    value={(balance.totalPaid || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} 
+                    icon={<DollarSignIcon />} 
+                    colorClass="bg-blue-100 text-blue-600" 
+                    tooltip="Valor total que já foi transferido para sua conta PIX."
+                />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

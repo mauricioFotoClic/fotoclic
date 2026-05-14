@@ -33,6 +33,9 @@ export interface User {
   is_active: boolean;
   bulkDiscountRules?: BulkDiscountRule[];
   bank_info?: BankInfo;
+  pix_key?: string;
+  pix_key_type?: string;
+  payout_frequency?: 'diario' | 'semanal' | 'mensal';
   liability_waiver_accepted_at?: string;
   phone?: string;
   communication_templates?: {
@@ -182,6 +185,8 @@ export interface PhotographerBalance extends PhotographerWithStats {
   totalSalesGross: number;
   totalPlatformFees: number;
   likesCount: number;
+  balance_pending?: number;
+  balance_available?: number;
 }
 
 export interface CommissionSettings {

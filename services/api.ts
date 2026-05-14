@@ -63,6 +63,9 @@ const mapUser = (dbUser: any): User => {
     is_active: dbUser.is_active,
     bulkDiscountRules: dbUser.bulk_discount_rules || [],
     bank_info: dbUser.bank_info || undefined,
+    pix_key: dbUser.pix_key,
+    pix_key_type: dbUser.pix_key_type,
+    payout_frequency: dbUser.payout_frequency || 'diario',
     liability_waiver_accepted_at: dbUser.liability_waiver_accepted_at,
     phone: dbUser.phone,
     communication_templates: dbUser.communication_templates || undefined,
@@ -527,55 +530,55 @@ export const api = {
         };
       }
 
-      const sales = await api.getSalesByPhotographerId(photographerId);
+      // 1. Fetch from the new wallet summary view for financial metrics
+      const { data: walletData, error: walletError } = await supabase
+        .from("photographer_wallet_summary")
+        .select("*")
+        .eq("photographer_id", photographerId)
+        .single();
+
+      if (walletError && walletError.code !== "PGRST116") {
+        console.warn("Error fetching from photographer_wallet_summary:", walletError);
+      }
+
+      // 2. Fetch basic photo stats
       const { count: photoCount } = await supabase
         .from("photos")
         .select("*", { count: "exact", head: true })
         .eq("photographer_id", photographerId);
-      const { data: payouts } = await supabase
-        .from("payouts")
-        .select("amount, status")
-        .eq("photographer_id", photographerId);
 
-      const totalSalesGross = sales.reduce((sum, s) => sum + s.price, 0);
-      const totalPlatformFees = sales.reduce((sum, s) => sum + s.commission, 0);
-      const totalEarnings = totalSalesGross - totalPlatformFees;
-
-      const totalPaid = (payouts || [])
-        .filter((p) => p.status === "paid")
-        .reduce((sum, p) => sum + p.amount, 0);
-      const pendingAmount = (payouts || [])
-        .filter((p) => p.status === "pending" || p.status === "processing")
-        .reduce((sum, p) => sum + p.amount, 0);
-
-      const currentBalance = totalEarnings - totalPaid - pendingAmount;
-
-      // Recalculate likes count properly by summing 'likes_count' from all photos
-      const { data: photos } = await supabase
-        .from("photos")
-        .select("likes_count")
-        .eq("photographer_id", photographerId);
-      const totalLikes = photos
-        ? photos.reduce((sum, p) => sum + (p.likes_count || 0), 0)
-        : 0;
-
+      // 3. Get commission settings
       const settings = await api.getCommissionSettings();
       let effectiveRate = settings.defaultRate;
       if (settings.customRates && settings.customRates[photographerId] !== undefined) {
         effectiveRate = settings.customRates[photographerId];
       }
 
+      // 4. Fetch sales for detail counts if needed (or use walletData)
+      const sales = await api.getSalesByPhotographerId(photographerId);
+
+      // 5. Fetch likes
+      const { data: photoLikes } = await supabase
+        .from("photos")
+        .select("likes_count")
+        .eq("photographer_id", photographerId);
+      const totalLikes = photoLikes
+        ? photoLikes.reduce((sum, p) => sum + (p.likes_count || 0), 0)
+        : 0;
+
       return {
         ...user,
         photoCount: photoCount || 0,
         salesCount: sales.length,
-        commissionValue: totalPlatformFees,
+        commissionValue: walletData?.total_platform_fees || 0,
         commissionRate: effectiveRate,
-        totalSalesGross,
-        totalPlatformFees,
-        totalEarnings: totalEarnings,
-        totalPaid,
-        currentBalance,
+        totalSalesGross: walletData?.total_sales_gross || 0,
+        totalPlatformFees: walletData?.total_platform_fees || 0,
+        totalEarnings: (walletData?.balance_pending || 0) + (walletData?.balance_available || 0) + (walletData?.total_withdrawn || 0),
+        totalPaid: walletData?.total_withdrawn || 0,
+        currentBalance: walletData?.balance_available || 0,
+        balance_pending: walletData?.balance_pending || 0,
+        balance_available: walletData?.balance_available || 0,
         likesCount: totalLikes,
         avgRating: 0,
         reviewCount: 0,
@@ -2233,11 +2236,16 @@ export const api = {
   },
   updateBankInfo: async (
     userId: string,
-    bankInfo: BankInfo,
+    bankInfo: BankInfo & { payoutFrequency?: string },
   ): Promise<boolean> => {
     const { error } = await supabase
       .from("users")
-      .update({ bank_info: bankInfo })
+      .update({ 
+        bank_info: bankInfo, // Keep for legacy
+        pix_key: bankInfo.pixKey,
+        pix_key_type: bankInfo.pixKeyType,
+        payout_frequency: bankInfo.payoutFrequency || 'diario'
+      })
       .eq("id", userId);
     if (error) throw error;
     return true;

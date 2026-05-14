@@ -15,5 +15,11 @@
       "source": "/(.*)",
       "destination": "/"
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/payout-worker",
+      "schedule": "0 0 * * *"
+    }
   ]
 }
