@@ -54,14 +54,29 @@ export default async function handler(req, res) {
                     if (prodData.success) {
                         return { id: prodData.data.id, quantity: 1 };
                     } else {
-                        // Se o erro for de produto já existente, tentar prosseguir (precisamos do ID do produto na AbacatePay)
-                        // Como não temos um endpoint fácil de "get by externalId" sem listar tudo, 
-                        // vamos assumir que se falhou com sucesso=false e temos uma mensagem de duplicidade,
-                        // o ideal seria buscar o ID. Para simplificar e garantir funcionamento agora,
-                        // vamos lançar o erro detalhado.
+                        const errorDetail = prodData.error || prodData.message || "";
+                        
+                        // Se o erro for de produto já existente, vamos buscar o ID dele na lista
+                        if (errorDetail.includes('already exists') || prodRes.status === 409 || prodRes.status === 400) {
+                            console.log(`[AbacatePay] Produto "${item.title}" já existe. Buscando ID...`);
+                            
+                            const listRes = await fetch('https://api.abacatepay.com/v2/products/list', {
+                                method: 'GET',
+                                headers: { 'Authorization': `Bearer ${apiKey}` }
+                            });
+                            
+                            const listData = await listRes.json();
+                            if (listData.success && Array.isArray(listData.data)) {
+                                const existingProd = listData.data.find(p => p.externalId === externalId);
+                                if (existingProd) {
+                                    console.log(`[AbacatePay] ID do produto existente encontrado:`, existingProd.id);
+                                    return { id: existingProd.id, quantity: 1 };
+                                }
+                            }
+                        }
+
                         console.error('[AbacatePay] Erro ao criar produto v2:', prodData);
-                        const errorDetail = prodData.error || prodData.message || JSON.stringify(prodData);
-                        throw new Error(`Falha ao registrar produto "${item.title}": ${errorDetail}`);
+                        throw new Error(`Falha ao registrar produto "${item.title}": ${errorDetail || JSON.stringify(prodData)}`);
                     }
                 } catch (err) {
                     console.error('[AbacatePay] Exceção na criação do produto:', err);
