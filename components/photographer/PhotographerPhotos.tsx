@@ -560,49 +560,60 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                                 return (
                                     <div
                                         key={event.id}
-                                        className="bg-white rounded-xl shadow-sm border border-neutral-100 overflow-hidden hover:shadow-md transition-shadow cursor-pointer group"
-                                        onClick={() => { setSelectedEvent(event); setView('photos'); }}
+                                        className="bg-white rounded-xl shadow-sm border border-neutral-100 overflow-hidden hover:shadow-md transition-shadow group relative"
                                     >
-                                        <div className="h-40 bg-neutral-200 relative">
+                                        {/* Área Clicável: Imagem */}
+                                        <div 
+                                            className="h-40 bg-neutral-200 relative cursor-pointer overflow-hidden"
+                                            onClick={() => { setSelectedEvent(event); setView('photos'); }}
+                                        >
                                             {event.cover_photo_url || eventPhotos.length > 0 ? (
                                                 <WatermarkedImage
                                                     src={getOptimizedImageUrl(event.cover_photo_url || eventPhotos[0].preview_url, 600, 75)}
                                                     alt="Capa"
-                                                    className="w-full h-full object-cover"
+                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                                 />
                                             ) : (
                                                 <div className="w-full h-full flex items-center justify-center text-neutral-400">
                                                     <FolderIcon />
                                                 </div>
                                             )}
-                                            <div className="absolute top-2 right-2 transition-opacity flex gap-2">
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setEditingEvent(event);
-                                                        setIsEditEventModalOpen(true);
-                                                    }}
-                                                    className="p-2 bg-white rounded-full text-primary-dark hover:bg-primary/10 shadow-sm transition-transform hover:scale-110"
-                                                    title="Editar Evento"
-                                                >
-                                                    <EditIcon />
-                                                </button>
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        e.preventDefault();
-                                                        handleDeleteEvent(event, eventPhotos.length);
-                                                    }}
-                                                    className="p-2 bg-white rounded-full text-red-600 hover:bg-red-50 shadow-sm transition-transform hover:scale-110"
-                                                    title="Excluir Evento"
-                                                >
-                                                    <TrashIcon />
-                                                </button>
-                                            </div>
                                         </div>
-                                        <div className="p-4">
+
+                                        {/* Área de Ações: Absoluta e isolada do clique pai */}
+                                        <div className="absolute top-2 right-2 flex gap-2 z-10">
+                                            <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setEditingEvent(event);
+                                                    setIsEditEventModalOpen(true);
+                                                }}
+                                                className="p-2 bg-white/90 backdrop-blur-sm rounded-full text-primary-dark hover:bg-white shadow-sm transition-all hover:scale-110 active:scale-95"
+                                                title="Editar Evento"
+                                            >
+                                                <EditIcon />
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleDeleteEvent(event, eventPhotos.length);
+                                                }}
+                                                className="p-2 bg-white/90 backdrop-blur-sm rounded-full text-red-600 hover:bg-white shadow-sm transition-all hover:scale-110 active:scale-95"
+                                                title="Excluir Evento"
+                                            >
+                                                <TrashIcon />
+                                            </button>
+                                        </div>
+
+                                        {/* Área Clicável: Informações */}
+                                        <div 
+                                            className="p-4 cursor-pointer"
+                                            onClick={() => { setSelectedEvent(event); setView('photos'); }}
+                                        >
                                             <div className="flex justify-between items-start mb-2">
-                                                <h3 className="font-bold text-lg text-neutral-800 line-clamp-1">{event.name}</h3>
+                                                <h3 className="font-bold text-lg text-neutral-800 line-clamp-1 group-hover:text-primary transition-colors">{event.name}</h3>
                                                 <span className="bg-neutral-100 text-neutral-600 text-xs px-2 py-1 rounded-full whitespace-nowrap">
                                                     {eventPhotos.length} fotos
                                                 </span>
