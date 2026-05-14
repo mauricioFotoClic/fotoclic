@@ -235,6 +235,9 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
                                     </p>
                                 </div>
 
+                                {paymentError && (
+                                    <div className="p-3 bg-red-50 border border-red-100 rounded-lg text-red-600 text-xs mb-4">
+                                        {paymentError}
                                     </div>
                                 )}
 
