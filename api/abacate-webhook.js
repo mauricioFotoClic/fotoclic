@@ -18,7 +18,7 @@ async function getRawBody(readable) {
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Método não permitido.' });
 
-    const signature = req.headers['x-webhook-signature'];
+    const signature = req.headers['x-abacatepay-signature'] || req.headers['x-webhook-signature'];
     const secret = process.env.ABACATEPAY_WEBHOOK_SECRET;
 
     try {
@@ -30,9 +30,12 @@ export default async function handler(req, res) {
             const hmac = crypto.createHmac('sha256', secret);
             const digest = hmac.update(rawBody).digest('hex');
             if (signature !== digest) {
-                console.error('[AbacatePay Webhook] Assinatura inválida!');
+                console.error('[AbacatePay Webhook] Assinatura inválida! Recebida:', signature, 'Calculada:', digest);
+                // Em produção, se a assinatura falhar mas o segredo existir, bloqueamos.
                 return res.status(401).json({ error: 'Assinatura inválida.' });
             }
+        } else if (secret) {
+            console.warn('[AbacatePay Webhook] Segredo configurado mas assinatura ausente no cabeçalho.');
         }
 
         console.log('[AbacatePay Webhook] Evento recebido:', body.event);
