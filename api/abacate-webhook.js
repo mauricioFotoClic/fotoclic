@@ -19,7 +19,7 @@ export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Método não permitido.' });
 
     const signature = req.headers['x-webhook-signature'];
-    const secret = process.env.ABACATEPAY_WEBHOOK_SECRET || process.env.ABACATEPAY_API_KEY;
+    const secret = process.env.ABACATEPAY_WEBHOOK_SECRET;
 
     try {
         const rawBody = await getRawBody(req);
@@ -76,63 +76,90 @@ export default async function handler(req, res) {
 
             // Se não encontrou o billingRecord (pode ter sido perdido em um restore de banco),
             // tentamos usar o metadata que vem diretamente no payload do webhook.
-            const metadata = billingRecord?.metadata || checkout.metadata || {};
+            let metadata = billingRecord?.metadata || checkout.metadata || {};
             
+            // Garantir que metadata seja um objeto (caso venha como string JSON do gateway)
+            if (typeof metadata === 'string') {
+                try {
+                    metadata = JSON.parse(metadata);
+                } catch (e) {
+                    console.error('[AbacatePay Webhook] Erro ao parsear metadata string:', e);
+                    metadata = {};
+                }
+            }
+
             if (!billingRecord) {
                 console.warn('[AbacatePay Webhook] Registro de cobrança não encontrado no banco (ID: ' + checkout.id + '). Usando metadata do payload para processar a venda.');
             }
 
             if (metadata && Object.keys(metadata).length > 0) {
-                const cartIds = metadata.cartIds || [];
-                const userId = metadata.userId || 'guest-id';
+                try {
+                    const cartIds = metadata.cartIds || [];
+                    const userId = metadata.userId || 'guest-id';
 
-                if (cartIds.length > 0) {
-                    const { data: photos } = await supabaseAdmin
-                        .from('photos')
-                        .select('*')
-                        .in('id', cartIds);
-
-                    if (photos && photos.length > 0) {
-                        const { data: settingsRow, error: settingsError } = await supabaseAdmin
-                            .from('system_settings')
+                    if (cartIds.length > 0) {
+                        const { data: photos, error: photosError } = await supabaseAdmin
+                            .from('photos')
                             .select('*')
-                            .single();
+                            .in('id', cartIds);
 
-                        if (settingsError) {
-                            console.warn('[AbacatePay Webhook] Erro ao buscar system_settings, usando taxas padrão:', settingsError.message);
-                        }
+                        if (photosError) throw new Error('Erro ao buscar fotos: ' + photosError.message);
 
-                        let settings = { 
-                            defaultRate: settingsRow?.commission_default_rate || 0.15, 
-                            customRates: settingsRow?.commission_custom_rates || {} 
-                        };
+                        if (photos && photos.length > 0) {
+                            const { data: settingsRow, error: settingsError } = await supabaseAdmin
+                                .from('system_settings')
+                                .select('*')
+                                .single();
 
-                        for (const photo of photos) {
-                            let rate = settings.defaultRate;
-                            if (settings.customRates?.[photo.photographer_id] !== undefined) {
-                                rate = settings.customRates[photo.photographer_id];
+                            if (settingsError) {
+                                console.warn('[AbacatePay Webhook] Erro ao buscar system_settings, usando taxas padrão:', settingsError.message);
                             }
 
-                            const finalPrice = photo.price;
-                            const commissionValue = finalPrice * rate;
+                            let settings = { 
+                                defaultRate: settingsRow?.commission_default_rate || 0.15, 
+                                customRates: settingsRow?.commission_custom_rates || {} 
+                            };
 
-                            const { error: saleError } = await supabaseAdmin.from('sales').insert({
-                                photo_id: photo.id,
-                                buyer_id: userId,
-                                buyer_name: metadata.customerName || null,
-                                price: finalPrice,
-                                commission: commissionValue,
-                                photographer_id: photo.photographer_id,
-                                commission_rate: rate,
-                                sale_date: new Date().toISOString()
-                            });
+                            for (const photo of photos) {
+                                let rate = settings.defaultRate;
+                                if (settings.customRates?.[photo.photographer_id] !== undefined) {
+                                    rate = settings.customRates[photo.photographer_id];
+                                }
 
-                            if (saleError) {
-                                console.error('[AbacatePay Webhook] Erro ao salvar venda:', saleError);
+                                const finalPrice = photo.price;
+                                const commissionValue = finalPrice * rate;
+
+                                const { error: saleError } = await supabaseAdmin.from('sales').insert({
+                                    photo_id: photo.id,
+                                    buyer_id: userId,
+                                    buyer_name: metadata.customerName || null,
+                                    price: finalPrice,
+                                    commission: commissionValue,
+                                    photographer_id: photo.photographer_id,
+                                    commission_rate: rate,
+                                    sale_date: new Date().toISOString()
+                                });
+
+                                if (saleError) {
+                                    throw new Error(`Erro ao salvar venda da foto ${photo.id}: ${saleError.message}`);
+                                }
                             }
+                            console.log('[AbacatePay Webhook] Vendas registradas com sucesso.');
                         }
-                        console.log('[AbacatePay Webhook] Vendas registradas com sucesso.');
                     }
+                } catch (processError) {
+                    console.error('[AbacatePay Webhook] Erro no processamento de vendas:', processError);
+                    // LOG DE ERRO NO BANCO: Atualiza o metadata da cobrança com o erro para debug
+                    await supabaseAdmin
+                        .from('abacate_pay_billings')
+                        .update({ 
+                            metadata: { 
+                                ...(metadata || {}), 
+                                webhook_error: processError.message,
+                                error_at: new Date().toISOString() 
+                            } 
+                        })
+                        .eq('billing_id', checkout.id);
                 }
             }
         }
