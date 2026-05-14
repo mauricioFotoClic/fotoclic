@@ -63,10 +63,12 @@ const PhotographerSales: React.FC<PhotographerSalesProps> = ({ user }) => {
                     const earning = sale.price - sale.commission;
                     return (
                         <div key={sale.id} className="bg-white rounded-lg border border-neutral-200 p-4">
-                            <div className="flex justify-between items-start mb-2">
-                                <p className="text-xs font-bold text-neutral-400 uppercase tracking-tighter">{sale.buyer_name || 'Cliente'}</p>
+                            <div className="flex justify-between items-start mb-2 gap-2">
+                                <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-tighter truncate max-w-[150px]">
+                                    {sale.buyer_name || 'Cliente'}
+                                </p>
                                 {sale.status === 'refunded' && (
-                                    <span className="px-1.5 py-0.5 bg-red-100 text-red-700 text-[9px] font-bold rounded-full uppercase tracking-tighter">Reembolsado</span>
+                                    <span className="px-1.5 py-0.5 bg-red-100 text-red-700 text-[9px] font-bold rounded-full uppercase tracking-tighter flex-shrink-0">Reembolsado</span>
                                 )}
                             </div>
                             {photo ? (
