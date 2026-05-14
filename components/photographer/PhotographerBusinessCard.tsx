@@ -85,8 +85,9 @@ const PhotographerBusinessCard: React.FC<PhotographerBusinessCardProps> = ({ use
                             <Logo size={24} useImage={true} dark={true} />
                         </div>
 
+                        {/* Foto e Nome */}
                         <div className="flex flex-col items-center mb-6">
-                            <div className="w-28 h-28 rounded-full p-1 bg-white/20 backdrop-blur-md mb-4 shadow-xl">
+                            <div className="w-28 h-28 rounded-full p-1 bg-black/30 mb-4 shadow-xl">
                                 <img 
                                     src={user.avatar_url || 'https://via.placeholder.com/150'} 
                                     alt={user.name} 
@@ -95,21 +96,23 @@ const PhotographerBusinessCard: React.FC<PhotographerBusinessCardProps> = ({ use
                                 />
                             </div>
                             <h3 className="text-2xl font-display font-bold tracking-wide drop-shadow-md">{user.name}</h3>
-                            <div className="mt-1 px-3 py-0.5 bg-primary rounded-full text-[10px] font-bold uppercase tracking-wider shadow-sm">
+                            <div className="mt-2 px-4 py-1 bg-primary rounded-full text-[11px] font-bold uppercase tracking-wider shadow-sm whitespace-nowrap inline-block">
                                 Fotógrafo Profissional
                             </div>
                         </div>
 
-                        <div className="flex-grow"></div>
+                        {/* Espaço Flexível */}
+                        <div className="flex-grow min-h-[20px]"></div>
 
-                        <div className="flex flex-col items-center mb-8">
-                            <p className="text-[11px] font-medium mb-3 text-white/80 uppercase tracking-widest">
+                        {/* Seção do QR Code */}
+                        <div className="flex flex-col items-center mb-10">
+                            <p className="text-[11px] font-medium mb-4 text-white/80 uppercase tracking-widest">
                                 Escaneie para ver minhas fotos
                             </p>
-                            <div className="bg-white p-3 rounded-2xl shadow-2xl">
+                            <div className="bg-white p-4 rounded-2xl shadow-2xl">
                                 <QRCodeSVG 
                                     value={publicUrl}
-                                    size={150}
+                                    size={160}
                                     level="H"
                                     includeMargin={false}
                                     fgColor="#000000"
@@ -117,7 +120,8 @@ const PhotographerBusinessCard: React.FC<PhotographerBusinessCardProps> = ({ use
                             </div>
                         </div>
 
-                        <div className="border-t border-white/10 pt-4 mb-2">
+                        {/* Footer do Cartão */}
+                        <div className="border-t border-white/10 pt-4 pb-4">
                             <p className="text-[10px] text-white/40 tracking-[0.3em] uppercase font-bold">
                                 fotoclic.com.br
                             </p>
