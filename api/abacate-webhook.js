@@ -68,12 +68,21 @@ export default async function handler(req, res) {
                 .update({ status: 'PAID', payment_method: method })
                 .eq('billing_id', checkout.id)
                 .select()
-                .single();
+                .maybeSingle();
 
             if (updateError) {
                 console.error('[AbacatePay Webhook] Erro ao atualizar billing:', updateError);
-            } else if (billingRecord) {
-                const metadata = billingRecord.metadata || {};
+            }
+
+            // Se não encontrou o billingRecord (pode ter sido perdido em um restore de banco),
+            // tentamos usar o metadata que vem diretamente no payload do webhook.
+            const metadata = billingRecord?.metadata || checkout.metadata || {};
+            
+            if (!billingRecord) {
+                console.warn('[AbacatePay Webhook] Registro de cobrança não encontrado no banco (ID: ' + checkout.id + '). Usando metadata do payload para processar a venda.');
+            }
+
+            if (metadata && Object.keys(metadata).length > 0) {
                 const cartIds = metadata.cartIds || [];
                 const userId = metadata.userId || 'guest-id';
 

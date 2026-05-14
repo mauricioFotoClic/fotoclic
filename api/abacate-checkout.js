@@ -84,31 +84,61 @@ export default async function handler(req, res) {
                 }
             }));
 
-            // 1. Criar ou buscar o cliente no Abacate Pay (Padrão v2)
+        // 1. Criar ou buscar o cliente no Abacate Pay (Padrão v2)
         let customerId = null;
         try {
+            const customerPayload = {
+                name: String(customer.name).substring(0, 100),
+                email: String(customer.email),
+                taxId: String(customer.taxId || customer.cpf || '').replace(/\D/g, '').substring(0, 11),
+                cellphone: String(customer.phone || '').replace(/\D/g, '').substring(0, 15),
+            };
+
+            console.log('[AbacatePay] Criando/Buscando cliente:', customerPayload.email);
+
             const customerRes = await fetch('https://api.abacatepay.com/v2/customer/create', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${apiKey}`,
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    name: String(customer.name).substring(0, 100),
-                    email: String(customer.email),
-                    taxId: String(customer.taxId || customer.cpf || '').replace(/\D/g, '').substring(0, 11),
-                    cellphone: String(customer.phone || '').replace(/\D/g, '').substring(0, 15),
-                }),
+                body: JSON.stringify(customerPayload),
             });
             const customerData = await customerRes.json();
+            
             if (customerData.success && customerData.data?.id) {
                 customerId = customerData.data.id;
-                console.log('[AbacatePay] Cliente criado/encontrado:', customerId);
+                console.log('[AbacatePay] Cliente criado/encontrado com sucesso:', customerId);
             } else {
-                console.warn('[AbacatePay] Falha ao criar cliente (continuando sem ID):', customerData);
+                console.warn('[AbacatePay] Falha ao criar cliente, tentando buscar existente...', JSON.stringify(customerData));
+                
+                // Se falhou (provavelmente porque já existe), vamos listar para achar o ID
+                // Nota: O Abacate Pay v2 às vezes retorna o erro 400 se o cliente já existe
+                const listRes = await fetch('https://api.abacatepay.com/v2/customer/list', {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${apiKey}` }
+                });
+                const listData = await listRes.json();
+                
+                if (listData.success && Array.isArray(listData.data)) {
+                    // Busca por email ou taxId
+                    const existing = listData.data.find(c => 
+                        c.email === customerPayload.email || 
+                        c.taxId === customerPayload.taxId
+                    );
+                    
+                    if (existing) {
+                        customerId = existing.id;
+                        console.log('[AbacatePay] Cliente existente encontrado na lista:', customerId);
+                    }
+                }
+                
+                if (!customerId) {
+                    console.error('[AbacatePay] Não foi possível obter o customerId após busca.', listData);
+                }
             }
         } catch (err) {
-            console.error('[AbacatePay] Erro na criação de cliente:', err);
+            console.error('[AbacatePay] Erro crítico na fase de cliente:', err);
         }
 
         const body = {
@@ -117,16 +147,20 @@ export default async function handler(req, res) {
             items: itemsV2,
             returnUrl: siteUrl + '/checkout-success',
             completionUrl: siteUrl + '/sales',
-            customerId: customerId, // Aqui vinculamos o cliente criado
             metadata: {
+                ...(metadata || {}), // Preserva o metadata vindo do frontend (userId, couponCode, etc)
                 cartIds: items.map(i => i.id),
-                userId: customer.id || 'guest-id',
+                userId: metadata?.userId || customer.id || 'guest-id',
                 customerName: String(customer.name).substring(0, 50)
             }
         };
 
-        // Se não conseguimos o customerId, tentamos passar o objeto customer como fallback (v1 style)
-        if (!customerId) {
+        // Se conseguimos o customerId, passamos ele. 
+        // Caso contrário, tentamos passar o objeto customer como fallback (v1 style)
+        // MAS NUNCA os dois ao mesmo tempo ou customerId como null
+        if (customerId) {
+            body.customerId = customerId;
+        } else {
             body.customer = {
                 name: String(customer.name).substring(0, 100),
                 email: String(customer.email),
@@ -135,7 +169,7 @@ export default async function handler(req, res) {
             };
         }
 
-        console.log('[AbacatePay] Iniciando criação de cobrança V2...', body);
+        console.log('[AbacatePay] Iniciando criação de cobrança V2...', JSON.stringify(body, null, 2));
 
         const response = await fetch('https://api.abacatepay.com/v2/checkouts/create', {
             method: 'POST',
