@@ -12,15 +12,14 @@ const PhotographerBusinessCard: React.FC<PhotographerBusinessCardProps> = ({ use
     const cardRef = useRef<HTMLDivElement>(null);
     const [downloading, setDownloading] = useState(false);
 
-    // Link para a página pública do fotógrafo
-    const publicUrl = `${window.location.origin}/photographer/${user.id}`;
+    // Link para o portfólio público do fotógrafo (corrigido para /portfolio/)
+    const publicUrl = `${window.location.origin}/portfolio/${user.id}`;
 
     const handleDownload = async () => {
         if (!cardRef.current) return;
         
         try {
             setDownloading(true);
-            // Pequeno delay para garantir que tudo renderizou
             await new Promise(resolve => setTimeout(resolve, 100));
 
             const dataUrl = await toPng(cardRef.current, { 
@@ -63,7 +62,7 @@ const PhotographerBusinessCard: React.FC<PhotographerBusinessCardProps> = ({ use
             <div className="mb-8 text-center">
                 <h2 className="text-2xl font-display font-bold text-primary-dark">Seu Cartão Virtual</h2>
                 <p className="text-neutral-500 mt-2">
-                    Personalizado com sua foto de perfil e banner.
+                    Este é o seu QR Code oficial. Compartilhe-o para que clientes acessem seu portfólio instantaneamente.
                 </p>
             </div>
 
@@ -78,18 +77,14 @@ const PhotographerBusinessCard: React.FC<PhotographerBusinessCardProps> = ({ use
                         backgroundPosition: 'center',
                     }}
                 >
-                    {/* Camada de Gradiente para leitura */}
                     <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/50 to-black/90"></div>
 
-                    {/* Conteúdo do Cartão */}
                     <div className="relative z-10 flex flex-col h-full p-6 text-center text-white">
                         
-                        {/* Logo no Topo */}
                         <div className="flex justify-center mb-10 mt-4">
                             <Logo size={24} useImage={true} dark={true} />
                         </div>
 
-                        {/* Foto e Nome */}
                         <div className="flex flex-col items-center mb-6">
                             <div className="w-28 h-28 rounded-full p-1 bg-white/20 backdrop-blur-md mb-4 shadow-xl">
                                 <img 
@@ -105,15 +100,13 @@ const PhotographerBusinessCard: React.FC<PhotographerBusinessCardProps> = ({ use
                             </div>
                         </div>
 
-                        {/* Espaço Flexível */}
                         <div className="flex-grow"></div>
 
-                        {/* Seção do QR Code */}
                         <div className="flex flex-col items-center mb-8">
                             <p className="text-[11px] font-medium mb-3 text-white/80 uppercase tracking-widest">
-                                Escaneie para comprar fotos
+                                Escaneie para ver minhas fotos
                             </p>
-                            <div className="bg-white p-3 rounded-2xl shadow-2xl transform hover:scale-105 transition-transform duration-300">
+                            <div className="bg-white p-3 rounded-2xl shadow-2xl">
                                 <QRCodeSVG 
                                     value={publicUrl}
                                     size={150}
@@ -124,7 +117,6 @@ const PhotographerBusinessCard: React.FC<PhotographerBusinessCardProps> = ({ use
                             </div>
                         </div>
 
-                        {/* Footer do Cartão */}
                         <div className="border-t border-white/10 pt-4 mb-2">
                             <p className="text-[10px] text-white/40 tracking-[0.3em] uppercase font-bold">
                                 fotoclic.com.br
@@ -134,7 +126,6 @@ const PhotographerBusinessCard: React.FC<PhotographerBusinessCardProps> = ({ use
                 </div>
             </div>
 
-            {/* Painel de Ações */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <button 
                     onClick={handleDownload}
@@ -167,13 +158,6 @@ const PhotographerBusinessCard: React.FC<PhotographerBusinessCardProps> = ({ use
                     </svg>
                     Compartilhar Link
                 </button>
-            </div>
-
-            <div className="mt-8 p-4 bg-primary/5 border border-primary/10 rounded-xl">
-                <p className="text-xs text-center text-primary-dark font-medium leading-relaxed">
-                    💡 <b>Dica:</b> O cartão utiliza automaticamente sua <b>foto de perfil</b> e sua <b>foto de capa</b>. 
-                    Se quiser mudar o visual do cartão, basta atualizar suas fotos na aba "Meu Perfil".
-                </p>
             </div>
         </div>
     );
