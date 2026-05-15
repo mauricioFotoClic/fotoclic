@@ -13,7 +13,13 @@ const PORT = 4242;
 
 // Middleware
 app.use(cors());
-app.use(express.json({ limit: '15mb' }));
+// We need rawBody for webhook signature verification
+app.use(express.json({ 
+    limit: '15mb',
+    verify: (req, res, buf) => {
+        req.rawBody = buf;
+    }
+}));
 
 // Helper to load Vercel API functions locally
 const apiDir = join(dirname(fileURLToPath(import.meta.url)), 'api');

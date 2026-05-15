@@ -22,7 +22,15 @@ export default async function handler(req, res) {
     const secret = process.env.ABACATEPAY_WEBHOOK_SECRET;
 
     try {
-        const rawBody = await getRawBody(req);
+        let rawBody;
+        if (req.rawBody) {
+            // Se vier do Express com middleware de rawBody
+            rawBody = req.rawBody;
+        } else {
+            // Se vier do Vercel/Next.js (Stream)
+            rawBody = await getRawBody(req);
+        }
+        
         const body = JSON.parse(rawBody.toString());
 
         // Verificação de Assinatura HMAC-SHA256
