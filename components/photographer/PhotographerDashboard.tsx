@@ -240,7 +240,7 @@ const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({ user, set
                     value={(balance.balance_available || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} 
                     icon={<CreditCardIcon />} 
                     colorClass="bg-emerald-100 text-emerald-600" 
-                    tooltip="Saldo liberado para saque. O pagamento automático ocorre quando este valor atinge R$ 100,00."
+                    tooltip="Saldo liberado para saque. O pagamento automático ocorre quando este valor atinge R$ 100,00. (Taxa de R$ 1,00 por saque)."
                 />
                 <StatCard 
                     title="Total Sacado" 
