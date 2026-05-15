@@ -59,6 +59,7 @@ const MainApp: React.FC = () => {
     const [isFaceSearchModalOpen, setIsFaceSearchModalOpen] = useState(false);
     const [selectedPhotoId, setSelectedPhotoId] = useState<string | null>(null);
     const [cartItems, setCartItems] = useState<string[]>([]);
+    const [isSessionLoading, setIsSessionLoading] = useState(true);
 
     // Animation State
     const [flyingImage, setFlyingImage] = useState<FlyingImage | null>(null);
@@ -104,6 +105,8 @@ const MainApp: React.FC = () => {
                 }
             } catch (error) {
                 console.warn("Failed to restore session:", error);
+            } finally {
+                setIsSessionLoading(false);
             }
         };
         restoreSession();
@@ -466,10 +469,13 @@ const MainApp: React.FC = () => {
             case 'pending-approval':
                 return <PendingApprovalPage onNavigate={handleNavigate} />;
             case 'admin':
+                if (isSessionLoading) return <div className="py-20"><Spinner /></div>;
                 return currentUser?.role === UserRole.ADMIN ? <AdminPage onNavigate={handleNavigate} /> : <HomePage onNavigate={handleNavigate} onAddToCart={handleAddToCart} currentUser={currentUser} />;
             case 'photographer':
+                if (isSessionLoading) return <div className="py-20"><Spinner /></div>;
                 return currentUser?.role === UserRole.PHOTOGRAPHER ? <PhotographerPage user={currentUser} onLogout={handleLogout} onNavigate={handleNavigate} showToast={showToast} /> : <HomePage onNavigate={handleNavigate} onAddToCart={handleAddToCart} currentUser={currentUser} />;
             case 'customer-dashboard':
+                if (isSessionLoading) return <div className="py-20"><Spinner /></div>;
                 return <CustomerDashboardPage onNavigate={handleNavigate} currentUser={currentUser} />;
             case 'find-photos':
                 const findPhotosSearch = currentPage.name === 'find-photos' ? currentPage.initialSearch : undefined;
@@ -514,6 +520,7 @@ const MainApp: React.FC = () => {
             case 'reset-password':
                 return <ResetPasswordPage token={currentPage.token} onNavigate={handleNavigate} />;
             default:
+                if (isSessionLoading) return <div className="py-20"><Spinner /></div>;
                 return <HomePage onNavigate={handleNavigate} onAddToCart={handleAddToCart} currentUser={currentUser} />;
         }
     }
