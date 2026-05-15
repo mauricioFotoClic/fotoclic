@@ -43,11 +43,10 @@ export default async function handler(req, res) {
                                 .from('abacate_pay_billings')
                                 .update({ 
                                     status: 'PAID',
-                                    payment_method: remote.methods?.[0] || 'PIX',
+                                    payment_method: remote.payment?.method || remote.methods?.[0] || 'PIX',
                                     updated_at: new Date().toISOString()
                                 })
-                                .eq('billing_id', remote.id)
-                                .eq('status', 'PENDING');
+                                .eq('billing_id', remote.id);
                         }
                     }
                 }

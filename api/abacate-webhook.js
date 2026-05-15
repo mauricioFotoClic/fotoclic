@@ -62,9 +62,18 @@ export default async function handler(req, res) {
 
             console.log('[AbacatePay Webhook] Pagamento confirmado! Checkout ID:', checkout.id);
 
-            const method = Array.isArray(checkout.methods) && checkout.methods.length > 0
-                ? checkout.methods[0]
-                : (payerInfo?.cardBrand ? 'CARD' : 'PIX');
+            // Prioridade para identificar o método usado
+            let method = 'PIX'; // Default seguro
+            if (payerInfo?.cardBrand || checkout.methods?.includes('CARD') && !checkout.methods?.includes('PIX')) {
+                method = 'CARD';
+            } else if (Array.isArray(checkout.methods) && checkout.methods.length === 1) {
+                method = checkout.methods[0];
+            }
+            
+            // Tenta pegar o método específico do objeto payment se disponível (v2)
+            if (checkout.payment?.method) {
+                method = checkout.payment.method;
+            }
 
             // 1. Garantir que o Cliente (Customer) exista no nosso sistema (tabela users)
             let userId = 'guest-id';
