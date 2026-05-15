@@ -97,7 +97,7 @@ export default async function handler(req, res) {
             if (cartIds.length > 0) {
                 const { data: photos } = await supabase.from('photos').select('*').in('id', cartIds);
                 
-                if (photos) {
+                if (photos && photos.length > 0) {
                     for (const photo of photos) {
                         let rate = customRates[photo.photographer_id] !== undefined ? customRates[photo.photographer_id] : defaultRate;
                         
@@ -115,6 +115,51 @@ export default async function handler(req, res) {
                             sale_date: billing.updated_at || new Date().toISOString()
                         });
                         createdCount++;
+                    }
+
+                    // --- Enviar Email de Confirmação (Backup Sync) ---
+                    try {
+                        const photoListHtml = photos.map(p => 
+                            `<li style="margin-bottom: 8px;"><strong>${p.title || 'Foto'}</strong> - R$ ${p.price.toFixed(2).replace('.', ',')}</li>`
+                        ).join('');
+
+                        await fetch('https://api.resend.com/emails', {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                from: 'FotoClic <nao-responda@fotoclic.com.br>',
+                                to: user.email,
+                                subject: '✅ Suas fotos estão disponíveis! - FotoClic',
+                                html: `
+                                    <div style="font-family: sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 12px; overflow: hidden;">
+                                        <div style="background-color: #FF6B00; padding: 32px 20px; text-align: center;">
+                                            <h1 style="color: white; margin: 0; font-size: 24px;">Compra Confirmada!</h1>
+                                        </div>
+                                        <div style="padding: 32px 24px;">
+                                            <p style="font-size: 16px;">Olá, <strong>${user.user_metadata?.name || 'Cliente'}</strong>!</p>
+                                            <p>Suas fotos compradas foram sincronizadas com sucesso e já podem ser baixadas.</p>
+                                            
+                                            <div style="background-color: #f8fafc; padding: 24px; border-radius: 8px; margin: 24px 0; border: 1px solid #e2e8f0;">
+                                                <h3 style="margin-top: 0; color: #1e293b; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px;">Fotos Sincronizadas</h3>
+                                                <ul style="padding-left: 20px; color: #475569;">
+                                                    ${photoListHtml}
+                                                </ul>
+                                            </div>
+
+                                            <div style="text-align: center; margin: 40px 0;">
+                                                <a href="${process.env.VITE_SITE_URL || 'https://fotoclic.com.br'}/minhas-compras" style="background-color: #FF6B00; color: white; padding: 14px 32px; text-decoration: none; border-radius: 30px; font-weight: bold; display: inline-block;">
+                                                    Acessar Minhas Fotos
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>`
+                            }),
+                        });
+                    } catch (emailErr) {
+                        console.error('[Sync] Erro ao enviar email de confirmação:', emailErr);
                     }
                 }
             }

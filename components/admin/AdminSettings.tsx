@@ -296,10 +296,16 @@ const AdminSettings: React.FC = () => {
                         placeholders={['nome_fotografo', 'titulo_foto', 'motivo_rejeicao']}
                     />
                     <EmailTemplateEditor
-                        title="Pagamento Processado"
+                        title="Pagamento Processado (Fotógrafo)"
                         template={emailTemplates.payoutProcessed}
                         onUpdate={(t) => handleTemplateChange('payoutProcessed', t)}
                         placeholders={['nome_fotografo', 'valor_pagamento', 'data_pagamento']}
+                    />
+                    <EmailTemplateEditor
+                        title="Confirmação de Compra (Cliente)"
+                        template={emailTemplates.purchaseConfirmation || { subject: '', body: '' }}
+                        onUpdate={(t) => handleTemplateChange('purchaseConfirmation', t)}
+                        placeholders={['nome_cliente', 'valor_total', 'quantidade_fotos', 'lista_fotos']}
                     />
                 </div>
             </div>

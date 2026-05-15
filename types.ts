@@ -209,6 +209,7 @@ export interface EmailTemplates {
   payoutProcessed: EmailTemplate;
   welcomePhotographer: EmailTemplate;
   welcomeCustomer: EmailTemplate;
+  purchaseConfirmation: EmailTemplate;
 }
 
 export interface Review {
