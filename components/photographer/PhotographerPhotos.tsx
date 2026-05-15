@@ -236,10 +236,13 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                 return;
             }
 
-            // 2. Validation: File Type
-            const validTypes = ['image/jpeg', 'image/jpg', 'image/webp', 'image/png'];
-            if (!validTypes.includes(file.type)) {
-                console.error(`File ${file.name} has invalid type: ${file.type}`);
+            // 2. Validation: File Type (Support HEIC/HEIF for Mac/iPhone users)
+            const validTypes = ['image/jpeg', 'image/jpg', 'image/webp', 'image/png', 'image/heic', 'image/heif'];
+            const fileExt = file.name.split('.').pop()?.toLowerCase();
+            const isHeic = fileExt === 'heic' || fileExt === 'heif';
+            
+            if (!validTypes.includes(file.type) && !isHeic) {
+                console.error(`File ${file.name} has invalid type: ${file.type || 'unknown'}`);
                 failCount++;
                 processedCount++;
                 if (onProgress) onProgress(processedCount, files.length);
@@ -259,7 +262,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
 
                 // 4. Upload to Storage in parallel
                 const fileExt = file.name.split('.').pop();
-                const fileName = `${self.crypto.randomUUID()}`; // Base name
+                const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`; // UUID fallback for Safari compatibility
                 const filePath = `${user.id}/${selectedEvent.id}/${fileName}`;
 
                 const [origRes, prevRes, thumbRes] = await Promise.all([

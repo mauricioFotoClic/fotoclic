@@ -79,6 +79,60 @@ export default async function handler(req, res) {
         const cancelled = billings.filter(b => b.status === 'CANCELLED');
         const refunded  = billings.filter(b => b.status === 'REFUNDED');
 
+        // 3. Auto-healing: Verificar se existem cobranças pagas sem registro de venda
+        if (paid.length > 0) {
+            const paidIds = paid.map(b => b.billing_id).filter(Boolean);
+            
+            if (paidIds.length > 0) {
+                const { data: existingSales } = await supabase
+                    .from('sales')
+                    .select('billing_id')
+                    .in('billing_id', paidIds);
+                
+                const saleBillingIds = new Set(existingSales?.map(s => s.billing_id) || []);
+                const orphans = paid.filter(b => !saleBillingIds.has(b.billing_id));
+
+                if (orphans.length > 0) {
+                    console.log(`[AbacateStats] Encontrados ${orphans.length} órfãos. Processando...`);
+                    const { data: settingsRow } = await supabase.from('system_settings').select('*').eq('id', 1).single();
+                    const defaultRate = settingsRow?.commission_default_rate || 0.06;
+                    const customRates = settingsRow?.commission_custom_rates || {};
+
+                    for (const billing of orphans) {
+                        let metadata = billing.metadata || {};
+                        if (typeof metadata === 'string') {
+                            try { metadata = JSON.parse(metadata); } catch(e) { metadata = {}; }
+                        }
+                        
+                        const cartIds = metadata.cartIds || [];
+                        const userId = metadata.userId || 'guest-id';
+
+                        if (cartIds.length > 0) {
+                            const { data: photos } = await supabase.from('photos').select('*').in('id', cartIds);
+                            if (photos) {
+                                for (const photo of photos) {
+                                    let rate = customRates[photo.photographer_id] !== undefined ? customRates[photo.photographer_id] : defaultRate;
+                                    await supabase.from('sales').insert({
+                                        photo_id: photo.id,
+                                        buyer_id: userId,
+                                        price: photo.price,
+                                        commission: photo.price * rate,
+                                        commission_rate: rate,
+                                        photographer_id: photo.photographer_id,
+                                        billing_id: billing.billing_id,
+                                        status: 'completed',
+                                        is_available: true,
+                                        available_at: new Date().toISOString(),
+                                        sale_date: billing.updated_at || new Date().toISOString()
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         const totalPaid     = paid.reduce((s, b) => s + (b.amount || 0), 0);
         const totalPending  = pending.reduce((s, b) => s + (b.amount || 0), 0);
         const totalRefunded = refunded.reduce((s, b) => s + (b.amount || 0), 0);
@@ -86,7 +140,7 @@ export default async function handler(req, res) {
         const totalPix  = paid.filter(b => b.payment_method === 'PIX').reduce((s, b) => s + (b.amount || 0), 0);
         const totalCard = paid.filter(b => b.payment_method === 'CARD').reduce((s, b) => s + (b.amount || 0), 0);
 
-        // 3. Buscar comissões acumuladas (Lucro FotoClic) das vendas pagas
+        // 4. Buscar comissões acumuladas (Lucro FotoClic) das vendas pagas
         const { data: sales, error: salesError } = await supabase
             .from('sales')
             .select('commission')

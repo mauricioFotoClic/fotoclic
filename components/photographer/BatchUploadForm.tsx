@@ -96,23 +96,23 @@ const BatchUploadForm: React.FC<BatchUploadFormProps> = ({ event, photographerId
                     <div>
                         <label className="block text-sm font-medium text-neutral-700 mb-1">Selecione as Fotos *</label>
                         <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-neutral-300 border-dashed rounded-md hover:bg-neutral-50 transition-colors cursor-pointer relative">
-                            <input
-                                type="file"
-                                multiple
-                                accept="image/*"
-                                onChange={handleFileChange}
-                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                disabled={isUploading}
-                            />
-                            <div className="space-y-1 text-center pointer-events-none">
-                                <svg className="mx-auto h-12 w-12 text-neutral-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                </svg>
-                                <div className="flex text-sm text-neutral-600 justify-center">
-                                    <span className="font-medium text-primary hover:text-primary-dark">Clique para selecionar</span>
-                                    <span className="pl-1">ou arraste e solte</span>
-                                </div>
-                                <p className="text-xs text-neutral-500">JPG, PNG, WebP</p>
+                                <input
+                                    type="file"
+                                    multiple
+                                    accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
+                                    onChange={handleFileChange}
+                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                    disabled={isUploading}
+                                />
+                                <div className="space-y-1 text-center pointer-events-none">
+                                    <svg className="mx-auto h-12 w-12 text-neutral-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                    </svg>
+                                    <div className="flex text-sm text-neutral-600 justify-center">
+                                        <span className="font-medium text-primary hover:text-primary-dark">Clique para selecionar</span>
+                                        <span className="pl-1">ou arraste e solte</span>
+                                    </div>
+                                    <p className="text-xs text-neutral-500">JPG, PNG, WebP, HEIC</p>
                                 <p className="text-xs text-primary p-1 bg-primary/10 mt-1 rounded inline-block">Nota: Fotos &gt; 10MB serão automaticamente reduzidas.</p>
                             </div>
                         </div>

@@ -254,7 +254,18 @@ const AdminAbacatePay: React.FC = () => {
         }
     }, [showToast]);
 
-    useEffect(() => { fetchData(); }, [fetchData]);
+    // Fetch once on mount
+    useEffect(() => {
+        fetchData();
+    }, []); // Only on mount
+    
+    // Auto-refresh every 60 seconds
+    useEffect(() => {
+        const interval = setInterval(() => {
+            fetchData();
+        }, 60000);
+        return () => clearInterval(interval);
+    }, [fetchData]);
 
     // ── Filtering ──────────────────────────────────────────────────────────────
 

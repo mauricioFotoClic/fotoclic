@@ -94,10 +94,13 @@ const PhotoUploadForm: React.FC<PhotoUploadFormProps> = ({ onSubmit, onCancel, i
                 return;
             }
 
-            // 2. Validation: File Type
-            const validTypes = ['image/jpeg', 'image/jpg', 'image/webp', 'image/png'];
-            if (!validTypes.includes(file.type)) {
-                alert("Formato de arquivo inválido. Por favor, selecione uma imagem JPG, PNG ou WebP.");
+            // 2. Validation: File Type (Support HEIC/HEIF for Mac/iPhone)
+            const validTypes = ['image/jpeg', 'image/jpg', 'image/webp', 'image/png', 'image/heic', 'image/heif'];
+            const fileExt = file.name.split('.').pop()?.toLowerCase();
+            const isHeic = fileExt === 'heic' || fileExt === 'heif';
+
+            if (!validTypes.includes(file.type) && !isHeic) {
+                alert("Formato de arquivo inválido. Por favor, selecione uma imagem JPG, PNG, WebP ou HEIC.");
                 return;
             }
 
@@ -193,7 +196,7 @@ const PhotoUploadForm: React.FC<PhotoUploadFormProps> = ({ onSubmit, onCancel, i
                                 id="preview_upload"
                                 name="preview_url"
                                 type="file"
-                                accept="image/*"
+                                accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
                                 onChange={handleFileChange}
                                 className="hidden"
                                 disabled={isSubmitting || isProcessingImage}
