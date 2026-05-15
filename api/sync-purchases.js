@@ -19,8 +19,44 @@ export default async function handler(req, res) {
     }
 
     try {
-        // 1. Buscar todas as cobranças pagas deste usuário
-        // Tentamos pelo userId no metadata OU pelo email do cliente (fallback)
+        const apiKey = process.env.ABACATEPAY_API_KEY;
+
+        // 1. Antes de tudo, buscar cobranças PENDENTES deste usuário para tentar "curá-las" via API
+        const { data: pendingBillings } = await supabase
+            .from('abacate_pay_billings')
+            .select('*')
+            .eq('status', 'PENDING')
+            .or(`metadata->>userId.eq.${user.id},customer_email.eq.${user.email}`);
+
+        if (pendingBillings && pendingBillings.length > 0 && apiKey) {
+            try {
+                const apiRes = await fetch('https://api.abacatepay.com/v2/checkouts/list', {
+                    headers: { 'Authorization': `Bearer ${apiKey}` }
+                });
+                const apiData = await apiRes.json();
+                
+                if (apiData.success && apiData.data) {
+                    for (const pending of pendingBillings) {
+                        const remote = apiData.data.find(r => r.id === pending.billing_id);
+                        if (remote && remote.status === 'PAID') {
+                            console.log(`[Sync] Curando cobrança ${pending.billing_id} para PAID via API.`);
+                            await supabase
+                                .from('abacate_pay_billings')
+                                .update({ 
+                                    status: 'PAID', 
+                                    payment_method: remote.payment?.method || 'PIX',
+                                    updated_at: new Date().toISOString()
+                                })
+                                .eq('billing_id', pending.billing_id);
+                        }
+                    }
+                }
+            } catch (apiErr) {
+                console.error('[Sync] Falha ao consultar API do Abacate Pay:', apiErr);
+            }
+        }
+
+        // 2. Buscar todas as cobranças PAGAS deste usuário (incluindo as que acabamos de curar)
         const { data: billings, error: bError } = await supabase
             .from('abacate_pay_billings')
             .select('*')

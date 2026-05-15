@@ -113,9 +113,14 @@ export default async function handler(req, res) {
                 }
             }
 
+            // --- CRITICAL FIX: Update status to PAID IMMEDIATELY ---
             const { data: billingRecord, error: updateError } = await supabaseAdmin
                 .from('abacate_pay_billings')
-                .update({ status: 'PAID', payment_method: method })
+                .update({ 
+                    status: 'PAID', 
+                    payment_method: method,
+                    updated_at: new Date().toISOString()
+                })
                 .eq('billing_id', checkout.id)
                 .select()
                 .maybeSingle();
@@ -147,9 +152,9 @@ export default async function handler(req, res) {
                     const cartIds = metadata.cartIds || [];
                     // PRIORIDADE: Se o usuário estava logado no ato da compra (metadata.userId), 
                     // vinculamos a venda a ele, mesmo que ele use outro e-mail para pagar no Abacate Pay.
-                    const finalUserId = (metadata.userId && metadata.userId !== 'guest-id') 
+                    const finalUserId = (metadata.userId && metadata.userId !== 'guest-id' && metadata.userId !== null) 
                         ? metadata.userId 
-                        : userId; // Usa null se não encontrar nada
+                        : userId; 
 
                     if (cartIds.length > 0) {
                         const { data: photos, error: photosError } = await supabaseAdmin
@@ -166,46 +171,40 @@ export default async function handler(req, res) {
                                 .eq('id', 1)
                                 .single();
 
-                            if (settingsError) {
-                                console.warn('[AbacatePay Webhook] Erro ao buscar system_settings, usando taxas padrão:', settingsError.message);
-                            }
-
-                            let settings = { 
-                                defaultRate: settingsRow?.commission_default_rate || 0.06, 
-                                customRates: settingsRow?.commission_custom_rates || {} 
-                            };
+                            const defaultRate = settingsRow?.commission_default_rate || 0.06;
+                            const customRates = settingsRow?.commission_custom_rates || {};
 
                             for (const photo of photos) {
-                                let rate = settings.defaultRate;
-                                if (settings.customRates?.[photo.photographer_id] !== undefined) {
-                                    rate = settings.customRates[photo.photographer_id];
-                                }
+                                try {
+                                    let rate = customRates[photo.photographer_id] !== undefined ? customRates[photo.photographer_id] : defaultRate;
+                                    const finalPrice = photo.price;
+                                    const commissionValue = finalPrice * rate;
 
-                                const finalPrice = photo.price;
-                                const commissionValue = finalPrice * rate;
+                                    const { error: saleError } = await supabaseAdmin.from('sales').insert({
+                                        photo_id: photo.id,
+                                        buyer_id: finalUserId,
+                                        buyer_name: customerName || metadata.customerName || null,
+                                        price: finalPrice,
+                                        commission: commissionValue,
+                                        photographer_id: photo.photographer_id,
+                                        commission_rate: rate,
+                                        sale_date: new Date().toISOString(),
+                                        billing_id: checkout.id
+                                    });
 
-                                const { error: saleError } = await supabaseAdmin.from('sales').insert({
-                                    photo_id: photo.id,
-                                    buyer_id: finalUserId,
-                                    buyer_name: customerName || metadata.customerName || null,
-                                    price: finalPrice,
-                                    commission: commissionValue,
-                                    photographer_id: photo.photographer_id,
-                                    commission_rate: rate,
-                                    sale_date: new Date().toISOString(),
-                                    billing_id: checkout.id
-                                });
-
-                                if (saleError) {
-                                    throw new Error(`Erro ao salvar venda da foto ${photo.id}: ${saleError.message}`);
+                                    if (saleError) {
+                                        console.error(`[AbacatePay Webhook] Falha ao registrar venda para foto ${photo.id}:`, saleError.message);
+                                    }
+                                } catch (loopErr) {
+                                    console.error(`[AbacatePay Webhook] Erro crítico no loop de vendas para foto ${photo.id}:`, loopErr);
                                 }
                             }
-                            console.log('[AbacatePay Webhook] Vendas registradas com sucesso.');
+                            console.log('[AbacatePay Webhook] Processamento de vendas concluído.');
                         }
                     }
                 } catch (processError) {
-                    console.error('[AbacatePay Webhook] Erro no processamento de vendas:', processError);
-                    // LOG DE ERRO NO BANCO: Atualiza o metadata da cobrança com o erro para debug
+                    console.error('[AbacatePay Webhook] Erro fatal no processamento de vendas:', processError);
+                    // LOG DE ERRO NO BANCO
                     await supabaseAdmin
                         .from('abacate_pay_billings')
                         .update({ 

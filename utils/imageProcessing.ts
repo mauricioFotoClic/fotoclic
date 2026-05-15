@@ -15,10 +15,16 @@ interface ProcessedImages {
 
 export const processImageForUpload = async (file: File): Promise<ProcessedImages> => {
     let processFile = file;
+    const isHeic = file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif');
+    
     try {
+        // Para arquivos HEIC ou muito grandes, comprimimos/convertemos para gerar o Preview/Thumb
+        // O original será mantido separadamente se possível
         processFile = await imageCompression(file, {
             maxSizeMB: 10,
+            maxWidthOrHeight: 4096, // Mantém alta resolução para o processamento interno
             useWebWorker: true,
+            fileType: isHeic ? 'image/jpeg' : undefined // Converte HEIC para JPEG para que o browser consiga ler
         });
     } catch (error) {
         console.warn('Image compression failed, proceeding with original file', error);
