@@ -101,7 +101,7 @@ export default async function handler(req, res) {
                 cancelled_count: cancelled.length,
                 refunded_count:  refunded.length,
                 refunded_amount: totalRefunded,
-                total_commission: Math.round(totalCommission),
+                total_commission: Math.round(totalCommission * 100),
                 balance: Math.max(0, Math.round(
                     // Pix: R$ 0,80 fixo
                     (totalPix - (paid.filter(b => b.payment_method === 'PIX').length * 80)) +

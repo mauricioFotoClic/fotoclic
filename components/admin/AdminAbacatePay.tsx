@@ -367,63 +367,113 @@ const AdminAbacatePay: React.FC = () => {
                 </button>
             </div>
 
-            {/* ── Stats — row 1 (financeiro) ── */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                <StatCard
-                    label="Total Recebido"
-                    value={formatBRL(stats.total_paid)}
-                    sub={`${stats.paid_count} cobranças pagas`}
-                    color="green"
-                />
-                <StatCard
-                    label="Volume PIX"
-                    value={formatBRL(stats.total_pix)}
-                    sub={pixPct !== null ? `${pixPct}% das vendas` : 'Dados indisponíveis'}
-                    color="teal"
-                />
-                <StatCard
-                    label="Volume Cartão"
-                    value={formatBRL(stats.total_card)}
-                    sub={cardPct !== null ? `${cardPct}% das vendas` : 'Dados indisponíveis'}
-                    color="blue"
-                />
-                <StatCard
-                    label="Saldo no Gateway"
-                    value={formatBRL(stats.balance)}
-                    sub="Líquido após taxas Abacate Pay"
-                    color="dark"
-                />
+            {/* ── Abacate Pay Style Dashboard ── */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-white p-6 rounded-2xl border border-neutral-200 shadow-sm">
+                    <p className="text-neutral-500 text-xs font-medium mb-1">Total em vendas</p>
+                    <p className="text-2xl font-bold text-neutral-900">{formatBRL(stats.total_paid)}</p>
+                </div>
+                <div className="bg-white p-6 rounded-2xl border border-neutral-200 shadow-sm">
+                    <p className="text-neutral-500 text-xs font-medium mb-1">Total de transações</p>
+                    <p className="text-2xl font-bold text-neutral-900">{stats.paid_count}</p>
+                </div>
+                <div className="bg-white p-6 rounded-2xl border border-neutral-200 shadow-sm">
+                    <p className="text-neutral-500 text-xs font-medium mb-1">Ticket Médio</p>
+                    <p className="text-2xl font-bold text-neutral-900">
+                        {stats.paid_count > 0 ? formatBRL(stats.total_paid / stats.paid_count) : 'R$ 0,00'}
+                    </p>
+                </div>
             </div>
 
-            {/* ── Stats — row 1.5 (Plataforma) ── */}
-            <div className="grid grid-cols-1 gap-3">
-                <StatCard
-                    label="Comissão da Plataforma (Lucro FotoClic)"
-                    value={formatBRL(stats.total_commission)}
-                    sub="Total acumulado das comissões sobre vendas pagas"
-                    color="orange"
-                />
+            {/* ── Métodos de Pagamento (Espelhado) ── */}
+            <div className="bg-white rounded-2xl border border-neutral-200 shadow-sm p-6">
+                <div className="flex items-center gap-2 mb-4">
+                    <svg className="text-neutral-400" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>
+                    </svg>
+                    <h3 className="text-sm font-bold text-neutral-800">Métodos de pagamentos</h3>
+                </div>
+
+                <div className="w-full bg-neutral-100 h-6 rounded-full overflow-hidden mb-6 flex">
+                    <div 
+                        className="bg-primary h-full transition-all duration-500" 
+                        style={{ width: `${pixPct || 0}%` }}
+                        title={`Pix: ${pixPct || 0}%`}
+                    />
+                    <div 
+                        className="bg-indigo-500 h-full transition-all duration-500" 
+                        style={{ width: `${cardPct || 0}%` }}
+                        title={`Cartão: ${cardPct || 0}%`}
+                    />
+                </div>
+
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="w-2 h-2 rounded-full bg-primary" />
+                            <span className="text-sm font-medium text-neutral-700">Pix</span>
+                        </div>
+                        <div className="flex items-center gap-8">
+                            <span className="text-xs text-neutral-400">{pixPct || 0}%</span>
+                            <span className="text-sm font-bold text-neutral-900">{formatBRL(stats.total_pix)}</span>
+                        </div>
+                    </div>
+                    <div className="flex items-center justify-between border-t border-neutral-50 pt-4">
+                        <div className="flex items-center gap-3">
+                            <div className="w-2 h-2 rounded-full bg-indigo-500" />
+                            <span className="text-sm font-medium text-neutral-700">Cartão de crédito</span>
+                        </div>
+                        <div className="flex items-center gap-8">
+                            <span className="text-xs text-neutral-400">{cardPct || 0}%</span>
+                            <span className="text-sm font-bold text-neutral-900">{formatBRL(stats.total_card)}</span>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            {/* ── Stats — row 2 (operacional) ── */}
-            <div className="grid grid-cols-3 gap-3">
+            {/* ── Finanças FotoClic (Líquido e Comissão) ── */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-neutral-900 p-6 rounded-2xl border border-neutral-800 shadow-lg relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                        </svg>
+                    </div>
+                    <p className="text-white/50 text-xs font-bold uppercase tracking-wider mb-1">Saldo no Gateway (Líquido)</p>
+                    <p className="text-3xl font-display font-bold text-white">{formatBRL(stats.balance)}</p>
+                    <p className="text-white/30 text-[10px] mt-2 italic">Descontadas taxas Abacate Pay (Pix R$0,80 / Card 3.5% + R$0,60)</p>
+                </div>
+
+                <div className="bg-orange-50 p-6 rounded-2xl border border-orange-200 shadow-sm relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>
+                        </svg>
+                    </div>
+                    <p className="text-orange-700 text-xs font-bold uppercase tracking-wider mb-1">Lucro FotoClic (Comissões)</p>
+                    <p className="text-3xl font-display font-bold text-orange-900">{formatBRL(stats.total_commission)}</p>
+                    <p className="text-orange-600/60 text-[10px] mt-2">Soma das comissões sobre as vendas pagas</p>
+                </div>
+            </div>
+
+            {/* ── Outros status ── */}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 <StatCard
                     label="Pendentes"
                     value={String(stats.pending_count)}
-                    sub={stats.pending_count > 0 ? formatBRL(stats.pending_amount) : 'Nenhuma pendente'}
+                    sub={stats.pending_count > 0 ? formatBRL(stats.pending_amount) : 'Nenhuma'}
                     color="amber"
                 />
                 <StatCard
                     label="Canceladas"
                     value={String(stats.cancelled_count)}
-                    sub={stats.cancelled_count === 0 ? 'Nenhuma cancelada' : 'cobranças canceladas'}
                     color="red"
                 />
                 <StatCard
                     label="Estornadas"
                     value={String(stats.refunded_count)}
-                    sub={stats.refunded_count > 0 ? formatBRL(stats.refunded_amount) : 'Nenhum estorno'}
-                    color="orange"
+                    sub={stats.refunded_count > 0 ? formatBRL(stats.refunded_amount) : 'Nenhuma'}
+                    color="white"
                 />
             </div>
 

@@ -32,16 +32,18 @@ export default async function handler(req, res) {
 
     const results = [];
 
+    const PAYOUT_FEE = 1.00; // Taxa de Pix do AbacatePay (R$ 1,00)
+
     for (const photographer of eligiblePhotographers) {
       const user = photographer.users;
       
       // Additional validations
       if (user.payout_blocked || !user.pix_key) continue;
 
-      // TODO: Logic for frequency (diario, semanal, mensal)
-      // For now, if they reached 100, we process (aggressive mode)
+      const grossAmount = photographer.balance_available;
+      const netAmount   = Math.max(0, grossAmount - PAYOUT_FEE);
       
-      console.log(`Processando saque para ${user.email}: R$ ${photographer.balance_available}`);
+      console.log(`Processando saque para ${user.email}: Total R$ ${grossAmount}, Líquido R$ ${netAmount}`);
 
       try {
         // 3. Call AbacatePay API to send Payout (V2)
@@ -52,7 +54,7 @@ export default async function handler(req, res) {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            amount: Math.round(photographer.balance_available * 100), // em centavos
+            amount: Math.round(netAmount * 100), // Valor líquido (descontada a taxa) em centavos
             pixKey: user.pix_key,
             pixKeyType: user.pix_key_type,
             externalId: `payout_${photographer.photographer_id}_${Date.now()}`
