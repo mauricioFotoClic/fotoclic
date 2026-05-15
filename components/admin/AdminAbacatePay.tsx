@@ -238,9 +238,9 @@ const AdminAbacatePay: React.FC = () => {
 
     // ── Fetch ──────────────────────────────────────────────────────────────────
 
-    const fetchData = useCallback(async () => {
+    const fetchData = useCallback(async (isInitial = false) => {
         try {
-            setLoading(true);
+            if (isInitial) setLoading(true);
             const res = await fetch(`/api/abacate-stats?t=${Date.now()}`);
             if (!res.ok) throw new Error('Resposta inválida do servidor');
             const data = await res.json();
@@ -248,21 +248,21 @@ const AdminAbacatePay: React.FC = () => {
             if (data.stats) setStats(data.stats);
         } catch (err) {
             console.error('Failed to fetch Abacate Pay stats', err);
-            showToast('Erro ao carregar dados da Abacate Pay.', 'error');
+            if (isInitial) showToast('Erro ao carregar dados da Abacate Pay.', 'error');
         } finally {
-            setLoading(false);
+            if (isInitial) setLoading(false);
         }
     }, [showToast]);
 
     // Fetch once on mount
     useEffect(() => {
-        fetchData();
+        fetchData(true);
     }, []); // Only on mount
     
-    // Auto-refresh every 60 seconds
+    // Auto-refresh every 60 seconds (silent update)
     useEffect(() => {
         const interval = setInterval(() => {
-            fetchData();
+            fetchData(false);
         }, 60000);
         return () => clearInterval(interval);
     }, [fetchData]);
@@ -442,28 +442,28 @@ const AdminAbacatePay: React.FC = () => {
                 </div>
             </div>
 
-            {/* ── Finanças FotoClic (Líquido e Comissão) ── */}
+            {/* ── Finanças FotoClic (Destaques) ── */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="bg-neutral-900 p-6 rounded-2xl border border-neutral-800 shadow-lg relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                        </svg>
-                    </div>
-                    <p className="text-white/50 text-xs font-bold uppercase tracking-wider mb-1">Saldo no Gateway (Líquido)</p>
-                    <p className="text-3xl font-display font-bold text-white">{formatBRL(stats.balance)}</p>
-                    <p className="text-white/30 text-[10px] mt-2 italic">Descontadas taxas Abacate Pay (Pix R$0,80 / Card 3.5% + R$0,60)</p>
-                </div>
-
-                <div className="bg-orange-50 p-6 rounded-2xl border border-orange-200 shadow-sm relative overflow-hidden group">
                     <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                         <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
                             <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>
                         </svg>
                     </div>
-                    <p className="text-orange-700 text-xs font-bold uppercase tracking-wider mb-1">Lucro FotoClic (Comissões)</p>
-                    <p className="text-3xl font-display font-bold text-orange-900">{formatBRL(stats.total_commission)}</p>
-                    <p className="text-orange-600/60 text-[10px] mt-2">Soma das comissões sobre as vendas pagas</p>
+                    <p className="text-white/50 text-xs font-bold uppercase tracking-wider mb-1">Lucro FotoClic (Comissões)</p>
+                    <p className="text-3xl font-display font-bold text-white">{formatBRL(stats.total_commission)}</p>
+                    <p className="text-white/30 text-[10px] mt-2 italic">Total acumulado de comissões sobre as vendas pagas</p>
+                </div>
+
+                <div className="bg-orange-50 p-6 rounded-2xl border border-orange-200 shadow-sm relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                        </svg>
+                    </div>
+                    <p className="text-orange-700 text-xs font-bold uppercase tracking-wider mb-1">Saldo no Gateway (Bruto)</p>
+                    <p className="text-3xl font-display font-bold text-orange-900">{formatBRL(stats.balance)}</p>
+                    <p className="text-orange-600/60 text-[10px] mt-2">Valor total retido na Abacate Pay (antes de taxas de saque)</p>
                 </div>
             </div>
 

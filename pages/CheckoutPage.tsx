@@ -219,22 +219,6 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
                                     </div>
                                 </div>
 
-                                <div className="bg-neutral-50 rounded-xl p-4 border border-neutral-100">
-                                    <label className="block text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2">
-                                        CPF do Comprador (Obrigatório)
-                                    </label>
-                                    <input
-                                        type="text"
-                                        placeholder="000.000.000-00"
-                                        value={customerTaxId}
-                                        onChange={(e) => setCustomerTaxId(formatCPF(e.target.value))}
-                                        className="w-full p-3 bg-white border border-neutral-200 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
-                                    />
-                                    <p className="text-[10px] text-neutral-400 mt-2 italic">
-                                        Necessário para emissão do PIX ou Boleto/Cartão.
-                                    </p>
-                                </div>
-
                                 {paymentError && (
                                     <div className="p-3 bg-red-50 border border-red-100 rounded-lg text-red-600 text-xs mb-4">
                                         {paymentError}
@@ -266,10 +250,7 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
                                             return;
                                         }
 
-                                        if (customerTaxId.replace(/\D/g, '').length !== 11) {
-                                            setPaymentError("Por favor, informe um CPF válido.");
-                                            return;
-                                        }
+                                        /* CPF não é mais obrigatório na nossa página, o Abacate Pay pedirá se necessário */
 
                                         if (!termsAccepted) {
                                             setPaymentError("Você precisa aceitar os termos de compra digital para continuar.");
@@ -306,7 +287,7 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
                                             const checkout = await api.createAbacateCheckout(items, {
                                                 name: currentUser.name,
                                                 email: currentUser.email,
-                                                taxId: customerTaxId.replace(/\D/g, ''), // Remove pontos e traços
+                                                taxId: customerTaxId.replace(/\D/g, ''), // Pode ser vazio agora
                                                 phone: currentUser.phone
                                             }, {
                                                 cartIds: cartItemIds,

@@ -150,7 +150,7 @@ export default async function handler(req, res) {
             metadata: {
                 ...(metadata || {}), // Preserva o metadata vindo do frontend (userId, couponCode, etc)
                 cartIds: items.map(i => i.id),
-                userId: metadata?.userId || customer.id || 'guest-id',
+                userId: metadata?.userId || customer.id || null,
                 customerName: String(customer.name).substring(0, 50)
             }
         };

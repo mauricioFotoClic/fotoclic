@@ -76,7 +76,7 @@ export default async function handler(req, res) {
             }
 
             // 1. Garantir que o Cliente (Customer) exista no nosso sistema (tabela users)
-            let userId = 'guest-id';
+            let userId = null; // Inicia como null (guest)
             const customerEmail = checkout.customer?.email || payerInfo?.email;
             const customerName = checkout.customer?.name || payerInfo?.name || 'Cliente FotoClic';
 
@@ -149,7 +149,7 @@ export default async function handler(req, res) {
                     // vinculamos a venda a ele, mesmo que ele use outro e-mail para pagar no Abacate Pay.
                     const finalUserId = (metadata.userId && metadata.userId !== 'guest-id') 
                         ? metadata.userId 
-                        : (userId !== 'guest-id' ? userId : 'guest-id');
+                        : userId; // Usa null se não encontrar nada
 
                     if (cartIds.length > 0) {
                         const { data: photos, error: photosError } = await supabaseAdmin

@@ -19,12 +19,13 @@ export default async function handler(req, res) {
     }
 
     try {
-        // 1. Buscar todas as cobranças pagas deste usuário que NÃO estão na tabela sales
+        // 1. Buscar todas as cobranças pagas deste usuário
+        // Tentamos pelo userId no metadata OU pelo email do cliente (fallback)
         const { data: billings, error: bError } = await supabase
             .from('abacate_pay_billings')
             .select('*')
             .eq('status', 'PAID')
-            .filter('metadata->>userId', 'eq', user.id);
+            .or(`metadata->>userId.eq.${user.id},customer_email.eq.${user.email}`);
 
         if (bError) throw bError;
 
