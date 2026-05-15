@@ -1407,6 +1407,10 @@ export const api = {
     return mapUser(userProfile);
   },
 
+  getSession: async () => {
+    const { data } = await supabase.auth.getSession();
+    return data.session;
+  },
   login: async (
     email: string,
     password?: string,

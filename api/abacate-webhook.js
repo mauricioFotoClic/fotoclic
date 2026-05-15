@@ -145,8 +145,11 @@ export default async function handler(req, res) {
             if (metadata && Object.keys(metadata).length > 0) {
                 try {
                     const cartIds = metadata.cartIds || [];
-                    // Usamos o userId que acabamos de encontrar ou criar
-                    const finalUserId = userId !== 'guest-id' ? userId : (metadata.userId || 'guest-id');
+                    // PRIORIDADE: Se o usuário estava logado no ato da compra (metadata.userId), 
+                    // vinculamos a venda a ele, mesmo que ele use outro e-mail para pagar no Abacate Pay.
+                    const finalUserId = (metadata.userId && metadata.userId !== 'guest-id') 
+                        ? metadata.userId 
+                        : (userId !== 'guest-id' ? userId : 'guest-id');
 
                     if (cartIds.length > 0) {
                         const { data: photos, error: photosError } = await supabaseAdmin

@@ -21,6 +21,18 @@ const CustomerDashboardPage: React.FC<CustomerDashboardPageProps> = ({ onNavigat
             }
             try {
                 setLoading(true);
+                
+                // Tenta sincronizar compras pendentes (caso o webhook tenha falhado)
+                const session = await api.getSession();
+                if (session?.access_token) {
+                    await fetch('/api/sync-purchases', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${session.access_token}`
+                        }
+                    }).catch(err => console.warn("Sync failed, but continuing...", err));
+                }
+
                 const data = await api.getPurchasesByUserId(currentUser.id);
                 setPurchases(data);
             } catch (error) {
