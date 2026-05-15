@@ -227,7 +227,15 @@ export default async function handler(req, res) {
 
                                     // 2. Preparar Variáveis
                                     const photoListText = photos.map(p => `- ${p.title || 'Foto'}: R$ ${p.price.toFixed(2).replace('.', ',')}`).join('\n');
-                                    const photoListHtml = photos.map(p => `<li><strong>${p.title || 'Foto'}</strong>: R$ ${p.price.toFixed(2).replace('.', ',')}</li>`).join('');
+                                    const photoListHtml = photos.map(p => `
+                                        <div style="display: flex; align-items: center; margin-bottom: 12px; padding: 10px; background: #f9fafb; border-radius: 8px; border: 1px solid #edf2f7;">
+                                            <img src="${p.preview_url}" width="60" height="60" style="object-fit: cover; border-radius: 4px; margin-right: 12px; border: 1px solid #e2e8f0;" />
+                                            <div>
+                                                <div style="font-weight: bold; color: #2d3748; font-size: 14px;">${p.title || 'Foto'}</div>
+                                                <div style="color: #718096; font-size: 12px;">Preço: R$ ${p.price.toFixed(2).replace('.', ',')}</div>
+                                            </div>
+                                        </div>
+                                    `).join('');
                                     const totalAmount = (checkout.amount / 100).toFixed(2).replace('.', ',');
 
                                     const replacements = {

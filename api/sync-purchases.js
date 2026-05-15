@@ -117,11 +117,76 @@ export default async function handler(req, res) {
                         createdCount++;
                     }
 
-                    // --- Enviar Email de Confirmação (Backup Sync) ---
+                    // --- Enviar Email de Confirmação (Dinamizado pelo Banco e com Nome Real) ---
                     try {
-                        const photoListHtml = photos.map(p => 
-                            `<li style="margin-bottom: 8px;"><strong>${p.title || 'Foto'}</strong> - R$ ${p.price.toFixed(2).replace('.', ',')}</li>`
-                        ).join('');
+                        // 1. Buscar Nome Real do Usuário na tabela public.users
+                        const { data: dbUser } = await supabase
+                            .from('users')
+                            .select('name')
+                            .eq('id', user.id)
+                            .single();
+                        
+                        const customerName = dbUser?.name || user.user_metadata?.name || 'Cliente';
+
+                        // 2. Buscar Templates do Banco
+                        const { data: settingsRow } = await supabase
+                            .from('system_settings')
+                            .select('email_templates')
+                            .eq('id', 1)
+                            .single();
+                        
+                        const templates = settingsRow?.email_templates || {};
+                        const template = templates.purchaseConfirmation || {
+                            subject: '✅ Suas fotos estão disponíveis! - FotoClic',
+                            body: 'Olá {{nome_cliente}}!\n\nSuas fotos compradas foram sincronizadas com sucesso.\n\nFotos:\n{{lista_fotos}}\n\nObrigado por escolher o FotoClic!'
+                        };
+
+                        // 3. Preparar Variáveis
+                        const photoListText = photos.map(p => `- ${p.title || 'Foto'}: R$ ${p.price.toFixed(2).replace('.', ',')}`).join('\n');
+                        const photoListHtml = photos.map(p => `
+                            <div style="display: flex; align-items: center; margin-bottom: 12px; padding: 10px; background: #f9fafb; border-radius: 8px; border: 1px solid #edf2f7;">
+                                <img src="${p.preview_url}" width="60" height="60" style="object-fit: cover; border-radius: 4px; margin-right: 12px; border: 1px solid #e2e8f0;" />
+                                <div>
+                                    <div style="font-weight: bold; color: #2d3748; font-size: 14px;">${p.title || 'Foto'}</div>
+                                    <div style="color: #718096; font-size: 12px;">Preço: R$ ${p.price.toFixed(2).replace('.', ',')}</div>
+                                </div>
+                            </div>
+                        `).join('');
+                        const totalAmount = photos.reduce((sum, p) => sum + p.price, 0).toFixed(2).replace('.', ',');
+
+                        const replacements = {
+                            'nome_cliente': customerName,
+                            'valor_total': totalAmount,
+                            'quantidade_fotos': photos.length.toString(),
+                            'lista_fotos': photoListText
+                        };
+
+                        // 4. Substituir Placeholders
+                        let subject = template.subject;
+                        let body = template.body;
+                        
+                        Object.entries(replacements).forEach(([key, val]) => {
+                            subject = subject.replace(new RegExp(`{{${key}}}`, 'g'), val);
+                            body = body.replace(new RegExp(`{{${key}}}`, 'g'), val);
+                        });
+
+                        // 5. Montar HTML Final (Envolvendo o texto do banco em um layout bonito)
+                        const finalHtml = `
+                            <div style="font-family: sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 12px; overflow: hidden;">
+                                <div style="background-color: #FF6B00; padding: 32px 20px; text-align: center;">
+                                    <h1 style="color: white; margin: 0; font-size: 24px;">Compra Confirmada!</h1>
+                                </div>
+                                <div style="padding: 32px 24px;">
+                                    <div style="font-size: 16px; line-height: 1.6; color: #475569; white-space: pre-wrap;">
+${body.replace(photoListText, `<ul style="padding-left: 20px; color: #1e293b;">${photoListHtml}</ul>`)}
+                                    </div>
+                                    <div style="text-align: center; margin: 40px 0;">
+                                        <a href="${process.env.VITE_SITE_URL || 'https://fotoclic.com.br'}/minhas-compras" style="background-color: #FF6B00; color: white; padding: 14px 32px; text-decoration: none; border-radius: 30px; font-weight: bold; display: inline-block;">
+                                            Acessar Minhas Fotos
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>`;
 
                         await fetch('https://api.resend.com/emails', {
                             method: 'POST',
@@ -132,30 +197,8 @@ export default async function handler(req, res) {
                             body: JSON.stringify({
                                 from: 'FotoClic <nao-responda@fotoclic.com.br>',
                                 to: user.email,
-                                subject: '✅ Suas fotos estão disponíveis! - FotoClic',
-                                html: `
-                                    <div style="font-family: sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 12px; overflow: hidden;">
-                                        <div style="background-color: #FF6B00; padding: 32px 20px; text-align: center;">
-                                            <h1 style="color: white; margin: 0; font-size: 24px;">Compra Confirmada!</h1>
-                                        </div>
-                                        <div style="padding: 32px 24px;">
-                                            <p style="font-size: 16px;">Olá, <strong>${user.user_metadata?.name || 'Cliente'}</strong>!</p>
-                                            <p>Suas fotos compradas foram sincronizadas com sucesso e já podem ser baixadas.</p>
-                                            
-                                            <div style="background-color: #f8fafc; padding: 24px; border-radius: 8px; margin: 24px 0; border: 1px solid #e2e8f0;">
-                                                <h3 style="margin-top: 0; color: #1e293b; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px;">Fotos Sincronizadas</h3>
-                                                <ul style="padding-left: 20px; color: #475569;">
-                                                    ${photoListHtml}
-                                                </ul>
-                                            </div>
-
-                                            <div style="text-align: center; margin: 40px 0;">
-                                                <a href="${process.env.VITE_SITE_URL || 'https://fotoclic.com.br'}/minhas-compras" style="background-color: #FF6B00; color: white; padding: 14px 32px; text-decoration: none; border-radius: 30px; font-weight: bold; display: inline-block;">
-                                                    Acessar Minhas Fotos
-                                                </a>
-                                            </div>
-                                        </div>
-                                    </div>`
+                                subject: subject,
+                                html: finalHtml
                             }),
                         });
                     } catch (emailErr) {
