@@ -158,7 +158,7 @@ export default async function handler(req, res) {
                             }
 
                             let settings = { 
-                                defaultRate: settingsRow?.commission_default_rate || 0.15, 
+                                defaultRate: settingsRow?.commission_default_rate || 0.06, 
                                 customRates: settingsRow?.commission_custom_rates || {} 
                             };
 

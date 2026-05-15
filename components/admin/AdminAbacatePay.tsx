@@ -27,6 +27,7 @@ interface AbacateStats {
     refunded_count: number;
     refunded_amount: number;
     balance: number;
+    total_commission: number;
 }
 
 type StatusFilter = 'ALL' | 'PAID' | 'PENDING' | 'CANCELLED' | 'REFUNDED';
@@ -218,6 +219,7 @@ const AdminAbacatePay: React.FC = () => {
         paid_count: 0, pending_count: 0, pending_amount: 0,
         cancelled_count: 0, refunded_count: 0, refunded_amount: 0,
         balance: 0,
+        total_commission: 0,
     });
     const [loading, setLoading] = useState(true);
 
@@ -386,10 +388,20 @@ const AdminAbacatePay: React.FC = () => {
                     color="blue"
                 />
                 <StatCard
-                    label="Saldo Estimado"
+                    label="Saldo no Gateway"
                     value={formatBRL(stats.balance)}
-                    sub="Líquido após taxa ~3%"
+                    sub="Líquido após taxas Abacate Pay"
                     color="dark"
+                />
+            </div>
+
+            {/* ── Stats — row 1.5 (Plataforma) ── */}
+            <div className="grid grid-cols-1 gap-3">
+                <StatCard
+                    label="Comissão da Plataforma (Lucro FotoClic)"
+                    value={formatBRL(stats.total_commission)}
+                    sub="Total acumulado das comissões sobre vendas pagas"
+                    color="orange"
                 />
             </div>
 

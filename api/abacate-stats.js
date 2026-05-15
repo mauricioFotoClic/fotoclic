@@ -82,6 +82,14 @@ export default async function handler(req, res) {
         const totalPix  = paid.filter(b => b.payment_method === 'PIX').reduce((s, b) => s + (b.amount || 0), 0);
         const totalCard = paid.filter(b => b.payment_method === 'CARD').reduce((s, b) => s + (b.amount || 0), 0);
 
+        // 3. Buscar comissões acumuladas (Lucro FotoClic) das vendas pagas
+        const { data: sales, error: salesError } = await supabase
+            .from('sales')
+            .select('commission')
+            .in('billing_id', paid.map(b => b.billing_id));
+
+        const totalCommission = salesError ? 0 : sales.reduce((s, b) => s + (b.commission || 0), 0);
+
         return res.status(200).json({
             billings,
             stats: {
@@ -94,7 +102,14 @@ export default async function handler(req, res) {
                 cancelled_count: cancelled.length,
                 refunded_count:  refunded.length,
                 refunded_amount: totalRefunded,
-                balance: Math.max(0, (totalPaid - totalRefunded) * 0.97),
+                total_commission: Math.round(totalCommission),
+                balance: Math.max(0, Math.round(
+                    // Pix: R$ 0,80 fixo
+                    (totalPix - (paid.filter(b => b.payment_method === 'PIX').length * 80)) +
+                    // Card: 3.5% + R$ 0,60
+                    (totalCard - (totalCard * 0.035) - (paid.filter(b => b.payment_method === 'CARD').length * 60)) -
+                    (totalRefunded)
+                )),
             },
         });
 
