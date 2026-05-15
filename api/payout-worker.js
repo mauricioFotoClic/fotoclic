@@ -34,9 +34,33 @@ export default async function handler(req, res) {
 
     const PAYOUT_FEE = 1.00; // Taxa de Pix do AbacatePay (R$ 1,00)
 
+    const now = new Date();
+    const dayOfWeek = now.getDay(); // 0 (Sun) to 6 (Sat)
+    const dayOfMonth = now.getDate();
+
     for (const photographer of eligiblePhotographers) {
       const user = photographer.users;
       
+      // Frequency Check
+      const frequency = (user.payout_frequency || 'diario').toLowerCase();
+      let shouldProcessToday = false;
+
+      if (frequency === 'diario') {
+        shouldProcessToday = true;
+      } else if (frequency === 'semanal' && dayOfWeek === 1) { // Monday
+        shouldProcessToday = true;
+      } else if (frequency === 'mensal' && dayOfMonth === 1) { // 1st of the month
+        shouldProcessToday = true;
+      }
+
+      // Special case: if photographer has a massive balance, maybe we should override? 
+      // For now, respect the frequency strictly as requested.
+      
+      if (!shouldProcessToday) {
+        console.log(`Pulando ${user.email}: Frequência ${frequency} não coincide com hoje.`);
+        continue;
+      }
+
       // Additional validations
       if (user.payout_blocked || !user.pix_key) continue;
 
