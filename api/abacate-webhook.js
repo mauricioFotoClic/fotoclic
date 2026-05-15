@@ -160,6 +160,7 @@ export default async function handler(req, res) {
                             const { data: settingsRow, error: settingsError } = await supabaseAdmin
                                 .from('system_settings')
                                 .select('*')
+                                .eq('id', 1)
                                 .single();
 
                             if (settingsError) {
