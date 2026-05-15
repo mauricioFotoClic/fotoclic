@@ -241,7 +241,7 @@ const AdminAbacatePay: React.FC = () => {
     const fetchData = useCallback(async () => {
         try {
             setLoading(true);
-            const res = await fetch('/api/abacate-stats');
+            const res = await fetch(`/api/abacate-stats?t=${Date.now()}`);
             if (!res.ok) throw new Error('Resposta inválida do servidor');
             const data = await res.json();
             setAllBillings(data.billings || []);

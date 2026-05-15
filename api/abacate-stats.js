@@ -17,6 +17,11 @@ function emptyStats() {
 
 export default async function handler(req, res) {
     if (req.method !== 'GET') return res.status(405).json({ error: 'Método não permitido.' });
+    
+    // Evitar cache para dados financeiros
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
 
     const supabase = createClient(
         process.env.VITE_SUPABASE_URL,
