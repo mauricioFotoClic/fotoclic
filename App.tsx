@@ -306,6 +306,7 @@ const MainApp: React.FC = () => {
         setCurrentUser(null);
         setCartItems([]);
         localStorage.removeItem('cartItems');
+        localStorage.removeItem('appliedCoupon');
         handleNavigate({ name: 'home' });
     };
 

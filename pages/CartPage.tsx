@@ -42,6 +42,19 @@ const CartPage: React.FC<CartPageProps> = ({ cartItemIds, onRemoveItem, onChecko
 
             setLoading(true);
             try {
+                // 1. Try to load coupon from localStorage
+                const savedCoupon = localStorage.getItem('appliedCoupon');
+                if (savedCoupon) {
+                    try {
+                        const coupon = JSON.parse(savedCoupon);
+                        setAppliedCoupon(coupon);
+                        setCouponCode(coupon.code);
+                    } catch (e) {
+                        localStorage.removeItem('appliedCoupon');
+                    }
+                }
+
+                // 2. Load Photos
                 // Use Promise.allSettled to ensure that even if one photo fails to load, the rest of the cart still renders.
                 const promises = cartItemIds.map(id => api.getPhotoById(id));
                 const results = await Promise.allSettled(promises);
