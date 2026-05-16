@@ -245,34 +245,38 @@ export default async function handler(req, res) {
                                         'lista_fotos': photoListText
                                     };
 
-                                    // 3. Substituir Placeholders no Assunto e Corpo
-                                    let subject = template.subject;
-                                    let body = template.body;
+                                    // 3. Substituir Placeholders
+                                    let subject = template.subject || 'Sua compra foi confirmada!';
+                                    let body = template.body || '';
                                     
                                     Object.entries(replacements).forEach(([key, val]) => {
-                                        subject = subject.replace(new RegExp(`{{${key}}}`, 'g'), val);
-                                        body = body.replace(new RegExp(`{{${key}}}`, 'g'), val);
+                                        subject = subject.split(`{{${key}}}`).join(val);
+                                        body = body.split(`{{${key}}}`).join(val);
                                     });
 
-                                    // 4. Montar HTML Final (Envolvendo o texto do banco em um layout bonito)
+                                    // 4. Montar HTML Final (Injetando a lista HTML no lugar da de texto se necessário)
+                                    let bodyHtml = body;
+                                    if (body.includes(photoListText)) {
+                                        bodyHtml = body.replace(photoListText, photoListHtml);
+                                    }
+
                                     const finalHtml = `
                                         <div style="font-family: sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 12px; overflow: hidden;">
                                             <div style="background-color: #FF6B00; padding: 32px 20px; text-align: center;">
-                                                <h1 style="color: white; margin: 0; font-size: 24px;">Confirmado!</h1>
+                                                <h1 style="color: white; margin: 0; font-size: 24px;">Compra Confirmada!</h1>
                                             </div>
                                             <div style="padding: 32px 24px;">
-                                                <div style="font-size: 16px; line-height: 1.6; color: #475569; white-space: pre-wrap;">
-${body.replace(photoListText, `<ul style="padding-left: 20px; color: #1e293b;">${photoListHtml}</ul>`)}
-                                                </div>
+                                                <div style="font-size: 16px; line-height: 1.6; color: #475569; white-space: pre-wrap;">${bodyHtml}</div>
                                                 <div style="text-align: center; margin: 40px 0;">
                                                     <a href="${process.env.VITE_SITE_URL || 'https://fotoclic.com.br'}/minhas-compras" style="background-color: #FF6B00; color: white; padding: 14px 32px; text-decoration: none; border-radius: 30px; font-weight: bold; display: inline-block;">
-                                                        Baixar Minhas Fotos
+                                                        Acessar Minhas Fotos
                                                     </a>
                                                 </div>
                                             </div>
                                         </div>`;
 
-                                    await fetch('https://api.resend.com/emails', {
+                                    console.log('[AbacatePay Webhook] Enviando e-mail para:', customerEmail);
+                                    const resendRes = await fetch('https://api.resend.com/emails', {
                                         method: 'POST',
                                         headers: {
                                             'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
@@ -285,9 +289,15 @@ ${body.replace(photoListText, `<ul style="padding-left: 20px; color: #1e293b;">$
                                             html: finalHtml
                                         }),
                                     });
-                                    console.log('[AbacatePay Webhook] Email dinâmico enviado para:', customerEmail);
+
+                                    const resendData = await resendRes.json();
+                                    if (resendRes.ok) {
+                                        console.log('[AbacatePay Webhook] E-mail enviado com sucesso:', resendData.id);
+                                    } else {
+                                        console.error('[AbacatePay Webhook] Erro na API do Resend:', resendData);
+                                    }
                                 } catch (emailErr) {
-                                    console.error('[AbacatePay Webhook] Erro ao enviar email dinâmico:', emailErr);
+                                    console.error('[AbacatePay Webhook] Erro fatal ao enviar email de confirmação:', emailErr);
                                 }
                             }
                         }

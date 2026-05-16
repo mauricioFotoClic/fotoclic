@@ -119,6 +119,8 @@ export default async function handler(req, res) {
 
                     // --- Enviar Email de Confirmação (Dinamizado pelo Banco e com Nome Real) ---
                     try {
+                        console.log('[Sync] Iniciando envio de email para:', user.email);
+                        
                         // 1. Buscar Nome Real do Usuário na tabela public.users
                         const { data: dbUser } = await supabase
                             .from('users')
@@ -142,7 +144,6 @@ export default async function handler(req, res) {
                         };
 
                         // 3. Preparar Variáveis
-                        const photoListText = photos.map(p => `- ${p.title || 'Foto'}: R$ ${p.price.toFixed(2).replace('.', ',')}`).join('\n');
                         const photoListHtml = photos.map(p => `
                             <div style="display: flex; align-items: center; margin-bottom: 12px; padding: 10px; background: #f9fafb; border-radius: 8px; border: 1px solid #edf2f7;">
                                 <img src="${p.preview_url}" width="60" height="60" style="object-fit: cover; border-radius: 4px; margin-right: 12px; border: 1px solid #e2e8f0;" />
@@ -152,6 +153,8 @@ export default async function handler(req, res) {
                                 </div>
                             </div>
                         `).join('');
+                        
+                        const photoListText = photos.map(p => `- ${p.title || 'Foto'}: R$ ${p.price.toFixed(2).replace('.', ',')}`).join('\n');
                         const totalAmount = photos.reduce((sum, p) => sum + p.price, 0).toFixed(2).replace('.', ',');
 
                         const replacements = {
@@ -162,24 +165,27 @@ export default async function handler(req, res) {
                         };
 
                         // 4. Substituir Placeholders
-                        let subject = template.subject;
-                        let body = template.body;
+                        let subject = template.subject || 'Sua compra foi confirmada!';
+                        let body = template.body || '';
                         
                         Object.entries(replacements).forEach(([key, val]) => {
-                            subject = subject.replace(new RegExp(`{{${key}}}`, 'g'), val);
-                            body = body.replace(new RegExp(`{{${key}}}`, 'g'), val);
+                            subject = subject.split(`{{${key}}}`).join(val);
+                            body = body.split(`{{${key}}}`).join(val);
                         });
 
-                        // 5. Montar HTML Final (Envolvendo o texto do banco em um layout bonito)
+                        // 5. Montar HTML Final (Injetando a lista HTML no lugar da de texto se necessário)
+                        let bodyHtml = body;
+                        if (body.includes(photoListText)) {
+                            bodyHtml = body.replace(photoListText, `<ul style="padding-left: 20px; color: #1e293b;">${photoListHtml}</ul>`);
+                        }
+
                         const finalHtml = `
                             <div style="font-family: sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 12px; overflow: hidden;">
                                 <div style="background-color: #FF6B00; padding: 32px 20px; text-align: center;">
                                     <h1 style="color: white; margin: 0; font-size: 24px;">Compra Confirmada!</h1>
                                 </div>
                                 <div style="padding: 32px 24px;">
-                                    <div style="font-size: 16px; line-height: 1.6; color: #475569; white-space: pre-wrap;">
-${body.replace(photoListText, `<ul style="padding-left: 20px; color: #1e293b;">${photoListHtml}</ul>`)}
-                                    </div>
+                                    <div style="font-size: 16px; line-height: 1.6; color: #475569; white-space: pre-wrap;">${bodyHtml}</div>
                                     <div style="text-align: center; margin: 40px 0;">
                                         <a href="${process.env.VITE_SITE_URL || 'https://fotoclic.com.br'}/minhas-compras" style="background-color: #FF6B00; color: white; padding: 14px 32px; text-decoration: none; border-radius: 30px; font-weight: bold; display: inline-block;">
                                             Acessar Minhas Fotos
@@ -188,7 +194,7 @@ ${body.replace(photoListText, `<ul style="padding-left: 20px; color: #1e293b;">$
                                 </div>
                             </div>`;
 
-                        await fetch('https://api.resend.com/emails', {
+                        const resendRes = await fetch('https://api.resend.com/emails', {
                             method: 'POST',
                             headers: {
                                 'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
@@ -201,8 +207,15 @@ ${body.replace(photoListText, `<ul style="padding-left: 20px; color: #1e293b;">$
                                 html: finalHtml
                             }),
                         });
+
+                        const resendData = await resendRes.json();
+                        if (resendRes.ok) {
+                            console.log('[Sync] Email enviado com sucesso:', resendData.id);
+                        } else {
+                            console.error('[Sync] Erro na API do Resend:', resendData);
+                        }
                     } catch (emailErr) {
-                        console.error('[Sync] Erro ao enviar email de confirmação:', emailErr);
+                        console.error('[Sync] Erro fatal ao enviar email de confirmação:', emailErr);
                     }
                 }
             }
