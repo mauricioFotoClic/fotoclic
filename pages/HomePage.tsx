@@ -334,7 +334,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
                   Os descontos são aplicados automaticamente no carrinho.
                 </p>
                 <p className="text-neutral-400 text-[9px] sm:text-xs mt-0.5 leading-tight font-medium">
-                  (Descontos e quantidades mínimas de fotos variam por fotógrafo)
+                  (Válido para compras de múltiplos arquivos de fotos • Descontos e quantidades mínimas de fotos variam por fotógrafo)
                 </p>
               </div>
             </div>
