@@ -288,16 +288,16 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
       </section>
 
       {/* ── Bulk Discount Promotion ──────────────────────────────────────── */}
-      <section className="py-8 bg-white relative overflow-hidden">
+      <section className="py-6 sm:py-8 bg-white relative overflow-hidden">
         <div className="container mx-auto px-4">
-          <div className="bg-gradient-to-r from-blue-50/60 via-indigo-50/20 to-blue-50/40 border border-blue-100 rounded-3xl p-6 md:p-8 flex flex-col lg:flex-row items-center justify-between gap-8 shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="bg-gradient-to-br sm:bg-gradient-to-r from-blue-50/60 via-indigo-50/20 to-blue-50/40 border border-blue-100 rounded-3xl p-4 sm:p-6 md:p-8 flex flex-col lg:flex-row items-center justify-between gap-6 sm:gap-8 shadow-sm hover:shadow-md transition-all duration-300">
             
             {/* Left part: Illustration + Promotional text */}
-            <div className="flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left flex-1">
+            <div className="flex flex-row items-center gap-4 sm:gap-6 text-left flex-1 w-full">
               
               {/* Premium Vector Illustration */}
-              <div className="relative w-28 h-28 flex-shrink-0">
-                <div className="absolute inset-0 bg-primary/5 rounded-full blur-xl animate-pulse" />
+              <div className="relative w-16 h-16 sm:w-24 sm:h-24 lg:w-28 lg:h-28 flex-shrink-0">
+                <div className="absolute inset-0 bg-primary/5 rounded-full blur-md sm:blur-xl animate-pulse" />
                 <svg className="w-full h-full relative z-10" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
                   {/* Large Blue Shopping Bag (Back) */}
                   <rect x="55" y="45" width="42" height="48" rx="8" fill="url(#blueGrad)" />
@@ -326,45 +326,45 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
               </div>
 
               {/* Text content */}
-              <div>
-                <h2 className="text-2xl md:text-3xl font-display font-black text-neutral-900 leading-tight mb-2">
-                  GANHE ATÉ <span className="text-primary bg-primary/10 px-2 py-0.5 rounded-lg">20% DE DESCONTO!</span>
+              <div className="flex-1 min-w-0">
+                <h2 className="text-lg sm:text-2xl lg:text-3xl font-display font-black text-neutral-900 leading-tight mb-1 sm:mb-2">
+                  GANHE ATÉ <span className="text-primary bg-primary/10 px-1.5 sm:px-2 py-0.5 rounded-lg whitespace-nowrap">20% OFF!</span>
                 </h2>
-                <p className="text-neutral-600 font-medium text-sm md:text-base">
-                  Os descontos são aplicados automaticamente no seu carrinho.
+                <p className="text-neutral-600 font-semibold text-[11px] sm:text-sm lg:text-base leading-snug">
+                  Os descontos são aplicados automaticamente no carrinho.
                 </p>
-                <p className="text-neutral-400 text-xs mt-1">
-                  (Válido para compras de múltiplos arquivos de fotos)
+                <p className="text-neutral-400 text-[9px] sm:text-xs mt-0.5 leading-tight font-medium">
+                  (Descontos e quantidades mínimas de fotos variam por fotógrafo)
                 </p>
               </div>
             </div>
 
             {/* Right part: Steps cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full lg:w-auto flex-shrink-0">
+            <div className="grid grid-cols-3 gap-2 sm:gap-4 w-full lg:w-auto flex-shrink-0">
               
               {/* Card 5% */}
-              <div className="bg-white border border-blue-100 rounded-2xl p-5 text-center flex flex-col justify-center items-center w-full sm:w-40 hover:-translate-y-1 hover:shadow-md transition-all duration-300">
-                <span className="text-neutral-500 font-bold text-xs uppercase tracking-wider mb-1">Ganhe</span>
-                <span className="text-3xl font-black text-primary mb-1">5%</span>
-                <span className="text-neutral-400 text-[11px] leading-tight font-medium">Na compra de<br/><strong>2 fotos</strong></span>
+              <div className="bg-white border border-blue-100 rounded-xl sm:rounded-2xl p-2.5 sm:p-5 text-center flex flex-col justify-center items-center w-full lg:w-40 hover:-translate-y-1 hover:shadow-md transition-all duration-300">
+                <span className="text-neutral-500 font-bold text-[9px] sm:text-xs uppercase tracking-wider mb-0.5">Ganhe</span>
+                <span className="text-xl sm:text-3xl font-black text-primary mb-0.5">5%</span>
+                <span className="text-neutral-400 text-[8px] sm:text-[11px] leading-tight font-medium">Na compra de<br/><strong className="text-neutral-700 font-bold">2 fotos</strong></span>
               </div>
 
               {/* Card 10% */}
-              <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-5 text-center flex flex-col justify-center items-center w-full sm:w-40 hover:-translate-y-1 hover:shadow-md transition-all duration-300">
-                <span className="text-primary-dark font-bold text-xs uppercase tracking-wider mb-1">Ganhe</span>
-                <span className="text-3xl font-black text-primary mb-1">10%</span>
-                <span className="text-neutral-500 text-[11px] leading-tight font-medium">Na compra de<br/><strong>5 fotos</strong></span>
+              <div className="bg-blue-50/50 border border-blue-100 rounded-xl sm:rounded-2xl p-2.5 sm:p-5 text-center flex flex-col justify-center items-center w-full lg:w-40 hover:-translate-y-1 hover:shadow-md transition-all duration-300">
+                <span className="text-primary-dark font-bold text-[9px] sm:text-xs uppercase tracking-wider mb-0.5">Ganhe</span>
+                <span className="text-xl sm:text-3xl font-black text-primary mb-0.5">10%</span>
+                <span className="text-neutral-500 text-[8px] sm:text-[11px] leading-tight font-medium">Na compra de<br/><strong className="text-neutral-700 font-bold">5 fotos</strong></span>
               </div>
 
               {/* Card 20% - Highlighted */}
-              <div className="relative bg-gradient-to-br from-primary to-primary-dark text-white rounded-2xl p-5 text-center flex flex-col justify-center items-center w-full sm:w-40 shadow-lg shadow-primary/20 hover:-translate-y-1 hover:shadow-xl transition-all duration-300 border border-primary-dark overflow-hidden group">
+              <div className="relative bg-gradient-to-br from-primary to-primary-dark text-white rounded-xl sm:rounded-2xl p-2.5 sm:p-5 text-center flex flex-col justify-center items-center w-full lg:w-40 shadow-lg shadow-primary/20 hover:-translate-y-1 hover:shadow-xl transition-all duration-300 border border-primary-dark overflow-hidden group">
                 {/* Visual badge top right */}
-                <div className="absolute top-0 right-0 bg-amber-400 text-neutral-900 text-[9px] font-black px-2 py-0.5 rounded-bl-lg uppercase tracking-wide">
+                <div className="absolute top-0 right-0 bg-amber-400 text-neutral-900 text-[7px] sm:text-[9px] font-black px-1.5 sm:px-2 py-0.5 rounded-bl-lg uppercase tracking-wide">
                   Melhor
                 </div>
-                <span className="text-blue-100 font-bold text-xs uppercase tracking-wider mb-1">Ganhe</span>
-                <span className="text-4xl font-black mb-1 drop-shadow-md">20%</span>
-                <span className="text-blue-50 text-[11px] leading-tight font-medium">Na compra de<br/><strong>10 fotos</strong></span>
+                <span className="text-blue-100 font-bold text-[9px] sm:text-xs uppercase tracking-wider mb-0.5">Ganhe</span>
+                <span className="text-xl sm:text-4xl font-black mb-0.5 drop-shadow-md">20%</span>
+                <span className="text-blue-50 text-[8px] sm:text-[11px] leading-tight font-medium">Na compra de<br/><strong className="font-bold text-white">10 fotos</strong></span>
               </div>
 
             </div>
