@@ -287,6 +287,92 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
         </div>
       </section>
 
+      {/* ── Bulk Discount Promotion ──────────────────────────────────────── */}
+      <section className="py-8 bg-white relative overflow-hidden">
+        <div className="container mx-auto px-4">
+          <div className="bg-gradient-to-r from-blue-50/60 via-indigo-50/20 to-blue-50/40 border border-blue-100 rounded-3xl p-6 md:p-8 flex flex-col lg:flex-row items-center justify-between gap-8 shadow-sm hover:shadow-md transition-all duration-300">
+            
+            {/* Left part: Illustration + Promotional text */}
+            <div className="flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left flex-1">
+              
+              {/* Premium Vector Illustration */}
+              <div className="relative w-28 h-28 flex-shrink-0">
+                <div className="absolute inset-0 bg-primary/5 rounded-full blur-xl animate-pulse" />
+                <svg className="w-full h-full relative z-10" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  {/* Large Blue Shopping Bag (Back) */}
+                  <rect x="55" y="45" width="42" height="48" rx="8" fill="url(#blueGrad)" />
+                  <path d="M66 45C66 38 71.3726 33 76 33C80.6274 33 86 38 86 45" stroke="#3b82f6" strokeWidth="2.5" strokeLinecap="round" />
+                  
+                  {/* Small White Shopping Bag (Front) */}
+                  <rect x="32" y="60" width="30" height="34" rx="6" fill="#FFFFFF" stroke="#e2e8f0" strokeWidth="2" />
+                  <path d="M40 60C40 55 43.5 51 47 51C50.5 51 54 55 54 60" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" />
+                  <circle cx="47" cy="74" r="3" fill="#94a3b8" />
+                  
+                  {/* Floating Coupon / Tag */}
+                  <g transform="rotate(-15 45 40)">
+                    <rect x="22" y="16" width="38" height="54" rx="4" fill="#000000" fillOpacity="0.05" />
+                    <rect x="20" y="14" width="38" height="54" rx="4" fill="#FFFFFF" stroke="#3b82f6" strokeWidth="2" />
+                    <circle cx="20" cy="41" r="5" fill="#f8fafc" stroke="#3b82f6" strokeWidth="2" />
+                    <circle cx="58" cy="41" r="5" fill="#f8fafc" stroke="#3b82f6" strokeWidth="2" />
+                    <text x="39" y="49" fontFamily="system-ui, sans-serif" fontSize="24" fontWeight="900" fill="#3b82f6" textAnchor="middle">%</text>
+                  </g>
+                  <defs>
+                    <linearGradient id="blueGrad" x1="55" y1="45" x2="97" y2="93" gradientUnits="userSpaceOnUse">
+                      <stop stopColor="#3b82f6" />
+                      <stop offset="1" stopColor="#1d4ed8" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+              </div>
+
+              {/* Text content */}
+              <div>
+                <h2 className="text-2xl md:text-3xl font-display font-black text-neutral-900 leading-tight mb-2">
+                  GANHE ATÉ <span className="text-primary bg-primary/10 px-2 py-0.5 rounded-lg">20% DE DESCONTO!</span>
+                </h2>
+                <p className="text-neutral-600 font-medium text-sm md:text-base">
+                  Os descontos são aplicados automaticamente no seu carrinho.
+                </p>
+                <p className="text-neutral-400 text-xs mt-1">
+                  (Válido para compras de múltiplos arquivos de fotos)
+                </p>
+              </div>
+            </div>
+
+            {/* Right part: Steps cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full lg:w-auto flex-shrink-0">
+              
+              {/* Card 5% */}
+              <div className="bg-white border border-blue-100 rounded-2xl p-5 text-center flex flex-col justify-center items-center w-full sm:w-40 hover:-translate-y-1 hover:shadow-md transition-all duration-300">
+                <span className="text-neutral-500 font-bold text-xs uppercase tracking-wider mb-1">Ganhe</span>
+                <span className="text-3xl font-black text-primary mb-1">5%</span>
+                <span className="text-neutral-400 text-[11px] leading-tight font-medium">Na compra de<br/><strong>2 fotos</strong></span>
+              </div>
+
+              {/* Card 10% */}
+              <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-5 text-center flex flex-col justify-center items-center w-full sm:w-40 hover:-translate-y-1 hover:shadow-md transition-all duration-300">
+                <span className="text-primary-dark font-bold text-xs uppercase tracking-wider mb-1">Ganhe</span>
+                <span className="text-3xl font-black text-primary mb-1">10%</span>
+                <span className="text-neutral-500 text-[11px] leading-tight font-medium">Na compra de<br/><strong>5 fotos</strong></span>
+              </div>
+
+              {/* Card 20% - Highlighted */}
+              <div className="relative bg-gradient-to-br from-primary to-primary-dark text-white rounded-2xl p-5 text-center flex flex-col justify-center items-center w-full sm:w-40 shadow-lg shadow-primary/20 hover:-translate-y-1 hover:shadow-xl transition-all duration-300 border border-primary-dark overflow-hidden group">
+                {/* Visual badge top right */}
+                <div className="absolute top-0 right-0 bg-amber-400 text-neutral-900 text-[9px] font-black px-2 py-0.5 rounded-bl-lg uppercase tracking-wide">
+                  Melhor
+                </div>
+                <span className="text-blue-100 font-bold text-xs uppercase tracking-wider mb-1">Ganhe</span>
+                <span className="text-4xl font-black mb-1 drop-shadow-md">20%</span>
+                <span className="text-blue-50 text-[11px] leading-tight font-medium">Na compra de<br/><strong>10 fotos</strong></span>
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+      </section>
+
       {/* ── 1. Categorias (Carousel) ──────────────────────────────────────── */}
 
       <section className="py-20 bg-neutral-50 relative overflow-hidden">
