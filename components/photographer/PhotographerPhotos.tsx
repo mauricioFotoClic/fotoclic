@@ -310,6 +310,10 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                             .catch(err => console.warn("Face indexing failed:", err));
                     }
                     successCount++;
+                    
+                    // Atualização Oculta e Imediata (Reatividade): 
+                    // Insere a foto na tela assim que o upload termina, sem precisar de F5
+                    setPhotos(prev => [newPhoto, ...prev]);
                 }
 
             } catch (err: any) {

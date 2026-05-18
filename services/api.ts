@@ -358,7 +358,7 @@ export const api = {
         "id, photographer_id, category_id, title, description, preview_url, file_url, thumb_url, price, resolution, width, height, tags, is_public, created_at, moderation_status, rejection_reason, is_featured, likes_count, quality_analysis, is_face_indexed, event_id, sales_count, photo_likes(user_id)",
       )
       .eq("photographer_id", photographerId)
-      .order("created_at", { ascending: true });
+      .order("created_at", { ascending: false });
     if (error) throw error;
     return data ? data.map(mapPhoto) : [];
   },
