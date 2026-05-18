@@ -1,0 +1,28 @@
+{
+  "status": "commited",
+  "type": "frontend",
+  "scope": "codebase",
+  "localEndpoint": "http://localhost:3000",
+  "loginUser": "paulodaian@gmail.com",
+  "loginPassword": "36714994",
+  "executionArgs": {
+    "projectName": "fotoclic",
+    "projectPath": "d:\\Backup PC HP\\Projetos\\Mauricio\\FotoClic-NEW\\fotoclic",
+    "testIds": [
+      "TC003",
+      "TC004",
+      "TC007",
+      "TC009",
+      "TC011",
+      "TC021",
+      "TC022",
+      "TC024"
+    ],
+    "additionalInstruction": "Focus on public guest workflows: search, discovery, photo details, shopping cart management, empty cart reviews, and dashboard auth gates. No login credentials needed for these selected cases.",
+    "serverMode": "development",
+    "envs": {
+      "API_KEY": "sk-user-ZSzHkcgTHJXDpydyEwqMle0_dw5QPI1kj2m8Yg1eHuj8C6mPuwyHfXKAa0_QP5-QUd8uIg8q3zeIu7Tv2f9W9lOmfAWP0p66hjm6MlGfR1-swgVtfqiXzc2dHoJFnosdWfc"
+    }
+  },
+  "serverPort": 62152
+}

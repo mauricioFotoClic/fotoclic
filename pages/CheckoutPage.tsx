@@ -297,8 +297,6 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
                                             });
 
                                             if (checkout.url) {
-                                                // Limpa o carrinho antes de redirecionar para que, ao voltar, esteja vazio
-                                                onPurchaseComplete();
                                                 window.location.href = checkout.url;
                                             } else {
                                                 throw new Error("URL de pagamento não gerada.");

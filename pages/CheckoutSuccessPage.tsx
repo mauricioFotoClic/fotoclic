@@ -3,15 +3,18 @@ import { Page } from '../types';
 import Spinner from '../components/Spinner';
 
 interface CheckoutSuccessPageProps {
+    onClearCart: () => void;
     onNavigate: (page: Page) => void;
 }
 
-const CheckoutSuccessPage: React.FC<CheckoutSuccessPageProps> = ({ onNavigate }) => {
+const CheckoutSuccessPage: React.FC<CheckoutSuccessPageProps> = ({ onClearCart, onNavigate }) => {
     const [countdown, setCountdown] = useState(5);
 
     useEffect(() => {
         // Remove cart items from local storage because the purchase was successful
         localStorage.removeItem('cartItems');
+        // Clear global cart state in App
+        onClearCart();
 
         const timer = setInterval(() => {
             setCountdown((prev) => {
@@ -25,7 +28,7 @@ const CheckoutSuccessPage: React.FC<CheckoutSuccessPageProps> = ({ onNavigate })
         }, 1000);
 
         return () => clearInterval(timer);
-    }, [onNavigate]);
+    }, [onClearCart, onNavigate]);
 
     return (
         <div className="min-h-[70vh] flex flex-col items-center justify-center p-6 bg-neutral-50 animate-fadeIn">

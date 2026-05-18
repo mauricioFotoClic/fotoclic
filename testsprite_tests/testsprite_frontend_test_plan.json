@@ -1,0 +1,794 @@
+[
+  {
+    "id": "TC001",
+    "title": "Complete PIX checkout successfully",
+    "description": "An authenticated customer can review the order, complete checkout, and land on the success confirmation page.",
+    "category": "Checkout & Payment Process",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login credentials with {{LOGIN_USER}} and {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open checkout"
+      },
+      {
+        "type": "action",
+        "description": "Proceed with checkout"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a payment confirmation is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the checkout success page is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC002",
+    "title": "Log in and reach the correct account area",
+    "description": "This verifies that a registered user can sign in and is routed to the appropriate dashboard for their role.",
+    "category": "User Login & Logout",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user lands in the correct account area for their role"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC003",
+    "title": "Add a photo to the cart from discovery",
+    "description": "This verifies that a visitor can select a discovered photo and place it in the shopping cart.",
+    "category": "Photo Search & Discovery",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /encontrar-fotos"
+      },
+      {
+        "type": "action",
+        "description": "Enter a valid search query in the search field"
+      },
+      {
+        "type": "action",
+        "description": "Start the search"
+      },
+      {
+        "type": "action",
+        "description": "Open one of the matching photos"
+      },
+      {
+        "type": "action",
+        "description": "Add the photo to the cart"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the cart contains the selected photo"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC004",
+    "title": "Search and buy a photo from discovery",
+    "description": "An anonymous visitor can open a photo detail from discovery, add it to the cart, and see the selected item in the cart.",
+    "category": "Shopping Cart Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Open a featured or discovered photo from the public browsing area"
+      },
+      {
+        "type": "action",
+        "description": "Add the photo to the cart"
+      },
+      {
+        "type": "action",
+        "description": "Open the cart"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the selected photo is listed in the cart"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the cart shows at least one item"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC005",
+    "title": "Find photos by facial search upload",
+    "description": "This verifies that a visitor can upload an image for face search and see matching results.",
+    "category": "Photo Search & Discovery",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /encontrar-fotos"
+      },
+      {
+        "type": "action",
+        "description": "Upload a valid image for face search"
+      },
+      {
+        "type": "action",
+        "description": "Start the search"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify face-matched photos are displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC006",
+    "title": "Log out and return to the public experience",
+    "description": "This verifies that a signed-in user can log out and is returned to the public site state.",
+    "category": "User Login & Logout",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the account menu or profile controls"
+      },
+      {
+        "type": "action",
+        "description": "Sign out of the account"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user returns to the public experience"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC007",
+    "title": "Search for photos with a text query",
+    "description": "This verifies that a visitor can search for matching photos and events from the discovery page.",
+    "category": "Photo Search & Discovery",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /encontrar-fotos"
+      },
+      {
+        "type": "action",
+        "description": "Enter a valid search query in the search field"
+      },
+      {
+        "type": "action",
+        "description": "Start the search"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify matching photos or events are displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC008",
+    "title": "Apply a coupon during checkout",
+    "description": "An authenticated customer can open checkout, apply a valid coupon, and see the order total update before payment.",
+    "category": "Checkout & Payment Process",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login credentials with {{LOGIN_USER}} and {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open checkout"
+      },
+      {
+        "type": "action",
+        "description": "Fill a coupon code into the coupon field"
+      },
+      {
+        "type": "action",
+        "description": "Apply the coupon"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the discounted order total is shown"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the coupon is accepted"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC009",
+    "title": "Browse from discovery to a photo detail",
+    "description": "This verifies that a visitor can move from discovery results into a single photo detail view.",
+    "category": "Photo Search & Discovery",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /encontrar-fotos"
+      },
+      {
+        "type": "action",
+        "description": "Enter a valid search query in the search field"
+      },
+      {
+        "type": "action",
+        "description": "Start the search"
+      },
+      {
+        "type": "action",
+        "description": "Open one of the matching photos"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the photo detail view is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC010",
+    "title": "Upload photos to an event",
+    "description": "An approved photographer can select an event, upload photos, and see the uploaded images associated with that event.",
+    "category": "Photographer Panel Dashboard",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login credentials with {{LOGIN_USER}} and {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the photographer dashboard"
+      },
+      {
+        "type": "action",
+        "description": "Select an event"
+      },
+      {
+        "type": "action",
+        "description": "Upload photos for the selected event"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify uploaded photos are associated with the event"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the event gallery shows the new images"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC011",
+    "title": "Remove an item from the cart",
+    "description": "A visitor can open the cart, remove a selected item, and see the cart update accordingly.",
+    "category": "Shopping Cart Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /carrinho"
+      },
+      {
+        "type": "action",
+        "description": "Remove a cart item"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the removed item is no longer listed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the cart contents are updated"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC012",
+    "title": "Review and approve a photographer application",
+    "description": "This test verifies that an administrator can review a pending photographer request and approve it, resulting in an updated approval status.",
+    "category": "Administrative Management Dashboard",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login credentials with {{LOGIN_USER}} and {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /admin"
+      },
+      {
+        "type": "action",
+        "description": "Open the pending photographers section"
+      },
+      {
+        "type": "action",
+        "description": "Review a photographer request"
+      },
+      {
+        "type": "action",
+        "description": "Approve the photographer request"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the request is shown as approved"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC013",
+    "title": "Create a new event in the photographer panel",
+    "description": "An approved photographer can open the dashboard, create an event, and see it appear in the event list.",
+    "category": "Photographer Panel Dashboard",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login credentials with {{LOGIN_USER}} and {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the photographer dashboard"
+      },
+      {
+        "type": "action",
+        "description": "Create a new event with valid details"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the new event is displayed in the dashboard"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the event was created successfully"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC014",
+    "title": "Review and reject a photographer application",
+    "description": "This test verifies that an administrator can review a pending photographer request and reject it, resulting in an updated rejection status.",
+    "category": "Administrative Management Dashboard",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login credentials with {{LOGIN_USER}} and {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /admin"
+      },
+      {
+        "type": "action",
+        "description": "Open the pending photographers section"
+      },
+      {
+        "type": "action",
+        "description": "Review a photographer request"
+      },
+      {
+        "type": "action",
+        "description": "Reject the photographer request"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the request is shown as rejected"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC015",
+    "title": "View purchased photos after checkout",
+    "description": "After a successful checkout, the customer can open their purchases dashboard and see purchased items available for download.",
+    "category": "Checkout & Payment Process",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login credentials with {{LOGIN_USER}} and {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the checkout success page"
+      },
+      {
+        "type": "action",
+        "description": "Open the customer purchases dashboard"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify purchased photos are displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify download options are available"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC016",
+    "title": "Request a payout from the wallet",
+    "description": "An approved photographer can review wallet balances and submit a payout request from the dashboard.",
+    "category": "Photographer Panel Dashboard",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login credentials with {{LOGIN_USER}} and {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the photographer dashboard"
+      },
+      {
+        "type": "action",
+        "description": "Open the wallet section"
+      },
+      {
+        "type": "action",
+        "description": "Request a payout"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a payout request confirmation is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the payout request is recorded"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC017",
+    "title": "Register a new photographer account",
+    "description": "This verifies that a new photographer can complete registration and see the expected approval status next step.",
+    "category": "User Registration",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /cadastro"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the full name field with a valid photographer name"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with a new email address"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with a valid password"
+      },
+      {
+        "type": "action",
+        "description": "Select the photographer role"
+      },
+      {
+        "type": "action",
+        "description": "Submit the registration form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the pending approval status is visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC018",
+    "title": "Preserve admin review state after approving one photographer",
+    "description": "This test verifies that after an administrator approves one photographer request, the list updates so the reviewed request no longer appears as pending.",
+    "category": "Administrative Management Dashboard",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login credentials with {{LOGIN_USER}} and {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /admin"
+      },
+      {
+        "type": "action",
+        "description": "Open the pending photographers section"
+      },
+      {
+        "type": "action",
+        "description": "Review a photographer request"
+      },
+      {
+        "type": "action",
+        "description": "Approve the photographer request"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the reviewed request no longer appears in the pending list"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC019",
+    "title": "Register a new customer account",
+    "description": "This verifies that a new customer can complete registration and see the expected next-step status.",
+    "category": "User Registration",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /cadastro"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the full name field with a valid customer name"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with a new email address"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with a valid password"
+      },
+      {
+        "type": "action",
+        "description": "Select the customer role"
+      },
+      {
+        "type": "action",
+        "description": "Submit the registration form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a registration confirmation or next-step status is visible"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC020",
+    "title": "View platform summaries and operational logs",
+    "description": "This test verifies that an administrator can inspect financial summaries and platform logs from the dashboard and see the current operational overview.",
+    "category": "Administrative Management Dashboard",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login credentials with {{LOGIN_USER}} and {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /admin"
+      },
+      {
+        "type": "action",
+        "description": "Open the global summaries section"
+      },
+      {
+        "type": "action",
+        "description": "Open the platform logs section"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify platform summary information is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify operational log entries are displayed"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC021",
+    "title": "Review an empty cart",
+    "description": "A visitor opening the cart with no selected photos sees an empty state instead of cart items.",
+    "category": "Shopping Cart Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /carrinho"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify an empty state message is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify no cart items are shown"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC022",
+    "title": "Block access to the admin dashboard for unauthenticated visitors",
+    "description": "This test verifies that an anonymous visitor cannot directly access the administrator dashboard and is shown an authentication gate or redirect.",
+    "category": "Administrative Management Dashboard",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /admin"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the administrator area is not accessible without logging in"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a login gate or redirect is displayed"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC023",
+    "title": "View the pending approval status page",
+    "description": "This verifies that a photographer awaiting review can see the pending approval state and guidance.",
+    "category": "User Registration",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /aguardando-aprovacao"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the pending approval status is visible"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC024",
+    "title": "Show an empty search state for an uncommon query",
+    "description": "This verifies that the discovery page handles a query with no matches by showing an empty result state.",
+    "category": "Photo Search & Discovery",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /encontrar-fotos"
+      },
+      {
+        "type": "action",
+        "description": "Enter a rare search query that is unlikely to match results"
+      },
+      {
+        "type": "action",
+        "description": "Start the search"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify an empty results state is displayed"
+      }
+    ],
+    "priority": "Low"
+  }
+]

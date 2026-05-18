@@ -1,0 +1,183 @@
+version: "2"
+type: frontend
+tech_stack:
+  - TypeScript
+  - React
+  - Vite
+  - Tailwind CSS
+routes:
+  - path: /
+    file: pages/HomePage.tsx
+    auth_required: false
+    description: Home page with banner, search, featured sections and events.
+  - path: /login
+    file: pages/LoginPage.tsx
+    auth_required: false
+    description: User authentication login page.
+  - path: /cadastro
+    file: pages/RegisterPage.tsx
+    auth_required: false
+    description: User registration/signup page.
+  - path: /aguardando-aprovacao
+    file: pages/PendingApprovalPage.tsx
+    auth_required: false
+    description: Pending approval status page for new photographers.
+  - path: /admin
+    file: pages/AdminPage.tsx
+    auth_required: true
+    description: Central administrative control panel dashboard.
+  - path: /area-fotografo
+    file: pages/PhotographerPage.tsx
+    auth_required: true
+    description: Photographer dashboard for managing events, uploads, wallet and profile.
+  - path: /minhas-compras
+    file: pages/CustomerDashboardPage.tsx
+    auth_required: true
+    description: Customer profile dashboard showing purchased photos and downloads.
+  - path: /encontrar-fotos
+    file: pages/FindPhotosPage.tsx
+    auth_required: false
+    description: Find photos using text search, event filters, or facial recognition.
+  - path: /carrinho
+    file: pages/CartPage.tsx
+    auth_required: false
+    description: Shopping cart containing selected event photos.
+  - path: /checkout
+    file: pages/CheckoutPage.tsx
+    auth_required: true
+    description: Checkout checkout page where coupons are applied and payments (AbacatePay) initiated.
+  - path: /checkout-success
+    file: pages/CheckoutSuccessPage.tsx
+    auth_required: true
+    description: Checkout success confirmation page.
+  - path: /sobre
+    file: pages/AboutPage.tsx
+    auth_required: false
+    description: General information about the FotoClic marketplace.
+  - path: /contato
+    file: pages/ContactPage.tsx
+    auth_required: false
+    description: Help and contact form page.
+  - path: /ajuda
+    file: pages/HelpCenterPage.tsx
+    auth_required: false
+    description: Frequently Asked Questions and support hub.
+  - path: /termos
+    file: pages/TermsPage.tsx
+    auth_required: false
+    description: Terms of service and usage conditions page.
+  - path: /privacidade
+    file: pages/PrivacyPage.tsx
+    auth_required: false
+    description: Privacy policy and data handling terms.
+  - path: /fotos-destaque
+    file: pages/FeaturedPhotosPage.tsx
+    auth_required: false
+    description: Public page highlighting popular or featured marketplace photos.
+  - path: /fotografos
+    file: pages/PhotographersPage.tsx
+    auth_required: false
+    description: Public directory listing all registered photographers.
+  - path: /reset-password
+    file: pages/ResetPasswordPage.tsx
+    auth_required: false
+    description: Password reset interface.
+  - path: /categoria/:id
+    file: pages/CategoryPage.tsx
+    auth_required: false
+    description: Photos and events organized under a specific category.
+  - path: /evento/:id
+    file: pages/EventPage.tsx
+    auth_required: false
+    description: Photos associated with a specific event.
+  - path: /foto/:id
+    file: pages/PhotoDetailPage.tsx
+    auth_required: false
+    description: Expanded details for a single selected photo.
+  - path: /portfolio/:photographerId
+    file: pages/PhotographerPortfolioPage.tsx
+    auth_required: false
+    description: Portfolio of a photographer with contact links and their public events.
+  - path: /descobrir
+    file: pages/DiscoverPage.tsx
+    auth_required: false
+    description: Explore photos and photographer works.
+features:
+  - name: User Login & Logout
+    description: Authentication for customers, photographers, and administrators.
+    files:
+      - pages/LoginPage.tsx
+      - App.tsx
+      - components/LoginModal.tsx
+    entry_route: /login
+    user_interactions:
+      - Fill email input field
+      - Fill password input field
+      - Click Login button to submit
+    auth_required: false
+  - name: User Registration
+    description: Register new customer or photographer accounts.
+    files:
+      - pages/RegisterPage.tsx
+      - components/RegisterModal.tsx
+    entry_route: /cadastro
+    user_interactions:
+      - Fill full name input field
+      - Fill email input field
+      - Fill password input field
+      - Select role (Customer/Photographer)
+      - Click Register button
+    auth_required: false
+  - name: Photo Search & Discovery
+    description: Search marketplace photos by text, categories, or face recognition.
+    files:
+      - pages/FindPhotosPage.tsx
+      - components/FaceSearchModal.tsx
+    entry_route: /encontrar-fotos
+    user_interactions:
+      - Enter search query in text field
+      - Click search button
+      - Upload image for face search filter
+    auth_required: false
+  - name: Shopping Cart Management
+    description: Add photos to shopping cart and review selected items.
+    files:
+      - pages/CartPage.tsx
+      - App.tsx
+    entry_route: /carrinho
+    user_interactions:
+      - Click Add to Cart button on any photo preview
+      - Open cart page to see items list
+      - Click remove icon to delete an item
+    auth_required: false
+  - name: Checkout & Payment Process
+    description: Finalize purchase using AbacatePay PIX checkout.
+    files:
+      - pages/CheckoutPage.tsx
+      - pages/CheckoutSuccessPage.tsx
+    entry_route: /checkout
+    user_interactions:
+      - Enter coupon code and click apply
+      - Click final Checkout button to proceed to PIX payment
+    auth_required: true
+  - name: Photographer Panel Dashboard
+    description: Photographers manage their events, upload watermarked photos, and monitor earnings.
+    files:
+      - pages/PhotographerPage.tsx
+    entry_route: /area-fotografo
+    user_interactions:
+      - Click Create Event button and fill form
+      - Select event to upload images
+      - View wallet balances and click request payout
+    auth_required: true
+  - name: Administrative Management Dashboard
+    description: Site administrators moderate photographer applications and manage system metrics.
+    files:
+      - pages/AdminPage.tsx
+    entry_route: /admin
+    user_interactions:
+      - Navigate tabs to review pending photographers
+      - Click Approve or Reject on photographer requests
+      - View global financial summaries and platform logs
+    auth_required: true
+known_limitations: []

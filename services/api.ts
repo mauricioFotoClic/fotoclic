@@ -1972,6 +1972,10 @@ export const api = {
           subject: "Bem-vindo ao FotoClic!",
           body: "Olá {{nome_cliente}}, estamos felizes em ter você conosco! Agora você pode comprar as melhores fotos dos seus eventos favoritos.",
         },
+        purchaseConfirmation: {
+          subject: "Sua compra foi confirmada!",
+          body: "Olá {{nome_cliente}}, sua compra foi confirmada com sucesso! Suas fotos já estão disponíveis para download.",
+        },
       };
     }
     return data.email_templates;
