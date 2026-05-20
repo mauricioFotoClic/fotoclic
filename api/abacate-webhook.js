@@ -139,6 +139,12 @@ export default async function handler(req, res) {
 
             // Se não encontrou o billingRecord (pode ter sido perdido em um restore de banco),
             // tentamos usar o metadata que vem diretamente no payload do webhook.
+            if (body.event === 'checkout.completed') {
+                console.log(`[AbacatePay Webhook] Evento de pagamento aprovado para a cobrança ${checkout.id}. Iniciando processamento em 3 segundos...`);
+                // Evita Condição de Corrida com o sync-purchases.js
+                await new Promise(resolve => setTimeout(resolve, 3000));
+            }
+            
             let metadata = billingRecord?.metadata || checkout.metadata || {};
             
             // Garantir que metadata seja um objeto (caso venha como string JSON do gateway)
@@ -252,6 +258,19 @@ export default async function handler(req, res) {
                                 }
                             }
                             console.log('[AbacatePay Webhook] Processamento de vendas concluído. Inserções:', insertedCount);
+
+                            // --- LIMPEZA DO CARRINHO (BACKEND) ---
+                            try {
+                                const photoIds = photos.map(p => p.id);
+                                const { data: cartData } = await supabaseAdmin.from('carts').select('items').eq('user_id', finalUserId).maybeSingle();
+                                if (cartData && cartData.items) {
+                                    const newCartItems = cartData.items.filter(id => !photoIds.includes(id));
+                                    await supabaseAdmin.from('carts').update({ items: newCartItems }).eq('user_id', finalUserId);
+                                    console.log(`[AbacatePay Webhook] Carrinho do cliente ${finalUserId} limpo com sucesso.`);
+                                }
+                            } catch (cartErr) {
+                                console.error('[AbacatePay Webhook] Erro ao limpar carrinho:', cartErr);
+                            }
 
                             if (insertedCount > 0) {
                                 // --- NOVIDADE: Enviar Email de Confirmação para o Comprador (Dinamizado pelo Banco) ---

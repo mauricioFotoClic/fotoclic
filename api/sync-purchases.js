@@ -146,6 +146,19 @@ export default async function handler(req, res) {
                         .eq('id', 1)
                         .single();
 
+                    // --- LIMPEZA DO CARRINHO (BACKEND) ---
+                    try {
+                        const photoIds = photos.map(p => p.id);
+                        const { data: cartData } = await supabase.from('carts').select('items').eq('user_id', user.id).maybeSingle();
+                        if (cartData && cartData.items) {
+                            const newCartItems = cartData.items.filter(id => !photoIds.includes(id));
+                            await supabase.from('carts').update({ items: newCartItems }).eq('user_id', user.id);
+                            console.log(`[Sync] Carrinho do cliente ${user.id} limpo com sucesso.`);
+                        }
+                    } catch (cartErr) {
+                        console.error('[Sync] Erro ao limpar carrinho:', cartErr);
+                    }
+
                     const photographerSalesMap = {};
                     for (const photo of photos) {
                         if (!photographerSalesMap[photo.photographer_id]) {
