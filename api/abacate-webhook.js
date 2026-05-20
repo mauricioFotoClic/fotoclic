@@ -139,11 +139,7 @@ export default async function handler(req, res) {
 
             // Se não encontrou o billingRecord (pode ter sido perdido em um restore de banco),
             // tentamos usar o metadata que vem diretamente no payload do webhook.
-            if (body.event === 'checkout.completed') {
-                console.log(`[AbacatePay Webhook] Evento de pagamento aprovado para a cobrança ${checkout.id}. Iniciando processamento em 3 segundos...`);
-                // Evita Condição de Corrida com o sync-purchases.js
-                await new Promise(resolve => setTimeout(resolve, 3000));
-            }
+
             
             let metadata = billingRecord?.metadata || checkout.metadata || {};
             
@@ -209,16 +205,7 @@ export default async function handler(req, res) {
                                     const finalPrice = photo.price;
                                     const commissionValue = finalPrice * rate;
 
-                                    const { data: existingSale } = await supabaseAdmin.from('sales')
-                                        .select('id')
-                                        .eq('buyer_id', finalUserId)
-                                        .eq('photo_id', photo.id)
-                                        .maybeSingle();
 
-                                    if (existingSale) {
-                                        console.log(`[AbacatePay Webhook] Venda duplicada prevenida para a foto ${photo.id}.`);
-                                        continue; // skip insert
-                                    }
 
                                     // Registrar venda para o email do fotógrafo APENAS SE FOR NOVA
                                     if (!photographerSalesMap[photo.photographer_id]) {
@@ -236,7 +223,7 @@ export default async function handler(req, res) {
                                         preview_url: photo.preview_url
                                     });
 
-                                    const { error: saleError } = await supabaseAdmin.from('sales').insert({
+                                    const { data: upsertData, error: saleError } = await supabaseAdmin.from('sales').upsert({
                                         photo_id: photo.id,
                                         buyer_id: finalUserId,
                                         buyer_name: customerName || metadata.customerName || null,
@@ -246,7 +233,7 @@ export default async function handler(req, res) {
                                         commission_rate: rate,
                                         sale_date: new Date().toISOString(),
                                         billing_id: checkout.id
-                                    });
+                                    }, { onConflict: 'photo_id, buyer_id', ignoreDuplicates: true });
 
                                     if (saleError) {
                                         console.error(`[AbacatePay Webhook] Falha ao registrar venda para foto ${photo.id}:`, saleError.message);

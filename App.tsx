@@ -71,14 +71,20 @@ const MainApp: React.FC = () => {
         if (initialized.current) return;
         initialized.current = true;
 
-        // 1. Cart
-        const savedCart = localStorage.getItem('cartItems');
-        if (savedCart) {
-            try {
-                setCartItems(JSON.parse(savedCart));
-            } catch (e) {
-                console.error("Failed to parse cart from localStorage", e);
+        // 1. Cart — Não carrega se estiver na página de sucesso (a compra já foi concluída)
+        const isCheckoutSuccess = window.location.pathname === '/checkout-success';
+        if (!isCheckoutSuccess) {
+            const savedCart = localStorage.getItem('cartItems');
+            if (savedCart) {
+                try {
+                    setCartItems(JSON.parse(savedCart));
+                } catch (e) {
+                    console.error("Failed to parse cart from localStorage", e);
+                }
             }
+        } else {
+            // Limpa imediatamente o localStorage do carrinho
+            localStorage.removeItem('cartItems');
         }
 
         // 2. Auth Session

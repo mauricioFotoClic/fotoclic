@@ -101,18 +101,9 @@ export default async function handler(req, res) {
                     for (const photo of photos) {
                         let rate = customRates[photo.photographer_id] !== undefined ? customRates[photo.photographer_id] : defaultRate;
                         
-                        const { data: existingSale } = await supabase.from('sales')
-                            .select('id')
-                            .eq('buyer_id', user.id)
-                            .eq('photo_id', photo.id)
-                            .maybeSingle();
 
-                        if (existingSale) {
-                            console.log(`[Sync] Venda duplicada prevenida para a foto ${photo.id}.`);
-                            continue;
-                        }
 
-                        await supabase.from('sales').insert({
+                        const { error: saleError } = await supabase.from('sales').upsert({
                             photo_id: photo.id,
                             buyer_id: user.id,
                             price: photo.price,
@@ -124,8 +115,13 @@ export default async function handler(req, res) {
                             is_available: true,
                             available_at: new Date().toISOString(),
                             sale_date: billing.updated_at || new Date().toISOString()
-                        });
-                        createdCount++;
+                        }, { onConflict: 'photo_id, buyer_id', ignoreDuplicates: true });
+
+                        if (!saleError) {
+                            createdCount++;
+                        } else {
+                            console.warn(`[Sync] Upsert ignorou duplicata ou erro para foto ${photo.id}:`, saleError.message);
+                        }
                     }
                     // Obter dados dos fotógrafos
                     const photographerIds = [...new Set(photos.map(p => p.photographer_id))];
