@@ -203,7 +203,7 @@ const PhotographerPayouts: React.FC<PhotographerPayoutsProps> = ({ user }) => {
                                 </div>
                                 <p className="text-lg font-mono bg-neutral-50 px-3 py-1 rounded border border-neutral-200 inline-block text-neutral-800">{user.pix_key || bankInfo.pixKey}</p>
                                 <p className="text-[10px] text-neutral-400 mt-1 italic">
-                                    * Uma taxa de transferência PIX de R$ 1,00 será descontada do valor líquido de cada saque.
+                                    * Será descontada a taxa de saque da processadora de pagamentos no ato da transferência, além da taxa de 6% do FotoClic.
                                 </p>
                                 <p className="text-xs text-green-600 mt-2 flex items-center">
                                     <CheckCircleIcon /> <span className="ml-1">Conta configurada para saques automáticos.</span>
@@ -234,7 +234,7 @@ const PhotographerPayouts: React.FC<PhotographerPayoutsProps> = ({ user }) => {
                         <h3 className="font-bold text-xl mb-1">Status de Pagamento Automático</h3>
                         <p className="text-emerald-100 text-sm max-w-md">
                             O sistema processa saques automaticamente sempre que seu **Saldo Disponível** atinge **R$ 100,00**, respeitando sua frequência escolhida. 
-                            <span className="block mt-1 font-bold text-white">(Taxa de saque: R$ 1,00 por transferência)</span>
+                            <span className="block mt-1 font-bold text-white bg-emerald-700/50 p-2 rounded inline-block">⚠️ No ato do saque, a taxa da processadora de pagamentos será descontada (além da taxa de 6% do FotoClic).</span>
                         </p>
                     </div>
                     <div className="text-center md:text-right">
@@ -290,7 +290,7 @@ const PhotographerPayouts: React.FC<PhotographerPayoutsProps> = ({ user }) => {
                         <span className="mr-2 mt-0.5"><InfoIcon /></span>
                         <div>
                             <p>O pagamento é feito exclusivamente via PIX para garantir agilidade e segurança.</p>
-                            <p className="font-bold mt-1">⚠️ Taxa de serviço: R$ 1,00 será descontado por cada saque realizado.</p>
+                            <p className="font-bold mt-1">⚠️ Importante: A taxa de transferência da processadora de pagamentos será descontada do valor no ato do saque. Esse é um custo de processamento adicional à taxa de serviço de 6% do FotoClic.</p>
                         </div>
                     </div>
 
