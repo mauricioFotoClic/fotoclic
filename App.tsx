@@ -516,7 +516,7 @@ const MainApp: React.FC = () => {
             case 'checkout':
                 return <CheckoutPage cartItemIds={cartItems} currentUser={currentUser} onPurchaseComplete={handlePurchaseComplete} onNavigate={handleNavigate} />;
             case 'checkout-success':
-                return <CheckoutSuccessPage onClearCart={() => setCartItems([])} onNavigate={handleNavigate} />;
+                return <CheckoutSuccessPage currentUser={currentUser} onClearCart={() => setCartItems([])} onNavigate={handleNavigate} />;
 
             case 'reset-password':
                 return <ResetPasswordPage token={currentPage.token} onNavigate={handleNavigate} />;
