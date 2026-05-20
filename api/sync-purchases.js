@@ -139,6 +139,13 @@ export default async function handler(req, res) {
                         return acc;
                     }, {});
 
+                    // 1.5 Buscar Configurações e Templates do Banco
+                    const { data: settingsRow } = await supabase
+                        .from('system_settings')
+                        .select('*')
+                        .eq('id', 1)
+                        .single();
+
                     const photographerSalesMap = {};
                     for (const photo of photos) {
                         if (!photographerSalesMap[photo.photographer_id]) {
@@ -175,13 +182,7 @@ export default async function handler(req, res) {
                         
                         const customerName = dbUser?.name || user.user_metadata?.name || 'Cliente';
 
-                        // 2. Buscar Templates do Banco
-                        const { data: settingsRow } = await supabase
-                            .from('system_settings')
-                            .select('email_templates')
-                            .eq('id', 1)
-                            .single();
-                        
+                        // 2. Buscar Templates do Banco (já feito acima)
                         const templates = settingsRow?.email_templates || {};
                         const template = templates.purchaseConfirmation || {
                             subject: '✅ Suas fotos estão disponíveis! - FotoClic',
