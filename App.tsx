@@ -409,7 +409,11 @@ const MainApp: React.FC = () => {
     };
 
     const handleRemoveFromCart = (photoId: string) => {
-        setCartItems(cartItems.filter(id => id !== photoId));
+        setCartItems(prev => prev.filter(id => id !== photoId));
+    }
+
+    const handleRemoveMultipleFromCart = (photoIds: string[]) => {
+        setCartItems(prev => prev.filter(id => !photoIds.includes(id)));
     }
 
     const handleCheckoutInit = () => {
@@ -512,7 +516,7 @@ const MainApp: React.FC = () => {
             case 'photographers':
                 return <PhotographersPage onNavigate={handleNavigate} />;
             case 'cart':
-                return <CartPage cartItemIds={cartItems} onRemoveItem={handleRemoveFromCart} onCheckout={handleCheckoutInit} onNavigate={handleNavigate} />;
+                return <CartPage cartItemIds={cartItems} currentUser={currentUser} onRemoveItem={handleRemoveFromCart} onRemoveMultipleItems={handleRemoveMultipleFromCart} onCheckout={handleCheckoutInit} onNavigate={handleNavigate} />;
             case 'checkout':
                 return <CheckoutPage cartItemIds={cartItems} currentUser={currentUser} onPurchaseComplete={handlePurchaseComplete} onNavigate={handleNavigate} />;
             case 'checkout-success':

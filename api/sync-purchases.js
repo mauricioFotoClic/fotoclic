@@ -101,6 +101,17 @@ export default async function handler(req, res) {
                     for (const photo of photos) {
                         let rate = customRates[photo.photographer_id] !== undefined ? customRates[photo.photographer_id] : defaultRate;
                         
+                        const { data: existingSale } = await supabase.from('sales')
+                            .select('id')
+                            .eq('buyer_id', user.id)
+                            .eq('photo_id', photo.id)
+                            .maybeSingle();
+
+                        if (existingSale) {
+                            console.log(`[Sync] Venda duplicada prevenida para a foto ${photo.id}.`);
+                            continue;
+                        }
+
                         await supabase.from('sales').insert({
                             photo_id: photo.id,
                             buyer_id: user.id,

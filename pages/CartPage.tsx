@@ -1,12 +1,14 @@
 
 import React, { useEffect, useState } from 'react';
-import { Photo, Page, Coupon, BulkDiscountRule } from '../types';
+import { Photo, Page, Coupon, BulkDiscountRule, User } from '../types';
 import api from '../services/api';
 import Spinner from '../components/Spinner';
 
 interface CartPageProps {
+    currentUser: User | null;
     cartItemIds: string[];
     onRemoveItem: (id: string) => void;
+    onRemoveMultipleItems: (ids: string[]) => void;
     onCheckout: () => void;
     onNavigate: (page: Page) => void;
 }
@@ -21,7 +23,7 @@ interface CartGrouping {
     appliedBulkRule: BulkDiscountRule | null;
 }
 
-const CartPage: React.FC<CartPageProps> = ({ cartItemIds, onRemoveItem, onCheckout, onNavigate }) => {
+const CartPage: React.FC<CartPageProps> = ({ currentUser, cartItemIds, onRemoveItem, onRemoveMultipleItems, onCheckout, onNavigate }) => {
     const [cartPhotos, setCartPhotos] = useState<Photo[]>([]);
     const [loading, setLoading] = useState(true);
     const [groupedCart, setGroupedCart] = useState<CartGrouping[]>([]);
@@ -54,7 +56,18 @@ const CartPage: React.FC<CartPageProps> = ({ cartItemIds, onRemoveItem, onChecko
                     }
                 }
 
-                // 2. Load Photos
+                // 2. Load Purchases if logged in
+                let purchasedPhotoIds = new Set<string>();
+                if (currentUser) {
+                    try {
+                        const purchases = await api.getPurchasesByUserId(currentUser.id);
+                        purchasedPhotoIds = new Set(purchases.map(p => p.id));
+                    } catch (e) {
+                        console.error("Failed to load purchases", e);
+                    }
+                }
+
+                // 3. Load Photos
                 // Use Promise.allSettled to ensure that even if one photo fails to load, the rest of the cart still renders.
                 const promises = cartItemIds.map(id => api.getPhotoById(id));
                 const results = await Promise.allSettled(promises);
@@ -63,16 +76,26 @@ const CartPage: React.FC<CartPageProps> = ({ cartItemIds, onRemoveItem, onChecko
                     .filter((result): result is PromiseFulfilledResult<Photo> => result.status === 'fulfilled' && !!result.value)
                     .map(result => result.value);
 
-                setCartPhotos(validPhotos);
+                if (purchasedPhotoIds.size > 0) {
+                    const alreadyBought = validPhotos.filter(p => purchasedPhotoIds.has(p.id));
+                    if (alreadyBought.length > 0) {
+                        onRemoveMultipleItems(alreadyBought.map(p => p.id));
+                        // Show a temporary message about auto-removal if desired, but quiet removal is fine
+                    }
+                }
 
-                if (validPhotos.length === 0) {
+                const photosToRender = validPhotos.filter(p => !purchasedPhotoIds.has(p.id));
+
+                setCartPhotos(photosToRender);
+
+                if (photosToRender.length === 0) {
                     setGroupedCart([]);
                     setLoading(false);
                     return;
                 }
 
                 const groups: Record<string, Photo[]> = {};
-                validPhotos.forEach(p => {
+                photosToRender.forEach(p => {
                     if (!groups[p.photographer_id]) groups[p.photographer_id] = [];
                     groups[p.photographer_id].push(p);
                 });
@@ -102,7 +125,7 @@ const CartPage: React.FC<CartPageProps> = ({ cartItemIds, onRemoveItem, onChecko
         };
 
         loadCartItems();
-    }, [cartItemIds]);
+    }, [cartItemIds, currentUser]);
 
     const handleApplyCoupon = async () => {
         if (!couponCode.trim()) return;

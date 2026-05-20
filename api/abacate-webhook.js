@@ -217,6 +217,17 @@ export default async function handler(req, res) {
                                         preview_url: photo.preview_url
                                     });
 
+                                    const { data: existingSale } = await supabaseAdmin.from('sales')
+                                        .select('id')
+                                        .eq('buyer_id', finalUserId)
+                                        .eq('photo_id', photo.id)
+                                        .maybeSingle();
+
+                                    if (existingSale) {
+                                        console.log(`[AbacatePay Webhook] Venda duplicada prevenida para a foto ${photo.id}.`);
+                                        continue; // skip insert
+                                    }
+
                                     const { error: saleError } = await supabaseAdmin.from('sales').insert({
                                         photo_id: photo.id,
                                         buyer_id: finalUserId,
