@@ -132,6 +132,7 @@ const PhotographerSidebar: React.FC<PhotographerSidebarProps> = ({ user, activeV
                     <nav className="px-2 pb-4">
                         <SectionLabel label="Principal" />
                         <NavLink label="Visão Geral" isActive={activeView === 'dashboard'} onClick={() => { setView('dashboard'); onClose(); }} icon={<HomeIcon />} />
+                        <NavLink label="Descontos Progressivos" isActive={activeView === 'discounts'} onClick={() => { setView('discounts'); onClose(); }} icon={<PercentIcon />} />
                         <NavLink label="Meus Eventos" isActive={activeView === 'photos'} onClick={() => { setView('photos'); onClose(); }} icon={<ImageIcon />} />
                         <NavLink label="Ver Meu Portfólio" isActive={activeView === 'portfolio-preview'} onClick={() => { setView('portfolio-preview'); onClose(); }} icon={<EyeIcon />} />
 
@@ -148,7 +149,6 @@ const PhotographerSidebar: React.FC<PhotographerSidebarProps> = ({ user, activeV
 
                         <SectionLabel label="Marketing" />
                         <NavLink label="Cupons" isActive={activeView === 'coupons'} onClick={() => { setView('coupons'); onClose(); }} icon={<TicketIcon />} />
-                        <NavLink label="Descontos Progressivos" isActive={activeView === 'discounts'} onClick={() => { setView('discounts'); onClose(); }} icon={<PercentIcon />} />
                         <NavLink label="Cartão Virtual" isActive={activeView === 'business-card'} onClick={() => { setView('business-card'); onClose(); }} icon={<QrCodeIcon />} />
                         <NavLink label="Mensagens" isActive={activeView === 'communications'} onClick={() => { setView('communications'); onClose(); }} icon={<UserIcon />} />
 
