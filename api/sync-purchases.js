@@ -127,8 +127,42 @@ export default async function handler(req, res) {
                         });
                         createdCount++;
                     }
+                    // Obter dados dos fotógrafos
+                    const photographerIds = [...new Set(photos.map(p => p.photographer_id))];
+                    const { data: photographersData } = await supabase
+                        .from('users')
+                        .select('id, name, email')
+                        .in('id', photographerIds);
+                    
+                    const photographerMap = (photographersData || []).reduce((acc, p) => {
+                        acc[p.id] = p;
+                        return acc;
+                    }, {});
 
-                    // --- Enviar Email de Confirmação (Dinamizado pelo Banco e com Nome Real) ---
+                    const photographerSalesMap = {};
+                    for (const photo of photos) {
+                        if (!photographerSalesMap[photo.photographer_id]) {
+                            photographerSalesMap[photo.photographer_id] = {
+                                photographer: photographerMap[photo.photographer_id],
+                                totalCommission: 0,
+                                photos: []
+                            };
+                        }
+                        const defaultRate = settingsRow?.commission_default_rate || 0.06;
+                        const customRates = settingsRow?.commission_custom_rates || {};
+                        let rate = customRates[photo.photographer_id] !== undefined ? customRates[photo.photographer_id] : defaultRate;
+                        const commissionValue = photo.price * rate;
+
+                        photographerSalesMap[photo.photographer_id].totalCommission += commissionValue;
+                        photographerSalesMap[photo.photographer_id].photos.push({
+                            title: photo.title,
+                            price: photo.price,
+                            commission: commissionValue,
+                            preview_url: photo.preview_url
+                        });
+                    }
+
+                    // --- Enviar Email de Confirmação para o Comprador ---
                     try {
                         console.log('[Sync] Iniciando envio de email para:', user.email);
                         
@@ -221,12 +255,75 @@ export default async function handler(req, res) {
 
                         const resendData = await resendRes.json();
                         if (resendRes.ok) {
-                            console.log('[Sync] Email enviado com sucesso:', resendData.id);
+                            console.log('[Sync] Email enviado com sucesso ao comprador:', resendData.id);
                         } else {
-                            console.error('[Sync] Erro na API do Resend:', resendData);
+                            console.error('[Sync] Erro na API do Resend (Comprador):', resendData);
                         }
                     } catch (emailErr) {
-                        console.error('[Sync] Erro fatal ao enviar email de confirmação:', emailErr);
+                        console.error('[Sync] Erro fatal ao enviar email de confirmação ao comprador:', emailErr);
+                    }
+
+                    // --- Enviar Email para os Fotógrafos ---
+                    for (const [pId, saleData] of Object.entries(photographerSalesMap)) {
+                        if (saleData.photographer && saleData.photographer.email) {
+                            try {
+                                const photoListHtmlPhotog = saleData.photos.map(p => `
+                                    <div style="display: flex; align-items: center; margin-bottom: 12px; padding: 10px; background: #f9fafb; border-radius: 8px; border: 1px solid #edf2f7;">
+                                        <img src="${p.preview_url}" width="60" height="60" style="object-fit: cover; border-radius: 4px; margin-right: 12px; border: 1px solid #e2e8f0;" />
+                                        <div>
+                                            <div style="font-weight: bold; color: #2d3748; font-size: 14px;">${p.title || 'Foto'}</div>
+                                            <div style="color: #718096; font-size: 12px;">Venda: R$ ${p.price.toFixed(2).replace('.', ',')} | Comissão: <strong style="color: #059669;">R$ ${p.commission.toFixed(2).replace('.', ',')}</strong></div>
+                                        </div>
+                                    </div>
+                                `).join('');
+                                
+                                const siteUrl = process.env.VITE_SITE_URL || 'https://fotoclic.com.br';
+                                const finalHtmlPhotog = `
+                                    <div style="font-family: sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 12px; overflow: hidden;">
+                                        <div style="background-color: #059669; padding: 32px 20px; text-align: center;">
+                                            <h1 style="color: white; margin: 0; font-size: 24px;">🎉 Nova Venda Realizada!</h1>
+                                        </div>
+                                        <div style="padding: 32px 24px;">
+                                            <p style="font-size: 16px;">Olá, <strong>${saleData.photographer.name || 'Fotógrafo'}</strong>!</p>
+                                            <p style="font-size: 16px; color: #475569;">Excelentes notícias! Você acabou de realizar <strong>${saleData.photos.length} venda(s)</strong> no FotoClic.</p>
+                                            
+                                            <div style="background-color: #ecfdf5; border: 1px solid #a7f3d0; padding: 16px; border-radius: 8px; margin: 24px 0; text-align: center;">
+                                                <p style="margin: 0; color: #065f46; font-size: 14px;">Comissão Recebida</p>
+                                                <p style="margin: 4px 0 0 0; color: #047857; font-size: 28px; font-weight: bold;">R$ ${saleData.totalCommission.toFixed(2).replace('.', ',')}</p>
+                                            </div>
+
+                                            <h3 style="color: #1e293b; margin-top: 24px;">Fotos Vendidas:</h3>
+                                            ${photoListHtmlPhotog}
+
+                                            <div style="text-align: center; margin: 40px 0;">
+                                                <a href="${siteUrl}/photographer-dashboard" style="background-color: #059669; color: white; padding: 14px 32px; text-decoration: none; border-radius: 30px; font-weight: bold; display: inline-block;">
+                                                    Ver Central Financeira
+                                                </a>
+                                            </div>
+                                        </div>
+                                        <div style="background-color: #f1f5f9; padding: 16px; text-align: center; font-size: 12px; color: #94a3b8;">
+                                            © ${new Date().getFullYear()} FotoClic Marketplace. Todos os direitos reservados.
+                                        </div>
+                                    </div>`;
+
+                                console.log('[Sync] Enviando e-mail para Fotógrafo:', saleData.photographer.email);
+                                await fetch('https://api.resend.com/emails', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+                                        'Content-Type': 'application/json',
+                                    },
+                                    body: JSON.stringify({
+                                        from: 'FotoClic <nao-responda@fotoclic.com.br>',
+                                        to: saleData.photographer.email,
+                                        subject: '🎉 Você realizou uma nova venda no FotoClic!',
+                                        html: finalHtmlPhotog
+                                    }),
+                                });
+                            } catch (err) {
+                                console.error('[Sync] Erro ao enviar email para o fotografo:', err);
+                            }
+                        }
                     }
                 }
             }

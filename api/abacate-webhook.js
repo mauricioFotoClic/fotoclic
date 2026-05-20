@@ -195,13 +195,26 @@ export default async function handler(req, res) {
                             const defaultRate = settingsRow?.commission_default_rate || 0.06;
                             const customRates = settingsRow?.commission_custom_rates || {};
 
+                            let insertedCount = 0;
+
                             for (const photo of photos) {
                                 try {
                                     let rate = customRates[photo.photographer_id] !== undefined ? customRates[photo.photographer_id] : defaultRate;
                                     const finalPrice = photo.price;
                                     const commissionValue = finalPrice * rate;
 
-                                    // Registrar venda para o email do fotógrafo
+                                    const { data: existingSale } = await supabaseAdmin.from('sales')
+                                        .select('id')
+                                        .eq('buyer_id', finalUserId)
+                                        .eq('photo_id', photo.id)
+                                        .maybeSingle();
+
+                                    if (existingSale) {
+                                        console.log(`[AbacatePay Webhook] Venda duplicada prevenida para a foto ${photo.id}.`);
+                                        continue; // skip insert
+                                    }
+
+                                    // Registrar venda para o email do fotógrafo APENAS SE FOR NOVA
                                     if (!photographerSalesMap[photo.photographer_id]) {
                                         photographerSalesMap[photo.photographer_id] = {
                                             photographer: photographerMap[photo.photographer_id],
@@ -217,17 +230,6 @@ export default async function handler(req, res) {
                                         preview_url: photo.preview_url
                                     });
 
-                                    const { data: existingSale } = await supabaseAdmin.from('sales')
-                                        .select('id')
-                                        .eq('buyer_id', finalUserId)
-                                        .eq('photo_id', photo.id)
-                                        .maybeSingle();
-
-                                    if (existingSale) {
-                                        console.log(`[AbacatePay Webhook] Venda duplicada prevenida para a foto ${photo.id}.`);
-                                        continue; // skip insert
-                                    }
-
                                     const { error: saleError } = await supabaseAdmin.from('sales').insert({
                                         photo_id: photo.id,
                                         buyer_id: finalUserId,
@@ -242,15 +244,18 @@ export default async function handler(req, res) {
 
                                     if (saleError) {
                                         console.error(`[AbacatePay Webhook] Falha ao registrar venda para foto ${photo.id}:`, saleError.message);
+                                    } else {
+                                        insertedCount++;
                                     }
                                 } catch (loopErr) {
                                     console.error(`[AbacatePay Webhook] Erro crítico no loop de vendas para foto ${photo.id}:`, loopErr);
                                 }
                             }
-                            console.log('[AbacatePay Webhook] Processamento de vendas concluído.');
+                            console.log('[AbacatePay Webhook] Processamento de vendas concluído. Inserções:', insertedCount);
 
-                            // --- NOVIDADE: Enviar Email de Confirmação para o Comprador (Dinamizado pelo Banco) ---
-                            if (customerEmail) {
+                            if (insertedCount > 0) {
+                                // --- NOVIDADE: Enviar Email de Confirmação para o Comprador (Dinamizado pelo Banco) ---
+                                if (customerEmail) {
                                 try {
                                     // 1. Buscar Templates do Banco
                                     const { data: settingsRow } = await supabaseAdmin
@@ -405,7 +410,8 @@ export default async function handler(req, res) {
                             }
                         }
                     }
-                } catch (processError) {
+                }
+            } catch (processError) {
                     console.error('[AbacatePay Webhook] Erro fatal no processamento de vendas:', processError);
                     // LOG DE ERRO NO BANCO
                     await supabaseAdmin
