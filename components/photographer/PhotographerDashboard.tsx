@@ -211,7 +211,7 @@ const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({ user, set
                     value={`${(balance.commissionRate * 100).toFixed(0)}%`} 
                     icon={<PercentIcon />} 
                     colorClass="bg-cyan-100 text-cyan-600" 
-                    tooltip="Esta taxa cobre custos de manutenção da plataforma, processamento de pagamentos (cartão/pix) e marketing para atrair clientes."
+                    tooltip="Esta é a taxa de serviço retida pelo FotoClic sobre o valor de cada venda realizada."
                 />
                 <div onClick={() => setView('abandoned-carts')} className="cursor-pointer transition-transform hover:scale-105">
                     <StatCard
