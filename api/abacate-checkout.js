@@ -145,7 +145,7 @@ export default async function handler(req, res) {
             frequency: "ONE_TIME",
             methods: ["PIX", "CARD"],
             items: itemsV2,
-            returnUrl: siteUrl + '/checkout-success',
+            returnUrl: siteUrl + '/minhas-compras',
             completionUrl: siteUrl + '/sales',
             metadata: {
                 ...(metadata || {}), // Preserva o metadata vindo do frontend (userId, couponCode, etc)
