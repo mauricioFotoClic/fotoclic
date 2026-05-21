@@ -64,7 +64,7 @@ export const processImageForUpload = async (file: File): Promise<ProcessedImages
                 }
             };
             reader.onerror = (e) => reject(new Error("Failed to read file"));
-            reader.readAsDataURL(file);
+            reader.readAsDataURL(processFile);
         };
 
         img.onerror = () => {

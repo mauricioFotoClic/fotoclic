@@ -352,15 +352,35 @@ export const api = {
   getPhotosByPhotographerId: async (
     photographerId: string,
   ): Promise<Photo[]> => {
-    const { data, error } = await supabase
-      .from("photos")
-      .select(
-        "id, photographer_id, category_id, title, description, preview_url, file_url, thumb_url, price, resolution, width, height, tags, is_public, created_at, moderation_status, rejection_reason, is_featured, likes_count, quality_analysis, is_face_indexed, event_id, sales_count, photo_likes(user_id)",
-      )
-      .eq("photographer_id", photographerId)
-      .order("created_at", { ascending: false });
-    if (error) throw error;
-    return data ? data.map(mapPhoto) : [];
+    let allData: any[] = [];
+    let page = 0;
+    const pageSize = 1000;
+    let hasMore = true;
+
+    while (hasMore) {
+      const { data, error } = await supabase
+        .from("photos")
+        .select(
+          "id, photographer_id, category_id, title, description, preview_url, file_url, thumb_url, price, resolution, width, height, tags, is_public, created_at, moderation_status, rejection_reason, is_featured, likes_count, quality_analysis, is_face_indexed, event_id, sales_count, photo_likes(user_id)",
+        )
+        .eq("photographer_id", photographerId)
+        .order("created_at", { ascending: false })
+        .range(page * pageSize, (page + 1) * pageSize - 1);
+        
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        allData = [...allData, ...data];
+        page++;
+        if (data.length < pageSize) {
+          hasMore = false;
+        }
+      } else {
+        hasMore = false;
+      }
+    }
+    
+    return allData.map(mapPhoto);
   },
 
   createPhoto: async (data: any): Promise<Photo> => {
