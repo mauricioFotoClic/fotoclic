@@ -10,6 +10,7 @@ import Modal from '../Modal';
 import PhotoUploadForm from './PhotoUploadForm';
 import ReviewModal from '../ReviewModal';
 import ReportModal from '../ReportModal';
+import FaceSearchModal from '../FaceSearchModal';
 import { useToast } from '../../contexts/ToastContext';
 import { shareContent } from '../../utils/share';
 
@@ -49,6 +50,7 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
     const [photoToDelete, setPhotoToDelete] = useState<Photo | null>(null);
     const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
     const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+    const [isFaceSearchOpen, setIsFaceSearchOpen] = useState(false);
 
     useEffect(() => {
         // Skip fetching if running in the background and we ALREADY fetched it before.
@@ -310,6 +312,44 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
                     </span>
                 </div>
 
+                {selectedEvent && photos.filter(p => p.event_id === selectedEvent.id).length > 0 && (
+                    <div
+                        onClick={() => setIsFaceSearchOpen(true)}
+                        className="mb-8 group cursor-pointer"
+                    >
+                        <div className="bg-white border border-neutral-200 rounded-2xl px-5 py-3.5 flex items-center gap-4 hover:border-neutral-300 hover:shadow-sm transition-all duration-200">
+                            {/* Scan icon */}
+                            <div className="flex-none w-9 h-9 rounded-xl bg-neutral-50 border border-neutral-100 flex items-center justify-center group-hover:border-neutral-200 transition-colors">
+                                <svg className="w-5 h-5 text-neutral-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M3 7V5a2 2 0 0 1 2-2h2" />
+                                    <path d="M17 3h2a2 2 0 0 1 2 2v2" />
+                                    <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
+                                    <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
+                                    <circle cx="12" cy="12" r="3" strokeWidth="1.5" />
+                                    <circle cx="10.5" cy="11.2" r="0.5" fill="currentColor" stroke="none" />
+                                    <circle cx="13.5" cy="11.2" r="0.5" fill="currentColor" stroke="none" />
+                                    <path d="M10.5 13.5a2 2 0 0 0 3 0" strokeWidth="1.3" />
+                                </svg>
+                            </div>
+
+                            {/* Text */}
+                            <div className="flex-1 min-w-0">
+                                <p className="text-[13px] font-semibold text-neutral-800 leading-tight">
+                                    Encontre suas fotos por reconhecimento facial
+                                </p>
+                                <p className="text-[11px] text-neutral-400 mt-0.5">
+                                    Tire uma selfie ou envie uma foto do seu rosto
+                                </p>
+                            </div>
+
+                            {/* CTA */}
+                            <span className="flex-none text-xs font-bold text-white bg-primary hover:bg-primary/90 px-4 py-2 rounded-lg transition-colors duration-150 whitespace-nowrap shadow-sm">
+                                Buscar
+                            </span>
+                        </div>
+                    </div>
+                )}
+
                 {!selectedEvent ? (
                     // EVENTS GRID
                     events.length > 0 ? (
@@ -520,6 +560,18 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
                 currentUser={currentUser!}
                 photographerName={displayUser.name}
             />
+
+            {selectedEvent && (
+                <FaceSearchModal
+                    isOpen={isFaceSearchOpen}
+                    onClose={() => setIsFaceSearchOpen(false)}
+                    eventId={selectedEvent.id}
+                    photographerId={user.id}
+                    onNavigate={onNavigate || (() => { })}
+                    onAddToCart={onAddToCart || (() => { })}
+                    currentUser={currentUser}
+                />
+            )}
         </div>
     );
 };
