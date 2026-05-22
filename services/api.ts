@@ -123,12 +123,16 @@ const inMemoryCache: {
   categories: { data: Category[] | null, ts: number },
   featured: { data: Photo[] | null, ts: number },
   recent: { data: Photo[] | null, ts: number },
-  activePhotographers: { data: PhotographerWithStats[] | null, ts: number }
+  activePhotographers: { data: PhotographerWithStats[] | null, ts: number },
+  allPhotographers: { data: PhotographerWithStats[] | null, ts: number },
+  allEvents: { data: PhotoEvent[] | null, ts: number }
 } = {
   categories: { data: null, ts: 0 },
   featured: { data: null, ts: 0 },
   recent: { data: null, ts: 0 },
-  activePhotographers: { data: null, ts: 0 }
+  activePhotographers: { data: null, ts: 0 },
+  allPhotographers: { data: null, ts: 0 },
+  allEvents: { data: null, ts: 0 }
 };
 
 export const api = {
@@ -857,6 +861,11 @@ export const api = {
     return true;
   },
   getPhotographers: async (): Promise<PhotographerWithStats[]> => {
+    const now = Date.now();
+    if (inMemoryCache.allPhotographers.data && (now - inMemoryCache.allPhotographers.ts < CACHE_TTL)) {
+      return inMemoryCache.allPhotographers.data;
+    }
+
     // 1. Get stats via RPC + reviews in parallel
     const [{ data, error }, { data: reviewsData }] = await Promise.all([
       supabase.rpc("get_photographers_with_stats"),
@@ -865,7 +874,7 @@ export const api = {
 
     if (error) {
       console.error("Error fetching photographer stats via RPC:", error);
-      alert("Error RPC Photographers: " + JSON.stringify(error));
+      // alert("Error RPC Photographers: " + JSON.stringify(error));
       throw error;
     }
 
@@ -881,7 +890,7 @@ export const api = {
     const settings = await api.getCommissionSettings();
 
     // 4. Map result
-    return (data as any[]).map((row) => {
+    const result = (data as any[]).map((row) => {
       const user = mapUser(row.user_data);
 
       let effectiveRate = settings.defaultRate;
@@ -908,6 +917,9 @@ export const api = {
         approvalPercentage: reviewCount > 0 ? (rm.sum / reviewCount / 5) * 100 : 0,
       };
     });
+
+    inMemoryCache.allPhotographers = { data: result, ts: now };
+    return result;
   },
   getPhotographerById: async (id: string): Promise<User | undefined> => {
     const { data, error } = await supabase
@@ -943,6 +955,11 @@ export const api = {
 
   // --- EVENTS ---
   getAllPublicEvents: async (): Promise<PhotoEvent[]> => {
+    const now = Date.now();
+    if (inMemoryCache.allEvents.data && (now - inMemoryCache.allEvents.ts < CACHE_TTL)) {
+      return inMemoryCache.allEvents.data;
+    }
+
     const { data, error } = await supabase
       .from("events")
       .select("*, photographer:photographer_id(name, avatar_url, is_active)")
@@ -957,7 +974,9 @@ export const api = {
       return e.photographer && e.photographer.is_active && e.photographer.avatar_url;
     });
 
-    return validEvents as PhotoEvent[];
+    const result = validEvents as PhotoEvent[];
+    inMemoryCache.allEvents = { data: result, ts: now };
+    return result;
   },
 
   getEventById: async (eventId: string): Promise<PhotoEvent | null> => {
