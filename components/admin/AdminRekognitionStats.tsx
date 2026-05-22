@@ -3,7 +3,7 @@ import api from '../../services/api';
 import { faceRecognitionService } from '../../services/faceRecognition';
 import { supabase } from '../../services/supabaseClient';
 
-const API_BASE = import.meta.env.DEV ? 'http://localhost:4242' : '';
+const API_BASE = '';
 
 interface RekognitionStatsData {
     collection: { id: string; faceCount: number; faceModelVersion: string };

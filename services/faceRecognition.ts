@@ -1,6 +1,6 @@
 import { supabase } from './supabaseClient';
 
-const API_BASE = import.meta.env.DEV ? 'http://localhost:4242' : '';
+const API_BASE = '';
 
 // Converts any image URL or data URL to JPEG via browser Canvas (handles WebP natively)
 async function toJpegDataUrl(source: string): Promise<string> {
