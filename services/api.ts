@@ -125,14 +125,20 @@ const inMemoryCache: {
   recent: { data: Photo[] | null, ts: number },
   activePhotographers: { data: PhotographerWithStats[] | null, ts: number },
   allPhotographers: { data: PhotographerWithStats[] | null, ts: number },
-  allEvents: { data: PhotoEvent[] | null, ts: number }
+  allEvents: { data: PhotoEvent[] | null, ts: number },
+  userCache: Record<string, { data: User, ts: number }>,
+  photographerPhotosCache: Record<string, { data: Photo[], ts: number }>,
+  photographerEventsCache: Record<string, { data: PhotoEvent[], ts: number }>
 } = {
   categories: { data: null, ts: 0 },
   featured: { data: null, ts: 0 },
   recent: { data: null, ts: 0 },
   activePhotographers: { data: null, ts: 0 },
   allPhotographers: { data: null, ts: 0 },
-  allEvents: { data: null, ts: 0 }
+  allEvents: { data: null, ts: 0 },
+  userCache: {},
+  photographerPhotosCache: {},
+  photographerEventsCache: {}
 };
 
 export const api = {
@@ -356,6 +362,12 @@ export const api = {
   getPhotosByPhotographerId: async (
     photographerId: string,
   ): Promise<Photo[]> => {
+    const now = Date.now();
+    const cached = inMemoryCache.photographerPhotosCache[photographerId];
+    if (cached && (now - cached.ts < CACHE_TTL)) {
+      return cached.data;
+    }
+
     let allData: any[] = [];
     let page = 0;
     const pageSize = 1000;
@@ -384,7 +396,9 @@ export const api = {
       }
     }
     
-    return allData.map(mapPhoto);
+    const result = allData.map(mapPhoto);
+    inMemoryCache.photographerPhotosCache[photographerId] = { data: result, ts: now };
+    return result;
   },
 
   createPhoto: async (data: any): Promise<Photo> => {
@@ -922,6 +936,11 @@ export const api = {
     return result;
   },
   getPhotographerById: async (id: string): Promise<User | undefined> => {
+    const now = Date.now();
+    const cached = inMemoryCache.userCache[id];
+    if (cached && (now - cached.ts < CACHE_TTL)) {
+      return cached.data;
+    }
     const { data, error } = await supabase
       .from("users")
       .select("*")
@@ -931,7 +950,9 @@ export const api = {
       if (error.code === "PGRST116") return undefined; // Not found is not an error here
       throw error;
     }
-    return mapUser(data);
+    const user = mapUser(data);
+    inMemoryCache.userCache[id] = { data: user, ts: now };
+    return user;
   },
   getActivePhotographersPreview: async (): Promise<PhotographerWithStats[]> => {
     const now = Date.now();
@@ -1069,6 +1090,12 @@ export const api = {
   getPhotographerEvents: async (
     photographerId: string,
   ): Promise<PhotoEvent[]> => {
+    const now = Date.now();
+    const cached = inMemoryCache.photographerEventsCache[photographerId];
+    if (cached && (now - cached.ts < CACHE_TTL)) {
+      return cached.data;
+    }
+
     const { data, error } = await supabase
       .from("events")
       .select("*")
@@ -1079,7 +1106,9 @@ export const api = {
       console.error("Error fetching events:", error);
       return [];
     }
-    return data as PhotoEvent[];
+    const result = data as PhotoEvent[];
+    inMemoryCache.photographerEventsCache[photographerId] = { data: result, ts: now };
+    return result;
   },
 
   deleteEvent: async (id: string): Promise<boolean> => {

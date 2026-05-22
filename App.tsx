@@ -9,6 +9,7 @@ import RegisterModal from './components/RegisterModal';
 import FaceSearchModal from './components/FaceSearchModal';
 // import Toast from './components/Toast'; // Removed, using Context
 import Spinner from './components/Spinner';
+import TopProgressBar from './components/TopProgressBar';
 
 // Contexts
 import { ToastProvider, useToast } from './contexts/ToastContext';
@@ -58,6 +59,7 @@ const MainApp: React.FC = () => {
     const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
     const [isFaceSearchModalOpen, setIsFaceSearchModalOpen] = useState(false);
     const [selectedPhotoId, setSelectedPhotoId] = useState<string | null>(null);
+    const [isNavigating, setIsNavigating] = useState(false);
     const [cartItems, setCartItems] = useState<string[]>([]);
     const [isSessionLoading, setIsSessionLoading] = useState(true);
 
@@ -181,7 +183,7 @@ const MainApp: React.FC = () => {
         if (pathname === '/termos') return { name: 'terms' };
         if (pathname === '/privacidade') return { name: 'privacy' };
         if (pathname === '/fotos-destaque') return { name: 'featured-photos' };
-        if (pathname === '/fotografos') return { name: 'photographers' };
+        if (pathname === '/fotografos') return { name: 'fotografos' };
         if (pathname === '/encontrar-fotos') {
             const q = searchParams.get('q');
             return { name: 'find-photos', initialSearch: q || undefined };
@@ -216,6 +218,14 @@ const MainApp: React.FC = () => {
     const currentPageRef = React.useRef(currentPage);
     useEffect(() => {
         currentPageRef.current = currentPage;
+        
+        // Trigger progress bar on route change
+        setIsNavigating(true);
+        const timer = setTimeout(() => {
+            setIsNavigating(false);
+        }, 600); // Simulate network transition time
+        
+        return () => clearTimeout(timer);
     }, [currentPage]);
 
     // Handle initial navigation and URL routing
@@ -539,7 +549,8 @@ const MainApp: React.FC = () => {
     const showFooter = !['admin', 'photographer', 'login', 'register', 'pending-approval', 'checkout', 'checkout-success'].includes(currentPage.name);
 
     return (
-        <div className="bg-neutral-100 text-neutral-800 min-h-screen flex flex-col font-sans">
+        <div className="bg-neutral-100 text-neutral-800 min-h-screen flex flex-col font-sans relative">
+            <TopProgressBar isAnimating={isNavigating} />
             <Header
                 user={currentUser}
                 onLogout={handleLogout}
