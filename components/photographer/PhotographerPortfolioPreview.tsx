@@ -566,10 +566,10 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
                     isOpen={isFaceSearchOpen}
                     onClose={() => setIsFaceSearchOpen(false)}
                     eventId={selectedEvent.id}
-                    photographerId={user.id}
+                    eventName={selectedEvent.name}
                     onNavigate={onNavigate || (() => { })}
                     onAddToCart={onAddToCart || (() => { })}
-                    currentUser={currentUser}
+                    onShowToast={showToast}
                 />
             )}
         </div>
