@@ -210,14 +210,15 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
         files: File[],
         metadata: { price: number, tags: string[], is_public: boolean },
         onProgress?: (stats: { current: number, total: number, successes: number, failures: number }) => void
-    ) => {
-        if (!selectedEvent) return;
+    ): Promise<{ successCount: number; failCount: number; failedFiles: Array<{ name: string; reason: string }> }> => {
+        if (!selectedEvent) return { successCount: 0, failCount: 0, failedFiles: [] };
 
         let successCount = 0;
         let failCount = 0;
         let processedCount = 0;
+        const failedFiles: Array<{ name: string; reason: string }> = [];
 
-        showToast(`Iniciando envio de ${files.length} fotos...`, "info");
+        showToast(`Iniciando envio de ${files.length} arquivos...`, "info");
 
         // Helper to convert base64 to Blob
         const base64ToBlob = async (b64Data: string) => {
@@ -230,7 +231,9 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
             const MAX_SIZE_MB = isVideo ? 250 : 50;
 
             if (file.size > MAX_SIZE_MB * 1024 * 1024) {
-                console.error(`File ${file.name} is too large (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
+                const reason = `Arquivo muito grande (${(file.size / 1024 / 1024).toFixed(1)}MB). O limite é de ${MAX_SIZE_MB}MB.`;
+                console.error(`File ${file.name} is too large: ${reason}`);
+                failedFiles.push({ name: file.name, reason });
                 failCount++;
                 processedCount++;
                 if (onProgress) onProgress({ current: processedCount, total: files.length, successes: successCount, failures: failCount });
@@ -243,7 +246,9 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
             const isValidExt = ['mp4', 'mov', 'webm'].includes(fileExt || '');
             
             if (!validTypes.includes(file.type) && !isHeic && !isValidExt) {
-                console.error(`File ${file.name} has invalid type: ${file.type || 'unknown'}`);
+                const reason = `Formato de arquivo não suportado (${file.type || 'desconhecido'}). Envie fotos (JPG, PNG, WebP, HEIC) ou vídeos (MP4, MOV, WebM).`;
+                console.error(`File ${file.name} has invalid type: ${reason}`);
+                failedFiles.push({ name: file.name, reason });
                 failCount++;
                 processedCount++;
                 if (onProgress) onProgress({ current: processedCount, total: files.length, successes: successCount, failures: failCount });
@@ -270,7 +275,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                     });
 
                     if (videoDetails.duration < 60 || videoDetails.duration > 90) {
-                        throw new Error(`Vídeo deve ter entre 60 e 90 segundos (Duração: ${Math.round(videoDetails.duration)}s)`);
+                        throw new Error(`Vídeo deve ter entre 60 e 90 segundos. (Duração identificada: ${Math.round(videoDetails.duration)}s)`);
                     }
 
                     const apiUrl = typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.host}/api/cloudflare-stream-url` : '/api/cloudflare-stream-url';
@@ -375,7 +380,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                 console.error(`Upload error for ${file.name}:`, err);
                 failCount++;
                 const errMsg = err.message || "Erro desconhecido durante o upload.";
-                showToast(`Erro ao enviar "${file.name}": ${errMsg}`, "error");
+                failedFiles.push({ name: file.name, reason: errMsg });
             } finally {
                 processedCount++;
                 if (onProgress) onProgress({ 
@@ -410,19 +415,24 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
 
         await executeTasks();
 
-        setIsBatchUploadModalOpen(false);
-
-        if (failCount > 0) {
-            if (successCount === 0) {
-                showToast(`Falha no envio de todos os arquivos. Verifique os erros individuais exibidos acima.`, "error");
-            } else {
-                showToast(`Envio concluído com erros: ${successCount} concluídos, ${failCount} falhas.`, "info");
-            }
-        } else {
+        if (failCount === 0) {
+            setIsBatchUploadModalOpen(false);
             showToast(`Upload concluído! ${successCount} arquivos processados com sucesso.`, "success");
+        } else {
+            if (successCount === 0) {
+                showToast(`Falha no envio de todos os arquivos. Verifique os erros exibidos no painel.`, "error");
+            } else {
+                showToast(`Envio concluído com erros: ${successCount} com sucesso, ${failCount} falhas.`, "info");
+            }
         }
 
         fetchData();
+
+        return {
+            successCount,
+            failCount,
+            failedFiles
+        };
     };
 
     // --- VIEW HELPERS ---

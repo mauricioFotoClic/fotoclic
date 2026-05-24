@@ -9,7 +9,7 @@ interface BatchUploadFormProps {
         files: File[],
         metadata: { price: number, tags: string[], is_public: boolean },
         onProgress: (stats: { current: number, total: number, successes: number, failures: number }) => void
-    ) => Promise<void>;
+    ) => Promise<{ successCount: number; failCount: number; failedFiles: Array<{ name: string; reason: string }> }>;
     onCancel: () => void;
 }
 
@@ -20,6 +20,12 @@ const BatchUploadForm: React.FC<BatchUploadFormProps> = ({ event, photographerId
     const [isPublic, setIsPublic] = useState(true);
     const [isUploading, setIsUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState<{ current: number, total: number, successes: number, failures: number }>({ current: 0, total: 0, successes: 0, failures: 0 });
+    const [uploadResult, setUploadResult] = useState<{
+        successCount: number;
+        failCount: number;
+        failedFiles: Array<{ name: string; reason: string }>;
+    } | null>(null);
+    const [showResults, setShowResults] = useState(false);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
@@ -43,24 +49,106 @@ const BatchUploadForm: React.FC<BatchUploadFormProps> = ({ event, photographerId
 
         setIsUploading(true);
         setUploadProgress({ current: 0, total: selectedFiles.length, successes: 0, failures: 0 });
+        setUploadResult(null);
+        setShowResults(false);
 
         try {
-            await onSubmit(selectedFiles, {
+            const result = await onSubmit(selectedFiles, {
                 price: numPrice,
                 tags: tags.split(',').map(t => t.trim()).filter(t => t),
                 is_public: isPublic,
             }, (stats) => {
                 setUploadProgress(stats);
             });
+
+            if (result && result.failCount > 0) {
+                setUploadResult(result);
+                setShowResults(true);
+            }
         } catch (error) {
             console.error("Upload error:", error);
-            alert("Erro ao enviar fotos.");
+            alert("Erro inesperado ao enviar arquivos.");
         } finally {
             setIsUploading(false);
         }
     };
 
     const inputClass = "w-full px-3 py-2 bg-white border border-neutral-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent transition-all";
+
+    if (showResults && uploadResult) {
+        return (
+            <div className="space-y-6">
+                <div className="bg-amber-50 border border-amber-200 p-4 rounded-lg flex items-start space-x-3">
+                    <div className="p-2 bg-amber-100 text-amber-700 rounded-full flex-shrink-0">
+                        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h4 className="font-semibold text-amber-900">Upload Concluído com Erros</h4>
+                        <p className="text-sm text-amber-700">
+                            Alguns arquivos não puderam ser enviados. Verifique os motivos individuais abaixo.
+                        </p>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-green-50 border border-green-100 p-3 rounded-lg text-center">
+                        <div className="text-2xl font-bold text-green-600">{uploadResult.successCount}</div>
+                        <div className="text-xs text-green-700 font-medium uppercase tracking-wider">Enviado(s)</div>
+                    </div>
+                    <div className="bg-red-50 border border-red-100 p-3 rounded-lg text-center">
+                        <div className="text-2xl font-bold text-red-500">{uploadResult.failCount}</div>
+                        <div className="text-xs text-red-700 font-medium uppercase tracking-wider">Com Falha</div>
+                    </div>
+                </div>
+
+                <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-neutral-800">
+                        Detalhes das Falhas ({uploadResult.failedFiles.length} arquivos)
+                    </label>
+                    <div className="max-h-60 overflow-y-auto border border-neutral-200 rounded-lg divide-y divide-neutral-100 bg-white">
+                        {uploadResult.failedFiles.map((errFile, idx) => (
+                            <div key={idx} className="p-3 hover:bg-neutral-50 transition-colors flex items-start space-x-3">
+                                <span className="mt-0.5 text-red-500 flex-shrink-0">
+                                    <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                                    </svg>
+                                </span>
+                                <div className="space-y-0.5">
+                                    <p className="text-sm font-semibold text-neutral-800 break-all">{errFile.name}</p>
+                                    <p className="text-xs text-red-600 font-medium leading-relaxed">{errFile.reason}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="flex justify-end space-x-2 pt-4 border-t">
+                    <button
+                        type="button"
+                        onClick={() => {
+                            const failedNames = new Set(uploadResult.failedFiles.map(f => f.name));
+                            const remainingFiles = selectedFiles.filter(f => failedNames.has(f.name));
+                            setSelectedFiles(remainingFiles);
+                            setUploadResult(null);
+                            setShowResults(false);
+                        }}
+                        className="px-4 py-2 text-sm font-semibold text-primary bg-primary/10 border border-primary/20 rounded-full hover:bg-primary/20 transition-colors"
+                    >
+                        Ajustar Falhas
+                    </button>
+                    <button
+                        type="button"
+                        onClick={onCancel}
+                        className="px-6 py-2 text-sm font-bold text-white bg-primary rounded-full hover:bg-opacity-90 transition-colors shadow-md"
+                    >
+                        Fechar
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -82,11 +170,11 @@ const BatchUploadForm: React.FC<BatchUploadFormProps> = ({ event, photographerId
                         ></div>
                     </div>
                     <p className="text-neutral-600 font-medium">
-                        Processando foto {uploadProgress.current} de {uploadProgress.total}...
+                        Processando arquivo {uploadProgress.current} de {uploadProgress.total}...
                     </p>
                     {uploadProgress.failures > 0 && (
                         <p className="text-xs text-red-500 bg-red-50 p-2 rounded border border-red-100">
-                            Algumas fotos falharam. Verifique sua conexão ou se atingiu o limite de fotos.
+                            Alguns arquivos falharam. Veja os motivos individuais na próxima tela.
                         </p>
                     )}
                     <p className="text-sm text-neutral-400">Por favor, não feche esta janela ou mude de página.</p>
