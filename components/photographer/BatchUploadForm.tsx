@@ -200,8 +200,8 @@ const BatchUploadForm: React.FC<BatchUploadFormProps> = ({ event, photographerId
                                         <span className="font-medium text-primary hover:text-primary-dark">Clique para selecionar</span>
                                         <span className="pl-1">ou arraste e solte</span>
                                     </div>
-                                    <p className="text-xs text-neutral-500">JPG, PNG, WebP, HEIC, MP4, MOV (Entre 60s e 90s)</p>
-                                <p className="text-xs text-primary p-1 bg-primary/10 mt-1 rounded inline-block">Nota: Fotos maiores de 15MB serão automaticamente comprimidas para 15MB, preservando a alta resolução (8K). Vídeos obrigatoriamente entre 60 e 90 segundos (Máx 250MB).</p>
+                                    <p className="text-xs text-neutral-500">JPG, PNG, WebP, HEIC, MP4, MOV (Máx 90s)</p>
+                                <p className="text-xs text-primary p-1 bg-primary/10 mt-1 rounded inline-block">Nota: Fotos maiores de 15MB serão automaticamente comprimidas para 15MB, preservando a alta resolução (8K). Vídeos devem ter no máximo 90 segundos (Máx 250MB).</p>
                             </div>
                         </div>
                         {selectedFiles.length > 0 && (

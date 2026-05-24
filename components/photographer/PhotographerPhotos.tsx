@@ -274,8 +274,8 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                         video.src = URL.createObjectURL(file);
                     });
 
-                    if (videoDetails.duration < 60 || videoDetails.duration > 90) {
-                        throw new Error(`Vídeo deve ter entre 60 e 90 segundos. (Duração identificada: ${Math.round(videoDetails.duration)}s)`);
+                    if (videoDetails.duration > 90) {
+                        throw new Error(`Vídeo deve ter no máximo 90 segundos. (Duração identificada: ${Math.round(videoDetails.duration)}s)`);
                     }
 
                     const apiUrl = typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.host}/api/cloudflare-stream-url` : '/api/cloudflare-stream-url';
