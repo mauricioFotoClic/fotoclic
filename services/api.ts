@@ -456,8 +456,19 @@ export const api = {
         .eq('id', photo.id);
       
       if (updateError) console.error("Error updating extra fields:", updateError);
+
+      // Invalidate photographer photos cache
+      delete inMemoryCache.photographerPhotosCache[data.photographer_id];
+      inMemoryCache.recent = { data: null, ts: 0 };
+      inMemoryCache.featured = { data: null, ts: 0 };
+
       return { ...photo, ...extraFields };
     }
+
+    // Invalidate photographer photos cache
+    delete inMemoryCache.photographerPhotosCache[data.photographer_id];
+    inMemoryCache.recent = { data: null, ts: 0 };
+    inMemoryCache.featured = { data: null, ts: 0 };
 
     return photo;
   },
@@ -472,12 +483,26 @@ export const api = {
       .select()
       .single();
     if (error) throw error;
-    return mapPhoto(updatedPhoto);
+
+    const mapped = mapPhoto(updatedPhoto);
+    if (mapped.photographer_id) {
+      delete inMemoryCache.photographerPhotosCache[mapped.photographer_id];
+      inMemoryCache.recent = { data: null, ts: 0 };
+      inMemoryCache.featured = { data: null, ts: 0 };
+    }
+    return mapped;
   },
 
   deletePhoto: async (id: string): Promise<boolean> => {
+    const photo = await api.getPhotoById(id);
     const { error } = await supabase.from("photos").delete().eq("id", id);
     if (error) throw error;
+
+    if (photo) {
+      delete inMemoryCache.photographerPhotosCache[photo.photographer_id];
+      inMemoryCache.recent = { data: null, ts: 0 };
+      inMemoryCache.featured = { data: null, ts: 0 };
+    }
     return true;
   },
 
@@ -1109,6 +1134,11 @@ export const api = {
       console.error("Error creating event:", error);
       throw error;
     }
+
+    // Invalidate event cache
+    delete inMemoryCache.photographerEventsCache[user.id];
+    inMemoryCache.allEvents = { data: null, ts: 0 };
+
     return data as PhotoEvent;
   },
 
@@ -1137,11 +1167,17 @@ export const api = {
   },
 
   deleteEvent: async (id: string): Promise<boolean> => {
+    const { data: event } = await supabase.from("events").select("photographer_id").eq("id", id).single();
     const { error } = await supabase.from("events").delete().eq("id", id);
 
     if (error) {
       console.error("Error deleting event:", error);
       return false;
+    }
+
+    if (event) {
+      delete inMemoryCache.photographerEventsCache[event.photographer_id];
+      inMemoryCache.allEvents = { data: null, ts: 0 };
     }
     return true;
   },
@@ -1209,6 +1245,14 @@ export const api = {
       } catch (err) {
         console.error("Error syncing photo titles with event name:", err);
       }
+    }
+
+    if (updatedEvent && updatedEvent.photographer_id) {
+      delete inMemoryCache.photographerEventsCache[updatedEvent.photographer_id];
+      if (updates.name || updates.category_id) {
+        delete inMemoryCache.photographerPhotosCache[updatedEvent.photographer_id];
+      }
+      inMemoryCache.allEvents = { data: null, ts: 0 };
     }
 
     return updatedEvent as PhotoEvent;
