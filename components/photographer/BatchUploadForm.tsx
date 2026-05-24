@@ -42,7 +42,7 @@ const BatchUploadForm: React.FC<BatchUploadFormProps> = ({ event, photographerId
         }
 
         setIsUploading(true);
-        setUploadProgress({ current: 0, total: selectedFiles.length });
+        setUploadProgress({ current: 0, total: selectedFiles.length, successes: 0, failures: 0 });
 
         try {
             await onSubmit(selectedFiles, {
@@ -112,8 +112,8 @@ const BatchUploadForm: React.FC<BatchUploadFormProps> = ({ event, photographerId
                                         <span className="font-medium text-primary hover:text-primary-dark">Clique para selecionar</span>
                                         <span className="pl-1">ou arraste e solte</span>
                                     </div>
-                                    <p className="text-xs text-neutral-500">JPG, PNG, WebP, HEIC, MP4, MOV (Máx 90s)</p>
-                                <p className="text-xs text-primary p-1 bg-primary/10 mt-1 rounded inline-block">Nota: Fotos &gt; 10MB serão reduzidas. Vídeos até 90 segundos (Máx 250MB).</p>
+                                    <p className="text-xs text-neutral-500">JPG, PNG, WebP, HEIC, MP4, MOV (Entre 60s e 90s)</p>
+                                <p className="text-xs text-primary p-1 bg-primary/10 mt-1 rounded inline-block">Nota: Fotos &gt; 10MB serão reduzidas. Vídeos obrigatoriamente entre 60 e 90 segundos (Máx 250MB).</p>
                             </div>
                         </div>
                         {selectedFiles.length > 0 && (

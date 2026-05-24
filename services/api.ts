@@ -416,12 +416,12 @@ export const api = {
       p_file_url: data.file_url || "",
       p_thumb_url: data.thumb_url || "", // Pass thumb
       p_resolution: data.resolution || "4K",
-      p_width: data.width,
-      p_height: data.height,
+      p_width: data.width !== undefined && data.width !== null ? data.width : null,
+      p_height: data.height !== undefined && data.height !== null ? data.height : null,
       p_tags: data.tags || [],
       p_is_public: data.is_public,
       p_is_featured: false, // Default
-      p_event_id: data.event_id,
+      p_event_id: data.event_id || null,
     });
 
     if (error) throw error;

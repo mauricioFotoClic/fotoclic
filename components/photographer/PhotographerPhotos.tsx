@@ -233,7 +233,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                 console.error(`File ${file.name} is too large (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
                 failCount++;
                 processedCount++;
-                if (onProgress) onProgress(processedCount, files.length);
+                if (onProgress) onProgress({ current: processedCount, total: files.length, successes: successCount, failures: failCount });
                 return;
             }
 
@@ -246,7 +246,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                 console.error(`File ${file.name} has invalid type: ${file.type || 'unknown'}`);
                 failCount++;
                 processedCount++;
-                if (onProgress) onProgress(processedCount, files.length);
+                if (onProgress) onProgress({ current: processedCount, total: files.length, successes: successCount, failures: failCount });
                 return;
             }
 
@@ -257,15 +257,21 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
 
                 if (isVideo) {
                     // Video Upload Logic (Cloudflare Stream)
-                    const duration = await new Promise<number>((resolve) => {
+                    const videoDetails = await new Promise<{ duration: number; width: number; height: number }>((resolve) => {
                         const video = document.createElement('video');
                         video.preload = 'metadata';
-                        video.onloadedmetadata = () => resolve(video.duration);
-                        video.onerror = () => resolve(0);
+                        video.onloadedmetadata = () => resolve({
+                            duration: video.duration,
+                            width: video.videoWidth,
+                            height: video.videoHeight
+                        });
+                        video.onerror = () => resolve({ duration: 0, width: 0, height: 0 });
                         video.src = URL.createObjectURL(file);
                     });
 
-                    if (duration > 90) throw new Error(`Vídeo excede limite de 90 segundos (${Math.round(duration)}s)`);
+                    if (videoDetails.duration < 60 || videoDetails.duration > 90) {
+                        throw new Error(`Vídeo deve ter entre 60 e 90 segundos (Duração: ${Math.round(videoDetails.duration)}s)`);
+                    }
 
                     const apiUrl = typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.host}/api/cloudflare-stream-url` : '/api/cloudflare-stream-url';
                     const urlRes = await fetch(apiUrl, {
@@ -294,13 +300,15 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                         file_url: `https://iframe.videodelivery.net/${uid}`,
                         thumb_url: `https://videodelivery.net/${uid}/thumbnails/thumbnail.jpg`,
                         resolution: 'HD',
+                        width: videoDetails.width,
+                        height: videoDetails.height,
                         tags: metadata.tags,
                         is_public: metadata.is_public,
                         is_featured: false,
                         event_id: selectedEvent.id,
                         media_type: 'video',
                         video_uid: uid,
-                        video_duration: Math.round(duration),
+                        video_duration: Math.round(videoDetails.duration),
                         file_size_bytes: file.size
                     });
 
@@ -743,13 +751,20 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                             {paginatedPhotos.map((photo) => (
                                 <div key={photo.id} className="p-4">
                                     <div className="flex items-start gap-3">
-                                        <img
-                                            src={getOptimizedImageUrl(photo.thumb_url || photo.preview_url, 150, 70)}
-                                            alt={photo.title}
-                                            loading="lazy"
-                                            decoding="async"
-                                            className="w-20 h-14 object-cover rounded-md border border-neutral-200 flex-shrink-0"
-                                        />
+                                        <div className="relative flex-shrink-0">
+                                            <img
+                                                src={getOptimizedImageUrl(photo.thumb_url || photo.preview_url, 150, 70)}
+                                                alt={photo.title}
+                                                loading="lazy"
+                                                decoding="async"
+                                                className="w-20 h-14 object-cover rounded-md border border-neutral-200"
+                                            />
+                                            {photo.media_type === 'video' && (
+                                                <span className="absolute bottom-1 right-1 bg-black/75 text-white text-[9px] px-1 rounded flex items-center gap-0.5 z-10">
+                                                    ▶ {photo.video_duration ? `${photo.video_duration}s` : 'Víd'}
+                                                </span>
+                                            )}
+                                        </div>
                                         <div className="flex-1 min-w-0">
                                             <p className="font-medium text-neutral-800 text-sm truncate">{photo.title}</p>
                                             <p className="text-xs text-neutral-500 mt-0.5">{getCategoryName(photo.category_id)}</p>
@@ -795,13 +810,20 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                                     {paginatedPhotos.map((photo, index) => (
                                         <tr key={photo.id} className={`border-t ${index % 2 === 0 ? 'bg-white' : 'bg-neutral-50'}`}>
                                             <td className="p-2">
-                                                <img
-                                                    src={getOptimizedImageUrl(photo.thumb_url || photo.preview_url, 150, 70)}
-                                                    alt={photo.title}
-                                                    loading="lazy"
-                                                    decoding="async"
-                                                    className="w-16 h-12 object-cover rounded-md border border-neutral-200"
-                                                />
+                                                <div className="relative w-16 h-12">
+                                                    <img
+                                                        src={getOptimizedImageUrl(photo.thumb_url || photo.preview_url, 150, 70)}
+                                                        alt={photo.title}
+                                                        loading="lazy"
+                                                        decoding="async"
+                                                        className="w-16 h-12 object-cover rounded-md border border-neutral-200"
+                                                    />
+                                                    {photo.media_type === 'video' && (
+                                                        <span className="absolute bottom-1 right-1 bg-black/75 text-white text-[9px] px-1 rounded flex items-center gap-0.5 z-10">
+                                                            ▶ {photo.video_duration ? `${photo.video_duration}s` : 'Víd'}
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </td>
                                             <td className="p-4 text-sm font-medium text-neutral-800">{photo.title}</td>
                                             <td className="p-4 text-sm text-neutral-500">{getCategoryName(photo.category_id)}</td>

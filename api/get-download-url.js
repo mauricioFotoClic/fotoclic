@@ -54,7 +54,7 @@ export default async function handler(req, res) {
         // 2. Buscar dados da foto (file_url e photographer_id)
         const { data: photo, error: photoError } = await adminClient
             .from('photos')
-            .select('file_url, photographer_id')
+            .select('file_url, photographer_id, media_type, video_uid')
             .eq('id', photoId)
             .single();
 
@@ -79,7 +79,67 @@ export default async function handler(req, res) {
             }
         }
 
-        // 4. Gerar signed URL do bucket privado (válida 1 hora)
+        // 4. Se for vídeo, obter link de download do Cloudflare Stream
+        if (photo.media_type === 'video') {
+            const { CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN } = process.env;
+
+            if (!CLOUDFLARE_ACCOUNT_ID || !CLOUDFLARE_API_TOKEN) {
+                console.error('[DownloadURL] Credenciais Cloudflare ausentes.');
+                return res.status(500).json({ error: 'Erro de configuração do servidor de vídeos.' });
+            }
+
+            try {
+                // Dispara a geração de download no Cloudflare (idempotente)
+                await fetch(`https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/stream/${photo.video_uid}/downloads`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${CLOUDFLARE_API_TOKEN}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                // Tenta buscar a lista de downloads gerados
+                const cfRes = await fetch(`https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/stream/${photo.video_uid}/downloads`, {
+                    headers: {
+                        'Authorization': `Bearer ${CLOUDFLARE_API_TOKEN}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (cfRes.ok) {
+                    const cfData = await cfRes.json();
+                    if (cfData.success && cfData.result && cfData.result.default && cfData.result.default.url) {
+                        console.log(`[DownloadURL] Link de vídeo gerado pelo Cloudflare: user=${userId} photo=${photoId}`);
+                        return res.status(200).json({ url: cfData.result.default.url });
+                    } else {
+                        // Tenta extrair subdomínio dinamicamente a partir dos detalhes do vídeo
+                        const detailRes = await fetch(`https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/stream/${photo.video_uid}`, {
+                            headers: { 'Authorization': `Bearer ${CLOUDFLARE_API_TOKEN}` }
+                        });
+                        if (detailRes.ok) {
+                            const detailData = await detailRes.json();
+                            if (detailData.success && detailData.result && detailData.result.thumbnail) {
+                                const match = detailData.result.thumbnail.match(/https:\/\/(customer-[a-z0-9]+)\.cloudflarestream\.com/);
+                                if (match && match[1]) {
+                                    const fallbackUrl = `https://${match[1]}.cloudflarestream.com/${photo.video_uid}/downloads/default.mp4`;
+                                    console.log(`[DownloadURL] Link de vídeo fallback dinâmico gerado: user=${userId} photo=${photoId}`);
+                                    return res.status(200).json({ url: fallbackUrl });
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (cfErr) {
+                console.error('[DownloadURL] Erro na API do Cloudflare:', cfErr);
+            }
+
+            // Fallback final com o subdomínio padrão verificado
+            const fallbackUrl = `https://customer-7t6jbx4ml8cvuouh.cloudflarestream.com/${photo.video_uid}/downloads/default.mp4`;
+            console.log(`[DownloadURL] Link de vídeo fallback padrão gerado: user=${userId} photo=${photoId}`);
+            return res.status(200).json({ url: fallbackUrl });
+        }
+
+        // 5. Gerar signed URL do bucket privado do Supabase (válida 1 hora) para fotos
         const { data: signedData, error: signedError } = await adminClient.storage
             .from('photos-original')
             .createSignedUrl(photo.file_url, 3600);

@@ -97,7 +97,7 @@ const PhotoCard: React.FC<PhotoCardProps> = ({ photo, photographer, onNavigate, 
 
     return (
         <div className={`group relative overflow-hidden rounded-lg shadow-md bg-white transition-all duration-700 ease-out hover:shadow-xl ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-            <div className="cursor-pointer overflow-hidden h-48" onClick={handleDetailsClick}>
+            <div className="cursor-pointer overflow-hidden h-48 relative" onClick={handleDetailsClick}>
                 <WatermarkedImage
                     src={getOptimizedImageUrl(photo.thumb_url || photo.preview_url, 600, 75)}
                     alt={photo.title}
@@ -105,6 +105,12 @@ const PhotoCard: React.FC<PhotoCardProps> = ({ photo, photographer, onNavigate, 
                     decoding="async"
                     className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                 />
+                {photo.media_type === 'video' && (
+                    <div className="absolute top-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded backdrop-blur-sm flex items-center gap-1 z-20">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className="text-white"><path d="M8 5v14l11-7z"/></svg>
+                        <span>Vídeo</span>
+                    </div>
+                )}
             </div>
             <div className="absolute top-2 right-2 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity z-30">
                 <button

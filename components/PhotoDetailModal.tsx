@@ -70,12 +70,37 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({ photoId, onClose, o
                 </div>
             ) : (
                 <div className="flex flex-col lg:flex-row">
-                    <div ref={imgContainerRef} className="lg:w-2/3 bg-neutral-100 flex items-center justify-center p-4 min-h-[300px] lg:min-h-[500px]">
-                        <WatermarkedImage
-                            src={getOptimizedImageUrl(photo.preview_url, 1200, 85)}
-                            alt={photo.title}
-                            className="w-full h-auto max-h-[70vh] object-contain shadow-sm rounded-lg"
-                        />
+                    <div ref={imgContainerRef} className="lg:w-2/3 bg-neutral-100 flex items-center justify-center p-4 min-h-[300px] lg:min-h-[500px] w-full">
+                        {photo.media_type === 'video' ? (
+                            <div className="relative overflow-hidden select-none bg-neutral-100 w-full aspect-video max-h-[70vh] rounded-lg" onContextMenu={(e) => e.preventDefault()}>
+                                <iframe
+                                    src={`https://iframe.videodelivery.net/${photo.video_uid}?autoplay=true&loop=true&muted=true&preload=true&controls=false`}
+                                    className="w-full h-full pointer-events-none"
+                                    style={{ border: 'none' }}
+                                    allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+                                    allowFullScreen
+                                />
+                                <div className="absolute inset-0 z-10 bg-transparent" />
+                                <div className="absolute inset-0 z-20 pointer-events-none flex flex-wrap content-center justify-center overflow-hidden opacity-30">
+                                    {Array.from({ length: 12 }).map((_, i) => (
+                                        <div
+                                            key={i}
+                                            className="w-1/3 h-1/4 flex items-center justify-center transform -rotate-45"
+                                        >
+                                            <span className="text-white font-display font-bold text-sm sm:text-base whitespace-nowrap drop-shadow-md select-none border-2 border-white/20 px-2 py-1 rounded-md">
+                                                FotoClic Preview
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ) : (
+                            <WatermarkedImage
+                                src={getOptimizedImageUrl(photo.preview_url, 1200, 85)}
+                                alt={photo.title}
+                                className="w-full h-auto max-h-[70vh] object-contain shadow-sm rounded-lg"
+                            />
+                        )}
                     </div>
 
                     <div className="lg:w-1/3 p-6 flex flex-col h-full">

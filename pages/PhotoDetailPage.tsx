@@ -61,9 +61,10 @@ const PhotoDetailPage: React.FC<PhotoDetailPageProps> = ({ photoId, onNavigate, 
                 return;
             }
 
+            const extension = photo.media_type === 'video' ? 'mp4' : 'jpg';
             const link = document.createElement('a');
             link.href = secureUrl;
-            link.setAttribute('download', `fotoclic-${photo.title.replace(/\s+/g, '-').toLowerCase()}.jpg`);
+            link.setAttribute('download', `fotoclic-${photo.title.replace(/\s+/g, '-').toLowerCase()}.${extension}`);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -115,11 +116,48 @@ const PhotoDetailPage: React.FC<PhotoDetailPageProps> = ({ photoId, onNavigate, 
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <div className="lg:col-span-2">
-                        <div ref={imgContainerRef} className="bg-neutral-100 rounded-lg overflow-hidden shadow-sm border border-neutral-200 flex items-center justify-center">
-                            {hasPurchased ? (
-                                <img src={photo.preview_url} alt={photo.title} className="w-full h-auto max-h-[70vh] object-contain" />
+                        <div ref={imgContainerRef} className="bg-neutral-100 rounded-lg overflow-hidden shadow-sm border border-neutral-200 flex items-center justify-center w-full">
+                            {photo.media_type === 'video' ? (
+                                hasPurchased ? (
+                                    <div className="w-full aspect-video max-h-[70vh] bg-black relative">
+                                        <iframe
+                                            src={`https://iframe.videodelivery.net/${photo.video_uid}?preload=true&loop=true&controls=true`}
+                                            className="w-full h-full"
+                                            style={{ border: 'none' }}
+                                            allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+                                            allowFullScreen
+                                        />
+                                    </div>
+                                ) : (
+                                    <div className="w-full aspect-video max-h-[70vh] bg-neutral-100 relative select-none" onContextMenu={(e) => e.preventDefault()}>
+                                        <iframe
+                                            src={`https://iframe.videodelivery.net/${photo.video_uid}?preload=true&loop=true&controls=false&autoplay=true&muted=true`}
+                                            className="w-full h-full pointer-events-none"
+                                            style={{ border: 'none' }}
+                                            allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+                                            allowFullScreen
+                                        />
+                                        <div className="absolute inset-0 z-10 bg-transparent" />
+                                        <div className="absolute inset-0 z-20 pointer-events-none flex flex-wrap content-center justify-center overflow-hidden opacity-30">
+                                            {Array.from({ length: 12 }).map((_, i) => (
+                                                <div
+                                                    key={i}
+                                                    className="w-1/3 h-1/4 flex items-center justify-center transform -rotate-45"
+                                                >
+                                                    <span className="text-white font-display font-bold text-lg sm:text-xl whitespace-nowrap drop-shadow-md select-none border-2 border-white/20 px-2 py-1 rounded-md">
+                                                        FotoClic Preview
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )
                             ) : (
-                                <WatermarkedImage src={photo.preview_url} alt={photo.title} className="w-full h-auto max-h-[70vh] object-contain" />
+                                hasPurchased ? (
+                                    <img src={photo.preview_url} alt={photo.title} className="w-full h-auto max-h-[70vh] object-contain" />
+                                ) : (
+                                    <WatermarkedImage src={photo.preview_url} alt={photo.title} className="w-full h-auto max-h-[70vh] object-contain" />
+                                )
                             )}
                         </div>
                     </div>
