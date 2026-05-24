@@ -64,8 +64,16 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
                         const photographer = await api.getPhotographerById(photographerId);
                         const rules = photographer?.bulkDiscountRules || [];
 
-                        const sortedRules = [...rules].sort((a, b) => b.minQuantity - a.minQuantity);
-                        const appliedRule = sortedRules.find(r => photos.length >= r.minQuantity) || null;
+                        const qty = photos.length;
+                        let appliedRule = null;
+
+                        if (qty >= 2 && qty <= 4) {
+                            appliedRule = rules.find(r => r.minQuantity === 2) || null;
+                        } else if (qty >= 5 && qty <= 9) {
+                            appliedRule = rules.find(r => r.minQuantity === 5) || null;
+                        } else if (qty >= 10) {
+                            appliedRule = rules.find(r => r.minQuantity === 10) || null;
+                        }
 
                         groupedData.push({
                             photographerId,

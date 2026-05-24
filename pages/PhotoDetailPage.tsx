@@ -170,12 +170,22 @@ const PhotoDetailPage: React.FC<PhotoDetailPageProps> = ({ photoId, onNavigate, 
                                                     Leve mais, pague menos!
                                                 </p>
                                                 <ul className="space-y-1">
-                                                    {photographer.bulkDiscountRules.map((rule, idx) => (
-                                                        <li key={idx} className="text-sm text-primary-dark flex justify-between">
-                                                            <span>{rule.minQuantity} fotos</span>
-                                                            <span className="font-bold">{rule.discountPercent}% OFF</span>
-                                                        </li>
-                                                    ))}
+                                                    {[...photographer.bulkDiscountRules]
+                                                        .sort((a, b) => a.minQuantity - b.minQuantity)
+                                                        .map((rule, idx) => {
+                                                            let label = `${rule.minQuantity} fotos`;
+                                                            if (rule.minQuantity === 2) label = "2 a 4 fotos";
+                                                            else if (rule.minQuantity === 5) label = "5 a 9 fotos";
+                                                            else if (rule.minQuantity === 10) label = "10 fotos ou mais";
+
+                                                            return (
+                                                                <li key={idx} className="text-sm text-primary-dark flex justify-between">
+                                                                    <span>{label}</span>
+                                                                    <span className="font-bold">{rule.discountPercent}% OFF</span>
+                                                                </li>
+                                                            );
+                                                        })
+                                                    }
                                                 </ul>
                                             </div>
                                         )}
