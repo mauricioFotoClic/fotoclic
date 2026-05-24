@@ -436,7 +436,26 @@ export const api = {
     }
 
     // Map the returned data (which is the raw photo row) to our Photo type
-    return mapPhoto(result.data);
+    const photo = mapPhoto(result.data);
+
+    // Se tivermos campos extras que o RPC original não suporta, fazemos um update
+    const extraFields: any = {};
+    if (data.media_type) extraFields.media_type = data.media_type;
+    if (data.video_uid) extraFields.video_uid = data.video_uid;
+    if (data.video_duration !== undefined) extraFields.video_duration = data.video_duration;
+    if (data.file_size_bytes !== undefined) extraFields.file_size_bytes = data.file_size_bytes;
+
+    if (Object.keys(extraFields).length > 0) {
+      const { error: updateError } = await supabase
+        .from('photos')
+        .update(extraFields)
+        .eq('id', photo.id);
+      
+      if (updateError) console.error("Error updating extra fields:", updateError);
+      return { ...photo, ...extraFields };
+    }
+
+    return photo;
   },
 
   updatePhoto: async (id: string, data: any): Promise<Photo | undefined> => {

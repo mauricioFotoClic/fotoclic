@@ -112,6 +112,11 @@ When auto-applying an agent, inform the user:
 - **Performance**: Measure first. Adhere to 2025 standards (Core Web Vitals).
 - **Infra/Safety**: 5-Phase Deployment. Verify secrets security.
 
+### 🛡️ Preservation Rule (CRITICAL)
+
+**MANDATORY:** Nao altere, nao delete e nao danifique o que ja esta pronto. 
+When implementing new features or fixing bugs, you MUST ensure that existing functionality remains completely intact. Any new bugs introduced by modifying working code are considered a severe failure. Isolate new logic as much as possible.
+
 ### 📁 File Dependency Awareness
 
 **Before modifying ANY file:**

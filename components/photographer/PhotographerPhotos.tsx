@@ -209,7 +209,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
     const handleBatchUpload = async (
         files: File[],
         metadata: { price: number, tags: string[], is_public: boolean },
-        onProgress?: (current: number, total: number) => void
+        onProgress?: (stats: { current: number, total: number, successes: number, failures: number }) => void
     ) => {
         if (!selectedEvent) return;
 
@@ -226,8 +226,9 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
         };
 
         const uploadSingleFile = async (file: File, index: number) => {
-            // 1. Validation: File Size (Max 50MB)
-            const MAX_SIZE_MB = 50;
+            const isVideo = file.type.startsWith('video/') || !!file.name.match(/\.(mp4|mov|webm)$/i);
+            const MAX_SIZE_MB = isVideo ? 250 : 50;
+
             if (file.size > MAX_SIZE_MB * 1024 * 1024) {
                 console.error(`File ${file.name} is too large (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
                 failCount++;
@@ -236,12 +237,12 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                 return;
             }
 
-            // 2. Validation: File Type (Support HEIC/HEIF for Mac/iPhone users)
-            const validTypes = ['image/jpeg', 'image/jpg', 'image/webp', 'image/png', 'image/heic', 'image/heif'];
+            const validTypes = ['image/jpeg', 'image/jpg', 'image/webp', 'image/png', 'image/heic', 'image/heif', 'video/mp4', 'video/quicktime', 'video/webm'];
             const fileExt = file.name.split('.').pop()?.toLowerCase();
             const isHeic = fileExt === 'heic' || fileExt === 'heif';
+            const isValidExt = ['mp4', 'mov', 'webm'].includes(fileExt || '');
             
-            if (!validTypes.includes(file.type) && !isHeic) {
+            if (!validTypes.includes(file.type) && !isHeic && !isValidExt) {
                 console.error(`File ${file.name} has invalid type: ${file.type || 'unknown'}`);
                 failCount++;
                 processedCount++;
@@ -250,70 +251,116 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
             }
 
             try {
-                // 3. Process Image (Original, Preview, Thumb)
-                const processed = await processImageForUpload(file);
-
-                // Convert base64 back to Blobs in parallel
-                const [originalBlob, previewBlob, thumbBlob] = await Promise.all([
-                    base64ToBlob(processed.original),
-                    base64ToBlob(processed.preview),
-                    base64ToBlob(processed.thumb)
-                ]);
-
-                // 4. Upload to Storage in parallel
-                const fileExt = file.name.split('.').pop();
-                const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`; // UUID fallback for Safari compatibility
-                const filePath = `${user.id}/${selectedEvent.id}/${fileName}`;
-
-                const [origRes, prevRes, thumbRes] = await Promise.all([
-                    api.supabase.storage.from('photos-original').upload(`${filePath}-original.${fileExt}`, originalBlob),
-                    api.supabase.storage.from('photos-preview').upload(`${filePath}-preview.webp`, previewBlob),
-                    api.supabase.storage.from('photos-preview').upload(`${filePath}-thumb.webp`, thumbBlob)
-                ]);
-
-                if (origRes.error) throw origRes.error;
-                if (prevRes.error) throw prevRes.error;
-                if (thumbRes.error) throw thumbRes.error;
-
-                // Get Public URLs
-                const { data: prevUrlData } = api.supabase.storage.from('photos-preview').getPublicUrl(`${filePath}-preview.webp`);
-                const { data: thumbUrlData } = api.supabase.storage.from('photos-preview').getPublicUrl(`${filePath}-thumb.webp`);
-
-                // 5. Save Metadata to DB
-                // Note: existingCount calculation might be slightly off due to concurrency, but sequence logic was already race-prone
-                // We'll use the index passed to ensure uniqueness in sequence for this batch
                 const sequenceNum = photos.filter(p => p.event_id === selectedEvent.id).length + index + 1;
                 const sequence = sequenceNum.toString().padStart(2, '0');
+                const title = `${sequence}-${selectedEvent.name}`;
 
-                const newPhoto = await api.createPhoto({
-                    photographer_id: user.id,
-                    category_id: selectedEvent.category_id,
-                    title: `${sequence}-${selectedEvent.name}`,
-                    description: `Foto do evento ${selectedEvent.name}`,
-                    price: metadata.price,
-                    preview_url: prevUrlData.publicUrl,
-                    file_url: `${filePath}-original.${fileExt}`,
-                    thumb_url: thumbUrlData.publicUrl,
-                    resolution: '4K',
-                    width: processed.width,
-                    height: processed.height,
-                    tags: metadata.tags,
-                    is_public: metadata.is_public,
-                    is_featured: false,
-                    event_id: selectedEvent.id
-                });
+                if (isVideo) {
+                    // Video Upload Logic (Cloudflare Stream)
+                    const duration = await new Promise<number>((resolve) => {
+                        const video = document.createElement('video');
+                        video.preload = 'metadata';
+                        video.onloadedmetadata = () => resolve(video.duration);
+                        video.onerror = () => resolve(0);
+                        video.src = URL.createObjectURL(file);
+                    });
 
-                if (newPhoto) {
-                    // 6. Automatic Indexing (don't block the upload for this)
-                    if ((user as any).face_indexing_enabled !== false) {
-                        faceRecognitionService.indexPhoto(newPhoto.id, newPhoto.preview_url)
-                            .catch(err => console.warn("Face indexing failed:", err));
-                    }
-                    successCount++;
+                    if (duration > 90) throw new Error(`Vídeo excede limite de 90 segundos (${Math.round(duration)}s)`);
+
+                    const apiUrl = typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.host}/api/cloudflare-stream-url` : '/api/cloudflare-stream-url';
+                    const urlRes = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ creator_id: user.id, max_duration_seconds: 90 })
+                    });
                     
-                    // Atualização Oculta e Imediata (Reatividade): 
-                    // Insere a foto na tela assim que o upload termina, sem precisar de F5
-                    setPhotos(prev => [newPhoto, ...prev]);
+                    const urlData = await urlRes.json();
+                    if (!urlRes.ok) throw new Error(urlData.error || "Erro ao gerar URL segura de upload de vídeo");
+
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    const cfUploadRes = await fetch(urlData.uploadURL, { method: 'POST', body: formData });
+                    if (!cfUploadRes.ok) throw new Error("Erro ao enviar arquivo para o Cloudflare");
+
+                    const uid = urlData.uid;
+
+                    const newPhoto = await api.createPhoto({
+                        photographer_id: user.id,
+                        category_id: selectedEvent.category_id,
+                        title: title,
+                        description: `Vídeo do evento ${selectedEvent.name}`,
+                        price: metadata.price,
+                        preview_url: `https://videodelivery.net/${uid}/thumbnails/thumbnail.gif`,
+                        file_url: `https://iframe.videodelivery.net/${uid}`,
+                        thumb_url: `https://videodelivery.net/${uid}/thumbnails/thumbnail.jpg`,
+                        resolution: 'HD',
+                        tags: metadata.tags,
+                        is_public: metadata.is_public,
+                        is_featured: false,
+                        event_id: selectedEvent.id,
+                        media_type: 'video',
+                        video_uid: uid,
+                        video_duration: Math.round(duration),
+                        file_size_bytes: file.size
+                    });
+
+                    if (newPhoto) {
+                        successCount++;
+                        setPhotos(prev => [newPhoto, ...prev]);
+                    }
+
+                } else {
+                    // Original Photo Upload Logic
+                    const processed = await processImageForUpload(file);
+                    const [originalBlob, previewBlob, thumbBlob] = await Promise.all([
+                        base64ToBlob(processed.original),
+                        base64ToBlob(processed.preview),
+                        base64ToBlob(processed.thumb)
+                    ]);
+
+                    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`; 
+                    const filePath = `${user.id}/${selectedEvent.id}/${fileName}`;
+
+                    const [origRes, prevRes, thumbRes] = await Promise.all([
+                        api.supabase.storage.from('photos-original').upload(`${filePath}-original.${fileExt}`, originalBlob),
+                        api.supabase.storage.from('photos-preview').upload(`${filePath}-preview.webp`, previewBlob),
+                        api.supabase.storage.from('photos-preview').upload(`${filePath}-thumb.webp`, thumbBlob)
+                    ]);
+
+                    if (origRes.error) throw origRes.error;
+                    if (prevRes.error) throw prevRes.error;
+                    if (thumbRes.error) throw thumbRes.error;
+
+                    const { data: prevUrlData } = api.supabase.storage.from('photos-preview').getPublicUrl(`${filePath}-preview.webp`);
+                    const { data: thumbUrlData } = api.supabase.storage.from('photos-preview').getPublicUrl(`${filePath}-thumb.webp`);
+
+                    const newPhoto = await api.createPhoto({
+                        photographer_id: user.id,
+                        category_id: selectedEvent.category_id,
+                        title: title,
+                        description: `Foto do evento ${selectedEvent.name}`,
+                        price: metadata.price,
+                        preview_url: prevUrlData.publicUrl,
+                        file_url: `${filePath}-original.${fileExt}`,
+                        thumb_url: thumbUrlData.publicUrl,
+                        resolution: '4K',
+                        width: processed.width,
+                        height: processed.height,
+                        tags: metadata.tags,
+                        is_public: metadata.is_public,
+                        is_featured: false,
+                        event_id: selectedEvent.id,
+                        file_size_bytes: file.size
+                    });
+
+                    if (newPhoto) {
+                        if ((user as any).face_indexing_enabled !== false) {
+                            faceRecognitionService.indexPhoto(newPhoto.id, newPhoto.preview_url)
+                                .catch(err => console.warn("Face indexing failed:", err));
+                        }
+                        successCount++;
+                        setPhotos(prev => [newPhoto, ...prev]);
+                    }
                 }
 
             } catch (err: any) {
@@ -535,7 +582,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                                 onClick={() => setIsBatchUploadModalOpen(true)}
                                 className="px-4 py-2 text-sm font-medium text-white bg-primary rounded-full hover:bg-opacity-90 transition-colors shadow-sm flex items-center gap-2"
                             >
-                                <PlusIcon /> Adicionar Fotos
+                                <PlusIcon /> Adicionar Fotos/Vídeos
                             </button>
                         </div>
                     )}

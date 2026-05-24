@@ -188,11 +188,24 @@ const PhotoDetailPage: React.FC<PhotoDetailPageProps> = ({ photoId, onNavigate, 
 
                                 <div className="mt-4 pt-4 border-t border-neutral-200 text-xs text-neutral-500 flex flex-col gap-2">
                                     <div className="flex justify-between">
-                                        <span>Resolução:</span><span className="font-medium text-neutral-700">{photo.resolution}</span>
+                                        <span>Resolução:</span><span className="font-medium text-neutral-700">{photo.width && photo.height ? `${photo.width} x ${photo.height}` : photo.resolution}</span>
                                     </div>
                                     <div className="flex justify-between">
-                                        <span>Formato:</span><span className="font-medium text-neutral-700">JPG / RAW</span>
+                                        <span>Formato:</span><span className="font-medium text-neutral-700">{photo.media_type === 'video' ? 'MP4 / WEBM' : 'JPG / RAW'}</span>
                                     </div>
+                                    <div className="flex justify-between">
+                                        <span>Tamanho:</span>
+                                        <span className="font-medium text-neutral-700">
+                                            {photo.file_size_bytes 
+                                                ? (photo.file_size_bytes / (1024 * 1024)).toFixed(2) + ' MB' 
+                                                : 'Desconhecido'}
+                                        </span>
+                                    </div>
+                                    {photo.media_type === 'video' && photo.video_duration && (
+                                        <div className="flex justify-between">
+                                            <span>Duração:</span><span className="font-medium text-neutral-700">{photo.video_duration} s</span>
+                                        </div>
+                                    )}
                                     <div className="flex justify-between">
                                         <span>Licença:</span><span className="font-medium text-neutral-700">Royalty-Free</span>
                                     </div>

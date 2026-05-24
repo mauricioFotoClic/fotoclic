@@ -31,7 +31,7 @@ const BatchUploadForm: React.FC<BatchUploadFormProps> = ({ event, photographerId
         e.preventDefault();
 
         if (selectedFiles.length === 0) {
-            alert("Selecione pelo menos uma foto.");
+            alert("Selecione pelo menos um arquivo.");
             return;
         }
 
@@ -66,7 +66,7 @@ const BatchUploadForm: React.FC<BatchUploadFormProps> = ({ event, photographerId
         <form onSubmit={handleSubmit} className="space-y-6">
             <div className="bg-primary/10 p-4 rounded-md border border-primary/20">
                 <h4 className="font-semibold text-primary mb-1">Evento: {event.name}</h4>
-                <p className="text-sm text-primary-dark">As fotos serão adicionadas automaticamente a este evento.</p>
+                <p className="text-sm text-primary-dark">As fotos e vídeos serão adicionados automaticamente a este evento.</p>
             </div>
 
             {isUploading ? (
@@ -94,12 +94,12 @@ const BatchUploadForm: React.FC<BatchUploadFormProps> = ({ event, photographerId
             ) : (
                 <>
                     <div>
-                        <label className="block text-sm font-medium text-neutral-700 mb-1">Selecione as Fotos *</label>
+                        <label className="block text-sm font-medium text-neutral-700 mb-1">Selecione as Fotos e Vídeos *</label>
                         <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-neutral-300 border-dashed rounded-md hover:bg-neutral-50 transition-colors cursor-pointer relative">
                                 <input
                                     type="file"
                                     multiple
-                                    accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
+                                    accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif,video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm"
                                     onChange={handleFileChange}
                                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                                     disabled={isUploading}
@@ -112,8 +112,8 @@ const BatchUploadForm: React.FC<BatchUploadFormProps> = ({ event, photographerId
                                         <span className="font-medium text-primary hover:text-primary-dark">Clique para selecionar</span>
                                         <span className="pl-1">ou arraste e solte</span>
                                     </div>
-                                    <p className="text-xs text-neutral-500">JPG, PNG, WebP, HEIC</p>
-                                <p className="text-xs text-primary p-1 bg-primary/10 mt-1 rounded inline-block">Nota: Fotos &gt; 10MB serão automaticamente reduzidas.</p>
+                                    <p className="text-xs text-neutral-500">JPG, PNG, WebP, HEIC, MP4, MOV (Máx 90s)</p>
+                                <p className="text-xs text-primary p-1 bg-primary/10 mt-1 rounded inline-block">Nota: Fotos &gt; 10MB serão reduzidas. Vídeos até 90 segundos (Máx 250MB).</p>
                             </div>
                         </div>
                         {selectedFiles.length > 0 && (
@@ -162,7 +162,7 @@ const BatchUploadForm: React.FC<BatchUploadFormProps> = ({ event, photographerId
                                 className="h-4 w-4 text-primary focus:ring-primary border-neutral-300 rounded"
                                 disabled={isUploading}
                             />
-                            <label htmlFor="is_public_batch" className="ml-2 block text-sm text-neutral-900">Tornar estas fotos públicas no marketplace</label>
+                            <label htmlFor="is_public_batch" className="ml-2 block text-sm text-neutral-900">Tornar estes arquivos públicos no marketplace</label>
                         </div>
 
                     </div>
@@ -181,7 +181,7 @@ const BatchUploadForm: React.FC<BatchUploadFormProps> = ({ event, photographerId
                             disabled={isUploading || selectedFiles.length === 0}
                             className="px-6 py-2 text-sm font-medium text-white bg-primary rounded-full hover:bg-opacity-90 transition-colors disabled:opacity-70 disabled:cursor-wait font-bold shadow-md"
                         >
-                            {isUploading ? 'Enviando...' : `Enviar ${selectedFiles.length > 0 ? selectedFiles.length : ''} Fotos`}
+                            {isUploading ? 'Enviando...' : `Enviar ${selectedFiles.length > 0 ? selectedFiles.length : ''} Arquivos`}
                         </button>
                     </div>
                 </>

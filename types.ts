@@ -105,6 +105,10 @@ export interface Photo {
   is_face_indexed?: boolean;
   event_id?: string;
   sales_count: number;
+  media_type?: 'photo' | 'video';
+  video_uid?: string;
+  video_duration?: number;
+  file_size_bytes?: number;
 }
 
 export interface PhotoEvent {
@@ -192,7 +196,11 @@ export interface PhotographerBalance extends PhotographerWithStats {
 
 export interface CommissionSettings {
   defaultRate: number;
+  defaultVideoRate?: number;
   customRates: {
+    [photographerId: string]: number;
+  };
+  customVideoRates?: {
     [photographerId: string]: number;
   };
 }
