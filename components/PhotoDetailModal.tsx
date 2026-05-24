@@ -70,28 +70,36 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({ photoId, onClose, o
                 </div>
             ) : (
                 <div className="flex flex-col lg:flex-row">
-                    <div ref={imgContainerRef} className="lg:w-2/3 bg-neutral-100 flex items-center justify-center p-4 min-h-[300px] lg:min-h-[500px] w-full">
+                    <div ref={imgContainerRef} className="lg:w-2/3 bg-neutral-100 flex flex-col items-center justify-center p-4 min-h-[300px] lg:min-h-[500px] w-full">
                         {photo.media_type === 'video' ? (
-                            <div className="relative overflow-hidden select-none bg-neutral-100 w-full aspect-video max-h-[70vh] rounded-lg" onContextMenu={(e) => e.preventDefault()}>
-                                <iframe
-                                    src={`https://iframe.videodelivery.net/${photo.video_uid}?autoplay=true&loop=true&muted=true&preload=true&controls=false`}
-                                    className="w-full h-full pointer-events-none"
-                                    style={{ border: 'none' }}
-                                    allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
-                                    allowFullScreen
-                                />
-                                <div className="absolute inset-0 z-10 bg-transparent" />
-                                <div className="absolute inset-0 z-20 pointer-events-none flex flex-wrap content-center justify-center overflow-hidden opacity-30">
-                                    {Array.from({ length: 12 }).map((_, i) => (
-                                        <div
-                                            key={i}
-                                            className="w-1/3 h-1/4 flex items-center justify-center transform -rotate-45"
-                                        >
-                                            <span className="text-white font-display font-bold text-sm sm:text-base whitespace-nowrap drop-shadow-md select-none border-2 border-white/20 px-2 py-1 rounded-md">
-                                                FotoClic Preview
-                                            </span>
-                                        </div>
-                                    ))}
+                            <div className="w-full space-y-3">
+                                <div className="relative overflow-hidden select-none bg-neutral-100 w-full aspect-video rounded-lg" onContextMenu={(e) => e.preventDefault()}>
+                                    <iframe
+                                        src={`https://iframe.videodelivery.net/${photo.video_uid}?autoplay=true&loop=true&muted=true&preload=true&controls=true`}
+                                        className="w-full h-full"
+                                        style={{ border: 'none' }}
+                                        allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+                                        allowFullScreen
+                                    />
+                                    <div className="absolute inset-0 z-20 pointer-events-none flex flex-wrap content-center justify-center overflow-hidden opacity-30">
+                                        {Array.from({ length: 12 }).map((_, i) => (
+                                            <div
+                                                key={i}
+                                                className="w-1/3 h-1/4 flex items-center justify-center transform -rotate-45"
+                                            >
+                                                <span className="text-white font-display font-bold text-sm sm:text-base whitespace-nowrap drop-shadow-md select-none border-2 border-white/20 px-2 py-1 rounded-md">
+                                                    FotoClic Preview
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="p-2.5 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg flex items-center space-x-2 text-xs shadow-sm">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4.5 w-4.5 text-amber-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                                    </svg>
+                                    <span className="font-medium">O vídeo de prévia está sem áudio. O som original completo será ativado no arquivo final após a compra.</span>
                                 </div>
                             </div>
                         ) : (
