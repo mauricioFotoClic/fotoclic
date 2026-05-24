@@ -106,6 +106,10 @@ const mapPhoto = (dbPhoto: any): Photo => {
     is_face_indexed: dbPhoto.is_face_indexed,
     event_id: dbPhoto.event_id,
     sales_count: dbPhoto.sales_count || 0,
+    media_type: dbPhoto.media_type,
+    video_uid: dbPhoto.video_uid,
+    video_duration: dbPhoto.video_duration,
+    file_size_bytes: dbPhoto.file_size_bytes,
   };
 };
 
