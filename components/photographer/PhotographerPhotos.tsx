@@ -374,6 +374,8 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
             } catch (err: any) {
                 console.error(`Upload error for ${file.name}:`, err);
                 failCount++;
+                const errMsg = err.message || "Erro desconhecido durante o upload.";
+                showToast(`Erro ao enviar "${file.name}": ${errMsg}`, "error");
             } finally {
                 processedCount++;
                 if (onProgress) onProgress({ 
@@ -412,12 +414,12 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
 
         if (failCount > 0) {
             if (successCount === 0) {
-                showToast(`Falha no envio de todas as fotos.`, "error");
+                showToast(`Falha no envio de todos os arquivos. Verifique os erros individuais exibidos acima.`, "error");
             } else {
-                showToast(`Envio parcial: ${successCount} sucessos, ${failCount} falhas.`, "info");
+                showToast(`Envio concluído com erros: ${successCount} concluídos, ${failCount} falhas.`, "info");
             }
         } else {
-            showToast(`Upload concluído! ${successCount} fotos processadas.`, "success");
+            showToast(`Upload concluído! ${successCount} arquivos processados com sucesso.`, "success");
         }
 
         fetchData();
