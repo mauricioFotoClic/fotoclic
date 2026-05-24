@@ -50,6 +50,77 @@ const PhotoDetailPage: React.FC<PhotoDetailPageProps> = ({ photoId, onNavigate, 
         loadData();
     }, [photoId, currentUser]);
 
+    useEffect(() => {
+        if (!photo || photo.media_type !== 'video' || hasPurchased) return;
+
+        let active = true;
+        let playerInstance: any = null;
+        let cleanupFn: (() => void) | undefined = undefined;
+
+        const initPlayer = () => {
+            if (!active) return;
+            const iframe = document.querySelector('iframe[src*="videodelivery.net"]');
+            if (iframe && (window as any).Stream) {
+                try {
+                    const player = (window as any).Stream(iframe);
+                    playerInstance = player;
+                    
+                    // Forçar mudo inicial e volume em zero
+                    player.muted = true;
+                    player.volume = 0;
+
+                    const handleVolumeChange = () => {
+                        if (!player.muted || player.volume > 0) {
+                            player.muted = true;
+                            player.volume = 0;
+                        }
+                    };
+
+                    player.addEventListener('volumechange', handleVolumeChange);
+                    player.addEventListener('play', handleVolumeChange);
+
+                    const checkInterval = setInterval(() => {
+                        if (player.volume > 0 || !player.muted) {
+                            player.muted = true;
+                            player.volume = 0;
+                        }
+                    }, 1000);
+
+                    return () => {
+                        clearInterval(checkInterval);
+                        try {
+                            player.removeEventListener('volumechange', handleVolumeChange);
+                            player.removeEventListener('play', handleVolumeChange);
+                        } catch (e) {
+                            console.warn("Error removing listeners:", e);
+                        }
+                    };
+                } catch (err) {
+                    console.error("Erro ao inicializar o SDK do Cloudflare Stream:", err);
+                }
+            }
+        };
+
+        if (!(window as any).Stream) {
+            const script = document.createElement('script');
+            script.src = "https://embed.cloudflarestream.com/embed/sdk.latest.js";
+            script.async = true;
+            script.onload = () => {
+                setTimeout(() => {
+                    cleanupFn = initPlayer();
+                }, 500);
+            };
+            document.body.appendChild(script);
+        } else {
+            cleanupFn = initPlayer();
+        }
+
+        return () => {
+            active = false;
+            if (cleanupFn) cleanupFn();
+        };
+    }, [photo, hasPurchased]);
+
     const handleDownload = async () => {
         if (!photo || !currentUser) return;
 
