@@ -14,33 +14,49 @@ interface ProcessedImages {
 }
 
 export const processImageForUpload = async (file: File): Promise<ProcessedImages> => {
-    let processFile = file;
     const isHeic = file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif');
-    
-    try {
-        // Para arquivos HEIC ou muito grandes, comprimimos/convertemos para gerar o Preview/Thumb
-        // O original será mantido separadamente se possível
-        processFile = await imageCompression(file, {
-            maxSizeMB: 10,
-            maxWidthOrHeight: 4096, // Mantém alta resolução para o processamento interno
-            useWebWorker: true,
-            fileType: isHeic ? 'image/jpeg' : undefined // Converte HEIC para JPEG para que o browser consiga ler
-        });
-    } catch (error) {
-        console.warn('Image compression failed, proceeding with original file', error);
+    const isBig = file.size > 15 * 1024 * 1024; // acima de 15MB
+
+    let originalFileToUpload = file;
+
+    // 1. Se for HEIC ou for maior que 15MB, comprime silenciosamente para no máximo 15MB
+    if (isHeic || isBig) {
+        try {
+            originalFileToUpload = await imageCompression(file, {
+                maxSizeMB: 15,
+                maxWidthOrHeight: 8192, // Resolução 8K para preservar qualidade
+                useWebWorker: true,
+                fileType: isHeic ? 'image/jpeg' : undefined
+            });
+        } catch (error) {
+            console.warn('Image compression for original file failed, using source file', error);
+        }
+    }
+
+    // 2. Para processamento no Canvas do browser, gerar uma versão otimizada leve
+    let renderFile = file;
+    if (isHeic || file.size > 5 * 1024 * 1024) {
+        try {
+            renderFile = await imageCompression(file, {
+                maxSizeMB: 5,
+                maxWidthOrHeight: 4096, // Resolução máx para renderizar previews sem crashar navegadores mobile
+                useWebWorker: true,
+                fileType: isHeic ? 'image/jpeg' : undefined
+            });
+        } catch (error) {
+            console.warn('Failed to compress render file', error);
+        }
     }
 
     return new Promise((resolve, reject) => {
         const img = new Image();
-        const objectUrl = URL.createObjectURL(processFile);
+        const objectUrl = URL.createObjectURL(renderFile);
         img.src = objectUrl;
 
         img.onload = () => {
-            // 1. Get Base64 of Original (Read file)
             const reader = new FileReader();
             reader.onloadend = () => {
                 const originalBase64 = reader.result as string;
-                // Note: Ideally we perform the other ops here to avoid race/complex async nesting
 
                 try {
                     // 2. Generate Thumb (Max 400px)
@@ -63,8 +79,8 @@ export const processImageForUpload = async (file: File): Promise<ProcessedImages
                     URL.revokeObjectURL(objectUrl);
                 }
             };
-            reader.onerror = (e) => reject(new Error("Failed to read file"));
-            reader.readAsDataURL(processFile);
+            reader.onerror = (e) => reject(new Error("Failed to read original file"));
+            reader.readAsDataURL(originalFileToUpload);
         };
 
         img.onerror = () => {
