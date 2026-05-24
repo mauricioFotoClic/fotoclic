@@ -335,7 +335,7 @@ export const api = {
     const { data, error } = await supabase
       .from("photos")
       .select(
-        "id, photographer_id, category_id, title, description, preview_url, file_url, thumb_url, price, resolution, width, height, tags, is_public, created_at, moderation_status, rejection_reason, is_featured, likes_count, quality_analysis, is_face_indexed, event_id, sales_count, photo_likes(user_id)",
+        "id, photographer_id, category_id, title, description, preview_url, file_url, thumb_url, price, resolution, width, height, tags, is_public, created_at, moderation_status, rejection_reason, is_featured, likes_count, quality_analysis, is_face_indexed, event_id, sales_count, media_type, video_uid, video_duration, file_size_bytes, photo_likes(user_id)",
       )
       .eq("id", id)
       .single();
@@ -351,7 +351,7 @@ export const api = {
     const { data, error } = await supabase
       .from("photos")
       .select(
-        "id, photographer_id, category_id, title, description, preview_url, file_url, thumb_url, price, resolution, width, height, tags, is_public, created_at, moderation_status, rejection_reason, is_featured, likes_count, quality_analysis, is_face_indexed, event_id, sales_count, photo_likes(user_id)",
+        "id, photographer_id, category_id, title, description, preview_url, file_url, thumb_url, price, resolution, width, height, tags, is_public, created_at, moderation_status, rejection_reason, is_featured, likes_count, quality_analysis, is_face_indexed, event_id, sales_count, media_type, video_uid, video_duration, file_size_bytes, photo_likes(user_id)",
       )
       .in("id", ids);
 
@@ -377,7 +377,7 @@ export const api = {
       const { data, error } = await supabase
         .from("photos")
         .select(
-          "id, photographer_id, category_id, title, description, preview_url, file_url, thumb_url, price, resolution, width, height, tags, is_public, created_at, moderation_status, rejection_reason, is_featured, likes_count, quality_analysis, is_face_indexed, event_id, sales_count, photo_likes(user_id)",
+          "id, photographer_id, category_id, title, description, preview_url, file_url, thumb_url, price, resolution, width, height, tags, is_public, created_at, moderation_status, rejection_reason, is_featured, likes_count, quality_analysis, is_face_indexed, event_id, sales_count, media_type, video_uid, video_duration, file_size_bytes, photo_likes(user_id)",
         )
         .eq("photographer_id", photographerId)
         .order("created_at", { ascending: false })
@@ -1057,7 +1057,7 @@ export const api = {
     const { data, error } = await supabase
       .from("photos")
       .select(
-        "id, photographer_id, category_id, title, preview_url, thumb_url, price, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags, event_id, sales_count",
+        "id, photographer_id, category_id, title, preview_url, file_url, thumb_url, price, resolution, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags, event_id, sales_count, media_type, video_uid, video_duration, file_size_bytes",
       )
       .eq("event_id", eventId)
       .eq("moderation_status", "approved")
