@@ -1763,14 +1763,20 @@ export const api = {
 
       // 2. Get Commission Settings
       const settings = await api.getCommissionSettings();
-      let rate = settings.defaultRate;
+      const isVideo = photo.media_type === 'video';
+      let rate;
 
-      // Check for custom rate for this photographer
-      if (
-        settings.customRates &&
-        settings.customRates[photo.photographer_id] !== undefined
-      ) {
-        rate = settings.customRates[photo.photographer_id];
+      if (isVideo) {
+        rate = settings.defaultVideoRate ?? 0.10;
+      } else {
+        rate = settings.defaultRate;
+        // Check for custom rate for this photographer
+        if (
+          settings.customRates &&
+          settings.customRates[photo.photographer_id] !== undefined
+        ) {
+          rate = settings.customRates[photo.photographer_id];
+        }
       }
 
       // 3. Determine Final Price (Net vs Gross)
@@ -2043,16 +2049,18 @@ export const api = {
   getCommissionSettings: async (): Promise<CommissionSettings> => {
     const { data, error } = await supabase
       .from("system_settings")
-      .select("commission_default_rate, commission_custom_rates")
+      .select("commission_default_rate, commission_custom_rates, commission_video_default_rate, commission_custom_video_rates")
       .eq("id", 1)
       .single();
     if (error) {
       console.warn("Error fetching commission settings:", error);
-      return { defaultRate: 0.15, customRates: {} };
+      return { defaultRate: 0.15, defaultVideoRate: 0.10, customRates: {}, customVideoRates: {} };
     }
     return {
       defaultRate: data.commission_default_rate,
+      defaultVideoRate: data.commission_video_default_rate ?? 0.10,
       customRates: data.commission_custom_rates || {},
+      customVideoRates: data.commission_custom_video_rates || {},
     };
   },
   updateCommissionSettings: async (
@@ -2064,6 +2072,8 @@ export const api = {
         id: 1,
         commission_default_rate: settings.defaultRate,
         commission_custom_rates: settings.customRates,
+        commission_video_default_rate: settings.defaultVideoRate ?? 0.10,
+        commission_custom_video_rates: settings.customVideoRates || {},
         updated_at: new Date(),
       })
       .select()
@@ -2072,7 +2082,9 @@ export const api = {
     if (error) throw error;
     return {
       defaultRate: data.commission_default_rate,
+      defaultVideoRate: data.commission_video_default_rate,
       customRates: data.commission_custom_rates,
+      customVideoRates: data.commission_custom_video_rates,
     };
   },
   getEmailTemplates: async (): Promise<EmailTemplates> => {

@@ -196,12 +196,19 @@ export default async function handler(req, res) {
 
                             const defaultRate = settingsRow?.commission_default_rate || 0.06;
                             const customRates = settingsRow?.commission_custom_rates || {};
+                            const defaultVideoRate = settingsRow?.commission_video_default_rate !== undefined && settingsRow?.commission_video_default_rate !== null ? settingsRow.commission_video_default_rate : 0.10;
 
                             let insertedCount = 0;
 
                             for (const photo of photos) {
                                 try {
-                                    let rate = customRates[photo.photographer_id] !== undefined ? customRates[photo.photographer_id] : defaultRate;
+                                    const isVideo = photo.media_type === 'video';
+                                    let rate;
+                                    if (isVideo) {
+                                        rate = defaultVideoRate;
+                                    } else {
+                                        rate = customRates[photo.photographer_id] !== undefined ? customRates[photo.photographer_id] : defaultRate;
+                                    }
                                     const finalPrice = photo.price;
                                     const commissionValue = finalPrice * rate;
 

@@ -97,6 +97,7 @@ export default async function handler(req, res) {
                     const { data: settingsRow } = await supabase.from('system_settings').select('*').eq('id', 1).single();
                     const defaultRate = settingsRow?.commission_default_rate || 0.06;
                     const customRates = settingsRow?.commission_custom_rates || {};
+                    const defaultVideoRate = settingsRow?.commission_video_default_rate !== undefined && settingsRow?.commission_video_default_rate !== null ? settingsRow.commission_video_default_rate : 0.10;
 
                     for (const billing of orphans) {
                         let metadata = billing.metadata || {};
@@ -111,7 +112,13 @@ export default async function handler(req, res) {
                             const { data: photos } = await supabase.from('photos').select('*').in('id', cartIds);
                             if (photos) {
                                 for (const photo of photos) {
-                                    let rate = customRates[photo.photographer_id] !== undefined ? customRates[photo.photographer_id] : defaultRate;
+                                    const isVideo = photo.media_type === 'video';
+                                    let rate;
+                                    if (isVideo) {
+                                        rate = defaultVideoRate;
+                                    } else {
+                                        rate = customRates[photo.photographer_id] !== undefined ? customRates[photo.photographer_id] : defaultRate;
+                                    }
                                     await supabase.from('sales').insert({
                                         photo_id: photo.id,
                                         buyer_id: userId,

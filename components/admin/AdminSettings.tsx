@@ -86,6 +86,15 @@ const AdminSettings: React.FC = () => {
         });
     };
 
+    const handleDefaultVideoRateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!commissionSettings) return;
+        const value = e.target.value;
+        setCommissionSettings({
+            ...commissionSettings,
+            defaultVideoRate: value ? parseFloat(value) / 100 : 0,
+        });
+    };
+
     const handleCustomRateChange = (photographerId: string, value: string) => {
         if (!commissionSettings) return;
 
@@ -173,19 +182,41 @@ const AdminSettings: React.FC = () => {
             <div className="bg-white p-6 rounded-lg shadow-md mb-8">
                 <h2 className="text-xl font-display font-bold text-primary-dark mb-4">Configurações de Comissão</h2>
                 <div className="mb-6">
-                    <h3 className="text-lg font-display font-semibold text-primary-dark">Comissão Padrão</h3>
-                    <p className="text-sm text-neutral-600 mb-2">
-                        Esta é a comissão padrão aplicada a todas as vendas, a menos que uma comissão específica seja definida para o fotógrafo.
+                    <h3 className="text-lg font-display font-semibold text-primary-dark mb-2">Comissão Padrão</h3>
+                    <p className="text-sm text-neutral-600 mb-4">
+                        Defina a comissão padrão para fotos (aplicável a menos que haja taxa específica por fotógrafo) e a comissão padrão para vídeos (aplicada globalmente).
                     </p>
-                    <div className="relative max-w-xs">
-                        <input
-                            type="number"
-                            value={(commissionSettings.defaultRate * 100).toFixed(0)}
-                            onChange={handleDefaultRateChange}
-                            className="w-full pl-3 pr-8 py-2 bg-white border border-neutral-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
-                            placeholder="15"
-                        />
-                        <span className="absolute inset-y-0 right-3 flex items-center text-neutral-500">%</span>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-xl">
+                        <div>
+                            <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1">
+                                Fotos
+                            </label>
+                            <div className="relative">
+                                <input
+                                    type="number"
+                                    value={(commissionSettings.defaultRate * 100).toFixed(0)}
+                                    onChange={handleDefaultRateChange}
+                                    className="w-full pl-3 pr-8 py-2 bg-white border border-neutral-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                                    placeholder="15"
+                                />
+                                <span className="absolute inset-y-0 right-3 flex items-center text-neutral-500">%</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1">
+                                Vídeos (Global)
+                            </label>
+                            <div className="relative">
+                                <input
+                                    type="number"
+                                    value={((commissionSettings.defaultVideoRate ?? 0.10) * 100).toFixed(0)}
+                                    onChange={handleDefaultVideoRateChange}
+                                    className="w-full pl-3 pr-8 py-2 bg-white border border-neutral-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                                    placeholder="10"
+                                />
+                                <span className="absolute inset-y-0 right-3 flex items-center text-neutral-500">%</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

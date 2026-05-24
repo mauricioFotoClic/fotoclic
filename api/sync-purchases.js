@@ -89,6 +89,7 @@ export default async function handler(req, res) {
         const { data: settingsRow } = await supabase.from('system_settings').select('*').eq('id', 1).single();
         const defaultRate = settingsRow?.commission_default_rate || 0.06;
         const customRates = settingsRow?.commission_custom_rates || {};
+        const defaultVideoRate = settingsRow?.commission_video_default_rate !== undefined && settingsRow?.commission_video_default_rate !== null ? settingsRow.commission_video_default_rate : 0.10;
 
         for (const billing of orphans) {
             const metadata = billing.metadata || {};
@@ -99,7 +100,13 @@ export default async function handler(req, res) {
                 
                 if (photos && photos.length > 0) {
                     for (const photo of photos) {
-                        let rate = customRates[photo.photographer_id] !== undefined ? customRates[photo.photographer_id] : defaultRate;
+                        const isVideo = photo.media_type === 'video';
+                        let rate;
+                        if (isVideo) {
+                            rate = defaultVideoRate;
+                        } else {
+                            rate = customRates[photo.photographer_id] !== undefined ? customRates[photo.photographer_id] : defaultRate;
+                        }
                         
 
 
@@ -156,6 +163,10 @@ export default async function handler(req, res) {
                     }
 
                     const photographerSalesMap = {};
+                    const defaultRate = settingsRow?.commission_default_rate || 0.06;
+                    const customRates = settingsRow?.commission_custom_rates || {};
+                    const defaultVideoRate = settingsRow?.commission_video_default_rate !== undefined && settingsRow?.commission_video_default_rate !== null ? settingsRow.commission_video_default_rate : 0.10;
+
                     for (const photo of photos) {
                         if (!photographerSalesMap[photo.photographer_id]) {
                             photographerSalesMap[photo.photographer_id] = {
@@ -164,9 +175,13 @@ export default async function handler(req, res) {
                                 photos: []
                             };
                         }
-                        const defaultRate = settingsRow?.commission_default_rate || 0.06;
-                        const customRates = settingsRow?.commission_custom_rates || {};
-                        let rate = customRates[photo.photographer_id] !== undefined ? customRates[photo.photographer_id] : defaultRate;
+                        const isVideo = photo.media_type === 'video';
+                        let rate;
+                        if (isVideo) {
+                            rate = defaultVideoRate;
+                        } else {
+                            rate = customRates[photo.photographer_id] !== undefined ? customRates[photo.photographer_id] : defaultRate;
+                        }
                         const commissionValue = photo.price * rate;
 
                         photographerSalesMap[photo.photographer_id].totalCommission += commissionValue;
