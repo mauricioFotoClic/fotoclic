@@ -507,7 +507,9 @@ export const api = {
       .select("*")
       .eq("id", id)
       .single();
-    return mapUser(updatedUser);
+    const mappedUser = mapUser(updatedUser);
+    inMemoryCache.userCache[id] = { data: mappedUser, ts: Date.now() };
+    return mappedUser;
   },
 
   getSalesByPhotographerId: async (photographerId: string): Promise<Sale[]> => {
