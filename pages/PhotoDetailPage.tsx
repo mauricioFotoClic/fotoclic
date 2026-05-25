@@ -20,34 +20,56 @@ interface PhotoDetailPageProps {
 const PhotoDetailPage: React.FC<PhotoDetailPageProps> = ({ photoId, onNavigate, currentUser, onAddToCart }) => {
     const [photo, setPhoto] = useState<Photo | null>(null);
     const [photographer, setPhotographer] = useState<User | null>(null);
-    const [loading, setLoading] = useState(true);
+    const [loadingPhoto, setLoadingPhoto] = useState(true);
+    const [loadingSecondary, setLoadingSecondary] = useState(true);
     const [hasPurchased, setHasPurchased] = useState(false);
     const imgContainerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
+        let isMounted = true;
         const loadData = async () => {
             try {
-                setLoading(true);
+                setLoadingPhoto(true);
+                setLoadingSecondary(true);
                 const photoData = await api.getPhotoById(photoId);
+                
+                if (!isMounted) return;
+
                 if (photoData) {
                     setPhoto(photoData);
-                    const photographerData = await api.getPhotographerById(photoData.photographer_id);
-                    if (photographerData) {
-                        setPhotographer(photographerData);
-                    }
+                    setLoadingPhoto(false); // Foto carregada, libera o render da imagem principal imediatamente!
+
+                    // Busca dados secundários em paralelo (Evita efeito Waterfall)
+                    const promises: Promise<any>[] = [];
+                    
+                    promises.push(api.getPhotographerById(photoData.photographer_id).then(photographerData => {
+                        if (isMounted && photographerData) setPhotographer(photographerData);
+                    }));
 
                     if (currentUser) {
-                        const purchased = await api.checkIfPurchased(currentUser.id, photoId);
-                        setHasPurchased(purchased);
+                        promises.push(api.checkIfPurchased(currentUser.id, photoId).then(purchased => {
+                            if (isMounted) setHasPurchased(purchased);
+                        }));
+                    }
+                    
+                    await Promise.all(promises);
+                    if (isMounted) setLoadingSecondary(false);
+                } else {
+                    if (isMounted) {
+                        setLoadingPhoto(false);
+                        setLoadingSecondary(false);
                     }
                 }
             } catch (error) {
                 console.error("Failed to load photo details", error);
-            } finally {
-                setLoading(false);
+                if (isMounted) {
+                    setLoadingPhoto(false);
+                    setLoadingSecondary(false);
+                }
             }
         };
         loadData();
+        return () => { isMounted = false; };
     }, [photoId, currentUser]);
 
     useEffect(() => {
@@ -154,7 +176,7 @@ const PhotoDetailPage: React.FC<PhotoDetailPageProps> = ({ photoId, onNavigate, 
         onAddToCart(photo.id, imgElement);
     };
 
-    if (!loading && !photo) {
+    if (!loadingPhoto && !photo) {
         return (
             <div className="container mx-auto px-4 py-16 text-center">
                 <h2 className="text-2xl font-display font-bold text-neutral-800">Foto não encontrada.</h2>
@@ -167,7 +189,7 @@ const PhotoDetailPage: React.FC<PhotoDetailPageProps> = ({ photoId, onNavigate, 
 
     return (
         <div className="bg-white min-h-screen pb-12">
-            {!loading && photo && (
+            {!loadingPhoto && photo && (
                 <SEO
                     title={`${photo.title} por ${photographer ? photographer.name : 'Unknown'}`}
                     description={photo.description || `Compre a foto "${photo.title}" em alta resolução no FotoClic.`}
@@ -181,7 +203,7 @@ const PhotoDetailPage: React.FC<PhotoDetailPageProps> = ({ photoId, onNavigate, 
                     <button onClick={() => onNavigate({ name: 'home' })} className="text-sm text-neutral-500 hover:text-primary">Home</button>
                     <span className="mx-2 text-neutral-400">/</span>
                     <span className="text-sm text-neutral-800 font-medium">
-                        {loading ? <span className="inline-block w-32 h-4 bg-neutral-200 animate-pulse rounded align-middle"></span> : photo?.title}
+                        {loadingPhoto ? <span className="inline-block w-32 h-4 bg-neutral-200 animate-pulse rounded align-middle"></span> : photo?.title}
                     </span>
                 </div>
             </div>
@@ -189,7 +211,7 @@ const PhotoDetailPage: React.FC<PhotoDetailPageProps> = ({ photoId, onNavigate, 
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <div className="lg:col-span-2">
-                        {loading ? (
+                        {loadingPhoto ? (
                             <div className="bg-neutral-100 rounded-lg overflow-hidden shadow-sm border border-neutral-200 flex items-center justify-center w-full aspect-video">
                                 <Spinner />
                             </div>
@@ -253,7 +275,7 @@ const PhotoDetailPage: React.FC<PhotoDetailPageProps> = ({ photoId, onNavigate, 
 
                     <div className="lg:col-span-1">
                         <div className="sticky top-24">
-                            {loading ? (
+                            {loadingPhoto ? (
                                 <div className="animate-pulse">
                                     <div className="h-8 bg-neutral-200 rounded w-3/4 mb-4"></div>
                                     <div className="h-4 bg-neutral-200 rounded w-1/4 mb-6"></div>
@@ -274,7 +296,15 @@ const PhotoDetailPage: React.FC<PhotoDetailPageProps> = ({ photoId, onNavigate, 
                                         <p className="text-sm text-neutral-500 font-mono mb-4">{photo.width} x {photo.height}</p>
                                     )}
 
-                                    {photographer && (
+                                    {loadingSecondary ? (
+                                        <div className="flex items-center mb-6 animate-pulse">
+                                            <div className="w-10 h-10 rounded-full bg-neutral-200 mr-3"></div>
+                                            <div>
+                                                <div className="h-3 bg-neutral-200 rounded w-20 mb-2"></div>
+                                                <div className="h-4 bg-neutral-200 rounded w-32"></div>
+                                            </div>
+                                        </div>
+                                    ) : photographer && (
                                         <div className="flex items-center mb-6">
                                             <img src={photographer.avatar_url} alt={photographer.name} className="w-10 h-10 rounded-full object-cover mr-3 border border-neutral-200" />
                                             <div>
@@ -285,7 +315,12 @@ const PhotoDetailPage: React.FC<PhotoDetailPageProps> = ({ photoId, onNavigate, 
                                     )}
 
                             <div className="bg-neutral-50 p-6 rounded-xl border border-neutral-200 mb-6">
-                                {hasPurchased ? (
+                                {loadingSecondary ? (
+                                    <div className="animate-pulse">
+                                        <div className="h-6 bg-neutral-200 rounded w-1/3 mb-4"></div>
+                                        <div className="h-12 bg-neutral-200 rounded-full w-full mb-3"></div>
+                                    </div>
+                                ) : hasPurchased ? (
                                     <div className="text-center">
                                         <div className="mb-4 inline-flex items-center justify-center w-12 h-12 bg-green-100 text-green-600 rounded-full">
                                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
@@ -390,7 +425,7 @@ const PhotoDetailPage: React.FC<PhotoDetailPageProps> = ({ photoId, onNavigate, 
                 </div>
             </div>
             
-            {!loading && photo && (
+            {!loadingPhoto && photo && (
                 <FloatingShareButton 
                     title={photo.title}
                     text={`Confira esta foto de ${photographer?.name || 'FotoClic'} no FotoClic`}
@@ -399,7 +434,7 @@ const PhotoDetailPage: React.FC<PhotoDetailPageProps> = ({ photoId, onNavigate, 
             )}
 
             {/* Sticky Mobile CTA */}
-            {!loading && photo && !hasPurchased && (
+            {!loadingPhoto && photo && !hasPurchased && !loadingSecondary && (
                 <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 p-4 z-40 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] flex items-center justify-between gap-4">
                     <div className="flex flex-col">
                         <span className="text-[10px] text-neutral-500 uppercase font-bold tracking-wider">Preço</span>
