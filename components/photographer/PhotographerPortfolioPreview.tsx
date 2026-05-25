@@ -42,6 +42,8 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
     const [events, setEvents] = useState<PhotoEvent[]>([]);
     const [selectedEvent, setSelectedEvent] = useState<PhotoEvent | null>(null);
     const [loading, setLoading] = useState(true);
+    const [selectedEventPhotos, setSelectedEventPhotos] = useState<Photo[]>([]);
+    const [loadingEventPhotos, setLoadingEventPhotos] = useState(false);
 
     // Edit/Delete State
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -69,22 +71,19 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
                     }
                 }).catch(e => console.error("Failed to refresh user", e));
 
-                const [allPhotos, allEvents] = await Promise.all([
-                    api.getPhotosByPhotographerId(user.id),
-                    api.getPhotographerEvents(user.id)
-                ]);
-
-                setEvents(allEvents);
-
                 if (editable) {
+                    const [allPhotos, allEvents] = await Promise.all([
+                        api.getPhotosByPhotographerId(user.id),
+                        api.getPhotographerEvents(user.id)
+                    ]);
+                    setEvents(allEvents);
                     setPhotos(allPhotos);
                     const cats = await api.getCategories();
                     setCategories(cats);
                 } else {
-                    const publicPhotos = allPhotos.filter(
-                        p => p.is_public && p.moderation_status === 'approved'
-                    );
-                    setPhotos(publicPhotos);
+                    // Public view: load only events. Photos are loaded per-event on selection.
+                    const allEvents = await api.getPhotographerEvents(user.id);
+                    setEvents(allEvents);
                 }
 
             } catch (error) {
@@ -95,6 +94,22 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
         };
         loadData();
     }, [user.id, editable, isActive, refreshTrigger]);
+
+    const handleSelectEvent = async (event: PhotoEvent) => {
+        setSelectedEvent(event);
+        if (!editable) {
+            setLoadingEventPhotos(true);
+            setSelectedEventPhotos([]);
+            try {
+                const eventPhotos = await api.getPhotosByEventId(event.id);
+                setSelectedEventPhotos(eventPhotos);
+            } catch (e) {
+                console.error("Failed to load event photos", e);
+            } finally {
+                setLoadingEventPhotos(false);
+            }
+        }
+    };
 
     // CRUD Handlers
     const handleOpenModal = (photo: Photo) => {
@@ -221,7 +236,12 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
                     </div>
                     <div className="mt-6 md:mt-28 w-full md:w-auto flex flex-col md:flex-col items-center md:items-end justify-between md:justify-start gap-4">
                         <div className="px-4 py-2 rounded-full text-neutral-700 bg-neutral-100 border border-neutral-200 text-sm font-medium shadow-sm w-full md:w-auto text-center">
-                            {photos.length} Fotos {editable ? 'no Total' : 'Publicadas'}
+                            {editable
+                                ? `${photos.length} Fotos no Total`
+                                : selectedEvent
+                                    ? `${selectedEventPhotos.length} Fotos neste Evento`
+                                    : `${events.length} Evento${events.length !== 1 ? 's' : ''}`
+                            }
                         </div>
                         {editable && (
                             <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
@@ -296,7 +316,7 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
                     <div className="flex items-center gap-4">
                         {selectedEvent && (
                             <button
-                                onClick={() => setSelectedEvent(null)}
+                                onClick={() => { setSelectedEvent(null); setSelectedEventPhotos([]); }}
                                 className="p-2 -ml-2 text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 rounded-full transition-colors"
                                 title="Voltar para Eventos"
                             >
@@ -312,7 +332,7 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
                     </span>
                 </div>
 
-                {selectedEvent && photos.filter(p => p.event_id === selectedEvent.id).length > 0 && (
+                {selectedEvent && (editable ? photos.filter(p => p.event_id === selectedEvent.id).length > 0 : selectedEventPhotos.length > 0) && (
                     <div
                         onClick={() => setIsFaceSearchOpen(true)}
                         className="mb-8 group cursor-pointer"
@@ -355,16 +375,15 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
                     events.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {events.map(event => {
-                                const eventPhotos = photos.filter(p => p.event_id === event.id);
+                                const eventPhotos = editable ? photos.filter(p => p.event_id === event.id) : [];
                                 const coverPhotoUrl = event.cover_photo_url || (eventPhotos.length > 0 ? eventPhotos[0].preview_url : null);
 
-                                // Only show events with photos in public view, unless editable
-                                if (!editable && eventPhotos.length === 0) return null;
+                                if (editable && eventPhotos.length === 0) return null;
 
                                 return (
                                     <div
                                         key={event.id}
-                                        onClick={() => setSelectedEvent(event)}
+                                        onClick={() => handleSelectEvent(event)}
                                         className="bg-white rounded-xl shadow-sm border border-neutral-100 overflow-hidden hover:shadow-md transition-all cursor-pointer group"
                                     >
                                         <div className="h-48 bg-neutral-200 relative overflow-hidden">
@@ -385,7 +404,7 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
                                             <div className="flex justify-between items-start mb-2">
                                                 <h3 className="font-bold text-lg text-neutral-900 line-clamp-1">{event.name}</h3>
                                                 <span className="bg-neutral-100 text-neutral-600 text-xs px-2 py-1 rounded-full whitespace-nowrap font-medium">
-                                                    {eventPhotos.length} fotos
+                                                    {editable ? `${eventPhotos.length} fotos` : 'Ver fotos'}
                                                 </span>
                                             </div>
                                             <div className="flex items-center text-sm text-neutral-500 gap-4 mt-3">
@@ -418,9 +437,11 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
                     )
                 ) : (
                     // PHOTOS GRID (Filtered by Event)
-                    photos.filter(p => p.event_id === selectedEvent.id).length > 0 ? (
+                    loadingEventPhotos ? (
+                        <div className="flex justify-center py-16"><Spinner /></div>
+                    ) : (editable ? photos.filter(p => p.event_id === selectedEvent.id) : selectedEventPhotos).length > 0 ? (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                            {photos.filter(p => p.event_id === selectedEvent.id).map(photo => (
+                            {(editable ? photos.filter(p => p.event_id === selectedEvent.id) : selectedEventPhotos).map(photo => (
                                 editable ? (
                                     // Editable CRUD Card
                                     <div key={photo.id} className="bg-white rounded-lg shadow-sm overflow-hidden border border-neutral-200 hover:shadow-md transition-all group">

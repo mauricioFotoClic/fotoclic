@@ -369,12 +369,7 @@ const MainApp: React.FC = () => {
         // Update URL
         const newUrl = getUrlFromPage(page);
         if (newUrl) {
-            // If admin or photographer, use replaceState to "disable" the back button behavior
-            if (page.name === 'admin' || page.name === 'photographer') {
-                window.history.replaceState(null, '', newUrl);
-            } else {
-                window.history.pushState(null, '', newUrl);
-            }
+            window.history.pushState(null, '', newUrl);
         }
     }
 
