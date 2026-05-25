@@ -363,7 +363,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                         is_public: metadata.is_public,
                         is_featured: false,
                         event_id: selectedEvent.id,
-                        file_size_bytes: file.size
+                        file_size_bytes: originalBlob.size
                     });
 
                     if (newPhoto) {
