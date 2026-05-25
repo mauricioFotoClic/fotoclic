@@ -15,31 +15,55 @@ import TopProgressBar from './components/TopProgressBar';
 import { ToastProvider, useToast } from './contexts/ToastContext';
 import { ConfirmProvider, useConfirm } from './contexts/ConfirmContext';
 
+// Lazy load wrapper to handle Vite chunk loading errors during new deployments
+const lazyWithRetry = (componentImport: () => Promise<{ default: React.ComponentType<any> }>) => {
+    return React.lazy(async () => {
+        const pageHasAlreadyBeenForceRefreshed = JSON.parse(
+            window.sessionStorage.getItem('page-has-been-force-refreshed') || 'false'
+        );
+
+        try {
+            const component = await componentImport();
+            window.sessionStorage.setItem('page-has-been-force-refreshed', 'false');
+            return component;
+        } catch (error: any) {
+            if (!pageHasAlreadyBeenForceRefreshed) {
+                // If it's a chunk loading error (network or MIME type), reload to get the new index.html
+                window.sessionStorage.setItem('page-has-been-force-refreshed', 'true');
+                window.location.reload();
+                // Return a promise that never resolves while the page is reloading
+                return new Promise<{ default: React.ComponentType<any> }>(() => {});
+            }
+            throw error;
+        }
+    });
+};
+
 // Lazy load pages
-const HomePage = React.lazy(() => import('./pages/HomePage'));
-const AdminPage = React.lazy(() => import('./pages/AdminPage'));
-const CategoryPage = React.lazy(() => import('./pages/CategoryPage'));
-const AboutPage = React.lazy(() => import('./pages/AboutPage'));
-const ContactPage = React.lazy(() => import('./pages/ContactPage'));
-const TermsPage = React.lazy(() => import('./pages/TermsPage'));
-const PrivacyPage = React.lazy(() => import('./pages/PrivacyPage'));
-const FeaturedPhotosPage = React.lazy(() => import('./pages/FeaturedPhotosPage'));
-const PhotographerPage = React.lazy(() => import('./pages/PhotographerPage'));
-const PhotographerPortfolioPage = React.lazy(() => import('./pages/PhotographerPortfolioPage'));
-const DiscoverPage = React.lazy(() => import('./pages/DiscoverPage'));
-const ResetPasswordPage = React.lazy(() => import('./pages/ResetPasswordPage'));
-const EventPage = React.lazy(() => import('./pages/EventPage'));
-const FindPhotosPage = React.lazy(() => import('./pages/FindPhotosPage'));
-const PhotographersPage = React.lazy(() => import('./pages/PhotographersPage'));
-const CartPage = React.lazy(() => import('./pages/CartPage'));
-const LoginPage = React.lazy(() => import('./pages/LoginPage'));
-const RegisterPage = React.lazy(() => import('./pages/RegisterPage'));
-const PendingApprovalPage = React.lazy(() => import('./pages/PendingApprovalPage'));
-const PhotoDetailPage = React.lazy(() => import('./pages/PhotoDetailPage'));
-const CustomerDashboardPage = React.lazy(() => import('./pages/CustomerDashboardPage'));
-const CheckoutPage = React.lazy(() => import('./pages/CheckoutPage'));
-const CheckoutSuccessPage = React.lazy(() => import('./pages/CheckoutSuccessPage'));
-const HelpCenterPage = React.lazy(() => import('./pages/HelpCenterPage'));
+const HomePage = lazyWithRetry(() => import('./pages/HomePage'));
+const AdminPage = lazyWithRetry(() => import('./pages/AdminPage'));
+const CategoryPage = lazyWithRetry(() => import('./pages/CategoryPage'));
+const AboutPage = lazyWithRetry(() => import('./pages/AboutPage'));
+const ContactPage = lazyWithRetry(() => import('./pages/ContactPage'));
+const TermsPage = lazyWithRetry(() => import('./pages/TermsPage'));
+const PrivacyPage = lazyWithRetry(() => import('./pages/PrivacyPage'));
+const FeaturedPhotosPage = lazyWithRetry(() => import('./pages/FeaturedPhotosPage'));
+const PhotographerPage = lazyWithRetry(() => import('./pages/PhotographerPage'));
+const PhotographerPortfolioPage = lazyWithRetry(() => import('./pages/PhotographerPortfolioPage'));
+const DiscoverPage = lazyWithRetry(() => import('./pages/DiscoverPage'));
+const ResetPasswordPage = lazyWithRetry(() => import('./pages/ResetPasswordPage'));
+const EventPage = lazyWithRetry(() => import('./pages/EventPage'));
+const FindPhotosPage = lazyWithRetry(() => import('./pages/FindPhotosPage'));
+const PhotographersPage = lazyWithRetry(() => import('./pages/PhotographersPage'));
+const CartPage = lazyWithRetry(() => import('./pages/CartPage'));
+const LoginPage = lazyWithRetry(() => import('./pages/LoginPage'));
+const RegisterPage = lazyWithRetry(() => import('./pages/RegisterPage'));
+const PendingApprovalPage = lazyWithRetry(() => import('./pages/PendingApprovalPage'));
+const PhotoDetailPage = lazyWithRetry(() => import('./pages/PhotoDetailPage'));
+const CustomerDashboardPage = lazyWithRetry(() => import('./pages/CustomerDashboardPage'));
+const CheckoutPage = lazyWithRetry(() => import('./pages/CheckoutPage'));
+const CheckoutSuccessPage = lazyWithRetry(() => import('./pages/CheckoutSuccessPage'));
+const HelpCenterPage = lazyWithRetry(() => import('./pages/HelpCenterPage'));
 
 
 interface FlyingImage {
