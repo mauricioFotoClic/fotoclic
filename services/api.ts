@@ -355,7 +355,7 @@ export const api = {
     const { data, error } = await supabase
       .from("photos")
       .select(
-        "id, photographer_id, category_id, title, description, preview_url, file_url, thumb_url, price, resolution, width, height, tags, is_public, created_at, moderation_status, rejection_reason, is_featured, likes_count, quality_analysis, is_face_indexed, event_id, sales_count, media_type, video_uid, video_duration, file_size_bytes, photo_likes(user_id)",
+        "id, photographer_id, category_id, title, description, preview_url, thumb_url, price, resolution, width, height, tags, is_public, created_at, moderation_status, rejection_reason, is_featured, likes_count, quality_analysis, is_face_indexed, event_id, sales_count, media_type, video_uid, video_duration, file_size_bytes, photo_likes(user_id)",
       )
       .in("id", ids);
 
@@ -372,33 +372,21 @@ export const api = {
       return cached.data;
     }
 
-    let allData: any[] = [];
-    let page = 0;
-    const pageSize = 1000;
-    let hasMore = true;
-
-    while (hasMore) {
-      const { data, error } = await supabase
-        .from("photos")
-        .select(
-          "id, photographer_id, category_id, title, description, preview_url, file_url, thumb_url, price, resolution, width, height, tags, is_public, created_at, moderation_status, rejection_reason, is_featured, likes_count, quality_analysis, is_face_indexed, event_id, sales_count, media_type, video_uid, video_duration, file_size_bytes, photo_likes(user_id)",
-        )
-        .eq("photographer_id", photographerId)
-        .order("created_at", { ascending: false })
-        .range(page * pageSize, (page + 1) * pageSize - 1);
-        
-      if (error) throw error;
+    // Otimização: Sem loop 'while'. Fetch de até 150 fotos recentes. 
+    // Evita crash de browser por payload massivo.
+    const limit = 150;
+    const { data, error } = await supabase
+      .from("photos")
+      .select(
+        "id, photographer_id, category_id, title, description, preview_url, thumb_url, price, resolution, width, height, tags, is_public, created_at, moderation_status, rejection_reason, is_featured, likes_count, quality_analysis, is_face_indexed, event_id, sales_count, media_type, video_uid, video_duration, file_size_bytes, photo_likes(user_id)",
+      )
+      .eq("photographer_id", photographerId)
+      .order("created_at", { ascending: false })
+      .limit(limit);
       
-      if (data && data.length > 0) {
-        allData = [...allData, ...data];
-        page++;
-        if (data.length < pageSize) {
-          hasMore = false;
-        }
-      } else {
-        hasMore = false;
-      }
-    }
+    if (error) throw error;
+    
+    const allData = data || [];
     
     const result = allData.map(mapPhoto);
     inMemoryCache.photographerPhotosCache[photographerId] = { data: result, ts: now };
@@ -1088,7 +1076,7 @@ export const api = {
     const { data, error } = await supabase
       .from("photos")
       .select(
-        "id, photographer_id, category_id, title, preview_url, file_url, thumb_url, price, resolution, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags, event_id, sales_count, media_type, video_uid, video_duration, file_size_bytes",
+        "id, photographer_id, category_id, title, preview_url, thumb_url, price, resolution, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags, event_id, sales_count, media_type, video_uid, video_duration, file_size_bytes",
       )
       .eq("event_id", eventId)
       .eq("moderation_status", "approved")
