@@ -58,6 +58,7 @@ const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({ user, set
     const [abandonedCartsCount, setAbandonedCartsCount] = useState(0);
     const [loading, setLoading] = useState(true);
     const [hasNotified, setHasNotified] = useState(false);
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
     const fetchData = useCallback(async () => {
         try {
@@ -72,7 +73,12 @@ const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({ user, set
             setSales(salesData);
             setPhotos(photosData);
 
-            const viewedCarts = JSON.parse(localStorage.getItem(`viewedAbandonedCarts_${user.id}`) || '[]');
+            let viewedCarts: string[] = [];
+            try {
+                viewedCarts = JSON.parse(localStorage.getItem(`viewedAbandonedCarts_${user.id}`) || '[]');
+            } catch (e) {
+                console.warn('localStorage error', e);
+            }
             const newCarts = abandonedData.filter(c => !viewedCarts.includes(c.id));
 
             setAbandonedCartsCount(newCarts.length);
@@ -82,8 +88,9 @@ const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({ user, set
                 showToast(`Você tem ${newCarts.length} novo(s) carrinho(s) para recuperação!`, 'info');
                 setHasNotified(true);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to fetch photographer dashboard data", error);
+            setErrorMsg(error?.message || String(error));
         } finally {
             setLoading(false);
         }
@@ -107,7 +114,12 @@ const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({ user, set
         const dailySales = last7Days.map(date => {
             const total = sales
                 .filter(sale => {
-                    const d = new Date(sale.sale_date);
+                    // Fix for Safari: replace space with 'T' in case DB returns 'YYYY-MM-DD HH:MM:SS'
+                    const safeDateString = sale.sale_date.replace(' ', 'T');
+                    const d = new Date(safeDateString);
+                    
+                    if (isNaN(d.getTime())) return false; // Safety check
+
                     const sYear = d.getFullYear();
                     const sMonth = String(d.getMonth() + 1).padStart(2, '0');
                     const sDay = String(d.getDate()).padStart(2, '0');
@@ -123,6 +135,15 @@ const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({ user, set
     const maxDailyEarning = useMemo(() => Math.max(...salesLast7Days.map(s => s.total), 1), [salesLast7Days]);
 
     if (loading) return <Spinner />;
+    if (errorMsg) return (
+        <div className="bg-red-50 p-6 rounded-xl border border-red-200">
+            <h3 className="text-red-800 font-bold mb-2">Erro ao carregar o painel</h3>
+            <p className="text-red-600 mb-4">{errorMsg}</p>
+            <button onClick={fetchData} className="px-4 py-2 bg-red-600 text-white rounded shadow hover:bg-red-700 transition">
+                Tentar Novamente
+            </button>
+        </div>
+    );
     if (!balance) return <p>Não foi possível carregar os dados do dashboard.</p>;
 
     return (
