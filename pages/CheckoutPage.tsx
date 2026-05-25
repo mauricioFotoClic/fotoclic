@@ -183,10 +183,6 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
         }
     };
 
-    if (loading) return <div className="py-20"><Spinner /></div>;
-
-
-
     return (
         <div className="bg-neutral-50 min-h-screen py-12">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl">
@@ -199,9 +195,13 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
                 </button>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-                    {/* Left Column: Stripe Payment Form */}
-                    <div>
-                        <h1 className="text-3xl font-display font-bold text-neutral-900 mb-6">Pagamento</h1>
+                    {loading ? (
+                        <div className="col-span-1 lg:col-span-2 flex justify-center py-20"><Spinner /></div>
+                    ) : (
+                        <>
+                            {/* Left Column: Stripe Payment Form */}
+                            <div>
+                                <h1 className="text-3xl font-display font-bold text-neutral-900 mb-6">Pagamento</h1>
 
                         <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-8 mb-6 relative overflow-hidden min-h-[400px]">
                             {/* Card Header */}
@@ -395,6 +395,8 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
                             </div>
                         </div>
                     </div>
+                        </>
+                    )}
                 </div>
             </div>
         </div>

@@ -192,9 +192,8 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
         );
     };
 
-    if (loading) return <Spinner />;
-
-
+    // Removed blocking global spinner so the profile header renders immediately using the provided user prop
+    
     return (
         <div className="bg-white rounded-lg shadow-md overflow-hidden min-h-screen">
             {/* Banner Section */}
@@ -372,7 +371,9 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
 
                 {!selectedEvent ? (
                     // EVENTS GRID
-                    events.length > 0 ? (
+                    loading ? (
+                        <div className="flex justify-center py-16"><Spinner /></div>
+                    ) : events.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {events.map(event => {
                                 const eventPhotos = editable ? photos.filter(p => p.event_id === event.id) : [];

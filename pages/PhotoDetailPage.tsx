@@ -154,9 +154,7 @@ const PhotoDetailPage: React.FC<PhotoDetailPageProps> = ({ photoId, onNavigate, 
         onAddToCart(photo.id, imgElement);
     };
 
-    if (loading) return <div className="container mx-auto px-4 py-16"><Spinner /></div>;
-
-    if (!photo) {
+    if (!loading && !photo) {
         return (
             <div className="container mx-auto px-4 py-16 text-center">
                 <h2 className="text-2xl font-display font-bold text-neutral-800">Foto não encontrada.</h2>
@@ -169,95 +167,122 @@ const PhotoDetailPage: React.FC<PhotoDetailPageProps> = ({ photoId, onNavigate, 
 
     return (
         <div className="bg-white min-h-screen pb-12">
-            <SEO
-                title={`${photo.title} por ${photographer ? photographer.name : 'Unknown'}`}
-                description={photo.description || `Compre a foto "${photo.title}" em alta resolução no FotoClic.`}
-                image={photo.preview_url}
-                url={`https://fotoclic.com.br/foto/${photo.id}`}
-                type="article"
-            />
+            {!loading && photo && (
+                <SEO
+                    title={`${photo.title} por ${photographer ? photographer.name : 'Unknown'}`}
+                    description={photo.description || `Compre a foto "${photo.title}" em alta resolução no FotoClic.`}
+                    image={photo.preview_url}
+                    url={`https://fotoclic.com.br/foto/${photo.id}`}
+                    type="article"
+                />
+            )}
             <div className="bg-neutral-100 py-4 border-b border-neutral-200">
                 <div className="container mx-auto px-4 sm:px-6 lg:px-8">
                     <button onClick={() => onNavigate({ name: 'home' })} className="text-sm text-neutral-500 hover:text-primary">Home</button>
                     <span className="mx-2 text-neutral-400">/</span>
-                    <span className="text-sm text-neutral-800 font-medium">{photo.title}</span>
+                    <span className="text-sm text-neutral-800 font-medium">
+                        {loading ? <span className="inline-block w-32 h-4 bg-neutral-200 animate-pulse rounded align-middle"></span> : photo?.title}
+                    </span>
                 </div>
             </div>
 
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <div className="lg:col-span-2">
-                        <div ref={imgContainerRef} className="bg-neutral-100 rounded-lg overflow-hidden shadow-sm border border-neutral-200 flex items-center justify-center w-full">
-                            {photo.media_type === 'video' ? (
-                                hasPurchased ? (
-                                    <div className="w-full aspect-video max-h-[70vh] bg-black relative">
-                                        <iframe
-                                            src={`https://iframe.videodelivery.net/${photo.video_uid}?preload=true&loop=true&controls=true`}
-                                            className="w-full h-full"
-                                            style={{ border: 'none' }}
-                                            allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
-                                            allowFullScreen
-                                        />
-                                    </div>
-                                ) : (
-                                    <div className="w-full aspect-video max-h-[70vh] bg-neutral-100 relative select-none" onContextMenu={(e) => e.preventDefault()}>
-                                        <iframe
-                                            src={`https://iframe.videodelivery.net/${photo.video_uid}?preload=true&loop=true&controls=true&autoplay=true&muted=true`}
-                                            className="w-full h-full"
-                                            style={{ border: 'none' }}
-                                            allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
-                                            allowFullScreen
-                                        />
-                                        <div className="absolute inset-0 z-20 pointer-events-none flex flex-wrap content-center justify-center overflow-hidden opacity-30">
-                                            {Array.from({ length: 12 }).map((_, i) => (
-                                                <div
-                                                    key={i}
-                                                    className="w-1/3 h-1/4 flex items-center justify-center transform -rotate-45"
-                                                >
-                                                    <span className="text-white font-display font-bold text-lg sm:text-xl whitespace-nowrap drop-shadow-md select-none border-2 border-white/20 px-2 py-1 rounded-md">
-                                                        FotoClic Preview
-                                                    </span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )
-                            ) : (
-                                hasPurchased ? (
-                                    <img src={photo.preview_url} alt={photo.title} className="w-full h-auto max-h-[70vh] object-contain" />
-                                ) : (
-                                    <WatermarkedImage src={photo.preview_url} alt={photo.title} className="w-full h-auto max-h-[70vh] object-contain" />
-                                )
-                            )}
-                        </div>
-                        {photo.media_type === 'video' && !hasPurchased && (
-                            <div className="mt-3 p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg flex items-center space-x-2 text-sm shadow-sm">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-amber-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
-                                </svg>
-                                <span className="font-medium">O vídeo de prévia está sem áudio. O som original completo será ativado no arquivo final após a compra.</span>
+                        {loading ? (
+                            <div className="bg-neutral-100 rounded-lg overflow-hidden shadow-sm border border-neutral-200 flex items-center justify-center w-full aspect-video">
+                                <Spinner />
                             </div>
-                        )}
+                        ) : photo ? (
+                            <>
+                                <div ref={imgContainerRef} className="bg-neutral-100 rounded-lg overflow-hidden shadow-sm border border-neutral-200 flex items-center justify-center w-full">
+                                    {photo.media_type === 'video' ? (
+                                        hasPurchased ? (
+                                            <div className="w-full aspect-video max-h-[70vh] bg-black relative">
+                                                <iframe
+                                                    src={`https://iframe.videodelivery.net/${photo.video_uid}?preload=true&loop=true&controls=true`}
+                                                    className="w-full h-full"
+                                                    style={{ border: 'none' }}
+                                                    allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+                                                    allowFullScreen
+                                                />
+                                            </div>
+                                        ) : (
+                                            <div className="w-full aspect-video max-h-[70vh] bg-neutral-100 relative select-none" onContextMenu={(e) => e.preventDefault()}>
+                                                <iframe
+                                                    src={`https://iframe.videodelivery.net/${photo.video_uid}?preload=true&loop=true&controls=true&autoplay=true&muted=true`}
+                                                    className="w-full h-full"
+                                                    style={{ border: 'none' }}
+                                                    allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+                                                    allowFullScreen
+                                                />
+                                                <div className="absolute inset-0 z-20 pointer-events-none flex flex-wrap content-center justify-center overflow-hidden opacity-30">
+                                                    {Array.from({ length: 12 }).map((_, i) => (
+                                                        <div
+                                                            key={i}
+                                                            className="w-1/3 h-1/4 flex items-center justify-center transform -rotate-45"
+                                                        >
+                                                            <span className="text-white font-display font-bold text-lg sm:text-xl whitespace-nowrap drop-shadow-md select-none border-2 border-white/20 px-2 py-1 rounded-md">
+                                                                FotoClic Preview
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )
+                                    ) : (
+                                        hasPurchased ? (
+                                            <img src={photo.preview_url} alt={photo.title} className="w-full h-auto max-h-[70vh] object-contain" />
+                                        ) : (
+                                            <WatermarkedImage src={photo.preview_url} alt={photo.title} className="w-full h-auto max-h-[70vh] object-contain" />
+                                        )
+                                    )}
+                                </div>
+                                {photo.media_type === 'video' && !hasPurchased && (
+                                    <div className="mt-3 p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg flex items-center space-x-2 text-sm shadow-sm">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-amber-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                                        </svg>
+                                        <span className="font-medium">O vídeo de prévia está sem áudio. O som original completo será ativado no arquivo final após a compra.</span>
+                                    </div>
+                                )}
+                            </>
+                        ) : null}
                     </div>
 
                     <div className="lg:col-span-1">
                         <div className="sticky top-24">
-                            <h1 className="text-3xl font-display font-bold text-primary-dark mb-2">{photo.title}</h1>
-
-                            {photo.width && photo.height && (
-                                <p className="text-sm text-neutral-500 font-mono mb-4">{photo.width} x {photo.height}</p>
-                            )}
-
-                            {photographer && (
-                                <div className="flex items-center mb-6">
-                                    <img src={photographer.avatar_url} alt={photographer.name} className="w-10 h-10 rounded-full object-cover mr-3 border border-neutral-200" />
-                                    <div>
-                                        <p className="text-sm text-neutral-500">Fotografia por</p>
-                                        <p className="font-medium text-neutral-800">{photographer.name}</p>
+                            {loading ? (
+                                <div className="animate-pulse">
+                                    <div className="h-8 bg-neutral-200 rounded w-3/4 mb-4"></div>
+                                    <div className="h-4 bg-neutral-200 rounded w-1/4 mb-6"></div>
+                                    <div className="flex items-center mb-6">
+                                        <div className="w-10 h-10 rounded-full bg-neutral-200 mr-3"></div>
+                                        <div>
+                                            <div className="h-3 bg-neutral-200 rounded w-20 mb-2"></div>
+                                            <div className="h-4 bg-neutral-200 rounded w-32"></div>
+                                        </div>
                                     </div>
+                                    <div className="h-64 bg-neutral-200 rounded-xl mb-6"></div>
                                 </div>
-                            )}
+                            ) : photo ? (
+                                <>
+                                    <h1 className="text-3xl font-display font-bold text-primary-dark mb-2">{photo.title}</h1>
+
+                                    {photo.width && photo.height && (
+                                        <p className="text-sm text-neutral-500 font-mono mb-4">{photo.width} x {photo.height}</p>
+                                    )}
+
+                                    {photographer && (
+                                        <div className="flex items-center mb-6">
+                                            <img src={photographer.avatar_url} alt={photographer.name} className="w-10 h-10 rounded-full object-cover mr-3 border border-neutral-200" />
+                                            <div>
+                                                <p className="text-sm text-neutral-500">Fotografia por</p>
+                                                <p className="font-medium text-neutral-800">{photographer.name}</p>
+                                            </div>
+                                        </div>
+                                    )}
 
                             <div className="bg-neutral-50 p-6 rounded-xl border border-neutral-200 mb-6">
                                 {hasPurchased ? (
@@ -358,19 +383,23 @@ const PhotoDetailPage: React.FC<PhotoDetailPageProps> = ({ photoId, onNavigate, 
                                     </button>
                                 </div>
                             </div>
+                            </>
+                        ) : null}
                         </div>
                     </div>
                 </div>
             </div>
             
-            <FloatingShareButton 
-                title={photo.title}
-                text={`Confira esta foto de ${photographer?.name || 'FotoClic'} no FotoClic`}
-                url={window.location.href}
-            />
+            {!loading && photo && (
+                <FloatingShareButton 
+                    title={photo.title}
+                    text={`Confira esta foto de ${photographer?.name || 'FotoClic'} no FotoClic`}
+                    url={window.location.href}
+                />
+            )}
 
             {/* Sticky Mobile CTA */}
-            {!hasPurchased && (
+            {!loading && photo && !hasPurchased && (
                 <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 p-4 z-40 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] flex items-center justify-between gap-4">
                     <div className="flex flex-col">
                         <span className="text-[10px] text-neutral-500 uppercase font-bold tracking-wider">Preço</span>

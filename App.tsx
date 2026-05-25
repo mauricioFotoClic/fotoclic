@@ -249,6 +249,15 @@ const MainApp: React.FC = () => {
         };
 
         // Initial Load
+        // Se o usuário entrou direto no painel (por link direto ou refresh) 
+        // e clicar em Voltar, o navegador pode tirá-lo do site (ex: voltar pro Google).
+        // Para evitar isso, injetamos a Home ('/') no histórico antes de carregar o painel.
+        const currentPath = window.location.pathname;
+        if (currentPath === '/admin' || currentPath === '/area-fotografo') {
+            window.history.replaceState(null, '', '/');
+            window.history.pushState(null, '', currentPath + window.location.search + window.location.hash);
+        }
+
         handleLocationChange();
 
         // Browser Back/Forward

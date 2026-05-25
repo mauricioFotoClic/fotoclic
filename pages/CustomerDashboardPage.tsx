@@ -94,8 +94,6 @@ const CustomerDashboardPage: React.FC<CustomerDashboardPageProps> = ({ onNavigat
         );
     }
 
-    if (loading) return <div className="py-20"><Spinner /></div>;
-
     return (
         <div className="bg-white min-h-screen">
             <div className="bg-neutral-100 py-12">
@@ -106,7 +104,9 @@ const CustomerDashboardPage: React.FC<CustomerDashboardPageProps> = ({ onNavigat
             </div>
 
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
-                {purchases.length === 0 ? (
+                {loading ? (
+                    <div className="flex justify-center py-20"><Spinner /></div>
+                ) : purchases.length === 0 ? (
                     <div className="text-center py-16 bg-neutral-50 rounded-xl border border-dashed border-neutral-300">
                         <div className="inline-block p-4 rounded-full bg-white shadow-sm mb-4">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
