@@ -141,9 +141,15 @@ const resizeImageWithWatermark = (img: HTMLImageElement, maxSide: number, qualit
     // Apply Watermark
     ctx.save();
     ctx.font = `bold ${Math.max(20, width / 20)}px sans-serif`; // Responsive font size
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.55)'; // Marca mais visível
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)'; // Marca muito mais visível
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
+    
+    // Adicionar sombra para contraste em imagens claras e escuras
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+    ctx.shadowBlur = 8;
+    ctx.shadowOffsetX = 3;
+    ctx.shadowOffsetY = 3;
 
     // Rotate 45 degrees
     ctx.translate(width / 2, height / 2);
