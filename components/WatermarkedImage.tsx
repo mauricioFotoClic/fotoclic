@@ -41,13 +41,13 @@ const WatermarkedImage: React.FC<WatermarkedImageProps> = ({
 
       {/* Marca D'água Visual */}
       {loaded && (
-        <div className="absolute inset-0 z-20 pointer-events-none flex flex-wrap content-center justify-center overflow-hidden opacity-30 animate-fade-in">
+        <div className="absolute inset-0 z-20 pointer-events-none flex flex-wrap content-center justify-center overflow-hidden opacity-60 animate-fade-in">
           {Array.from({ length: 12 }).map((_, i) => (
             <div
               key={i}
               className="w-1/3 h-1/4 flex items-center justify-center transform -rotate-45"
             >
-              <span className="text-white font-display font-bold text-lg sm:text-xl whitespace-nowrap drop-shadow-md select-none border-2 border-white/20 px-2 py-1 rounded-md">
+              <span className="text-white font-display font-bold text-lg sm:text-xl whitespace-nowrap drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] select-none border-2 border-white/40 bg-black/10 px-2 py-1 rounded-md">
                 {text}
               </span>
             </div>

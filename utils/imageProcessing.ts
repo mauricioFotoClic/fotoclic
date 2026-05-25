@@ -141,7 +141,7 @@ const resizeImageWithWatermark = (img: HTMLImageElement, maxSide: number, qualit
     // Apply Watermark
     ctx.save();
     ctx.font = `bold ${Math.max(20, width / 20)}px sans-serif`; // Responsive font size
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.3)'; // Semi-transparent white
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.55)'; // Marca mais visível
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
