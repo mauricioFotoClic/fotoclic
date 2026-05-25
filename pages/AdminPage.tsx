@@ -55,7 +55,12 @@ interface AdminPageProps {
 }
 
 const AdminPage: React.FC<AdminPageProps> = ({ onNavigate }) => {
-    const [view, setView] = useState<AdminView>('dashboard');
+    const getInitialView = (): AdminView => {
+        const hash = window.location.hash.replace('#', '');
+        return (hash as AdminView) || 'dashboard';
+    };
+
+    const [view, setView] = useState<AdminView>(getInitialView);
     const [navContext, setNavContext] = useState<any>(null);
     const [notificationCounts, setNotificationCounts] = useState<{ payouts: number; reports: number }>({ payouts: 0, reports: 0 });
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -104,10 +109,21 @@ const AdminPage: React.FC<AdminPageProps> = ({ onNavigate }) => {
     }
 
     const handleSetView = (newView: AdminView, context: any = null) => {
+        if (window.location.hash.replace('#', '') !== newView) {
+            window.location.hash = newView;
+        }
         setView(newView);
         setNavContext(context);
         window.scrollTo(0, 0);
     };
+
+    useEffect(() => {
+        const handleHashChange = () => {
+            setView(getInitialView());
+        };
+        window.addEventListener('hashchange', handleHashChange);
+        return () => window.removeEventListener('hashchange', handleHashChange);
+    }, []);
 
     // Update notifications
     useEffect(() => {

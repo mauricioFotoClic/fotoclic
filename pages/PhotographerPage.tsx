@@ -57,7 +57,12 @@ interface PhotographerPageProps {
 }
 
 const PhotographerPage: React.FC<PhotographerPageProps> = ({ user: initialUser, onLogout, onNavigate, showToast }) => {
-    const [view, setView] = useState<PhotographerView>('dashboard');
+    const getInitialView = (): PhotographerView => {
+        const hash = window.location.hash.replace('#', '');
+        return (hash as PhotographerView) || 'dashboard';
+    };
+
+    const [view, setView] = useState<PhotographerView>(getInitialView);
     const [currentUser, setCurrentUser] = useState<User>(initialUser);
     const [abandonedCartsCount, setAbandonedCartsCount] = useState(0);
 
@@ -115,7 +120,18 @@ const PhotographerPage: React.FC<PhotographerPageProps> = ({ user: initialUser, 
         }
     }, [view, currentUser]);
 
+    useEffect(() => {
+        const handleHashChange = () => {
+            setView(getInitialView());
+        };
+        window.addEventListener('hashchange', handleHashChange);
+        return () => window.removeEventListener('hashchange', handleHashChange);
+    }, []);
+
     const handleSetView = (newView: PhotographerView) => {
+        if (window.location.hash.replace('#', '') !== newView) {
+            window.location.hash = newView;
+        }
         setView(newView);
         window.scrollTo(0, 0);
     };
