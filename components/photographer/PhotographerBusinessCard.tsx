@@ -2,7 +2,6 @@ import React, { useRef, useState } from 'react';
 import { User } from '../../types';
 import { QRCodeSVG } from 'qrcode.react';
 import { toPng } from 'html-to-image';
-import Logo from '../Logo';
 
 interface PhotographerBusinessCardProps {
     user: User;
@@ -75,78 +74,108 @@ const PhotographerBusinessCard: React.FC<PhotographerBusinessCardProps> = ({ use
                     {/* SVG Background */}
                     <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 320 480" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <defs>
-                            {/* Brilho laranja topo direito */}
-                            <radialGradient id="tr-glow" cx="320" cy="0" r="160" gradientUnits="userSpaceOnUse">
-                                <stop offset="0%" stopColor="#FF5C00" stopOpacity="0.35" />
-                                <stop offset="100%" stopColor="#FF5C00" stopOpacity="0" />
-                            </radialGradient>
-
-                            {/* Gradiente das listras topo direito */}
-                            <linearGradient id="tr-line-grad" x1="320" y1="0" x2="200" y2="120" gradientUnits="userSpaceOnUse">
-                                <stop offset="0%" stopColor="#FF5C00" stopOpacity="0.9" />
-                                <stop offset="100%" stopColor="#FF5C00" stopOpacity="0.0" />
-                            </linearGradient>
-
-                            {/* Máscara dos pontos: cobre lado direito (topo e base) */}
-                            <radialGradient id="tr-mask-grad" cx="320" cy="0" r="220" gradientUnits="userSpaceOnUse">
-                                <stop offset="30%" stopColor="white" stopOpacity="0.55" />
+                            {/* Mask: opaque at top-right and bottom-left corners, transparent at center */}
+                            <radialGradient id="bc-tr-corner" cx="320" cy="0" r="220" gradientUnits="userSpaceOnUse">
+                                <stop offset="0%"   stopColor="white" stopOpacity="1" />
+                                <stop offset="60%"  stopColor="white" stopOpacity="0.55" />
                                 <stop offset="100%" stopColor="white" stopOpacity="0" />
                             </radialGradient>
-                            <radialGradient id="br-mask-grad" cx="320" cy="480" r="200" gradientUnits="userSpaceOnUse">
-                                <stop offset="30%" stopColor="white" stopOpacity="0.45" />
+                            <radialGradient id="bc-bl-corner" cx="0" cy="480" r="220" gradientUnits="userSpaceOnUse">
+                                <stop offset="0%"   stopColor="white" stopOpacity="1" />
+                                <stop offset="60%"  stopColor="white" stopOpacity="0.55" />
                                 <stop offset="100%" stopColor="white" stopOpacity="0" />
                             </radialGradient>
-                            <mask id="dots-mask">
-                                <rect width="320" height="480" fill="black" />
-                                <circle cx="320" cy="0" r="220" fill="url(#tr-mask-grad)" />
-                                <circle cx="320" cy="480" r="200" fill="url(#br-mask-grad)" />
+                            <mask id="bc-corners-mask" maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse">
+                                <rect x="0" y="0" width="320" height="480" fill="black" />
+                                <circle cx="320" cy="0"   r="220" fill="url(#bc-tr-corner)" />
+                                <circle cx="0"   cy="480" r="220" fill="url(#bc-bl-corner)" />
                             </mask>
-                            <pattern id="dot-grid" x="0" y="0" width="10" height="10" patternUnits="userSpaceOnUse">
-                                <circle cx="5" cy="5" r="1.2" fill="#FF5C00" />
+                            {/* Dot pattern */}
+                            <pattern id="bc-dot-grid" x="0" y="0" width="10" height="10" patternUnits="userSpaceOnUse">
+                                <circle cx="5" cy="5" r="1.3" fill="#FF5C00" />
                             </pattern>
+
+                            {/* Linear Gradients for Stripes */}
+                            <linearGradient id="tr-stripes-grad" x1="320" y1="0" x2="160" y2="160" gradientUnits="userSpaceOnUse">
+                                <stop offset="0%" stopColor="#FF5C00" stopOpacity="1" />
+                                <stop offset="40%" stopColor="#FF5C00" stopOpacity="0.8" />
+                                <stop offset="100%" stopColor="#FF5C00" stopOpacity="0" />
+                            </linearGradient>
+                            <linearGradient id="bl-stripes-grad" x1="0" y1="480" x2="160" y2="320" gradientUnits="userSpaceOnUse">
+                                <stop offset="0%" stopColor="#FF5C00" stopOpacity="1" />
+                                <stop offset="40%" stopColor="#FF5C00" stopOpacity="0.8" />
+                                <stop offset="100%" stopColor="#FF5C00" stopOpacity="0" />
+                            </linearGradient>
                         </defs>
 
-                        {/* Brilho topo direito */}
-                        <rect width="320" height="480" fill="url(#tr-glow)" />
+                        {/* Top-Right Corner Stripes */}
+                        <g>
+                            <line x1="170" y1="0" x2="320" y2="150" stroke="url(#tr-stripes-grad)" strokeWidth="3" />
+                            <line x1="185" y1="0" x2="320" y2="135" stroke="url(#tr-stripes-grad)" strokeWidth="4" />
+                            <line x1="200" y1="0" x2="320" y2="120" stroke="url(#tr-stripes-grad)" strokeWidth="5" />
+                            <line x1="215" y1="0" x2="320" y2="105" stroke="url(#tr-stripes-grad)" strokeWidth="6" />
+                            <line x1="230" y1="0" x2="320" y2="90" stroke="url(#tr-stripes-grad)" strokeWidth="8" />
+                            <line x1="245" y1="0" x2="320" y2="75" stroke="url(#tr-stripes-grad)" strokeWidth="10" />
+                            <line x1="260" y1="0" x2="320" y2="60" stroke="url(#tr-stripes-grad)" strokeWidth="12" />
+                            <line x1="275" y1="0" x2="320" y2="45" stroke="url(#tr-stripes-grad)" strokeWidth="14" />
+                            <line x1="290" y1="0" x2="320" y2="30" stroke="url(#tr-stripes-grad)" strokeWidth="16" />
+                            <line x1="305" y1="0" x2="320" y2="15" stroke="url(#tr-stripes-grad)" strokeWidth="18" />
+                            <line x1="315" y1="0" x2="320" y2="5" stroke="url(#tr-stripes-grad)" strokeWidth="20" />
+                        </g>
 
-                        {/* Grid de pontinhos — somente lado direito */}
-                        <rect width="320" height="480" fill="url(#dot-grid)" mask="url(#dots-mask)" />
+                        {/* Bottom-Left Corner Stripes */}
+                        <g>
+                            <line x1="0" y1="330" x2="150" y2="480" stroke="url(#bl-stripes-grad)" strokeWidth="3" />
+                            <line x1="0" y1="345" x2="135" y2="480" stroke="url(#bl-stripes-grad)" strokeWidth="4" />
+                            <line x1="0" y1="360" x2="120" y2="480" stroke="url(#bl-stripes-grad)" strokeWidth="5" />
+                            <line x1="0" y1="375" x2="105" y2="480" stroke="url(#bl-stripes-grad)" strokeWidth="6" />
+                            <line x1="0" y1="390" x2="90" y2="480" stroke="url(#bl-stripes-grad)" strokeWidth="8" />
+                            <line x1="0" y1="405" x2="75" y2="480" stroke="url(#bl-stripes-grad)" strokeWidth="10" />
+                            <line x1="0" y1="420" x2="60" y2="480" stroke="url(#bl-stripes-grad)" strokeWidth="12" />
+                            <line x1="0" y1="435" x2="45" y2="480" stroke="url(#bl-stripes-grad)" strokeWidth="14" />
+                            <line x1="0" y1="450" x2="30" y2="480" stroke="url(#bl-stripes-grad)" strokeWidth="16" />
+                            <line x1="0" y1="465" x2="15" y2="480" stroke="url(#bl-stripes-grad)" strokeWidth="18" />
+                            <line x1="0" y1="475" x2="5" y2="480" stroke="url(#bl-stripes-grad)" strokeWidth="20" />
+                        </g>
 
-                        {/* Listras diagonais — somente topo direito */}
-                        <line x1="290" y1="0" x2="320" y2="30" stroke="url(#tr-line-grad)" strokeWidth="8" />
-                        <line x1="275" y1="0" x2="320" y2="45" stroke="url(#tr-line-grad)" strokeWidth="8" />
-                        <line x1="260" y1="0" x2="320" y2="60" stroke="url(#tr-line-grad)" strokeWidth="8" />
-                        <line x1="245" y1="0" x2="320" y2="75" stroke="url(#tr-line-grad)" strokeWidth="8" />
-                        <line x1="230" y1="0" x2="320" y2="90" stroke="url(#tr-line-grad)" strokeWidth="6" />
-                        <line x1="215" y1="0" x2="320" y2="105" stroke="url(#tr-line-grad)" strokeWidth="6" />
-                        <line x1="200" y1="0" x2="320" y2="120" stroke="url(#tr-line-grad)" strokeWidth="5" />
-                        <line x1="185" y1="0" x2="320" y2="135" stroke="url(#tr-line-grad)" strokeWidth="4" />
-                        <line x1="170" y1="0" x2="320" y2="150" stroke="url(#tr-line-grad)" strokeWidth="3" />
-                        <line x1="155" y1="0" x2="320" y2="165" stroke="url(#tr-line-grad)" strokeWidth="2.5" />
-                        <line x1="140" y1="0" x2="320" y2="180" stroke="url(#tr-line-grad)" strokeWidth="2" />
-                        <line x1="125" y1="0" x2="320" y2="195" stroke="url(#tr-line-grad)" strokeWidth="1.5" />
-                        <line x1="110" y1="0" x2="320" y2="210" stroke="url(#tr-line-grad)" strokeWidth="1" />
+                        {/* Orange dots — masked to the same corners */}
+                        <rect width="320" height="480" fill="url(#bc-dot-grid)" mask="url(#bc-corners-mask)" opacity="0.7" />
                     </svg>
 
-                    <div className="relative z-10 flex flex-col h-full text-center text-white px-8 pt-8 pb-6">
+                    <div className="relative z-10 flex flex-col h-full text-center text-white px-8 pt-9 pb-6">
 
                         {/* Logo no Topo */}
                         <div className="flex justify-center">
-                            <Logo size={28} useImage={true} dark={true} />
-                        </div>
-
-                        {/* Nome e Cargo */}
-                        <div className="flex flex-col items-center mt-7">
-                            <h3 className="text-[2rem] font-bold tracking-tight text-white leading-tight">{user.name}</h3>
-                            <div className="w-20 h-[1.5px] bg-[#FF5C00] my-3"></div>
-                            <div className="text-[#FF5C00] text-[10px] font-semibold uppercase tracking-[0.25em]">
-                                Fotógrafo Profissional
+                            <div className="relative inline-block" style={{ height: '32px' }}>
+                                {/* Copy 1: White Logo (Underneath) */}
+                                <img 
+                                    src="/logo.png" 
+                                    alt="FotoClic" 
+                                    className="brightness-0 invert select-none"
+                                    style={{ height: '32px', width: 'auto', display: 'block' }}
+                                />
+                                {/* Copy 2: Orange Clic (Overlay) */}
+                                <img 
+                                    src="/logo.png" 
+                                    alt="FotoClic" 
+                                    className="absolute inset-0 select-none"
+                                    style={{ height: '32px', width: 'auto', display: 'block', clipPath: 'inset(0 0 0 51.5%)' }}
+                                />
                             </div>
                         </div>
 
-                        {/* QR Code — maior, centralizado */}
+                        {/* Nome e Cargo */}
+                        <div className="flex flex-col items-center mt-9">
+                            <h3 className="text-[2.1rem] font-bold tracking-tight text-white leading-tight">{user.name}</h3>
+                            <div className="w-24 h-[1px] bg-[#FF5C00] my-3"></div>
+                            <div className="text-[#FF5C00] text-[10px] font-semibold uppercase tracking-[0.25em]">
+                                FOTÓGRAFO PROFISSIONAL
+                            </div>
+                        </div>
+
+                        {/* QR Code */}
                         <div className="flex-grow flex flex-col justify-center items-center">
-                            <div className="bg-white p-5 rounded-[22px] shadow-lg">
+                            <div className="bg-white p-5 rounded-[24px] shadow-lg">
                                 <QRCodeSVG
                                     value={publicUrl}
                                     size={185}
