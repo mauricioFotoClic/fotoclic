@@ -54,6 +54,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
 
     const [photos, setPhotos] = useState<Photo[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
+    const [eventPhotoCounts, setEventPhotoCounts] = useState<Record<string, number>>({});
     const [myRequest, setMyRequest] = useState<any>(null); // New state for storage request
     const [loading, setLoading] = useState(true);
     const stopBulkRef = useRef(false);
@@ -100,18 +101,18 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
     const fetchData = useCallback(async () => {
         try {
             setLoading(true);
-            const [eventsData, photosData, categoriesData, statsData, myRequestData] = await Promise.all([
+            const [eventsData, categoriesData, statsData, myRequestData, countsData] = await Promise.all([
                 api.getPhotographerEvents(user.id),
-                api.getPhotosByPhotographerId(user.id),
                 api.getCategories(),
                 api.getPhotographerStats(user.id),
-                api.getMyLatestStorageRequest()
+                api.getMyLatestStorageRequest(),
+                api.getEventPhotoCounts(user.id)
             ]);
             setEvents(eventsData);
-            setPhotos(photosData);
             setCategories(categoriesData);
             setStats(statsData);
             setMyRequest(myRequestData);
+            setEventPhotoCounts(countsData);
         } catch (error) {
             console.error("Failed to fetch data", error);
         } finally {
@@ -138,6 +139,21 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
     }, [events.length, photos.length, onDataChange]);
 
     const getCategoryName = (id: string) => categories.find(c => c.id === id)?.name || 'N/A';
+
+    const handleViewEvent = async (event: PhotoEvent) => {
+        setSelectedEvent(event);
+        setView('photos');
+        setLoading(true);
+        try {
+            const evPhotos = await api.getPhotosByEventId(event.id);
+            setPhotos(evPhotos);
+        } catch (e) {
+            console.error(e);
+            showToast("Erro ao carregar fotos do evento", "error");
+        } finally {
+            setLoading(false);
+        }
+    };
 
     // --- EVENT HANDLERS ---
     const handleCreateEvent = async (data: Omit<PhotoEvent, 'id' | 'created_at' | 'photographer_id'>) => {
@@ -630,7 +646,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {events.map(event => {
-                                const eventPhotos = photos.filter(p => p.event_id === event.id);
+                                const eventPhotoCount = eventPhotoCounts[event.id] || 0;
                                 return (
                                     <div
                                         key={event.id}
@@ -639,11 +655,11 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                                         {/* Área Clicável: Imagem */}
                                         <div 
                                             className="h-40 bg-neutral-200 relative cursor-pointer overflow-hidden"
-                                            onClick={() => { setSelectedEvent(event); setView('photos'); }}
+                                            onClick={() => handleViewEvent(event)}
                                         >
-                                            {event.cover_photo_url || eventPhotos.length > 0 ? (
+                                            {event.cover_photo_url ? (
                                                 <WatermarkedImage
-                                                    src={getOptimizedImageUrl(event.cover_photo_url || eventPhotos[0].preview_url, 600, 75)}
+                                                    src={getOptimizedImageUrl(event.cover_photo_url, 600, 75)}
                                                     alt="Capa"
                                                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                                 />
@@ -672,7 +688,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                                                 type="button"
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    handleDeleteEvent(event, eventPhotos.length);
+                                                    handleDeleteEvent(event, eventPhotoCount);
                                                 }}
                                                 className="p-2 bg-white/90 backdrop-blur-sm rounded-full text-red-600 hover:bg-white shadow-sm transition-all hover:scale-110 active:scale-95"
                                                 title="Excluir Evento"
@@ -684,12 +700,12 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                                         {/* Área Clicável: Informações */}
                                         <div 
                                             className="p-4 cursor-pointer"
-                                            onClick={() => { setSelectedEvent(event); setView('photos'); }}
+                                            onClick={() => handleViewEvent(event)}
                                         >
                                             <div className="flex justify-between items-start mb-2">
                                                 <h3 className="font-bold text-lg text-neutral-800 line-clamp-1 group-hover:text-primary transition-colors">{event.name}</h3>
                                                 <span className="bg-neutral-100 text-neutral-600 text-xs px-2 py-1 rounded-full whitespace-nowrap">
-                                                    {eventPhotos.length} fotos
+                                                    {eventPhotoCount} fotos
                                                 </span>
                                             </div>
                                             <p className="text-sm text-neutral-500 mb-3">{getCategoryName(event.category_id)}</p>

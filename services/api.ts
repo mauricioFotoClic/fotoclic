@@ -1154,6 +1154,31 @@ export const api = {
     return result;
   },
 
+  getEventPhotoCounts: async (
+    photographerId: string,
+  ): Promise<Record<string, number>> => {
+    // Busca apenas os event_ids de todas as fotos do fotógrafo (carga super leve)
+    const { data, error } = await supabase
+      .from("photos")
+      .select("event_id")
+      .eq("photographer_id", photographerId);
+
+    if (error) {
+      console.warn("Error fetching event photo counts:", error);
+      return {};
+    }
+
+    const counts: Record<string, number> = {};
+    if (data) {
+      data.forEach((p: any) => {
+        if (p.event_id) {
+          counts[p.event_id] = (counts[p.event_id] || 0) + 1;
+        }
+      });
+    }
+    return counts;
+  },
+
   deleteEvent: async (id: string): Promise<boolean> => {
     const { data: event } = await supabase.from("events").select("photographer_id").eq("id", id).single();
     const { error } = await supabase.from("events").delete().eq("id", id);
