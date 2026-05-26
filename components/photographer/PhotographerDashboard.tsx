@@ -65,7 +65,7 @@ const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({ user, set
             setLoading(true);
             const [balanceData, salesData, photosData, abandonedData] = await Promise.all([
                 api.getPhotographerBalanceById(user.id),
-                api.getSalesByPhotographerId(user.id),
+                api.getSalesByPhotographerId(user.id, 100),
                 api.getPhotosByPhotographerId(user.id),
                 api.getAbandonedCartsByPhotographerId(user.id)
             ]);

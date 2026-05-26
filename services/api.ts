@@ -525,28 +525,39 @@ export const api = {
     return mappedUser;
   },
 
-  getSalesByPhotographerId: async (photographerId: string): Promise<Sale[]> => {
-    const { data, error } = await supabase
+  getSalesByPhotographerId: async (
+    photographerId: string,
+    limit?: number,
+  ): Promise<Sale[]> => {
+    let query = supabase
       .from("sales")
       .select("*")
       .eq("photographer_id", photographerId)
       .order("sale_date", { ascending: false });
+
+    if (limit) {
+      query = query.limit(limit);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       console.warn("Error fetching sales:", error);
       return [];
     }
 
-    // We need buyer name, let's fetch it or map it if possible contextually,
-    // but for now let's just return the sales.
-    // Ideally we would join with users table: .select('*, buyer:users!buyer_id(name)')
-    // But type definition expects buyer_name directly on Sale object.
-    // Let's try to fetch with join
-    const { data: salesWithBuyer, error: joinError } = await supabase
+    // We need buyer name, let's fetch it or map it if possible contextually
+    let joinQuery = supabase
       .from("sales")
       .select("*, buyer:users!buyer_id(name)")
       .eq("photographer_id", photographerId)
       .order("sale_date", { ascending: false });
+
+    if (limit) {
+      joinQuery = joinQuery.limit(limit);
+    }
+
+    const { data: salesWithBuyer, error: joinError } = await joinQuery;
 
     if (joinError) {
       console.warn("Error fetching sales with buyer details:", joinError);
@@ -630,8 +641,15 @@ export const api = {
         effectiveRate = settings.customRates[photographerId];
       }
 
-      // 4. Fetch sales for detail counts if needed (or use walletData)
-      const sales = await api.getSalesByPhotographerId(photographerId);
+      // 4. Fetch sales count via a lightweight head count query (huge optimization)
+      const { count: salesCount, error: salesCountError } = await supabase
+        .from("sales")
+        .select("*", { count: "exact", head: true })
+        .eq("photographer_id", photographerId);
+
+      if (salesCountError) {
+        console.warn("Error counting photographer sales:", salesCountError);
+      }
 
       // 5. Fetch likes
       const { data: photoLikes } = await supabase
@@ -645,7 +663,7 @@ export const api = {
       return {
         ...user,
         photoCount: photoCount || 0,
-        salesCount: sales.length,
+        salesCount: salesCount || 0,
         commissionValue: walletData?.total_platform_fees || 0,
         commissionRate: effectiveRate,
         totalSalesGross: walletData?.total_sales_gross || 0,
