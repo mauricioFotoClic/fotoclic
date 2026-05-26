@@ -1073,18 +1073,71 @@ export const api = {
   },
 
   getPhotosByEventId: async (eventId: string): Promise<Photo[]> => {
-    const { data, error } = await supabase
-      .from("photos")
-      .select(
-        "id, photographer_id, category_id, title, preview_url, thumb_url, price, resolution, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags, event_id, sales_count, media_type, video_uid, video_duration, file_size_bytes",
-      )
-      .eq("event_id", eventId)
-      .eq("moderation_status", "approved")
-      .eq("is_public", true)
-      .order("created_at", { ascending: true });
+    let allData: any[] = [];
+    let from = 0;
+    const limit = 1000;
+    let hasMore = true;
 
-    if (error) throw error;
-    return data ? data.map(mapPhoto) : [];
+    while (hasMore) {
+      const { data, error } = await supabase
+        .from("photos")
+        .select(
+          "id, photographer_id, category_id, title, preview_url, thumb_url, price, resolution, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags, event_id, sales_count, media_type, video_uid, video_duration, file_size_bytes",
+        )
+        .eq("event_id", eventId)
+        .eq("moderation_status", "approved")
+        .eq("is_public", true)
+        .order("created_at", { ascending: true })
+        .range(from, from + limit - 1);
+
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        allData = allData.concat(data);
+        if (data.length < limit) {
+          hasMore = false;
+        } else {
+          from += limit;
+        }
+      } else {
+        hasMore = false;
+      }
+    }
+
+    return allData.length > 0 ? allData.map(mapPhoto) : [];
+  },
+
+  getPhotographerPhotosByEventId: async (eventId: string): Promise<Photo[]> => {
+    let allData: any[] = [];
+    let from = 0;
+    const limit = 1000;
+    let hasMore = true;
+
+    while (hasMore) {
+      const { data, error } = await supabase
+        .from("photos")
+        .select(
+          "id, photographer_id, category_id, title, description, preview_url, thumb_url, price, resolution, width, height, tags, is_public, created_at, moderation_status, rejection_reason, is_featured, likes_count, quality_analysis, is_face_indexed, event_id, sales_count, media_type, video_uid, video_duration, file_size_bytes, photo_likes(user_id)"
+        )
+        .eq("event_id", eventId)
+        .order("created_at", { ascending: false })
+        .range(from, from + limit - 1);
+
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        allData = allData.concat(data);
+        if (data.length < limit) {
+          hasMore = false;
+        } else {
+          from += limit;
+        }
+      } else {
+        hasMore = false;
+      }
+    }
+
+    return allData.length > 0 ? allData.map(mapPhoto) : [];
   },
 
   createEvent: async (
@@ -1157,20 +1210,39 @@ export const api = {
   getEventPhotoCounts: async (
     photographerId: string,
   ): Promise<Record<string, number>> => {
-    // Busca apenas os event_ids de todas as fotos do fotógrafo (carga super leve)
-    const { data, error } = await supabase
-      .from("photos")
-      .select("event_id")
-      .eq("photographer_id", photographerId);
+    let allData: any[] = [];
+    let from = 0;
+    const limit = 1000;
+    let hasMore = true;
 
-    if (error) {
-      console.warn("Error fetching event photo counts:", error);
-      return {};
+    // Fetch in chunks to bypass Supabase 1000 row limit
+    while (hasMore) {
+      const { data, error } = await supabase
+        .from("photos")
+        .select("event_id")
+        .eq("photographer_id", photographerId)
+        .range(from, from + limit - 1);
+
+      if (error) {
+        console.warn("Error fetching event photo counts:", error);
+        break;
+      }
+
+      if (data && data.length > 0) {
+        allData = allData.concat(data);
+        if (data.length < limit) {
+          hasMore = false;
+        } else {
+          from += limit;
+        }
+      } else {
+        hasMore = false;
+      }
     }
 
     const counts: Record<string, number> = {};
-    if (data) {
-      data.forEach((p: any) => {
+    if (allData.length > 0) {
+      allData.forEach((p: any) => {
         if (p.event_id) {
           counts[p.event_id] = (counts[p.event_id] || 0) + 1;
         }

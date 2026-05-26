@@ -145,7 +145,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
         setView('photos');
         setLoading(true);
         try {
-            const evPhotos = await api.getPhotosByEventId(event.id);
+            const evPhotos = await api.getPhotographerPhotosByEventId(event.id);
             setPhotos(evPhotos);
         } catch (e) {
             console.error(e);
