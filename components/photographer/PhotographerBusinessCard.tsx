@@ -70,59 +70,50 @@ const PhotographerBusinessCard: React.FC<PhotographerBusinessCardProps> = ({ use
             <div className="flex justify-center mb-8">
                 <div 
                     ref={cardRef} 
-                    className="relative w-[320px] aspect-[9/16] rounded-2xl overflow-hidden shadow-2xl bg-neutral-900 flex flex-col"
-                    style={{
-                        backgroundImage: user.banner_url ? `url(${user.banner_url})` : 'none',
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center',
-                    }}
+                    className="relative w-[320px] aspect-[2/3] sm:aspect-[9/16] rounded-[24px] overflow-hidden shadow-2xl bg-black flex flex-col border border-white/10"
                 >
-                    <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/50 to-black/90"></div>
+                    {/* Efeitos de Fundo (Gradients Laranjas inspirados no layout) */}
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-primary/20 blur-[80px] rounded-full translate-x-1/3 -translate-y-1/3 pointer-events-none"></div>
+                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-primary/10 blur-[80px] rounded-full -translate-x-1/3 translate-y-1/3 pointer-events-none"></div>
+                    
+                    {/* Padrão de Linhas Diagonais Suaves (opcional para dar textura) */}
+                    <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'repeating-linear-gradient(45deg, #FF5C00 0, #FF5C00 1px, transparent 1px, transparent 12px)' }}></div>
 
-                    <div className="relative z-10 flex flex-col h-full p-6 text-center text-white">
+                    <div className="relative z-10 flex flex-col h-full text-center text-white p-8">
                         
                         {/* Logo no Topo */}
-                        <div className="flex justify-center mb-6 mt-2">
-                            <Logo size={22} useImage={true} dark={true} />
+                        <div className="flex justify-center mt-6">
+                            <Logo size={32} useImage={true} dark={true} />
                         </div>
 
-                        {/* Foto e Nome */}
-                        <div className="flex flex-col items-center mb-4">
-                            <div className="w-24 h-24 rounded-full p-1 bg-black/30 mb-3 shadow-xl">
-                                <img 
-                                    src={user.avatar_url || 'https://via.placeholder.com/150'} 
-                                    alt={user.name} 
-                                    className="w-full h-full object-cover rounded-full border-2 border-white/50"
-                                    crossOrigin="anonymous"
-                                />
-                            </div>
-                            <h3 className="text-xl font-display font-bold tracking-wide drop-shadow-md">{user.name}</h3>
-                            <div className="mt-2 px-4 py-1 bg-primary rounded-full text-[10px] font-bold uppercase tracking-wider shadow-sm whitespace-nowrap inline-block">
+                        {/* Nome e Cargo */}
+                        <div className="flex flex-col items-center mt-12 mb-6">
+                            <h3 className="text-3xl font-bold tracking-tight text-white">{user.name}</h3>
+                            
+                            {/* Linha separadora laranja */}
+                            <div className="w-3/4 h-[1px] bg-primary/60 my-5"></div>
+                            
+                            <div className="text-primary text-xs font-semibold uppercase tracking-[0.2em]">
                                 Fotógrafo Profissional
                             </div>
                         </div>
 
-                        {/* Espaço Flexível Central */}
-                        <div className="flex-grow flex flex-col justify-center items-center py-4">
-                            <div className="flex flex-col items-center">
-                                <p className="text-[10px] font-bold mb-4 text-white/90 uppercase tracking-[0.2em] whitespace-nowrap">
-                                    Escaneie para ver minhas fotos
-                                </p>
-                                <div className="bg-white p-4 rounded-2xl shadow-2xl">
-                                    <QRCodeSVG 
-                                        value={publicUrl}
-                                        size={145}
-                                        level="H"
-                                        includeMargin={false}
-                                        fgColor="#000000"
-                                    />
-                                </div>
+                        {/* QR Code */}
+                        <div className="flex-grow flex flex-col justify-center items-center py-2">
+                            <div className="bg-white p-4 rounded-xl shadow-lg">
+                                <QRCodeSVG 
+                                    value={publicUrl}
+                                    size={180}
+                                    level="H"
+                                    includeMargin={false}
+                                    fgColor="#000000"
+                                />
                             </div>
                         </div>
 
                         {/* Footer do Cartão */}
-                        <div className="mt-auto border-t border-white/10 pt-4 pb-6">
-                            <p className="text-[9px] text-white/40 tracking-[0.3em] uppercase font-bold">
+                        <div className="mt-auto pb-4">
+                            <p className="text-sm text-primary font-semibold tracking-wider">
                                 fotoclic.com.br
                             </p>
                         </div>
