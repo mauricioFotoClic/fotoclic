@@ -72,12 +72,28 @@ const PhotographerBusinessCard: React.FC<PhotographerBusinessCardProps> = ({ use
                     ref={cardRef} 
                     className="relative w-[320px] aspect-[2/3] sm:aspect-[9/16] rounded-[24px] overflow-hidden shadow-2xl bg-black flex flex-col border border-white/10"
                 >
-                    {/* Efeitos de Fundo (Gradients Laranjas inspirados no layout) */}
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-primary/20 blur-[80px] rounded-full translate-x-1/3 -translate-y-1/3 pointer-events-none"></div>
-                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-primary/10 blur-[80px] rounded-full -translate-x-1/3 translate-y-1/3 pointer-events-none"></div>
+                    {/* Efeitos de Fundo (Gradients Laranjas e Texturas) */}
                     
-                    {/* Padrão de Linhas Diagonais Suaves (opcional para dar textura) */}
-                    <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'repeating-linear-gradient(45deg, #FF5C00 0, #FF5C00 1px, transparent 1px, transparent 12px)' }}></div>
+                    {/* Linhas Laranjas - Topo Direito */}
+                    <div className="absolute -top-12 -right-16 w-64 h-64 -rotate-45 opacity-90 pointer-events-none flex flex-col justify-center gap-[6px]">
+                        <div className="h-10 w-full bg-gradient-to-r from-transparent to-[#FF5C00]"></div>
+                        <div className="h-4 w-full bg-gradient-to-r from-transparent to-[#FF5C00]"></div>
+                        <div className="h-6 w-full bg-gradient-to-r from-transparent to-[#FF5C00]"></div>
+                        <div className="h-2 w-full bg-gradient-to-r from-transparent to-[#FF5C00]"></div>
+                        <div className="h-8 w-full bg-gradient-to-r from-transparent to-[#FF5C00]"></div>
+                    </div>
+
+                    {/* Linhas Laranjas - Base Esquerda */}
+                    <div className="absolute -bottom-16 -left-16 w-64 h-64 -rotate-45 opacity-60 pointer-events-none flex flex-col justify-center gap-[6px]">
+                        <div className="h-8 w-full bg-gradient-to-l from-transparent to-[#FF5C00]"></div>
+                        <div className="h-2 w-full bg-gradient-to-l from-transparent to-[#FF5C00]"></div>
+                        <div className="h-6 w-full bg-gradient-to-l from-transparent to-[#FF5C00]"></div>
+                        <div className="h-4 w-full bg-gradient-to-l from-transparent to-[#FF5C00]"></div>
+                        <div className="h-10 w-full bg-gradient-to-l from-transparent to-[#FF5C00]"></div>
+                    </div>
+
+                    {/* Padrão de Pontilhados Suaves (Simulando o grid do layout) */}
+                    <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#FF5C00 1px, transparent 1px)', backgroundSize: '12px 12px', maskImage: 'radial-gradient(circle at center, transparent 40%, black 100%)', WebkitMaskImage: 'radial-gradient(circle at center, transparent 40%, black 100%)' }}></div>
 
                     <div className="relative z-10 flex flex-col h-full text-center text-white p-8">
                         
