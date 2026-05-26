@@ -27,16 +27,9 @@ const KeepAliveView = React.memo(
             }
         }, [active, hasMounted]);
 
-        // Background pre-mount staggered by index
-        // This ensures the menus are pre-rendered and pre-fetched before the user even clicks them!
-        useEffect(() => {
-            if (!hasMounted && !active) {
-                const timer = setTimeout(() => {
-                    setHasMounted(true);
-                }, 500 + (index * 400));
-                return () => clearTimeout(timer);
-            }
-        }, [hasMounted, active, index]);
+        // Removed background pre-mount to prevent DDOSing the database on login.
+        // Components will now only mount when the user clicks on their tab for the first time,
+        // but will remain kept alive in the background after that.
 
         if (!hasMounted) return null;
 
