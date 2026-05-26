@@ -134,7 +134,7 @@ const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({ user, set
 
     const maxDailyEarning = useMemo(() => Math.max(...salesLast7Days.map(s => s.total), 1), [salesLast7Days]);
 
-    if (loading) return <Spinner />;
+    if (loading) return <Spinner size="lg" fullHeight={true} label="Carregando dados do painel..." />;
     if (errorMsg) return (
         <div className="bg-red-50 p-6 rounded-xl border border-red-200">
             <h3 className="text-red-800 font-bold mb-2">Erro ao carregar o painel</h3>

@@ -521,7 +521,7 @@ const MainApp: React.FC = () => {
                 if (isSessionLoading) return <div className="py-20"><Spinner /></div>;
                 return currentUser?.role === UserRole.ADMIN ? <AdminPage onNavigate={handleNavigate} /> : <HomePage onNavigate={handleNavigate} onAddToCart={handleAddToCart} currentUser={currentUser} />;
             case 'photographer':
-                if (isSessionLoading) return <div className="py-20"><Spinner /></div>;
+                if (isSessionLoading) return <Spinner size="lg" fullHeight={true} label="Autenticando sessão..." />;
                 return currentUser?.role === UserRole.PHOTOGRAPHER ? <PhotographerPage user={currentUser} onLogout={handleLogout} onNavigate={handleNavigate} showToast={showToast} /> : <HomePage onNavigate={handleNavigate} onAddToCart={handleAddToCart} currentUser={currentUser} />;
             case 'customer-dashboard':
                 if (isSessionLoading) return <div className="py-20"><Spinner /></div>;
@@ -587,7 +587,7 @@ const MainApp: React.FC = () => {
                 cartCount={cartItems.length}
             />
             <main className="flex-grow relative">
-                <Suspense fallback={<Spinner />}>
+                <Suspense fallback={<Spinner size="lg" fullHeight={true} label="Carregando página..." />}>
                     {renderPage()}
                 </Suspense>
 
