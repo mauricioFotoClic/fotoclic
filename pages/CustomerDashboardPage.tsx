@@ -105,7 +105,7 @@ const CustomerDashboardPage: React.FC<CustomerDashboardPageProps> = ({ onNavigat
 
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
                 {loading ? (
-                    <div className="flex justify-center py-20"><Spinner /></div>
+                    <Spinner size="lg" fullHeight={true} label="Carregando suas fotos compradas..." />
                 ) : purchases.length === 0 ? (
                     <div className="text-center py-16 bg-neutral-50 rounded-xl border border-dashed border-neutral-300">
                         <div className="inline-block p-4 rounded-full bg-white shadow-sm mb-4">

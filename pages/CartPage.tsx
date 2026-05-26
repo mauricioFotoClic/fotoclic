@@ -195,7 +195,7 @@ const CartPage: React.FC<CartPageProps> = ({ currentUser, cartItemIds, onRemoveI
 
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
                 {loading ? (
-                    <div className="flex justify-center py-20"><Spinner /></div>
+                    <Spinner size="lg" fullHeight={true} label="Carregando fotos do seu carrinho..." />
                 ) : cartPhotos.length === 0 ? (
                     <div className="text-center py-16">
                         <div className="inline-block p-6 rounded-full bg-neutral-50 shadow-sm mb-6 border border-neutral-200">

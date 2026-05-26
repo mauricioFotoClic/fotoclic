@@ -81,7 +81,7 @@ const AdminPayouts: React.FC = () => {
         return p.status === 'paid' || p.status === 'rejected';
     });
 
-    if (loading) return <Spinner />;
+    if (loading) return <Spinner size="lg" fullHeight={true} label="Carregando solicitações de saque..." />;
 
     return (
         <div>

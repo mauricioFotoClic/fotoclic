@@ -213,7 +213,7 @@ const PhotoDetailPage: React.FC<PhotoDetailPageProps> = ({ photoId, onNavigate, 
                     <div className="lg:col-span-2">
                         {loadingPhoto ? (
                             <div className="bg-neutral-100 rounded-lg overflow-hidden shadow-sm border border-neutral-200 flex items-center justify-center w-full aspect-video">
-                                <Spinner />
+                                <Spinner size="lg" label="Carregando mídia..." />
                             </div>
                         ) : photo ? (
                             <>

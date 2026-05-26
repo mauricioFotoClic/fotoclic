@@ -75,7 +75,7 @@ const PhotographerCoupons: React.FC<PhotographerCouponsProps> = ({ user }) => {
         }
     };
 
-    if (loading) return <Spinner />;
+    if (loading) return <Spinner size="lg" fullHeight={true} label="Carregando cupons de desconto..." />;
 
     return (
         <div>

@@ -573,7 +573,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
         }
     }
 
-    if (loading && events.length === 0 && photos.length === 0) return <Spinner />;
+    if (loading && events.length === 0 && photos.length === 0) return <Spinner size="lg" fullHeight={true} label="Carregando seus eventos e fotos..." />;
 
     return (
         <div>

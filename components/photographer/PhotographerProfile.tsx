@@ -189,7 +189,7 @@ const PhotographerProfile: React.FC<PhotographerProfileProps> = ({ user, onProfi
         }
     };
 
-    if (loading) return <Spinner />;
+    if (loading) return <Spinner size="lg" fullHeight={true} label="Carregando dados do perfil..." />;
 
     const inputClass = "w-full px-3 py-2 bg-white border border-neutral-300 rounded-md focus:ring-2 focus:ring-secondary focus:border-transparent transition-all";
 

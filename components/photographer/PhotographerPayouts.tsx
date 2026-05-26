@@ -114,7 +114,7 @@ const PhotographerPayouts: React.FC<PhotographerPayoutsProps> = ({ user }) => {
         }
     };
 
-    if (loading) return <Spinner />;
+    if (loading) return <Spinner size="lg" fullHeight={true} label="Carregando central financeira..." />;
 
     const inputClass = "w-full px-3 py-2 bg-white text-neutral-900 border border-neutral-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent transition-colors shadow-sm placeholder-neutral-400";
 

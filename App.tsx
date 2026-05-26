@@ -518,13 +518,13 @@ const MainApp: React.FC = () => {
             case 'pending-approval':
                 return <PendingApprovalPage onNavigate={handleNavigate} />;
             case 'admin':
-                if (isSessionLoading) return <div className="py-20"><Spinner /></div>;
+                if (isSessionLoading) return <Spinner size="lg" fullHeight={true} label="Autenticando sessão..." />;
                 return currentUser?.role === UserRole.ADMIN ? <AdminPage onNavigate={handleNavigate} /> : <HomePage onNavigate={handleNavigate} onAddToCart={handleAddToCart} currentUser={currentUser} />;
             case 'photographer':
                 if (isSessionLoading) return <Spinner size="lg" fullHeight={true} label="Autenticando sessão..." />;
                 return currentUser?.role === UserRole.PHOTOGRAPHER ? <PhotographerPage user={currentUser} onLogout={handleLogout} onNavigate={handleNavigate} showToast={showToast} /> : <HomePage onNavigate={handleNavigate} onAddToCart={handleAddToCart} currentUser={currentUser} />;
             case 'customer-dashboard':
-                if (isSessionLoading) return <div className="py-20"><Spinner /></div>;
+                if (isSessionLoading) return <Spinner size="lg" fullHeight={true} label="Autenticando sessão..." />;
                 return <CustomerDashboardPage onNavigate={handleNavigate} currentUser={currentUser} />;
             case 'find-photos':
                 const findPhotosSearch = currentPage.name === 'find-photos' ? currentPage.initialSearch : undefined;
@@ -569,7 +569,7 @@ const MainApp: React.FC = () => {
             case 'reset-password':
                 return <ResetPasswordPage token={currentPage.token} onNavigate={handleNavigate} />;
             default:
-                if (isSessionLoading) return <div className="py-20"><Spinner /></div>;
+                if (isSessionLoading) return <Spinner size="lg" fullHeight={true} label="Autenticando sessão..." />;
                 return <HomePage onNavigate={handleNavigate} onAddToCart={handleAddToCart} currentUser={currentUser} />;
         }
     }
@@ -587,9 +587,13 @@ const MainApp: React.FC = () => {
                 cartCount={cartItems.length}
             />
             <main className="flex-grow relative">
-                <Suspense fallback={<Spinner size="lg" fullHeight={true} label="Carregando página..." />}>
-                    {renderPage()}
-                </Suspense>
+                {isNavigating ? (
+                    <Spinner size="lg" fullHeight={true} label="Carregando..." />
+                ) : (
+                    <Suspense fallback={<Spinner size="lg" fullHeight={true} label="Carregando página..." />}>
+                        {renderPage()}
+                    </Suspense>
+                )}
 
                 {flyingImage && (
                     <img

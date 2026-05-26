@@ -167,7 +167,7 @@ const PhotographerAbandonedCarts: React.FC<PhotographerAbandonedCartsProps> = ({
         }
     };
 
-    if (loading) return <Spinner />;
+    if (loading) return <Spinner size="lg" fullHeight={true} label="Carregando carrinhos abandonados..." />;
 
     return (
         <div className="pb-20">

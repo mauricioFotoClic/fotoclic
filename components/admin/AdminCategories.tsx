@@ -175,7 +175,7 @@ const AdminCategories: React.FC = () => {
 
 
     if (loading) {
-        return <Spinner />;
+        return <Spinner size="lg" fullHeight={true} label="Carregando categorias..." />;
     }
 
     return (

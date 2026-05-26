@@ -132,9 +132,7 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({ photoId, onClose, o
             noPadding={true}
         >
             {loading ? (
-                <div className="p-12">
-                    <Spinner />
-                </div>
+                <Spinner size="lg" fullHeight={true} label="Carregando detalhes..." />
             ) : !photo ? (
                 <div className="p-8 text-center">
                     <p className="text-neutral-500">Foto não encontrada.</p>

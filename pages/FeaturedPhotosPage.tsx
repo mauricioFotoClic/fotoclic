@@ -55,7 +55,7 @@ const FeaturedPhotosPage: React.FC<FeaturedPhotosPageProps> = ({ onNavigate, onA
   const goToPreviousPage = () => setCurrentPage((page) => Math.max(page - 1, 1));
   
   if (loading) {
-    return <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-16"><Spinner /></div>;
+    return <Spinner size="lg" fullHeight={true} label="Carregando fotos em destaque..." />;
   }
 
   return (

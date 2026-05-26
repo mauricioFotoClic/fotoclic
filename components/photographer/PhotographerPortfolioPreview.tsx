@@ -372,7 +372,7 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
                 {!selectedEvent ? (
                     // EVENTS GRID
                     loading ? (
-                        <div className="flex justify-center py-16"><Spinner /></div>
+                        <div className="flex justify-center py-16"><Spinner size="lg" label="Carregando eventos do portfólio..." /></div>
                     ) : events.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {events.map(event => {
@@ -439,7 +439,7 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
                 ) : (
                     // PHOTOS GRID (Filtered by Event)
                     loadingEventPhotos ? (
-                        <div className="flex justify-center py-16"><Spinner /></div>
+                        <div className="flex justify-center py-16"><Spinner size="lg" label="Carregando fotos do evento..." /></div>
                     ) : (editable ? photos.filter(p => p.event_id === selectedEvent.id) : selectedEventPhotos).length > 0 ? (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                             {(editable ? photos.filter(p => p.event_id === selectedEvent.id) : selectedEventPhotos).map(photo => (

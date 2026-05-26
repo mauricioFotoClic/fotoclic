@@ -110,7 +110,7 @@ const AdminSales: React.FC = () => {
     const goToPreviousPage = () => setCurrentPage((page) => Math.max(page - 1, 1));
 
 
-    if (loading) return <Spinner />;
+    if (loading) return <Spinner size="lg" fullHeight={true} label="Carregando histórico de vendas..." />;
 
     return (
         <div>

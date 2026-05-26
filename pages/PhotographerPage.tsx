@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, Page } from '../types';
 import api from '../services/api';
+import Spinner from '../components/Spinner';
 import PhotographerSidebar from '../components/photographer/PhotographerSidebar';
 import PhotographerDashboard from '../components/photographer/PhotographerDashboard';
 import PhotographerPhotos from '../components/photographer/PhotographerPhotos';
@@ -58,6 +59,17 @@ const PhotographerPage: React.FC<PhotographerPageProps> = ({ user: initialUser, 
     const [view, setView] = useState<PhotographerView>(getInitialView);
     const [currentUser, setCurrentUser] = useState<User>(initialUser);
     const [abandonedCartsCount, setAbandonedCartsCount] = useState(0);
+    const [isTransitioning, setIsTransitioning] = useState(false);
+    const [visitedViews, setVisitedViews] = useState<PhotographerView[]>([getInitialView()]);
+
+    useEffect(() => {
+        if (isTransitioning) {
+            const timer = setTimeout(() => {
+                setIsTransitioning(false);
+            }, 450);
+            return () => clearTimeout(timer);
+        }
+    }, [isTransitioning]);
 
     if (!initialUser) {
         return null;
@@ -115,7 +127,19 @@ const PhotographerPage: React.FC<PhotographerPageProps> = ({ user: initialUser, 
 
     useEffect(() => {
         const handleHashChange = () => {
-            setView(getInitialView());
+            const newView = getInitialView();
+            setView(newView);
+            
+            setVisitedViews(prev => {
+                const isAlreadyVisited = prev.includes(newView);
+                if (!isAlreadyVisited) {
+                    setIsTransitioning(true);
+                    return [...prev, newView];
+                } else {
+                    setIsTransitioning(false);
+                    return prev;
+                }
+            });
         };
         window.addEventListener('hashchange', handleHashChange);
         return () => window.removeEventListener('hashchange', handleHashChange);
@@ -125,8 +149,17 @@ const PhotographerPage: React.FC<PhotographerPageProps> = ({ user: initialUser, 
         if (window.location.hash.replace('#', '') !== newView) {
             window.location.hash = newView;
         }
+        
+        const isAlreadyVisited = visitedViews.includes(newView);
         setView(newView);
         window.scrollTo(0, 0);
+
+        if (!isAlreadyVisited) {
+            setVisitedViews(prev => [...prev, newView]);
+            setIsTransitioning(true);
+        } else {
+            setIsTransitioning(false);
+        }
     };
 
     const [portfolioRefreshTrigger, setPortfolioRefreshTrigger] = useState(Date.now());
@@ -201,7 +234,12 @@ const PhotographerPage: React.FC<PhotographerPageProps> = ({ user: initialUser, 
                         onClose={() => setIsSidebarOpen(false)}
                         abandonedCartsCount={abandonedCartsCount}
                     />
-                    <main className="flex-1 p-4 md:p-6 lg:p-8 bg-neutral-100 rounded-lg md:ml-4 mt-0 md:mt-0 min-w-0 overflow-x-hidden">
+                    <main className="flex-1 p-4 md:p-6 lg:p-8 bg-neutral-100 rounded-lg md:ml-4 mt-0 md:mt-0 min-w-0 overflow-x-hidden relative">
+                        {isTransitioning && (
+                            <div className="absolute inset-0 bg-neutral-100 flex items-center justify-center z-40 rounded-lg">
+                                <Spinner size="lg" fullHeight={true} label="Carregando..." />
+                            </div>
+                        )}
                         {renderView()}
                     </main>
                 </div>

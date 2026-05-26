@@ -74,7 +74,7 @@ const PhotographerDiscounts: React.FC<PhotographerDiscountsProps> = ({ user, sho
         }
     };
 
-    if (loading) return <Spinner />;
+    if (loading) return <Spinner size="lg" fullHeight={true} label="Carregando descontos progressivos..." />;
 
     return (
         <div>

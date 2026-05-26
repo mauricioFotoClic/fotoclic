@@ -416,7 +416,7 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
 
 
     if (loading) {
-        return <Spinner />;
+        return <Spinner size="lg" fullHeight={true} label="Carregando fotos..." />;
     }
 
     // VIEW 1: LIST OF PHOTOGRAPHERS (FOLDERS)

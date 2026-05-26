@@ -174,7 +174,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setView }) => {
     const maxDailySale = useMemo(() => Math.max(...salesChartData.map((s: any) => Number(s.total)), 1), [salesChartData]);
     const maxCategoryCount = useMemo(() => Math.max(...categoryPhotoCount.map((c: any) => c.count), 1), [categoryPhotoCount]);
 
-    if (loading) return <Spinner />;
+    if (loading) return <Spinner size="lg" fullHeight={true} label="Carregando estatísticas do painel..." />;
     if (!stats) return <div className="p-8 text-center text-neutral-500">Falha ao carregar estatísticas.</div>;
 
     return (

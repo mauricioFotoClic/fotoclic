@@ -196,7 +196,7 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
                     {loading ? (
-                        <div className="col-span-1 lg:col-span-2 flex justify-center py-20"><Spinner /></div>
+                        <Spinner size="lg" fullHeight={true} label="Preparando seu pagamento..." />
                     ) : (
                         <>
                             {/* Left Column: Stripe Payment Form */}

@@ -238,7 +238,7 @@ const AdminPhotographers: React.FC<AdminPhotographersProps> = ({ onNavigate }) =
 
 
     if (loading) {
-        return <Spinner />;
+        return <Spinner size="lg" fullHeight={true} label="Carregando fotógrafos..." />;
     }
 
     return (

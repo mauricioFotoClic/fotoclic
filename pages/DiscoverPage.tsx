@@ -146,7 +146,7 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ onNavigate, initialSearch, 
       <section className="py-16 bg-neutral-50 min-h-[400px]">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           {loading ? (
-            <div className="flex justify-center py-20"><Spinner /></div>
+            <Spinner size="lg" fullHeight={true} label="Buscando fotos..." />
           ) : paginatedPhotos.length > 0 ? (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">

@@ -163,7 +163,7 @@ const AdminSettings: React.FC = () => {
     };
 
 
-    if (loading) return <Spinner />;
+    if (loading) return <Spinner size="lg" fullHeight={true} label="Carregando configurações..." />;
     if (!commissionSettings || !emailTemplates) return <p>Não foi possível carregar as configurações.</p>;
 
     return (

@@ -131,7 +131,7 @@ const CommunicationSettings: React.FC<CommunicationSettingsProps> = ({ user, onU
     );
   };
 
-  if (loading) return <Spinner />;
+  if (loading) return <Spinner size="lg" fullHeight={true} label="Carregando configurações de comunicação..." />;
 
   return (
     <div className="max-w-4xl">

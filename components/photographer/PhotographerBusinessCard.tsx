@@ -72,56 +72,47 @@ const PhotographerBusinessCard: React.FC<PhotographerBusinessCardProps> = ({ use
                     ref={cardRef} 
                     className="relative w-[320px] h-[480px] rounded-[24px] overflow-hidden shadow-2xl bg-black flex flex-col border border-white/10"
                 >
-                    {/* SVG de Background de Alta Fidelidade (Garante renderização perfeita na tela e no download do PNG) */}
+                    {/* SVG Background */}
                     <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 320 480" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <defs>
-                            {/* Brilhos Laranjas de Fundo */}
+                            {/* Brilho laranja topo direito */}
                             <radialGradient id="tr-glow" cx="320" cy="0" r="160" gradientUnits="userSpaceOnUse">
                                 <stop offset="0%" stopColor="#FF5C00" stopOpacity="0.35" />
                                 <stop offset="100%" stopColor="#FF5C00" stopOpacity="0" />
                             </radialGradient>
-                            <radialGradient id="bl-glow" cx="0" cy="480" r="160" gradientUnits="userSpaceOnUse">
-                                <stop offset="0%" stopColor="#FF5C00" stopOpacity="0.25" />
-                                <stop offset="100%" stopColor="#FF5C00" stopOpacity="0" />
-                            </radialGradient>
 
-                            {/* Gradiente das Listras */}
+                            {/* Gradiente das listras topo direito */}
                             <linearGradient id="tr-line-grad" x1="320" y1="0" x2="200" y2="120" gradientUnits="userSpaceOnUse">
                                 <stop offset="0%" stopColor="#FF5C00" stopOpacity="0.9" />
                                 <stop offset="100%" stopColor="#FF5C00" stopOpacity="0.0" />
                             </linearGradient>
-                            <linearGradient id="bl-line-grad" x1="0" y1="480" x2="120" y2="360" gradientUnits="userSpaceOnUse">
-                                <stop offset="0%" stopColor="#FF5C00" stopOpacity="0.75" />
-                                <stop offset="100%" stopColor="#FF5C00" stopOpacity="0.0" />
-                            </linearGradient>
 
-                            {/* Máscara e Pattern do Pontilhado */}
+                            {/* Máscara dos pontos: cobre lado direito (topo e base) */}
                             <radialGradient id="tr-mask-grad" cx="320" cy="0" r="220" gradientUnits="userSpaceOnUse">
                                 <stop offset="30%" stopColor="white" stopOpacity="0.55" />
                                 <stop offset="100%" stopColor="white" stopOpacity="0" />
                             </radialGradient>
-                            <radialGradient id="bl-mask-grad" cx="0" cy="480" r="220" gradientUnits="userSpaceOnUse">
+                            <radialGradient id="br-mask-grad" cx="320" cy="480" r="200" gradientUnits="userSpaceOnUse">
                                 <stop offset="30%" stopColor="white" stopOpacity="0.45" />
                                 <stop offset="100%" stopColor="white" stopOpacity="0" />
                             </radialGradient>
                             <mask id="dots-mask">
                                 <rect width="320" height="480" fill="black" />
                                 <circle cx="320" cy="0" r="220" fill="url(#tr-mask-grad)" />
-                                <circle cx="0" cy="480" r="220" fill="url(#bl-mask-grad)" />
+                                <circle cx="320" cy="480" r="200" fill="url(#br-mask-grad)" />
                             </mask>
                             <pattern id="dot-grid" x="0" y="0" width="10" height="10" patternUnits="userSpaceOnUse">
                                 <circle cx="5" cy="5" r="1.2" fill="#FF5C00" />
                             </pattern>
                         </defs>
 
-                        {/* Brilhos */}
+                        {/* Brilho topo direito */}
                         <rect width="320" height="480" fill="url(#tr-glow)" />
-                        <rect width="320" height="480" fill="url(#bl-glow)" />
 
-                        {/* Grid de Pontinhos */}
+                        {/* Grid de pontinhos — somente lado direito */}
                         <rect width="320" height="480" fill="url(#dot-grid)" mask="url(#dots-mask)" />
 
-                        {/* Listras do Topo Direito (Paralelas a 45 graus) */}
+                        {/* Listras diagonais — somente topo direito */}
                         <line x1="290" y1="0" x2="320" y2="30" stroke="url(#tr-line-grad)" strokeWidth="8" />
                         <line x1="275" y1="0" x2="320" y2="45" stroke="url(#tr-line-grad)" strokeWidth="8" />
                         <line x1="260" y1="0" x2="320" y2="60" stroke="url(#tr-line-grad)" strokeWidth="8" />
@@ -135,48 +126,30 @@ const PhotographerBusinessCard: React.FC<PhotographerBusinessCardProps> = ({ use
                         <line x1="140" y1="0" x2="320" y2="180" stroke="url(#tr-line-grad)" strokeWidth="2" />
                         <line x1="125" y1="0" x2="320" y2="195" stroke="url(#tr-line-grad)" strokeWidth="1.5" />
                         <line x1="110" y1="0" x2="320" y2="210" stroke="url(#tr-line-grad)" strokeWidth="1" />
-
-                        {/* Listras da Base Esquerda (Paralelas a 45 graus) */}
-                        <line x1="0" y1="450" x2="30" y2="480" stroke="url(#bl-line-grad)" strokeWidth="8" />
-                        <line x1="0" y1="435" x2="45" y2="480" stroke="url(#bl-line-grad)" strokeWidth="8" />
-                        <line x1="0" y1="420" x2="60" y2="480" stroke="url(#bl-line-grad)" strokeWidth="8" />
-                        <line x1="0" y1="405" x2="75" y2="480" stroke="url(#bl-line-grad)" strokeWidth="8" />
-                        <line x1="0" y1="390" x2="90" y2="480" stroke="url(#bl-line-grad)" strokeWidth="6" />
-                        <line x1="0" y1="375" x2="105" y2="480" stroke="url(#bl-line-grad)" strokeWidth="6" />
-                        <line x1="0" y1="360" x2="120" y2="480" stroke="url(#bl-line-grad)" strokeWidth="5" />
-                        <line x1="0" y1="345" x2="135" y2="480" stroke="url(#bl-line-grad)" strokeWidth="4" />
-                        <line x1="0" y1="330" x2="150" y2="480" stroke="url(#bl-line-grad)" strokeWidth="3" />
-                        <line x1="0" y1="315" x2="165" y2="480" stroke="url(#bl-line-grad)" strokeWidth="2.5" />
-                        <line x1="0" y1="300" x2="180" y2="480" stroke="url(#bl-line-grad)" strokeWidth="2" />
-                        <line x1="0" y1="285" x2="195" y2="480" stroke="url(#bl-line-grad)" strokeWidth="1.5" />
-                        <line x1="0" y1="270" x2="210" y2="480" stroke="url(#bl-line-grad)" strokeWidth="1" />
                     </svg>
 
-                    <div className="relative z-10 flex flex-col h-full text-center text-white p-8">
-                        
+                    <div className="relative z-10 flex flex-col h-full text-center text-white px-8 pt-8 pb-6">
+
                         {/* Logo no Topo */}
-                        <div className="flex justify-center mt-6">
+                        <div className="flex justify-center">
                             <Logo size={28} useImage={true} dark={true} />
                         </div>
 
                         {/* Nome e Cargo */}
-                        <div className="flex flex-col items-center mt-8">
-                            <h3 className="text-3xl font-bold tracking-tight text-white">{user.name}</h3>
-                            
-                            {/* Linha separadora laranja idêntica ao mockup */}
-                            <div className="w-20 h-[1.5px] bg-[#FF5C00] my-4"></div>
-                            
+                        <div className="flex flex-col items-center mt-7">
+                            <h3 className="text-[2rem] font-bold tracking-tight text-white leading-tight">{user.name}</h3>
+                            <div className="w-20 h-[1.5px] bg-[#FF5C00] my-3"></div>
                             <div className="text-[#FF5C00] text-[10px] font-semibold uppercase tracking-[0.25em]">
                                 Fotógrafo Profissional
                             </div>
                         </div>
 
-                        {/* QR Code */}
-                        <div className="flex-grow flex flex-col justify-center items-center py-2">
-                            <div className="bg-white p-4 rounded-[20px] shadow-lg">
-                                <QRCodeSVG 
+                        {/* QR Code — maior, centralizado */}
+                        <div className="flex-grow flex flex-col justify-center items-center">
+                            <div className="bg-white p-5 rounded-[22px] shadow-lg">
+                                <QRCodeSVG
                                     value={publicUrl}
-                                    size={140}
+                                    size={185}
                                     level="H"
                                     includeMargin={false}
                                     fgColor="#000000"
@@ -184,8 +157,8 @@ const PhotographerBusinessCard: React.FC<PhotographerBusinessCardProps> = ({ use
                             </div>
                         </div>
 
-                        {/* Footer do Cartão */}
-                        <div className="mt-auto pb-2">
+                        {/* Footer */}
+                        <div>
                             <p className="text-xs text-[#FF5C00] font-semibold tracking-[0.15em]">
                                 fotoclic.com.br
                             </p>
