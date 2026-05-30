@@ -138,9 +138,17 @@ const CustomerDashboardPage: React.FC<CustomerDashboardPageProps> = ({ onNavigat
                                 </div>
                                 <div className="p-5 flex-grow flex flex-col">
                                     <h3 className="font-bold text-lg text-neutral-900 mb-1 truncate">{photo.title}</h3>
-                                    <p className="text-xs text-neutral-500 mb-4">
-                                        Comprado em: {new Date(photo.purchase_date).toLocaleDateString('pt-BR')}
-                                    </p>
+                                    <div className="space-y-1 mb-4 text-xs text-neutral-500">
+                                        <p>
+                                            <span className="font-medium text-neutral-700">Fotógrafo:</span> {photo.photographer_name || "FotoClic"}
+                                        </p>
+                                        <p>
+                                            <span className="font-medium text-neutral-700">Valor pago:</span> R$ {photo.paid_price !== undefined ? photo.paid_price.toFixed(2).replace('.', ',') : photo.price.toFixed(2).replace('.', ',')}
+                                        </p>
+                                        <p>
+                                            <span className="font-medium text-neutral-700">Comprado em:</span> {new Date(photo.purchase_date).toLocaleDateString('pt-BR')}
+                                        </p>
+                                    </div>
 
                                     <div className="mt-auto pt-4 border-t border-neutral-100 flex items-center justify-between">
                                         <button

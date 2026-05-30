@@ -1937,10 +1937,10 @@ export const api = {
     return !!data;
   },
   getPurchasesByUserId: async (userId: string): Promise<PurchasedPhoto[]> => {
-    // Join sales with photos
+    // Join sales with photos and photographers
     const { data, error } = await supabase
       .from("sales")
-      .select("*, photo:photos(*)")
+      .select("*, photo:photos(*, photographer:users(name))")
       .eq("buyer_id", userId)
       .order("sale_date", { ascending: false });
 
@@ -1959,6 +1959,8 @@ export const api = {
           ...photo,
           purchase_date: sale.sale_date,
           sale_id: sale.id,
+          paid_price: Number(sale.price),
+          photographer_name: sale.photo.photographer?.name || "Fotógrafo",
         } as PurchasedPhoto;
       })
       .filter(Boolean) as PurchasedPhoto[];

@@ -150,6 +150,8 @@ export interface AbandonedCart {
 export interface PurchasedPhoto extends Photo {
   purchase_date: string;
   sale_id: string;
+  paid_price?: number;
+  photographer_name?: string;
 }
 
 export interface Coupon {
