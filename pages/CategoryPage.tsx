@@ -6,6 +6,7 @@ import Spinner from '../components/Spinner';
 import SEO from '../components/SEO';
 import WatermarkedImage from '../components/WatermarkedImage';
 import { getOptimizedImageUrl } from '../utils/imageOptimization';
+import { getAvatarFallbackUrl } from '../utils/stringUtils';
 
 interface CategoryPageProps {
   categoryId: string;
@@ -165,9 +166,10 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ categoryId, onNavigate }) =
                       {photographer && (
                         <div className="flex items-center gap-2 mt-3">
                           <img
-                            src={photographer.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(photographer.name)}&size=24`}
+                            src={photographer.avatar_url || getAvatarFallbackUrl(photographer.name, 24)}
                             alt={photographer.name}
                             className="w-6 h-6 rounded-full object-cover"
+                            onError={(e) => { e.currentTarget.src = getAvatarFallbackUrl(photographer.name, 24); }}
                           />
                           <span className="text-xs text-neutral-500 truncate">{photographer.name}</span>
                         </div>

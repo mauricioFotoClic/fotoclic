@@ -6,6 +6,7 @@ import Spinner from './Spinner';
 import Modal from './Modal';
 import WatermarkedImage from './WatermarkedImage';
 import { getOptimizedImageUrl } from '../utils/imageOptimization';
+import { getAvatarFallbackUrl } from '../utils/stringUtils';
 
 interface PhotoDetailModalProps {
     photoId: string;
@@ -184,9 +185,10 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({ photoId, onClose, o
                         {photographer && (
                             <div className="flex items-center mb-6 pb-6 border-b border-neutral-100">
                                 <img
-                                    src={photographer.avatar_url}
+                                    src={photographer.avatar_url || getAvatarFallbackUrl(photographer.name, 48)}
                                     alt={photographer.name}
                                     className="w-12 h-12 rounded-full object-cover mr-3 border border-neutral-200"
+                                    onError={(e) => { e.currentTarget.src = getAvatarFallbackUrl(photographer.name, 48); }}
                                 />
                                 <div>
                                     <p className="text-xs text-neutral-500 uppercase tracking-wider">Fotografia por</p>

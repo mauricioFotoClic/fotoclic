@@ -5,6 +5,7 @@ import api from '../services/api';
 import PhotoCard from '../components/PhotoCard';
 import SEO from '../components/SEO';
 import FloatingShareButton from '../components/FloatingShareButton';
+import { getAvatarFallbackUrl } from '../utils/stringUtils';
 
 import FaceSearchModal from '../components/FaceSearchModal';
 import { useToast } from '../contexts/ToastContext';
@@ -287,9 +288,10 @@ const EventPage: React.FC<EventPageProps> = ({ eventId, onNavigate, onAddToCart,
                 className="flex items-center gap-1.5 hover:text-primary transition-colors"
               >
                 <img
-                  src={photographer.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(photographer.name)}&size=32`}
+                  src={photographer.avatar_url || getAvatarFallbackUrl(photographer.name, 32)}
                   alt={photographer.name}
                   className="w-5 h-5 rounded-full object-cover"
+                  onError={(e) => { e.currentTarget.src = getAvatarFallbackUrl(photographer.name, 32); }}
                 />
                 <span className="font-medium text-neutral-600 hover:text-primary transition-colors">
                   {photographer.name}

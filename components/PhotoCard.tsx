@@ -4,6 +4,7 @@ import { Photo, User, Page } from '../types';
 import WatermarkedImage from './WatermarkedImage';
 import api from '../services/api';
 import { getOptimizedImageUrl } from '../utils/imageOptimization';
+import { getAvatarFallbackUrl } from '../utils/stringUtils';
 
 interface PhotoCardProps {
     photo: Photo;
@@ -154,9 +155,10 @@ const PhotoCard: React.FC<PhotoCardProps> = ({ photo, photographer, onNavigate, 
                 {photographer && (
                     <div className="flex items-center mt-2">
                         <img
-                            src={photographer.avatar_url}
+                            src={photographer.avatar_url || getAvatarFallbackUrl(photographer.name, 24)}
                             alt={photographer.name}
                             className="w-6 h-6 rounded-full object-cover mr-2"
+                            onError={(e) => { e.currentTarget.src = getAvatarFallbackUrl(photographer.name, 24); }}
                         />
                         <p className="text-sm text-neutral-500 truncate">{photographer.name}</p>
                     </div>

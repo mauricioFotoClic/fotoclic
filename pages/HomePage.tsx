@@ -7,6 +7,7 @@ import PhotoCard from '../components/PhotoCard';
 import WatermarkedImage from '../components/WatermarkedImage';
 import SEO from '../components/SEO';
 import { getOptimizedImageUrl } from '../utils/imageOptimization';
+import { getAvatarFallbackUrl } from '../utils/stringUtils';
 
 interface HomePageProps {
   onNavigate: (page: Page) => void;
@@ -148,7 +149,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
             <div className="flex items-center text-white/80 text-sm">
               {photographer && (
                 <>
-                  <img src={photographer.avatar_url} className="w-5 h-5 rounded-full mr-2" alt="" />
+                  <img src={photographer.avatar_url || getAvatarFallbackUrl(photographer.name, 20)} className="w-5 h-5 rounded-full mr-2 object-cover" alt="" onError={(e) => { e.currentTarget.src = getAvatarFallbackUrl(photographer.name, 20); }} />
                   <span>{photographer.name}</span>
                 </>
               )}
@@ -660,9 +661,10 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
                         {photographer && (
                           <div className="flex items-center gap-2 mt-3 pt-3 border-t border-neutral-100">
                             <img
-                              src={photographer.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(photographer.name)}&size=24`}
+                              src={photographer.avatar_url || getAvatarFallbackUrl(photographer.name, 24)}
                               alt={photographer.name}
                               className="w-6 h-6 rounded-full object-cover"
+                              onError={(e) => { e.currentTarget.src = getAvatarFallbackUrl(photographer.name, 24); }}
                             />
                             <span className="text-xs text-neutral-500 truncate">{photographer.name}</span>
                           </div>
@@ -728,9 +730,10 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
                     <div className="relative -mt-12 mb-4 flex justify-center">
                       <div className="p-1 bg-white rounded-full shadow-lg">
                         <img
-                          src={p.avatar_url}
+                          src={p.avatar_url || getAvatarFallbackUrl(p.name, 96)}
                           alt={p.name}
                           className="w-24 h-24 rounded-full object-cover border-2 border-white"
+                          onError={(e) => { e.currentTarget.src = getAvatarFallbackUrl(p.name, 96); }}
                         />
                       </div>
                       <div className="absolute bottom-1 right-[calc(50%-2.5rem)] bg-primary text-white p-1 rounded-full border-2 border-white" title="Fotógrafo Verificado">

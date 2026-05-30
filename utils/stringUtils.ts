@@ -20,3 +20,11 @@ export const includesNormalized = (target?: string | null, search?: string | nul
   if (!target) return false;
   return normalizeString(target).includes(normalizeString(search));
 };
+
+/**
+ * Retorna a URL do avatar provisório usando o serviço ui-avatars.com com a cor primária (laranja) do FotoClic.
+ */
+export const getAvatarFallbackUrl = (name: string, size: number = 128): string => {
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'F')}&background=f97316&color=fff&size=${size}`;
+};
+

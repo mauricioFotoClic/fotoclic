@@ -6,6 +6,7 @@ import Spinner from '../components/Spinner';
 import WatermarkedImage from '../components/WatermarkedImage';
 import SEO from '../components/SEO';
 import { shareContent } from '../utils/share';
+import { getAvatarFallbackUrl } from '../utils/stringUtils';
 import FloatingShareButton from '../components/FloatingShareButton';
 
 
@@ -306,7 +307,12 @@ const PhotoDetailPage: React.FC<PhotoDetailPageProps> = ({ photoId, onNavigate, 
                                         </div>
                                     ) : photographer && (
                                         <div className="flex items-center mb-6">
-                                            <img src={photographer.avatar_url} alt={photographer.name} className="w-10 h-10 rounded-full object-cover mr-3 border border-neutral-200" />
+                                            <img
+                                                src={photographer.avatar_url || getAvatarFallbackUrl(photographer.name, 40)}
+                                                alt={photographer.name}
+                                                className="w-10 h-10 rounded-full object-cover mr-3 border border-neutral-200"
+                                                onError={(e) => { e.currentTarget.src = getAvatarFallbackUrl(photographer.name, 40); }}
+                                            />
                                             <div>
                                                 <p className="text-sm text-neutral-500">Fotografia por</p>
                                                 <p className="font-medium text-neutral-800">{photographer.name}</p>

@@ -3,7 +3,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { User, Page } from '../types';
 import api from '../services/api';
 import SEO from '../components/SEO';
-import { includesNormalized } from '../utils/stringUtils';
+import { includesNormalized, getAvatarFallbackUrl } from '../utils/stringUtils';
 
 interface PhotographersPageProps {
   onNavigate: (page: Page) => void;
@@ -135,9 +135,10 @@ const PhotographersPage: React.FC<PhotographersPageProps> = ({ onNavigate }) => 
                 >
                   <div className="relative mb-4">
                     <img
-                      src={p.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.name)}&size=128`}
+                      src={p.avatar_url || getAvatarFallbackUrl(p.name, 128)}
                       alt={p.name}
                       className="w-28 h-28 rounded-full object-cover border-4 border-neutral-100 group-hover:border-primary transition-all duration-300"
+                      onError={(e) => { e.currentTarget.src = getAvatarFallbackUrl(p.name, 128); }}
                     />
                   </div>
                   <h3 className="font-display font-bold text-lg text-neutral-900 mb-1">{p.name}</h3>
