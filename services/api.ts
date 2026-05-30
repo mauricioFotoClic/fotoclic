@@ -1940,7 +1940,7 @@ export const api = {
     // Join sales with photos and photographers
     const { data, error } = await supabase
       .from("sales")
-      .select("*, photo:photos(*, photographer:users(name))")
+      .select("*, photo:photos(*, photographer:users!photos_photographer_id_fkey(name))")
       .eq("buyer_id", userId)
       .order("sale_date", { ascending: false });
 
