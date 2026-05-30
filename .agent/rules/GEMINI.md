@@ -117,6 +117,11 @@ When auto-applying an agent, inform the user:
 **MANDATORY:** Nao altere, nao delete e nao danifique o que ja esta pronto. 
 When implementing new features or fixing bugs, you MUST ensure that existing functionality remains completely intact. Any new bugs introduced by modifying working code are considered a severe failure. Isolate new logic as much as possible.
 
+**ANALYSIS BEFORE EXECUTION:**
+1. Before running any database command, modifying script, or applying code changes, you MUST analyze the exact consequences of the actions.
+2. Specifically evaluate whether the action could affect or damage other parts of the code or disrupt active user workflows/data (e.g., modifying active user credentials, altering system-wide config defaults, deleting database records).
+3. Always verify these rules before starting any command or prompt to guarantee maximum caution and zero regression.
+
 ### 📁 File Dependency Awareness
 
 **Before modifying ANY file:**
