@@ -233,7 +233,7 @@ const PhotographerPayouts: React.FC<PhotographerPayoutsProps> = ({ user }) => {
                     <div>
                         <h3 className="font-bold text-xl mb-1">Status de Pagamento Automático</h3>
                         <p className="text-emerald-100 text-sm max-w-md">
-                            O sistema processa saques automaticamente sempre que seu **Saldo Disponível** atinge **R$ 100,00**, respeitando sua frequência escolhida. 
+                            O sistema processa saques automaticamente sempre que seu **Saldo Disponível** atinge **R$ 100,00**, respeitando sua frequência escolhida. Os pagamentos com frequência diária são processados todos os dias à meia-noite.
                             <span className="block mt-1 font-bold text-white bg-emerald-700/50 p-2 rounded inline-block">⚠️ No ato do saque, a taxa da processadora de pagamentos será descontada (além da taxa de 6% do FotoClic).</span>
                         </p>
                     </div>
