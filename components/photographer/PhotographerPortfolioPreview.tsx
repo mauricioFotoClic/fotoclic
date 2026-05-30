@@ -36,7 +36,7 @@ const WhatsAppIcon = () => <svg viewBox="0 0 24 24" fill="currentColor" width="1
 
 const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> = ({ user, onNavigate, editable = false, onAddToCart, currentUser, isActive = true, refreshTrigger }) => {
     const { showToast } = useToast();
-    const [photos, setPhotos] = useState<Photo[]>([]);
+    const [eventPhotoCounts, setEventPhotoCounts] = useState<Record<string, number>>({});
     const [displayUser, setDisplayUser] = useState<User>(user);
     const [categories, setCategories] = useState<Category[]>([]);
     const [events, setEvents] = useState<PhotoEvent[]>([]);
@@ -56,7 +56,7 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
 
     useEffect(() => {
         // Skip fetching if running in the background and we ALREADY fetched it before.
-        if (!isActive && (events.length > 0 || photos.length > 0)) {
+        if (!isActive && events.length > 0) {
             return;
         }
 
@@ -71,19 +71,17 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
                     }
                 }).catch(e => console.error("Failed to refresh user", e));
 
+                // Load only events and counts for both views. Photos are loaded per-event on selection.
+                const [allEvents, countsData] = await Promise.all([
+                    api.getPhotographerEvents(user.id),
+                    api.getEventPhotoCounts(user.id)
+                ]);
+                setEvents(allEvents);
+                setEventPhotoCounts(countsData);
+
                 if (editable) {
-                    const [allPhotos, allEvents] = await Promise.all([
-                        api.getPhotosByPhotographerId(user.id),
-                        api.getPhotographerEvents(user.id)
-                    ]);
-                    setEvents(allEvents);
-                    setPhotos(allPhotos);
                     const cats = await api.getCategories();
                     setCategories(cats);
-                } else {
-                    // Public view: load only events. Photos are loaded per-event on selection.
-                    const allEvents = await api.getPhotographerEvents(user.id);
-                    setEvents(allEvents);
                 }
 
             } catch (error) {
@@ -97,17 +95,15 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
 
     const handleSelectEvent = async (event: PhotoEvent) => {
         setSelectedEvent(event);
-        if (!editable) {
-            setLoadingEventPhotos(true);
-            setSelectedEventPhotos([]);
-            try {
-                const eventPhotos = await api.getPhotosByEventId(event.id);
-                setSelectedEventPhotos(eventPhotos);
-            } catch (e) {
-                console.error("Failed to load event photos", e);
-            } finally {
-                setLoadingEventPhotos(false);
-            }
+        setLoadingEventPhotos(true);
+        setSelectedEventPhotos([]);
+        try {
+            const eventPhotos = await api.getPhotosByEventId(event.id);
+            setSelectedEventPhotos(eventPhotos);
+        } catch (e) {
+            console.error("Failed to load event photos", e);
+        } finally {
+            setLoadingEventPhotos(false);
         }
     };
 
@@ -127,7 +123,7 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
             if (editingPhoto) {
                 const updatedPhoto = await api.updatePhoto(editingPhoto.id, { ...formData, moderation_status: 'pending' });
                 if (updatedPhoto) {
-                    setPhotos(prev => prev.map(p => p.id === updatedPhoto.id ? updatedPhoto : p));
+                    setSelectedEventPhotos(prev => prev.map(p => p.id === updatedPhoto.id ? updatedPhoto : p));
                 }
             }
             handleCloseModal();
@@ -147,7 +143,7 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
         try {
             const success = await api.deletePhoto(photoToDelete.id);
             if (success) {
-                setPhotos(prev => prev.filter(p => p.id !== photoToDelete.id));
+                setSelectedEventPhotos(prev => prev.filter(p => p.id !== photoToDelete.id));
             } else {
                 alert('Erro ao excluir a foto.');
             }
@@ -235,11 +231,9 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
                     </div>
                     <div className="mt-6 md:mt-28 w-full md:w-auto flex flex-col md:flex-col items-center md:items-end justify-between md:justify-start gap-4">
                         <div className="px-4 py-2 rounded-full text-neutral-700 bg-neutral-100 border border-neutral-200 text-sm font-medium shadow-sm w-full md:w-auto text-center">
-                            {editable
-                                ? `${photos.length} Fotos no Total`
-                                : selectedEvent
-                                    ? `${selectedEventPhotos.length} Fotos neste Evento`
-                                    : `${events.length} Evento${events.length !== 1 ? 's' : ''}`
+                            {selectedEvent
+                                ? `${selectedEventPhotos.length} Foto${selectedEventPhotos.length !== 1 ? 's' : ''} neste Evento`
+                                : `${events.length} Evento${events.length !== 1 ? 's' : ''}`
                             }
                         </div>
                         {editable && (
@@ -331,7 +325,7 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
                     </span>
                 </div>
 
-                {selectedEvent && (editable ? photos.filter(p => p.event_id === selectedEvent.id).length > 0 : selectedEventPhotos.length > 0) && (
+                {selectedEvent && selectedEventPhotos.length > 0 && (
                     <div
                         onClick={() => setIsFaceSearchOpen(true)}
                         className="mb-8 group cursor-pointer"
@@ -376,10 +370,11 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
                     ) : events.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {events.map(event => {
-                                const eventPhotos = editable ? photos.filter(p => p.event_id === event.id) : [];
-                                const coverPhotoUrl = event.cover_photo_url || (eventPhotos.length > 0 ? eventPhotos[0].preview_url : null);
+                                const eventPhotoCount = eventPhotoCounts[event.id] || 0;
+                                const coverPhotoUrl = event.cover_photo_url;
 
-                                if (editable && eventPhotos.length === 0) return null;
+                                // Hide events with 0 photos in the portfolio page
+                                if (eventPhotoCount === 0) return null;
 
                                 return (
                                     <div
@@ -405,7 +400,7 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
                                             <div className="flex justify-between items-start mb-2">
                                                 <h3 className="font-bold text-lg text-neutral-900 line-clamp-1">{event.name}</h3>
                                                 <span className="bg-neutral-100 text-neutral-600 text-xs px-2 py-1 rounded-full whitespace-nowrap font-medium">
-                                                    {editable ? `${eventPhotos.length} fotos` : 'Ver fotos'}
+                                                    {`${eventPhotoCount} fotos`}
                                                 </span>
                                             </div>
                                             <div className="flex items-center text-sm text-neutral-500 gap-4 mt-3">
@@ -440,9 +435,9 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
                     // PHOTOS GRID (Filtered by Event)
                     loadingEventPhotos ? (
                         <div className="flex justify-center py-16"><Spinner size="lg" label="Carregando fotos do evento..." /></div>
-                    ) : (editable ? photos.filter(p => p.event_id === selectedEvent.id) : selectedEventPhotos).length > 0 ? (
+                    ) : selectedEventPhotos.length > 0 ? (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                            {(editable ? photos.filter(p => p.event_id === selectedEvent.id) : selectedEventPhotos).map(photo => (
+                            {selectedEventPhotos.map(photo => (
                                 editable ? (
                                     // Editable CRUD Card
                                     <div key={photo.id} className="bg-white rounded-lg shadow-sm overflow-hidden border border-neutral-200 hover:shadow-md transition-all group">
