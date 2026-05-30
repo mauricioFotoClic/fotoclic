@@ -267,6 +267,9 @@ export default async function handler(req, res) {
                             }
 
                             if (insertedCount > 0) {
+                                let buyerEmailLog = null;
+                                const photographerEmailsLog = [];
+
                                 // --- NOVIDADE: Enviar Email de Confirmação para o Comprador (Dinamizado pelo Banco) ---
                                 if (customerEmail) {
                                 try {
@@ -351,11 +354,14 @@ export default async function handler(req, res) {
                                     const resendData = await resendRes.json();
                                     if (resendRes.ok) {
                                         console.log('[AbacatePay Webhook] E-mail enviado com sucesso:', resendData.id);
+                                        buyerEmailLog = { success: true, id: resendData.id, to: customerEmail };
                                     } else {
                                         console.error('[AbacatePay Webhook] Erro na API do Resend:', resendData);
+                                        buyerEmailLog = { success: false, error: resendData, to: customerEmail };
                                     }
                                 } catch (emailErr) {
                                     console.error('[AbacatePay Webhook] Erro fatal ao enviar email de confirmação:', emailErr);
+                                    buyerEmailLog = { success: false, error: emailErr.message || emailErr, to: customerEmail };
                                 }
                             }
 
@@ -412,7 +418,7 @@ export default async function handler(req, res) {
                                             </div>`;
 
                                         console.log('[AbacatePay Webhook] Enviando e-mail para Fotógrafo:', saleData.photographer.email);
-                                        await fetch('https://api.resend.com/emails', {
+                                        const resendRes = await fetch('https://api.resend.com/emails', {
                                             method: 'POST',
                                             headers: {
                                                 'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
@@ -425,10 +431,40 @@ export default async function handler(req, res) {
                                                 html: finalHtmlPhotog
                                             }),
                                         });
+
+                                        const resendData = await resendRes.json();
+                                        if (resendRes.ok) {
+                                            photographerEmailsLog.push({ success: true, id: resendData.id, to: saleData.photographer.email });
+                                        } else {
+                                            photographerEmailsLog.push({ success: false, error: resendData, to: saleData.photographer.email });
+                                        }
                                     } catch (err) {
                                         console.error('[AbacatePay Webhook] Erro ao enviar email para o fotografo:', err);
+                                        photographerEmailsLog.push({ success: false, error: err.message || err, to: saleData.photographer.email });
                                     }
                                 }
+                            }
+
+                            // --- REGISTRAR STATUS DE ENVIOS NO METADATA ---
+                            try {
+                                const emailLogs = {
+                                    email_dispatched_at: new Date().toISOString(),
+                                    buyer_email_log: buyerEmailLog,
+                                    photographer_emails_log: photographerEmailsLog
+                                };
+                                
+                                await supabaseAdmin
+                                    .from('abacate_pay_billings')
+                                    .update({
+                                        metadata: {
+                                            ...(metadata || {}),
+                                            email_logs: emailLogs
+                                        }
+                                    })
+                                    .eq('billing_id', checkout.id);
+                                console.log('[AbacatePay Webhook] Logs de email gravados no Supabase.');
+                            } catch (metaErr) {
+                                console.error('[AbacatePay Webhook] Erro ao gravar metadata de emails:', metaErr);
                             }
                         }
                     }

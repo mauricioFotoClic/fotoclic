@@ -192,6 +192,8 @@ export default async function handler(req, res) {
                             preview_url: photo.preview_url
                         });
                     }
+                          let buyerEmailLog = null;
+                    const photographerEmailsLog = [];
 
                     // --- Enviar Email de Confirmação para o Comprador ---
                     try {
@@ -281,11 +283,14 @@ export default async function handler(req, res) {
                         const resendData = await resendRes.json();
                         if (resendRes.ok) {
                             console.log('[Sync] Email enviado com sucesso ao comprador:', resendData.id);
+                            buyerEmailLog = { success: true, id: resendData.id, to: user.email };
                         } else {
                             console.error('[Sync] Erro na API do Resend (Comprador):', resendData);
+                            buyerEmailLog = { success: false, error: resendData, to: user.email };
                         }
                     } catch (emailErr) {
                         console.error('[Sync] Erro fatal ao enviar email de confirmação ao comprador:', emailErr);
+                        buyerEmailLog = { success: false, error: emailErr.message || emailErr, to: user.email };
                     }
 
                     // --- Enviar Email para os Fotógrafos ---
@@ -341,7 +346,7 @@ export default async function handler(req, res) {
                                     </div>`;
 
                                 console.log('[Sync] Enviando e-mail para Fotógrafo:', saleData.photographer.email);
-                                await fetch('https://api.resend.com/emails', {
+                                const resendRes = await fetch('https://api.resend.com/emails', {
                                     method: 'POST',
                                     headers: {
                                         'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
@@ -354,10 +359,40 @@ export default async function handler(req, res) {
                                         html: finalHtmlPhotog
                                     }),
                                 });
+
+                                const resendData = await resendRes.json();
+                                if (resendRes.ok) {
+                                    photographerEmailsLog.push({ success: true, id: resendData.id, to: saleData.photographer.email });
+                                } else {
+                                    photographerEmailsLog.push({ success: false, error: resendData, to: saleData.photographer.email });
+                                }
                             } catch (err) {
                                 console.error('[Sync] Erro ao enviar email para o fotografo:', err);
+                                photographerEmailsLog.push({ success: false, error: err.message || err, to: saleData.photographer.email });
                             }
                         }
+                    }
+
+                    // --- REGISTRAR STATUS DE ENVIOS NO METADATA ---
+                    try {
+                        const emailLogs = {
+                            email_dispatched_at: new Date().toISOString(),
+                            buyer_email_log: buyerEmailLog,
+                            photographer_emails_log: photographerEmailsLog
+                        };
+                        
+                        await supabase
+                            .from('abacate_pay_billings')
+                            .update({
+                                metadata: {
+                                    ...(metadata || {}),
+                                    email_logs: emailLogs
+                                }
+                            })
+                            .eq('billing_id', billing.billing_id);
+                        console.log('[Sync] Logs de email gravados no Supabase.');
+                    } catch (metaErr) {
+                        console.error('[Sync] Erro ao gravar metadata de emails:', metaErr);
                     }
                 }
             }
