@@ -64,6 +64,7 @@ const CustomerDashboardPage = lazyWithRetry(() => import('./pages/CustomerDashbo
 const CheckoutPage = lazyWithRetry(() => import('./pages/CheckoutPage'));
 const CheckoutSuccessPage = lazyWithRetry(() => import('./pages/CheckoutSuccessPage'));
 const HelpCenterPage = lazyWithRetry(() => import('./pages/HelpCenterPage'));
+const NotFoundPage = lazyWithRetry(() => import('./pages/NotFoundPage'));
 
 
 interface FlyingImage {
@@ -188,6 +189,7 @@ const MainApp: React.FC = () => {
 
             // case 'face-search': return '/busca-facial'; // Modal usually
             case 'reset-password': return page.token ? `/reset-password?token=${page.token}` : '/reset-password';
+            case 'not-found': return '/404';
             default: return '/';
         }
     };
@@ -207,7 +209,8 @@ const MainApp: React.FC = () => {
         if (pathname === '/termos') return { name: 'terms' };
         if (pathname === '/privacidade') return { name: 'privacy' };
         if (pathname === '/fotos-destaque') return { name: 'featured-photos' };
-        if (pathname === '/fotografos') return { name: 'fotografos' };
+        if (pathname === '/fotografos') return { name: 'photographers' }; // Wait, is the page name 'photographers'? Let's keep it consistent.
+        if (pathname === '/404') return { name: 'not-found' };
         if (pathname === '/encontrar-fotos') {
             const q = searchParams.get('q');
             return { name: 'find-photos', initialSearch: q || undefined };
@@ -236,7 +239,7 @@ const MainApp: React.FC = () => {
         const portfolioMatch = pathname.match(/^\/portfolio\/(.+)$/);
         if (portfolioMatch) return { name: 'photographer-portfolio', photographerId: portfolioMatch[1] };
 
-        return { name: 'home' };
+        return { name: 'not-found' };
     };
     // Ref to access current state in event listeners without re-triggering effects
     const currentPageRef = React.useRef(currentPage);
@@ -568,6 +571,8 @@ const MainApp: React.FC = () => {
 
             case 'reset-password':
                 return <ResetPasswordPage token={currentPage.token} onNavigate={handleNavigate} />;
+            case 'not-found':
+                return <NotFoundPage onNavigate={handleNavigate} />;
             default:
                 if (isSessionLoading) return <Spinner size="lg" fullHeight={true} label="Autenticando sessão..." />;
                 return <HomePage onNavigate={handleNavigate} onAddToCart={handleAddToCart} currentUser={currentUser} />;

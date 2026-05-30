@@ -274,6 +274,7 @@ export type PageRoute =
   { name: 'checkout-success' } |
 
   { name: 'face-search' } |
+  { name: 'not-found' } |
   { name: 'reset-password', token?: string };
 
 export interface RegisterResponse {

@@ -50,7 +50,7 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigate, currentView
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between h-16">
                     <div className="flex items-center gap-4">
-                        <button onClick={() => onNavigate({ name: 'home' })} className="transition-transform hover:scale-105 active:scale-95">
+                        <button onClick={() => onNavigate({ name: 'home' })} className="transition-transform hover:scale-105 active:scale-95" aria-label="Ir para a página inicial">
                             <Logo size={35} useImage={true} />
                         </button>
 
@@ -113,6 +113,7 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigate, currentView
                                     id="cart-btn"
                                     onClick={() => onNavigate({ name: 'cart' })}
                                     className="relative text-neutral-900 hover:text-primary transition-colors p-2"
+                                    aria-label={`Ver carrinho com ${cartCount} itens`}
                                 >
                                     <ShoppingCartIcon className="h-6 w-6" />
                                     {cartCount > 0 && (
@@ -123,7 +124,7 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigate, currentView
                                 </button>
                             )}
                             {!(isAdminView || isPhotographerView) && (
-                                <button className="lg:hidden" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+                                <button className="lg:hidden p-2 text-neutral-900 hover:text-primary transition-colors" onClick={() => setIsMenuOpen(!isMenuOpen)} aria-label={isMenuOpen ? "Fechar menu de navegação" : "Abrir menu de navegação"} aria-expanded={isMenuOpen}>
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
                                     </svg>

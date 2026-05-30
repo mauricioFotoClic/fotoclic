@@ -146,7 +146,25 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ onNavigate, initialSearch, 
       <section className="py-16 bg-neutral-50 min-h-[400px]">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           {loading ? (
-            <Spinner size="lg" fullHeight={true} label="Buscando fotos..." />
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="bg-white rounded-lg overflow-hidden shadow-md animate-pulse">
+                  <div className="bg-neutral-200 h-48 w-full" />
+                  <div className="p-4 space-y-3">
+                    <div className="h-4 bg-neutral-200 rounded w-2/3" />
+                    <div className="h-3 bg-neutral-200 rounded w-1/3" />
+                    <div className="flex items-center gap-2 pt-2">
+                      <div className="w-6 h-6 rounded-full bg-neutral-200" />
+                      <div className="h-3 bg-neutral-200 rounded w-1/2" />
+                    </div>
+                    <div className="flex justify-between items-center pt-2">
+                      <div className="h-6 bg-neutral-200 rounded w-1/4" />
+                      <div className="h-4 bg-neutral-200 rounded w-1/4" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : paginatedPhotos.length > 0 ? (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
