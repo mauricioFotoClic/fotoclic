@@ -51,7 +51,7 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigate, currentView
                 <div className="flex items-center justify-between h-16">
                     <div className="flex items-center gap-4">
                         <a href="/" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'home' }); }} className="transition-transform hover:scale-105 active:scale-95 block" aria-label="Ir para a página inicial">
-                            <Logo size={35} useImage={false} />
+                            <Logo size={35} />
                         </a>
 
                     </div>

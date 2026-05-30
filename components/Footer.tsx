@@ -14,7 +14,7 @@ const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="space-y-4">
              <a href="/" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'home' }); }} className="transition-transform hover:scale-105 active:scale-95 inline-block" aria-label="Ir para a página inicial">
-              <Logo size={28} variant="white" useImage={false} />
+              <Logo size={28} variant="white" />
             </a>
             <p className="text-sm text-neutral-200">O principal marketplace de fotografia digital de alta qualidade.</p>
           </div>
