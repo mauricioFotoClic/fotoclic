@@ -2,7 +2,18 @@
 export default async function handler(request, response) {
     // Add CORS headers
     response.setHeader('Access-Control-Allow-Credentials', true);
-    response.setHeader('Access-Control-Allow-Origin', '*');
+    const origin = request.headers.origin;
+    const allowedOrigins = [
+        'https://www.fotoclic.com.br',
+        'https://fotoclic.com.br',
+        'http://localhost:5173',
+        'http://localhost:3000'
+    ];
+    if (origin && (allowedOrigins.includes(origin) || origin.endsWith('.vercel.app'))) {
+        response.setHeader('Access-Control-Allow-Origin', origin);
+    } else {
+        response.setHeader('Access-Control-Allow-Origin', 'https://www.fotoclic.com.br');
+    }
     response.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
 
     if (request.method === 'OPTIONS') {

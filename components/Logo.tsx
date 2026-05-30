@@ -14,7 +14,7 @@ const Logo: React.FC<LogoProps> = ({
     size = 32, 
     variant = 'default',
     showText = true,
-    useImage = true // Ativado por padrão agora que temos a transparente
+    useImage = false // Desativado por padrão para usar SVG vetorial
 }) => {
     const isWhiteVariant = variant === 'white' || variant === 'light';
     

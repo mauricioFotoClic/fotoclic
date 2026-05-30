@@ -50,9 +50,9 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigate, currentView
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between h-16">
                     <div className="flex items-center gap-4">
-                        <button onClick={() => onNavigate({ name: 'home' })} className="transition-transform hover:scale-105 active:scale-95" aria-label="Ir para a página inicial">
-                            <Logo size={35} useImage={true} />
-                        </button>
+                        <a href="/" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'home' }); }} className="transition-transform hover:scale-105 active:scale-95 block" aria-label="Ir para a página inicial">
+                            <Logo size={35} useImage={false} />
+                        </a>
 
                     </div>
 
@@ -60,8 +60,8 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigate, currentView
                         <div className="flex items-center space-x-4">
                             {!(isAdminView || isPhotographerView) && (
                                 <nav className="hidden lg:flex items-center space-x-6">
-                                    <button onClick={() => onNavigate({ name: 'find-photos' })} className={`text-sm font-medium transition-colors ${currentView === 'find-photos' ? 'text-primary' : 'text-neutral-800 hover:text-primary'}`}>Encontrar fotos</button>
-                                    <button onClick={() => onNavigate({ name: 'photographers' })} className={`text-sm font-medium transition-colors ${currentView === 'photographers' ? 'text-primary' : 'text-neutral-800 hover:text-primary'}`}>Encontrar Profissional</button>
+                                    <a href="/find-photos" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'find-photos' }); }} className={`text-sm font-medium transition-colors ${currentView === 'find-photos' ? 'text-primary' : 'text-neutral-800 hover:text-primary'}`}>Encontrar fotos</a>
+                                    <a href="/photographers" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'photographers' }); }} className={`text-sm font-medium transition-colors ${currentView === 'photographers' ? 'text-primary' : 'text-neutral-800 hover:text-primary'}`}>Encontrar Profissional</a>
                                 </nav>
                             )}
                             <div className="hidden sm:flex items-center space-x-2">
@@ -138,8 +138,8 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigate, currentView
                 <div className="lg:hidden bg-white py-4 px-4 space-y-2">
                     {!(isAdminView || isPhotographerView) && (
                         <>
-                            <button onClick={() => { onNavigate({ name: 'find-photos' }); setIsMenuOpen(false); }} className="block text-sm font-medium text-neutral-800 hover:text-primary transition-colors w-full text-left py-2">Encontrar fotos</button>
-                            <button onClick={() => { onNavigate({ name: 'photographers' }); setIsMenuOpen(false); }} className="block text-sm font-medium text-neutral-800 hover:text-primary transition-colors w-full text-left py-2">Encontrar Profissional</button>
+                            <a href="/find-photos" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'find-photos' }); setIsMenuOpen(false); }} className="block text-sm font-medium text-neutral-800 hover:text-primary transition-colors w-full text-left py-2">Encontrar fotos</a>
+                            <a href="/photographers" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'photographers' }); setIsMenuOpen(false); }} className="block text-sm font-medium text-neutral-800 hover:text-primary transition-colors w-full text-left py-2">Encontrar Profissional</a>
 
                             <div className="h-px bg-neutral-100 my-2"></div>
                         </>

@@ -49,6 +49,7 @@ const CarouselBtn: React.FC<{ onClick: () => void; dir: 'prev' | 'next'; disable
   <button
     onClick={onClick}
     disabled={disabled}
+    aria-label={dir === 'prev' ? "Slide anterior" : "Próximo slide"}
     className={`w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 shadow-md ${
       disabled
         ? 'bg-neutral-100 text-neutral-300 cursor-not-allowed shadow-none'
@@ -183,7 +184,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
   return (
     <div>
       <SEO
-        title="Home | FotoClic"
+        title="Home"
         description="Encontre e compre fotos esportivas profissionais de alta qualidade. Cobertura de eventos, maratonas, surf e muito mais."
       />
 
@@ -195,7 +196,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
         <div className="absolute inset-0 bg-neutral-900/60 backdrop-blur-[2px]" />
         <div className="relative z-10 text-center p-4 max-w-4xl mx-auto animate-fade-in-up">
           <h1 className="text-4xl md:text-7xl font-display font-bold mb-6 leading-tight">
-            Encontre suas fotos.<br /><span className="text-primary">Reviva</span> seus melhores momentos.
+            Encontre suas fotos. <br /> <span className="text-primary">Reviva</span> seus melhores momentos.
           </h1>
           <p className="text-lg md:text-xl mb-10 max-w-2xl mx-auto text-neutral-200 font-light">
             Busque, encontre e compre as fotos dos eventos que você participou.
@@ -205,6 +206,8 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
             <div className="relative flex">
               <input
                 type="text"
+                name="search"
+                autoComplete="search"
                 placeholder="Pesquise por evento, esporte, fotógrafo..."
                 className="w-full pl-6 pr-14 py-4 text-neutral-800 bg-white border-0 rounded-full focus:ring-0 shadow-2xl text-lg"
                 value={searchQuery}
@@ -213,6 +216,8 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
               />
               <button
                 onClick={handleSearch}
+                aria-label="Buscar fotos"
+                title="Buscar fotos"
                 className="absolute right-2 top-2 bottom-2 bg-primary w-12 rounded-full text-white flex items-center justify-center hover:bg-primary-dark transition-colors"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

@@ -116,8 +116,10 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ onNavigate, initialSearch, 
             <div className="relative group">
               <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/50 to-secondary/50 rounded-full opacity-30 group-hover:opacity-100 transition duration-500 blur-md"></div>
               <div className="relative flex items-center">
-                <input
+                 <input
                   type="text"
+                  name="search"
+                  autoComplete="search"
                   placeholder="Buscar por título ou tag..."
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
@@ -132,6 +134,8 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ onNavigate, initialSearch, 
                 </div>
                 <button
                   onClick={performSearch}
+                  aria-label="Buscar fotos"
+                  title="Buscar fotos"
                   className="absolute right-3 px-6 py-2 bg-primary hover:bg-primary-dark text-white rounded-full text-sm font-bold transition-all shadow-lg"
                 >
                   Pesquisar

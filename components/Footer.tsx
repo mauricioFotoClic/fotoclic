@@ -13,32 +13,32 @@ const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="space-y-4">
-             <button onClick={() => onNavigate({ name: 'home' })} className="transition-transform hover:scale-105 active:scale-95">
-              <Logo size={28} variant="white" />
-            </button>
+             <a href="/" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'home' }); }} className="transition-transform hover:scale-105 active:scale-95 inline-block" aria-label="Ir para a página inicial">
+              <Logo size={28} variant="white" useImage={false} />
+            </a>
             <p className="text-sm text-neutral-200">O principal marketplace de fotografia digital de alta qualidade.</p>
           </div>
           <div>
             <h3 className="font-display font-bold text-lg mb-4">Explore</h3>
             <ul className="space-y-2">
-              <li><button onClick={() => onNavigate({ name: 'home' })} className="text-sm text-neutral-200 hover:text-white transition-colors text-left">Categorias</button></li>
-              <li><button onClick={() => onNavigate({ name: 'photographers' })} className="text-sm text-neutral-200 hover:text-white transition-colors text-left">Fotógrafos</button></li>
-              <li><button onClick={() => onNavigate({ name: 'featured-photos' })} className="text-sm text-neutral-200 hover:text-white transition-colors text-left">Fotos em Destaque</button></li>
+              <li><a href="/" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'home' }); }} className="text-sm text-neutral-200 hover:text-white transition-colors text-left block">Categorias</a></li>
+              <li><a href="/photographers" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'photographers' }); }} className="text-sm text-neutral-200 hover:text-white transition-colors text-left block">Fotógrafos</a></li>
+              <li><a href="/featured-photos" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'featured-photos' }); }} className="text-sm text-neutral-200 hover:text-white transition-colors text-left block">Fotos em Destaque</a></li>
             </ul>
           </div>
           <div>
             <h3 className="font-display font-bold text-lg mb-4">Sobre</h3>
             <ul className="space-y-2">
-              <li><button onClick={() => onNavigate({ name: 'about' })} className="text-sm text-neutral-200 hover:text-white transition-colors text-left">Sobre Nós</button></li>
-              <li><button onClick={() => onNavigate({ name: 'contact' })} className="text-sm text-neutral-200 hover:text-white transition-colors text-left">Contato</button></li>
-              <li><button onClick={() => onNavigate({ name: 'help-center' })} className="text-sm text-neutral-200 hover:text-white transition-colors text-left">Central de Ajuda</button></li>
+              <li><a href="/about" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'about' }); }} className="text-sm text-neutral-200 hover:text-white transition-colors text-left block">Sobre Nós</a></li>
+              <li><a href="/contact" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'contact' }); }} className="text-sm text-neutral-200 hover:text-white transition-colors text-left block">Contato</a></li>
+              <li><a href="/help-center" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'help-center' }); }} className="text-sm text-neutral-200 hover:text-white transition-colors text-left block">Central de Ajuda</a></li>
             </ul>
           </div>
           <div>
             <h3 className="font-display font-bold text-lg mb-4">Legal</h3>
             <ul className="space-y-2">
-              <li><button onClick={() => onNavigate({ name: 'terms' })} className="text-sm text-neutral-200 hover:text-white transition-colors text-left">Termos de Serviço</button></li>
-              <li><button onClick={() => onNavigate({ name: 'privacy' })} className="text-sm text-neutral-200 hover:text-white transition-colors text-left">Política de Privacidade</button></li>
+              <li><a href="/terms" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'terms' }); }} className="text-sm text-neutral-200 hover:text-white transition-colors text-left block">Termos de Serviço</a></li>
+              <li><a href="/privacy" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'privacy' }); }} className="text-sm text-neutral-200 hover:text-white transition-colors text-left block">Política de Privacidade</a></li>
             </ul>
           </div>
         </div>
@@ -54,6 +54,7 @@ const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
               )}
               className="p-3 bg-white/10 hover:bg-primary text-white rounded-full transition-all shadow-md active:scale-95 flex items-center justify-center group"
               title="Compartilhar"
+              aria-label="Compartilhar site"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="group-hover:scale-110 transition-transform"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
             </button>

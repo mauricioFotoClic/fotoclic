@@ -148,6 +148,8 @@ const FindPhotosPage: React.FC<FindPhotosPageProps> = ({ onNavigate, initialSear
           <div className="max-w-2xl mx-auto relative">
             <input
               type="text"
+              name="search"
+              autoComplete="search"
               placeholder="Procure pelo evento em que participou..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}

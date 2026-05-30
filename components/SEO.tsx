@@ -16,13 +16,14 @@ const SEO: React.FC<SEOProps> = ({
     url = typeof window !== 'undefined' ? window.location.href : '',
     type = 'website'
 }) => {
-    const siteTitle = title === 'Suas Melhores Fotos Sempre em um Clique' ? title : `${title} | FotoClic`;
+    const siteTitle = title.includes('FotoClic') ? title : `${title} | FotoClic`;
 
     return (
         <Helmet>
             {/* Standard Metadata */}
             <title>{siteTitle}</title>
             <meta name="description" content={description} />
+            <meta name="robots" content="index, follow" />
             <link rel="canonical" href={url} />
 
             {/* Open Graph / Facebook */}
@@ -38,6 +39,21 @@ const SEO: React.FC<SEOProps> = ({
             <meta name="twitter:title" content={siteTitle} />
             <meta name="twitter:description" content={description} />
             <meta name="twitter:image" content={image} />
+
+            {/* JSON-LD Structured Data */}
+            <script type="application/ld+json">
+                {JSON.stringify({
+                    "@context": "https://schema.org",
+                    "@type": "WebSite",
+                    "name": "FotoClic",
+                    "url": "https://www.fotoclic.com.br",
+                    "potentialAction": {
+                        "@type": "SearchAction",
+                        "target": "https://www.fotoclic.com.br/find-photos?initialSearch={search_term_string}",
+                        "query-input": "required name=search_term_string"
+                    }
+                })}
+            </script>
         </Helmet>
     );
 };

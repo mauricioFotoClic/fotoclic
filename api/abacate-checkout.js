@@ -2,7 +2,18 @@ import { createClient } from '@supabase/supabase-js';
 
 export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Credentials', true);
-    res.setHeader('Access-Control-Allow-Origin', process.env.ALLOWED_ORIGIN || '*');
+    const origin = req.headers.origin;
+    const allowedOrigins = [
+        'https://www.fotoclic.com.br',
+        'https://fotoclic.com.br',
+        'http://localhost:5173',
+        'http://localhost:3000'
+    ];
+    if (origin && (allowedOrigins.includes(origin) || origin.endsWith('.vercel.app'))) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    } else {
+        res.setHeader('Access-Control-Allow-Origin', 'https://www.fotoclic.com.br');
+    }
     res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
 

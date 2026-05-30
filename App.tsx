@@ -1,6 +1,7 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import Header from './components/Header';
 import Footer from './components/Footer';
+import CookieBanner from './components/CookieBanner';
 import { type User, UserRole, type Page } from './types';
 import api from './services/api';
 import PhotoDetailModal from './components/PhotoDetailModal';
@@ -652,6 +653,7 @@ const MainApp: React.FC = () => {
                     onBuy={handleBuyPhoto}
                 />
             )}
+            <CookieBanner onNavigate={handleNavigate} />
         </div>
     );
 };
