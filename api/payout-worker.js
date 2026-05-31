@@ -23,12 +23,35 @@ export default async function handler(req, res) {
     // - pix_key is present
     // - payout_blocked is false
     // - frequency matches today (simplified for this example, usually handled by checking last payout date)
-    const { data: eligiblePhotographers, error: fetchError } = await supabase
+    const { data: eligibleBalances, error: balanceError } = await supabase
       .from('photographer_wallet_summary')
-      .select('*, users(pix_key, pix_key_type, payout_frequency, payout_blocked, email)')
+      .select('*')
       .gte('balance_available', 100);
 
-    if (fetchError) throw fetchError;
+    if (balanceError) throw balanceError;
+
+    if (!eligibleBalances || eligibleBalances.length === 0) {
+      console.log('Nenhum fotógrafo com saldo >= 100.');
+      return res.status(200).json({ processed: 0, details: [] });
+    }
+
+    const photographerIds = eligibleBalances.map(p => p.photographer_id);
+
+    // Fetch user pix details
+    const { data: usersData, error: usersError } = await supabase
+      .from('users')
+      .select('id, pix_key, pix_key_type, payout_frequency, payout_blocked, email')
+      .in('id', photographerIds);
+
+    if (usersError) throw usersError;
+
+    const userMap = {};
+    usersData.forEach(u => { userMap[u.id] = u; });
+
+    const eligiblePhotographers = eligibleBalances.map(p => ({
+      ...p,
+      users: userMap[p.photographer_id] || null
+    }));
 
     const results = [];
 
