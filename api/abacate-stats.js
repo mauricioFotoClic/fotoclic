@@ -123,7 +123,7 @@ export default async function handler(req, res) {
                                         photo_id: photo.id,
                                         buyer_id: userId,
                                         price: photo.price,
-                                        commission: photo.price * rate,
+                                        commission: Math.min(photo.price, (photo.price * rate) + 0.80),
                                         commission_rate: rate,
                                         photographer_id: photo.photographer_id,
                                         billing_id: billing.billing_id,

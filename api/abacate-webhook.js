@@ -210,7 +210,7 @@ export default async function handler(req, res) {
                                         rate = customRates[photo.photographer_id] !== undefined ? customRates[photo.photographer_id] : defaultRate;
                                     }
                                     const finalPrice = photo.price;
-                                    const commissionValue = finalPrice * rate;
+                                    const commissionValue = Math.min(finalPrice, (finalPrice * rate) + 0.80);
 
 
 
