@@ -162,6 +162,14 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigate, currentView
                             )}
                             <div className="h-px bg-neutral-100 my-2"></div>
                             <span className="block text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-2">Conta</span>
+                            {user.role === UserRole.PHOTOGRAPHER && !isPhotographerView && (
+                                <button
+                                    onClick={() => { onNavigate({ name: 'photographer' }); setIsMenuOpen(false); }}
+                                    className="w-full text-center px-4 py-2 mb-2 text-sm font-medium text-white bg-neutral-900 hover:bg-neutral-800 rounded-full shadow-sm transition-all"
+                                >
+                                    Painel do Fotógrafo
+                                </button>
+                            )}
                             {isPhotographerView && (
                                 <button
                                     onClick={() => { handleCopyLink(); setIsMenuOpen(false); }}
