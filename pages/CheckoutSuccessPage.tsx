@@ -32,12 +32,20 @@ const CheckoutSuccessPage: React.FC<CheckoutSuccessPageProps> = ({ currentUser, 
                 // Tenta sincronizar compras pendentes do webhook, caso o redirect tenha sido mais rápido que o webhook do Abacate Pay
                 const session = await api.getSession();
                 if (session?.access_token) {
-                    await fetch('/api/sync-purchases', {
+                    // Executamos sem await para não bloquear o carregamento da tela
+                    fetch('/api/sync-purchases', {
                         method: 'POST',
                         headers: {
                             'Authorization': `Bearer ${session.access_token}`
                         }
-                    }).catch(err => console.warn("Sync failed, but continuing...", err));
+                    })
+                    .then(() => {
+                        // Recarrega as compras após a sincronização terminar em background
+                        api.getPurchasesByUserId(currentUser.id).then(recentData => {
+                            setPurchases(recentData);
+                        });
+                    })
+                    .catch(err => console.warn("Sync failed, but continuing...", err));
                 }
 
                 const data = await api.getPurchasesByUserId(currentUser.id);

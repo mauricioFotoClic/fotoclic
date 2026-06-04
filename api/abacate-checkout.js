@@ -156,8 +156,8 @@ export default async function handler(req, res) {
             frequency: "ONE_TIME",
             methods: ["PIX", "CARD"],
             items: itemsV2,
-            returnUrl: siteUrl + '/minhas-compras',
-            completionUrl: siteUrl + '/sales',
+            returnUrl: siteUrl + '/carrinho',
+            completionUrl: siteUrl + '/checkout-success',
             metadata: {
                 ...(metadata || {}), // Preserva o metadata vindo do frontend (userId, couponCode, etc)
                 cartIds: items.map(i => i.id),
