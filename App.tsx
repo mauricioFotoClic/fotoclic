@@ -340,7 +340,21 @@ const MainApp: React.FC = () => {
             try {
                 const savedUserCart = await api.getUserCart(user.id);
                 // Merge unique items
-                const mergedCart = Array.from(new Set([...cartItems, ...savedUserCart]));
+                let mergedCart = Array.from(new Set([...cartItems, ...savedUserCart]));
+                
+                // Filter out already purchased photos
+                try {
+                    const purchases = await api.getPurchasesByUserId(user.id);
+                    const purchasedIds = new Set(purchases.map(p => p.id));
+                    const originalLength = mergedCart.length;
+                    mergedCart = mergedCart.filter(id => !purchasedIds.has(id));
+                    if (mergedCart.length < originalLength) {
+                        showToast("Algumas fotos foram removidas do seu carrinho pois você já as comprou.", "info");
+                    }
+                } catch (e) {
+                    console.error("Failed to filter purchased photos on login", e);
+                }
+
                 setCartItems(mergedCart);
             } catch (e) {
                 console.error("Failed to retrieve user cart", e);
@@ -410,7 +424,20 @@ const MainApp: React.FC = () => {
         }
     }
 
-    const handleAddToCart = (photoId: string, imgElement?: HTMLImageElement) => {
+    const handleAddToCart = async (photoId: string, imgElement?: HTMLImageElement) => {
+        if (currentUser) {
+            try {
+                const purchases = await api.getPurchasesByUserId(currentUser.id);
+                const purchasedIds = new Set(purchases.map(p => p.id));
+                if (purchasedIds.has(photoId)) {
+                    showToast("Você já comprou esta foto e não precisa adicioná-la ao carrinho.", "info");
+                    return;
+                }
+            } catch (e) {
+                console.error("Failed to check purchases on add to cart", e);
+            }
+        }
+
         if (!cartItems.includes(photoId)) {
             // Animation Logic
             if (imgElement) {

@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Photo, Page, Coupon, BulkDiscountRule, User } from '../types';
 import api from '../services/api';
 import Spinner from '../components/Spinner';
+import { useToast } from '../contexts/ToastContext';
 
 interface CartPageProps {
     currentUser: User | null;
@@ -24,6 +25,7 @@ interface CartGrouping {
 }
 
 const CartPage: React.FC<CartPageProps> = ({ currentUser, cartItemIds, onRemoveItem, onRemoveMultipleItems, onCheckout, onNavigate }) => {
+    const { showToast } = useToast();
     const [cartPhotos, setCartPhotos] = useState<Photo[]>([]);
     const [loading, setLoading] = useState(true);
     const [groupedCart, setGroupedCart] = useState<CartGrouping[]>([]);
@@ -80,7 +82,7 @@ const CartPage: React.FC<CartPageProps> = ({ currentUser, cartItemIds, onRemoveI
                     const alreadyBought = validPhotos.filter(p => purchasedPhotoIds.has(p.id));
                     if (alreadyBought.length > 0) {
                         onRemoveMultipleItems(alreadyBought.map(p => p.id));
-                        // Show a temporary message about auto-removal if desired, but quiet removal is fine
+                        showToast("Uma ou mais fotos foram removidas do carrinho pois você já as comprou.", "info");
                     }
                 }
 
