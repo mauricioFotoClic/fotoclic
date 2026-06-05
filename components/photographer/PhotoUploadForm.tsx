@@ -17,7 +17,7 @@ const PhotoUploadForm: React.FC<PhotoUploadFormProps> = ({ onSubmit, onCancel, i
     const [formData, setFormData] = useState<FormData>({
         title: '',
         description: '',
-        price: 0,
+        price: 10,
         photographer_id: photographerId,
         category_id: '',
         preview_url: '',
@@ -57,7 +57,7 @@ const PhotoUploadForm: React.FC<PhotoUploadFormProps> = ({ onSubmit, onCancel, i
             if (initialData.preview_url) setPreviewImage(initialData.preview_url);
         } else {
             setFormData({
-                title: '', description: '', price: 0,
+                title: '', description: '', price: 10,
                 photographer_id: photographerId,
                 category_id: categories[0]?.id || '',
                 preview_url: '', file_url: '',
@@ -143,6 +143,11 @@ const PhotoUploadForm: React.FC<PhotoUploadFormProps> = ({ onSubmit, onCancel, i
         // Keeping upload logic in Parent is cleaner? No, Batch Upload handles it.
         // Let's modify `PhotographerPhotos.tsx`.
         // So I will CANCEL this edit and view `PhotographerPhotos.tsx` again.
+
+        if (formData.price < 10) {
+            alert("O preço mínimo por foto deve ser de R$ 10,00.");
+            return;
+        }
 
         if (formData.title.trim() && formData.category_id && formData.preview_url) {
             setIsSubmitting(true);
@@ -242,7 +247,8 @@ const PhotoUploadForm: React.FC<PhotoUploadFormProps> = ({ onSubmit, onCancel, i
                 </div>
                 <div>
                     <label htmlFor="price" className="block text-sm font-medium text-neutral-700 mb-1">Preço (R$) *</label>
-                    <input id="price" name="price" type="number" step="0.01" value={formData.price} onChange={handleChange} className={inputClass} required disabled={isSubmitting} />
+                    <input id="price" name="price" type="number" step="0.01" min="10" value={formData.price} onChange={handleChange} className={inputClass} required disabled={isSubmitting} />
+                    <p className="text-xs text-red-500 mt-1 font-semibold">⚠️ Mínimo: R$ 10,00 por foto</p>
                 </div>
             </div>
 

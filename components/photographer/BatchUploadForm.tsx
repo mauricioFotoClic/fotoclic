@@ -42,8 +42,8 @@ const BatchUploadForm: React.FC<BatchUploadFormProps> = ({ event, photographerId
         }
 
         const numPrice = parseFloat(price.replace(',', '.'));
-        if (isNaN(numPrice) || numPrice <= 0) {
-            alert("Informe um preço válido.");
+        if (isNaN(numPrice) || numPrice < 10) {
+            alert("O preço mínimo por foto deve ser de R$ 10,00.");
             return;
         }
 
@@ -217,14 +217,15 @@ const BatchUploadForm: React.FC<BatchUploadFormProps> = ({ event, photographerId
                             <input
                                 type="number"
                                 step="0.01"
+                                min="10"
                                 value={price}
                                 onChange={(e) => setPrice(e.target.value)}
                                 className={inputClass}
                                 required
                                 disabled={isUploading}
-                                placeholder="0,00"
+                                placeholder="10,00"
                             />
-                            <p className="text-xs text-neutral-500 mt-1">Aplicar a todas as fotos</p>
+                            <p className="text-xs text-red-500 mt-1 font-semibold">⚠️ Mínimo: R$ 10,00 por foto</p>
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-neutral-700 mb-1">Tags (opcional)</label>
