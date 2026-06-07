@@ -16,8 +16,6 @@ function emptyStats() {
 }
 
 export default async function handler(req, res) {
-    if (req.method !== 'GET') return res.status(405).json({ error: 'Método não permitido.' });
-    
     // Evitar cache para dados financeiros
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.setHeader('Pragma', 'no-cache');
@@ -27,6 +25,101 @@ export default async function handler(req, res) {
         process.env.VITE_SUPABASE_URL,
         process.env.SUPABASE_SERVICE_ROLE_KEY
     );
+
+    if (req.method === 'POST') {
+        try {
+            const { amount, note, external_id, withdraw_date } = req.body;
+            if (!amount || amount <= 0) {
+                return res.status(400).json({ error: 'Valor do saque inválido.' });
+            }
+
+            const { data: settings, error: readError } = await supabase
+                .from('system_settings')
+                .select('*')
+                .eq('id', 1)
+                .single();
+
+            if (readError) throw readError;
+
+            const customRates = settings.commission_custom_rates || {};
+            const withdrawals = customRates.__withdrawals || [];
+
+            const newWithdrawal = {
+                id: `withdraw_${Math.random().toString(36).substring(2, 9)}`,
+                amount: Math.round(Number(amount)), // em centavos
+                status: 'completed',
+                withdraw_date: withdraw_date || new Date().toISOString(),
+                external_id: external_id || `man_${Date.now()}`,
+                note: note || 'Saque registrado manual.'
+            };
+
+            if (external_id && withdrawals.some(w => w.external_id === external_id)) {
+                return res.status(400).json({ error: 'Este saque (ID de transação) já foi registrado.' });
+            }
+
+            withdrawals.push(newWithdrawal);
+
+            const { error: updateError } = await supabase
+                .from('system_settings')
+                .update({
+                    commission_custom_rates: {
+                        ...customRates,
+                        __withdrawals: withdrawals
+                    }
+                })
+                .eq('id', 1);
+
+            if (updateError) throw updateError;
+
+            return res.status(200).json({ success: true, withdrawal: newWithdrawal });
+        } catch (err) {
+            console.error('[AbacateStats] Erro no POST:', err);
+            return res.status(500).json({ error: 'Erro ao registrar saque.' });
+        }
+    }
+
+    if (req.method === 'DELETE') {
+        try {
+            const { id } = req.query;
+            if (!id) {
+                return res.status(400).json({ error: 'ID do saque não fornecido.' });
+            }
+
+            const { data: settings, error: readError } = await supabase
+                .from('system_settings')
+                .select('*')
+                .eq('id', 1)
+                .single();
+
+            if (readError) throw readError;
+
+            const customRates = settings.commission_custom_rates || {};
+            const withdrawals = customRates.__withdrawals || [];
+
+            const updatedWithdrawals = withdrawals.filter(w => w.id !== id && w.external_id !== id);
+
+            const { error: updateError } = await supabase
+                .from('system_settings')
+                .update({
+                    commission_custom_rates: {
+                        ...customRates,
+                        __withdrawals: updatedWithdrawals
+                    }
+                })
+                .eq('id', 1);
+
+            if (updateError) throw updateError;
+
+            return res.status(200).json({ success: true });
+        } catch (err) {
+            console.error('[AbacateStats] Erro no DELETE:', err);
+            return res.status(500).json({ error: 'Erro ao excluir saque.' });
+        }
+    }
+
+    if (req.method !== 'GET') {
+        return res.status(405).json({ error: 'Método não permitido.' });
+    }
 
     const apiKey = process.env.ABACATEPAY_API_KEY;
 
@@ -155,8 +248,20 @@ export default async function handler(req, res) {
 
         const totalCommission = salesError ? 0 : sales.reduce((s, b) => s + (b.commission || 0), 0);
 
+        // 5. Buscar saques de system_settings para retornar no GET
+        const { data: settings } = await supabase
+            .from('system_settings')
+            .select('commission_custom_rates')
+            .eq('id', 1)
+            .single();
+
+        const customRates = settings?.commission_custom_rates || {};
+        const withdrawals = customRates.__withdrawals || [];
+        const totalWithdrawals = withdrawals.reduce((sum, w) => sum + (w.amount || 0), 0);
+
         return res.status(200).json({
             billings,
+            withdrawals,
             stats: {
                 total_paid:      totalPaid,
                 total_pix:       totalPix,
@@ -169,6 +274,7 @@ export default async function handler(req, res) {
                 refunded_amount: totalRefunded,
                 total_commission: Math.round(totalCommission * 100),
                 balance: Math.max(0, Math.round(totalPaid - totalRefunded)),
+                total_withdrawals: totalWithdrawals
             },
         });
 

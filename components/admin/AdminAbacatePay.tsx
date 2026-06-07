@@ -16,6 +16,15 @@ interface AbacateBilling {
     customer_email?: string;
 }
 
+interface AbacateWithdrawal {
+    id: string;
+    amount: number;
+    status: string;
+    withdraw_date: string;
+    external_id?: string;
+    note?: string;
+}
+
 interface AbacateStats {
     total_paid: number;
     total_pix: number;
@@ -28,6 +37,7 @@ interface AbacateStats {
     refunded_amount: number;
     balance: number;
     total_commission: number;
+    total_withdrawals?: number;
 }
 
 type StatusFilter = 'ALL' | 'PAID' | 'PENDING' | 'CANCELLED' | 'REFUNDED';
@@ -214,12 +224,14 @@ const AdminAbacatePay: React.FC = () => {
     const { showToast } = useToast();
 
     const [allBillings, setAllBillings] = useState<AbacateBilling[]>([]);
+    const [withdrawals, setWithdrawals] = useState<AbacateWithdrawal[]>([]);
     const [stats, setStats] = useState<AbacateStats>({
         total_paid: 0, total_pix: 0, total_card: 0,
         paid_count: 0, pending_count: 0, pending_amount: 0,
         cancelled_count: 0, refunded_count: 0, refunded_amount: 0,
         balance: 0,
         total_commission: 0,
+        total_withdrawals: 0,
     });
     const [loading, setLoading] = useState(true);
 
@@ -236,6 +248,14 @@ const AdminAbacatePay: React.FC = () => {
     const [refundTarget,  setRefundTarget]  = useState<AbacateBilling | null>(null);
     const [refundLoading, setRefundLoading] = useState(false);
 
+    // Modal para registrar saques
+    const [showAddWithdrawModal, setShowAddWithdrawModal] = useState(false);
+    const [withdrawAmount, setWithdrawAmount] = useState('');
+    const [withdrawNote, setWithdrawNote] = useState('');
+    const [withdrawTxId, setWithdrawTxId] = useState('');
+    const [withdrawDate, setWithdrawDate] = useState('');
+    const [addWithdrawLoading, setAddWithdrawLoading] = useState(false);
+
     // ── Fetch ──────────────────────────────────────────────────────────────────
 
     const fetchData = useCallback(async (isInitial = false) => {
@@ -245,6 +265,7 @@ const AdminAbacatePay: React.FC = () => {
             if (!res.ok) throw new Error('Resposta inválida do servidor');
             const data = await res.json();
             setAllBillings(data.billings || []);
+            setWithdrawals(data.withdrawals || []);
             if (data.stats) setStats(data.stats);
         } catch (err) {
             console.error('Failed to fetch Abacate Pay stats', err);
@@ -253,6 +274,61 @@ const AdminAbacatePay: React.FC = () => {
             if (isInitial) setLoading(false);
         }
     }, [showToast]);
+
+    const handleAddWithdrawal = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const amt = parseFloat(withdrawAmount);
+        if (isNaN(amt) || amt <= 0) {
+            showToast('Por favor, insira um valor de saque válido.', 'error');
+            return;
+        }
+
+        setAddWithdrawLoading(true);
+        try {
+            const amountCents = Math.round(amt * 100);
+            const res = await fetch('/api/abacate-stats', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    amount: amountCents,
+                    note: withdrawNote,
+                    external_id: withdrawTxId || undefined,
+                    withdraw_date: withdrawDate || undefined
+                })
+            });
+
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || 'Erro ao registrar saque');
+
+            showToast('Saque registrado com sucesso!', 'success');
+            setShowAddWithdrawModal(false);
+            setWithdrawAmount('');
+            setWithdrawNote('');
+            setWithdrawTxId('');
+            setWithdrawDate('');
+            fetchData(false);
+        } catch (err: any) {
+            showToast(err.message || 'Erro ao registrar saque.', 'error');
+        } finally {
+            setAddWithdrawLoading(false);
+        }
+    };
+
+    const handleDeleteWithdrawal = async (id: string) => {
+        if (!window.confirm('Tem certeza que deseja excluir este registro de saque?')) return;
+        try {
+            const res = await fetch(`/api/abacate-stats?id=${id}`, {
+                method: 'DELETE'
+            });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || 'Erro ao excluir saque');
+
+            showToast('Registro de saque excluído com sucesso.', 'success');
+            fetchData(false);
+        } catch (err: any) {
+            showToast(err.message || 'Erro ao excluir saque.', 'error');
+        }
+    };
 
     // Fetch once on mount
     useEffect(() => {
@@ -303,6 +379,28 @@ const AdminAbacatePay: React.FC = () => {
     const paginated        = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
     const pixPct           = stats.total_paid > 0 ? Math.round((stats.total_pix / stats.total_paid) * 100) : null;
     const cardPct          = stats.total_paid > 0 ? Math.round((stats.total_card / stats.total_paid) * 100) : null;
+
+    const gatewayFeesAndNet = useMemo(() => {
+        let totalFees = 0;
+        const paidBillings = allBillings.filter(b => b.status.toUpperCase() === 'PAID');
+        paidBillings.forEach(b => {
+            const amountBRL = b.amount / 100;
+            if (b.payment_method === 'CARD') {
+                totalFees += (amountBRL * 0.035) + 0.60;
+            } else {
+                totalFees += 0.80; // Taxa Pix padrão do Abacate Pay
+            }
+        });
+        const feesCents = Math.round(totalFees * 100);
+        const netCents = Math.max(0, stats.total_paid - feesCents);
+        const totalWithdrawalsCents = stats.total_withdrawals || 0;
+        const availableCents = Math.max(0, netCents - totalWithdrawalsCents);
+        return {
+            fees: feesCents,
+            net: netCents,
+            available: availableCents
+        };
+    }, [allBillings, stats.total_paid, stats.total_withdrawals]);
 
     // ── Refund ─────────────────────────────────────────────────────────────────
 
@@ -439,7 +537,7 @@ const AdminAbacatePay: React.FC = () => {
             </div>
 
             {/* ── Finanças FotoClic (Destaques) ── */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 <div className="bg-neutral-900 p-6 rounded-2xl border border-neutral-800 shadow-lg relative overflow-hidden group">
                     <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                         <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
@@ -457,10 +555,110 @@ const AdminAbacatePay: React.FC = () => {
                             <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
                         </svg>
                     </div>
-                    <p className="text-orange-700 text-xs font-bold uppercase tracking-wider mb-1">Saldo no Gateway (Bruto)</p>
-                    <p className="text-3xl font-display font-bold text-orange-900">{formatBRL(stats.balance)}</p>
-                    <p className="text-orange-600/60 text-[10px] mt-2">Valor total retido na Abacate Pay (antes de taxas de saque)</p>
+                    <p className="text-orange-700 text-xs font-bold uppercase tracking-wider mb-1">Total Processado (Gateway)</p>
+                    <p className="text-3xl font-display font-bold text-orange-900">{formatBRL(stats.total_paid)}</p>
+                    
+                    <div className="mt-3 pt-3 border-t border-orange-200/60 space-y-1.5 text-xs text-orange-800">
+                        <div className="flex justify-between">
+                            <span>Taxas estimadas do gateway:</span>
+                            <span className="font-medium">{formatBRL(gatewayFeesAndNet.fees)}</span>
+                        </div>
+                        <div className="flex justify-between font-bold border-b border-orange-200/30 pb-1.5">
+                            <span>Líquido acumulado:</span>
+                            <span>{formatBRL(gatewayFeesAndNet.net)}</span>
+                        </div>
+                        <p className="text-[10px] text-orange-600/70 leading-snug mt-1">
+                            * O saldo líquido acumulado é histórico e não desconta os saques que você já realizou.
+                        </p>
+                    </div>
                 </div>
+
+                <div className="bg-emerald-50 p-6 rounded-2xl border border-emerald-200 shadow-sm relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="2" y="4" width="20" height="16" rx="2"/><line x1="12" y1="20" x2="12" y2="4"/>
+                        </svg>
+                    </div>
+                    <p className="text-emerald-800 text-xs font-bold uppercase tracking-wider mb-1">Saldo Disponível no Gateway</p>
+                    <p className="text-3xl font-display font-bold text-emerald-950">{formatBRL(gatewayFeesAndNet.available)}</p>
+                    
+                    <div className="mt-3 pt-3 border-t border-emerald-200/60 space-y-1.5 text-xs text-emerald-800">
+                        <div className="flex justify-between">
+                            <span>Líquido acumulado:</span>
+                            <span className="font-medium">{formatBRL(gatewayFeesAndNet.net)}</span>
+                        </div>
+                        <div className="flex justify-between font-bold border-b border-emerald-200/30 pb-1.5 text-emerald-900">
+                            <span>Saques efetuados:</span>
+                            <span className="text-red-700">-{formatBRL(stats.total_withdrawals || 0)}</span>
+                        </div>
+                        <p className="text-[10px] text-emerald-700/70 leading-snug mt-1">
+                            * Este é o saldo real estimado atualmente disponível na conta do Abacate Pay.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            {/* ── Histórico de Saques do Gateway (Abacate Pay) ── */}
+            <div className="bg-white rounded-2xl border border-neutral-200 shadow-sm p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+                    <div className="flex items-center gap-2">
+                        <svg className="text-neutral-400" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                        </svg>
+                        <div>
+                            <h3 className="text-sm font-bold text-neutral-800">Saques Realizados para Conta Bancária</h3>
+                            <p className="text-[11px] text-neutral-400">Controle local de saques efetuados da conta Abacate Pay.</p>
+                        </div>
+                    </div>
+                    <button
+                        onClick={() => setShowAddWithdrawModal(true)}
+                        className="text-xs font-bold text-white bg-primary hover:bg-primary-dark px-3 py-2 rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-sm"
+                    >
+                        <span>+</span> Registrar Saque
+                    </button>
+                </div>
+
+                {withdrawals.length === 0 ? (
+                    <div className="py-8 text-center bg-neutral-50 rounded-xl border border-dashed border-neutral-200">
+                        <p className="text-2xl mb-1">💸</p>
+                        <p className="text-neutral-400 text-xs">Nenhum saque registrado ainda.</p>
+                        <p className="text-[10px] text-neutral-400/80 mt-1">Clique em "Registrar Saque" para adicionar um saque e bater o saldo.</p>
+                    </div>
+                ) : (
+                    <div className="overflow-x-auto rounded-xl border border-neutral-100">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="bg-neutral-50 border-b border-neutral-100">
+                                    <th className="px-4 py-2.5 text-[11px] font-bold text-neutral-500 uppercase">Data</th>
+                                    <th className="px-4 py-2.5 text-[11px] font-bold text-neutral-500 uppercase">ID de Transação</th>
+                                    <th className="px-4 py-2.5 text-[11px] font-bold text-neutral-500 uppercase">Observação</th>
+                                    <th className="px-4 py-2.5 text-[11px] font-bold text-neutral-500 uppercase text-right">Valor</th>
+                                    <th className="px-4 py-2.5 text-[11px] font-bold text-neutral-500 uppercase text-right">Ação</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-neutral-50 text-xs">
+                                {withdrawals.map(w => (
+                                    <tr key={w.id} className="hover:bg-neutral-50/50 transition-colors">
+                                        <td className="px-4 py-3 text-neutral-800">
+                                            {formatDate(w.withdraw_date)} <span className="text-neutral-400 text-[10px] ml-1">{formatTime(w.withdraw_date)}</span>
+                                        </td>
+                                        <td className="px-4 py-3 font-mono text-[10px] text-neutral-500">{w.external_id || '—'}</td>
+                                        <td className="px-4 py-3 text-neutral-600 max-w-[250px] truncate" title={w.note}>{w.note || '—'}</td>
+                                        <td className="px-4 py-3 text-right font-bold text-red-600">{formatBRL(w.amount)}</td>
+                                        <td className="px-4 py-3 text-right">
+                                            <button
+                                                onClick={() => handleDeleteWithdrawal(w.id)}
+                                                className="text-red-500 hover:text-red-700 font-medium text-[10px] transition-colors"
+                                            >
+                                                Excluir
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
             </div>
 
             {/* ── Outros status ── */}
@@ -726,6 +924,90 @@ const AdminAbacatePay: React.FC = () => {
                     onConfirm={handleRefundConfirm}
                     onCancel={() => { if (!refundLoading) setRefundTarget(null); }}
                 />
+            )}
+
+            {/* Modal para Registrar Saque */}
+            {showAddWithdrawModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-fadeIn">
+                        <h3 className="text-lg font-bold text-neutral-900 mb-2">Registrar Saque do Gateway</h3>
+                        <p className="text-xs text-neutral-500 mb-4">
+                            Informe os dados do saque realizado no painel da Abacate Pay para deduzir do saldo disponível do FotoClic.
+                        </p>
+
+                        <form onSubmit={handleAddWithdrawal} className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-neutral-700 uppercase mb-1">Valor do Saque (R$)*</label>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    required
+                                    placeholder="Ex: 100.52"
+                                    value={withdrawAmount}
+                                    onChange={e => setWithdrawAmount(e.target.value)}
+                                    className="w-full px-3 py-2 text-sm bg-neutral-50 border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-neutral-700 uppercase mb-1">ID da Transação / Comprovante (Opcional)</label>
+                                <input
+                                    type="text"
+                                    placeholder="Ex: tran_FqfLJSQK..."
+                                    value={withdrawTxId}
+                                    onChange={e => setWithdrawTxId(e.target.value)}
+                                    className="w-full px-3 py-2 text-sm bg-neutral-50 border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-neutral-700 uppercase mb-1">Data do Saque (Opcional)</label>
+                                <input
+                                    type="datetime-local"
+                                    value={withdrawDate}
+                                    onChange={e => setWithdrawDate(e.target.value)}
+                                    className="w-full px-3 py-2 text-sm bg-neutral-50 border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-neutral-700 uppercase mb-1">Observações / Notas (Opcional)</label>
+                                <textarea
+                                    placeholder="Ex: Saque Pix para Banco Inter da empresa."
+                                    value={withdrawNote}
+                                    onChange={e => setWithdrawNote(e.target.value)}
+                                    rows={2}
+                                    className="w-full px-3 py-2 text-sm bg-neutral-50 border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary resize-none"
+                                />
+                            </div>
+
+                            <div className="flex gap-3 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (!addWithdrawLoading) {
+                                            setShowAddWithdrawModal(false);
+                                            setWithdrawAmount('');
+                                            setWithdrawNote('');
+                                            setWithdrawTxId('');
+                                            setWithdrawDate('');
+                                        }
+                                    }}
+                                    className="flex-1 px-4 py-2 text-sm font-medium text-neutral-700 bg-neutral-100 rounded-xl hover:bg-neutral-200 transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={addWithdrawLoading}
+                                    className="flex-1 px-4 py-2 text-sm font-bold text-white bg-primary rounded-xl hover:bg-primary-dark transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
+                                >
+                                    {addWithdrawLoading ? 'Registrando...' : 'Registrar Saque'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             )}
         </div>
     );
