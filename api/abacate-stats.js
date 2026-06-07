@@ -263,7 +263,8 @@ export default async function handler(req, res) {
 
                         if (cartIds.length > 0) {
                             const { data: photos } = await supabase.from('photos').select('*').in('id', cartIds);
-                            if (photos) {
+                            if (photos && photos.length > 0) {
+                                const flatFeePerPhoto = 0.50 / photos.length;
                                 for (const photo of photos) {
                                     const isVideo = photo.media_type === 'video';
                                     let rate;
@@ -276,7 +277,7 @@ export default async function handler(req, res) {
                                         photo_id: photo.id,
                                         buyer_id: userId,
                                         price: photo.price,
-                                        commission: Math.min(photo.price, (photo.price * rate) + 0.80),
+                                        commission: Math.min(photo.price, (photo.price * rate) + flatFeePerPhoto),
                                         commission_rate: rate,
                                         photographer_id: photo.photographer_id,
                                         billing_id: billing.billing_id,

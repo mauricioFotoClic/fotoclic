@@ -55,7 +55,7 @@ export default async function handler(req, res) {
 
     const results = [];
 
-    const PAYOUT_FEE = 1.80; // Taxa de saque cobrada do fotógrafo (R$ 1,80)
+    const PAYOUT_FEE = 0.80; // Taxa de saque cobrada do fotógrafo (R$ 0,80)
 
     const now = new Date();
     const dayOfWeek = now.getDay(); // 0 (Sun) to 6 (Sat)

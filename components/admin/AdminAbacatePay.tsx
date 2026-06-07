@@ -364,7 +364,7 @@ const AdminAbacatePay: React.FC = () => {
                 if (b.payment_method === 'CARD') {
                     totalFees += (amountBRL * 0.035) + 0.60;
                 } else {
-                    totalFees += 0.80;
+                    totalFees += 0.50;
                 }
             });
             const feesCents = Math.round(totalFees * 100);
@@ -455,7 +455,7 @@ const AdminAbacatePay: React.FC = () => {
             if (b.payment_method === 'CARD') {
                 totalFees += (amountBRL * 0.035) + 0.60;
             } else {
-                totalFees += 0.80; // Taxa Pix padrão do Abacate Pay
+                totalFees += 0.50; // Taxa Pix padrão do Abacate Pay
             }
         });
         const feesCents = Math.round(totalFees * 100);

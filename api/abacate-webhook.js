@@ -199,6 +199,7 @@ export default async function handler(req, res) {
                             const defaultVideoRate = settingsRow?.commission_video_default_rate !== undefined && settingsRow?.commission_video_default_rate !== null ? settingsRow.commission_video_default_rate : 0.10;
 
                             let insertedCount = 0;
+                            const flatFeePerPhoto = 0.50 / photos.length;
 
                             for (const photo of photos) {
                                 try {
@@ -210,7 +211,7 @@ export default async function handler(req, res) {
                                         rate = customRates[photo.photographer_id] !== undefined ? customRates[photo.photographer_id] : defaultRate;
                                     }
                                     const finalPrice = photo.price;
-                                    const commissionValue = Math.min(finalPrice, (finalPrice * rate) + 0.80);
+                                    const commissionValue = Math.min(finalPrice, (finalPrice * rate) + flatFeePerPhoto);
 
 
 
