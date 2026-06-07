@@ -38,6 +38,7 @@ interface AbacateStats {
     balance: number;
     total_commission: number;
     total_withdrawals?: number;
+    balance_adjustment?: number;
 }
 
 type StatusFilter = 'ALL' | 'PAID' | 'PENDING' | 'CANCELLED' | 'REFUNDED';
@@ -232,8 +233,14 @@ const AdminAbacatePay: React.FC = () => {
         balance: 0,
         total_commission: 0,
         total_withdrawals: 0,
+        balance_adjustment: 0,
     });
     const [loading, setLoading] = useState(true);
+
+    // Dados da API em tempo real
+    const [apiBalance, setApiBalance] = useState<{ available: number; pending: number; blocked: number } | null>(null);
+    const [apiConnected, setApiConnected] = useState(false);
+    const [apiError, setApiError] = useState<string | null>(null);
 
     // Filters
     const [search,       setSearch]       = useState('');
@@ -256,6 +263,11 @@ const AdminAbacatePay: React.FC = () => {
     const [withdrawDate, setWithdrawDate] = useState('');
     const [addWithdrawLoading, setAddWithdrawLoading] = useState(false);
 
+    // Modal e estados para ajuste manual de saldo
+    const [showAdjustmentModal, setShowAdjustmentModal] = useState(false);
+    const [realBalanceInput, setRealBalanceInput] = useState('');
+    const [adjustmentLoading, setAdjustmentLoading] = useState(false);
+
     // ── Fetch ──────────────────────────────────────────────────────────────────
 
     const fetchData = useCallback(async (isInitial = false) => {
@@ -267,6 +279,9 @@ const AdminAbacatePay: React.FC = () => {
             setAllBillings(data.billings || []);
             setWithdrawals(data.withdrawals || []);
             if (data.stats) setStats(data.stats);
+            setApiBalance(data.api_balance || null);
+            setApiConnected(!!data.api_connected);
+            setApiError(data.api_error || null);
         } catch (err) {
             console.error('Failed to fetch Abacate Pay stats', err);
             if (isInitial) showToast('Erro ao carregar dados da Abacate Pay.', 'error');
@@ -327,6 +342,58 @@ const AdminAbacatePay: React.FC = () => {
             fetchData(false);
         } catch (err: any) {
             showToast(err.message || 'Erro ao excluir saque.', 'error');
+        }
+    };
+
+    const handleSaveAdjustment = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const realVal = parseFloat(realBalanceInput);
+        if (isNaN(realVal) || realVal < 0) {
+            showToast('Por favor, insira um valor de saldo válido.', 'error');
+            return;
+        }
+
+        setAdjustmentLoading(true);
+        try {
+            // Calcular o desvio em relação ao saldo local estimado (sem ajuste)
+            // Saldo local estimado = Net - Total de Saques
+            let totalFees = 0;
+            const paidBillings = allBillings.filter(b => b.status.toUpperCase() === 'PAID');
+            paidBillings.forEach(b => {
+                const amountBRL = b.amount / 100;
+                if (b.payment_method === 'CARD') {
+                    totalFees += (amountBRL * 0.035) + 0.60;
+                } else {
+                    totalFees += 0.80;
+                }
+            });
+            const feesCents = Math.round(totalFees * 100);
+            const netCents = Math.max(0, stats.total_paid - feesCents);
+            const totalWithdrawalsCents = stats.total_withdrawals || 0;
+            
+            const estimatedCents = netCents - totalWithdrawalsCents;
+            const realCents = Math.round(realVal * 100);
+            
+            // Ajuste necessário
+            const adjustment = realCents - estimatedCents;
+
+            const res = await fetch('/api/abacate-stats', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ adjustment })
+            });
+
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || 'Erro ao salvar ajuste');
+
+            showToast('Saldo do gateway ajustado com sucesso!', 'success');
+            setShowAdjustmentModal(false);
+            setRealBalanceInput('');
+            fetchData(false);
+        } catch (err: any) {
+            showToast(err.message || 'Erro ao salvar ajuste.', 'error');
+        } finally {
+            setAdjustmentLoading(false);
         }
     };
 
@@ -394,13 +461,13 @@ const AdminAbacatePay: React.FC = () => {
         const feesCents = Math.round(totalFees * 100);
         const netCents = Math.max(0, stats.total_paid - feesCents);
         const totalWithdrawalsCents = stats.total_withdrawals || 0;
-        const availableCents = Math.max(0, netCents - totalWithdrawalsCents);
+        const availableCents = Math.max(0, netCents - totalWithdrawalsCents + (stats.balance_adjustment || 0));
         return {
             fees: feesCents,
             net: netCents,
             available: availableCents
         };
-    }, [allBillings, stats.total_paid, stats.total_withdrawals]);
+    }, [allBillings, stats.total_paid, stats.total_withdrawals, stats.balance_adjustment]);
 
     // ── Refund ─────────────────────────────────────────────────────────────────
 
@@ -464,7 +531,7 @@ const AdminAbacatePay: React.FC = () => {
                     <p className="text-neutral-500 mt-1 text-sm">Gestão completa de pagamentos PIX e Cartão.</p>
                 </div>
                 <button
-                    onClick={fetchData}
+                    onClick={() => fetchData(false)}
                     title="Atualizar dados"
                     className="p-2.5 text-neutral-500 hover:text-primary transition-colors bg-white rounded-full shadow-sm border border-neutral-200"
                 >
@@ -579,21 +646,89 @@ const AdminAbacatePay: React.FC = () => {
                             <rect x="2" y="4" width="20" height="16" rx="2"/><line x1="12" y1="20" x2="12" y2="4"/>
                         </svg>
                     </div>
-                    <p className="text-emerald-800 text-xs font-bold uppercase tracking-wider mb-1">Saldo Disponível no Gateway</p>
-                    <p className="text-3xl font-display font-bold text-emerald-950">{formatBRL(gatewayFeesAndNet.available)}</p>
+                    <div className="flex items-center justify-between mb-1">
+                        <p className="text-emerald-800 text-xs font-bold uppercase tracking-wider">
+                            {apiConnected ? 'Saldo Disponível no Gateway' : 'Saldo Estimado no Gateway'}
+                        </p>
+                        {apiConnected ? (
+                            <span className="inline-flex items-center bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border border-emerald-200/50">
+                                🟢 Automático
+                            </span>
+                        ) : (
+                            <span className="inline-flex items-center bg-amber-100 text-amber-800 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border border-amber-200/50">
+                                ⚠️ Estimado
+                            </span>
+                        )}
+                    </div>
+                    
+                    <div className="flex items-center gap-2 mb-1">
+                        <p className="text-3xl font-display font-bold text-emerald-950">
+                            {apiConnected && apiBalance ? formatBRL(apiBalance.available) : formatBRL(gatewayFeesAndNet.available)}
+                        </p>
+                        {!apiConnected && (
+                            <button
+                                onClick={() => {
+                                    setRealBalanceInput((gatewayFeesAndNet.available / 100).toFixed(2));
+                                    setShowAdjustmentModal(true);
+                                }}
+                                title="Ajustar saldo com o valor real do Abacate Pay"
+                                className="p-1 text-emerald-800 hover:text-emerald-950 transition-colors bg-emerald-100 hover:bg-emerald-200 rounded-lg shadow-sm border border-emerald-200/50"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4z"/>
+                                </svg>
+                            </button>
+                        )}
+                    </div>
                     
                     <div className="mt-3 pt-3 border-t border-emerald-200/60 space-y-1.5 text-xs text-emerald-800">
-                        <div className="flex justify-between">
-                            <span>Líquido acumulado:</span>
-                            <span className="font-medium">{formatBRL(gatewayFeesAndNet.net)}</span>
-                        </div>
-                        <div className="flex justify-between font-bold border-b border-emerald-200/30 pb-1.5 text-emerald-900">
-                            <span>Saques efetuados:</span>
-                            <span className="text-red-700">-{formatBRL(stats.total_withdrawals || 0)}</span>
-                        </div>
-                        <p className="text-[10px] text-emerald-700/70 leading-snug mt-1">
-                            * Este é o saldo real estimado atualmente disponível na conta do Abacate Pay.
-                        </p>
+                        {apiConnected && apiBalance ? (
+                            <>
+                                <div className="flex justify-between">
+                                    <span>Pendente de liberação:</span>
+                                    <span className="font-medium text-emerald-900">{formatBRL(apiBalance.pending)}</span>
+                                </div>
+                                {apiBalance.blocked > 0 && (
+                                    <div className="flex justify-between text-red-700">
+                                        <span>Saldo bloqueado:</span>
+                                        <span className="font-bold">{formatBRL(apiBalance.blocked)}</span>
+                                    </div>
+                                )}
+                                <div className="flex justify-between">
+                                    <span>Líquido acumulado (Vendas):</span>
+                                    <span className="font-medium">{formatBRL(gatewayFeesAndNet.net)}</span>
+                                </div>
+                                <p className="text-[10px] text-emerald-700/70 leading-snug mt-1">
+                                    * Valores atualizados automaticamente em tempo real via API do Abacate Pay.
+                                </p>
+                            </>
+                        ) : (
+                            <>
+                                <div className="flex justify-between">
+                                    <span>Líquido acumulado:</span>
+                                    <span className="font-medium">{formatBRL(gatewayFeesAndNet.net)}</span>
+                                </div>
+                                <div className="flex justify-between font-bold border-b border-emerald-200/30 pb-1.5 text-emerald-900">
+                                    <span>Saques efetuados:</span>
+                                    <span className="text-red-700">-{formatBRL(stats.total_withdrawals || 0)}</span>
+                                </div>
+                                {stats.balance_adjustment !== 0 && (
+                                    <div className="flex justify-between text-[11px] text-emerald-700/80">
+                                        <span>Ajuste manual de saldo:</span>
+                                        <span>{stats.balance_adjustment && stats.balance_adjustment > 0 ? '+' : ''}{formatBRL(stats.balance_adjustment || 0)}</span>
+                                    </div>
+                                )}
+                                
+                                <div className="bg-amber-50/80 border border-amber-200/60 rounded-xl p-3 text-[10px] text-amber-900 leading-normal mt-2 shadow-sm">
+                                    <p className="font-bold flex items-center gap-1 mb-1">
+                                        💡 Ative a Automação
+                                    </p>
+                                    <p>
+                                        Para sincronizar o saldo real automaticamente, edite sua chave de API da Abacate Pay no dashboard deles e ative a permissão <strong>STORE:READ</strong>.
+                                    </p>
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
             </div>
@@ -1003,6 +1138,55 @@ const AdminAbacatePay: React.FC = () => {
                                     className="flex-1 px-4 py-2 text-sm font-bold text-white bg-primary rounded-xl hover:bg-primary-dark transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
                                 >
                                     {addWithdrawLoading ? 'Registrando...' : 'Registrar Saque'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal para Ajuste Manual de Saldo */}
+            {showAdjustmentModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-fadeIn">
+                        <h3 className="text-lg font-bold text-neutral-900 mb-2">Ajustar Saldo Estimado</h3>
+                        <p className="text-xs text-neutral-500 mb-4">
+                            Informe o saldo disponível real exibido no painel da Abacate Pay para forçar a sincronização do valor local estimado do FotoClic.
+                        </p>
+
+                        <form onSubmit={handleSaveAdjustment} className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-neutral-700 uppercase mb-1">Saldo Disponível Real (R$)*</label>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    required
+                                    placeholder="Ex: 112.28"
+                                    value={realBalanceInput}
+                                    onChange={e => setRealBalanceInput(e.target.value)}
+                                    className="w-full px-3 py-2 text-sm bg-neutral-50 border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                                />
+                            </div>
+
+                            <div className="flex gap-3 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (!adjustmentLoading) {
+                                            setShowAdjustmentModal(false);
+                                            setRealBalanceInput('');
+                                        }
+                                    }}
+                                    className="flex-1 px-4 py-2 text-sm font-medium text-neutral-700 bg-neutral-100 rounded-xl hover:bg-neutral-200 transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={adjustmentLoading}
+                                    className="flex-1 px-4 py-2 text-sm font-bold text-white bg-primary rounded-xl hover:bg-primary-dark transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
+                                >
+                                    {adjustmentLoading ? 'Salvando...' : 'Salvar Ajuste'}
                                 </button>
                             </div>
                         </form>

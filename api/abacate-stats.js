@@ -28,7 +28,35 @@ export default async function handler(req, res) {
 
     if (req.method === 'POST') {
         try {
-            const { amount, note, external_id, withdraw_date } = req.body;
+            const { amount, note, external_id, withdraw_date, adjustment } = req.body;
+            
+            // Tratar ajuste manual do saldo
+            if (adjustment !== undefined) {
+                const { data: settings, error: readError } = await supabase
+                    .from('system_settings')
+                    .select('*')
+                    .eq('id', 1)
+                    .single();
+
+                if (readError) throw readError;
+
+                const customRates = settings.commission_custom_rates || {};
+                
+                const { error: updateError } = await supabase
+                    .from('system_settings')
+                    .update({
+                        commission_custom_rates: {
+                            ...customRates,
+                            __adjustment: Math.round(Number(adjustment))
+                        }
+                    })
+                    .eq('id', 1);
+
+                if (updateError) throw updateError;
+
+                return res.status(200).json({ success: true, adjustment });
+            }
+
             if (!amount || amount <= 0) {
                 return res.status(400).json({ error: 'Valor do saque inválido.' });
             }
@@ -123,9 +151,13 @@ export default async function handler(req, res) {
 
     const apiKey = process.env.ABACATEPAY_API_KEY;
 
+    let apiBalance = null;
+    let apiConnected = false;
+    let apiError = null;
+
     try {
-        // 1. Tentar sincronizar com a API do Abacate Pay se tivermos a chave
         if (apiKey) {
+            // 1. Tentar sincronizar com a API do Abacate Pay (checkouts)
             try {
                 const apiRes = await fetch('https://api.abacatepay.com/v2/checkouts/list', {
                     headers: { 'Authorization': `Bearer ${apiKey}` }
@@ -149,11 +181,39 @@ export default async function handler(req, res) {
                     }
                 }
             } catch (syncErr) {
-                console.error('[AbacateStats] Erro ao sincronizar com API:', syncErr);
+                console.error('[AbacateStats] Erro ao sincronizar checkouts com API:', syncErr);
             }
+
+            // 2. Tentar obter o saldo da loja via API automaticamente
+            try {
+                const storeRes = await fetch('https://api.abacatepay.com/v2/stores/get', {
+                    headers: { 
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (storeRes.ok) {
+                    const storeData = await storeRes.json();
+                    if (storeData.success && storeData.data && storeData.data.balance) {
+                        apiBalance = storeData.data.balance;
+                        apiConnected = true;
+                    } else {
+                        apiError = storeData.error || 'Não foi possível ler o saldo na resposta da API.';
+                    }
+                } else {
+                    const errData = await storeRes.json().catch(() => ({}));
+                    apiError = errData.error || `HTTP ${storeRes.status}`;
+                }
+            } catch (storeErr) {
+                console.error('[AbacateStats] Erro ao consultar saldo na API:', storeErr);
+                apiError = storeErr.message;
+            }
+        } else {
+            apiError = 'Chave de API não configurada (ABACATEPAY_API_KEY ausente).';
         }
 
-        // 2. Buscar dados atualizados do banco
+        // 3. Buscar dados atualizados do banco
         const { data: billings, error } = await supabase
             .from('abacate_pay_billings')
             .select('*')
@@ -162,7 +222,7 @@ export default async function handler(req, res) {
 
         if (error) {
             if (error.code === 'PGRST116' || error.code === '42P01' || error.message?.includes('does not exist')) {
-                return res.status(200).json({ billings: [], stats: emptyStats() });
+                return res.status(200).json({ billings: [], stats: emptyStats(), api_balance: null, api_connected: false, api_error: 'Tabela de cobranças não existe.' });
             }
             throw error;
         }
@@ -172,7 +232,7 @@ export default async function handler(req, res) {
         const cancelled = billings.filter(b => b.status === 'CANCELLED');
         const refunded  = billings.filter(b => b.status === 'REFUNDED');
 
-        // 3. Auto-healing: Verificar se existem cobranças pagas sem registro de venda
+        // 4. Auto-healing: Verificar se existem cobranças pagas sem registro de venda
         if (paid.length > 0) {
             const paidIds = paid.map(b => b.billing_id).filter(Boolean);
             
@@ -240,7 +300,7 @@ export default async function handler(req, res) {
         const totalPix  = paid.filter(b => b.payment_method === 'PIX').reduce((s, b) => s + (b.amount || 0), 0);
         const totalCard = paid.filter(b => b.payment_method === 'CARD').reduce((s, b) => s + (b.amount || 0), 0);
 
-        // 4. Buscar comissões acumuladas (Lucro FotoClic) das vendas pagas
+        // 5. Buscar comissões acumuladas (Lucro FotoClic) das vendas pagas
         const { data: sales, error: salesError } = await supabase
             .from('sales')
             .select('commission')
@@ -248,7 +308,7 @@ export default async function handler(req, res) {
 
         const totalCommission = salesError ? 0 : sales.reduce((s, b) => s + (b.commission || 0), 0);
 
-        // 5. Buscar saques de system_settings para retornar no GET
+        // 6. Buscar saques e ajustes de system_settings para retornar no GET
         const { data: settings } = await supabase
             .from('system_settings')
             .select('commission_custom_rates')
@@ -258,10 +318,14 @@ export default async function handler(req, res) {
         const customRates = settings?.commission_custom_rates || {};
         const withdrawals = customRates.__withdrawals || [];
         const totalWithdrawals = withdrawals.reduce((sum, w) => sum + (w.amount || 0), 0);
+        const balanceAdjustment = customRates.__adjustment || 0;
 
         return res.status(200).json({
             billings,
             withdrawals,
+            api_balance: apiBalance,
+            api_connected: apiConnected,
+            api_error: apiError,
             stats: {
                 total_paid:      totalPaid,
                 total_pix:       totalPix,
@@ -274,7 +338,8 @@ export default async function handler(req, res) {
                 refunded_amount: totalRefunded,
                 total_commission: Math.round(totalCommission * 100),
                 balance: Math.max(0, Math.round(totalPaid - totalRefunded)),
-                total_withdrawals: totalWithdrawals
+                total_withdrawals: totalWithdrawals,
+                balance_adjustment: balanceAdjustment
             },
         });
 
