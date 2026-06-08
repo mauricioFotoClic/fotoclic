@@ -139,16 +139,7 @@ export default async function handler(req, res) {
                     const photographerMap = (photographersData || []).reduce((acc, p) => {
                         acc[p.id] = p;
                         return acc;
-                    }, {});
-
-                    // 1.5 Buscar Configurações e Templates do Banco
-                    const { data: settingsRow } = await supabase
-                        .from('system_settings')
-                        .select('*')
-                        .eq('id', 1)
-                        .single();
-
-                    // --- LIMPEZA DO CARRINHO (BACKEND) ---
+                    }, {});                    // --- LIMPEZA DO CARRINHO (BACKEND) ---
                     try {
                         const photoIds = photos.map(p => p.id);
                         const { data: cartData } = await supabase.from('carts').select('items').eq('user_id', user.id).maybeSingle();
@@ -162,9 +153,6 @@ export default async function handler(req, res) {
                     }
 
                     const photographerSalesMap = {};
-                    const defaultRate = settingsRow?.commission_default_rate || 0.06;
-                    const customRates = settingsRow?.commission_custom_rates || {};
-                    const defaultVideoRate = settingsRow?.commission_video_default_rate !== undefined && settingsRow?.commission_video_default_rate !== null ? settingsRow.commission_video_default_rate : 0.10;
 
                     for (const photo of photos) {
                         if (!photographerSalesMap[photo.photographer_id]) {

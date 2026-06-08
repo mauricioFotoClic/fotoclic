@@ -274,13 +274,6 @@ export default async function handler(req, res) {
                                 // --- NOVIDADE: Enviar Email de Confirmação para o Comprador (Dinamizado pelo Banco) ---
                                 if (customerEmail) {
                                 try {
-                                    // 1. Buscar Templates do Banco
-                                    const { data: settingsRow } = await supabaseAdmin
-                                        .from('system_settings')
-                                        .select('email_templates')
-                                        .eq('id', 1)
-                                        .single();
-                                    
                                     const templates = settingsRow?.email_templates || {};
                                     const template = templates.purchaseConfirmation || {
                                         subject: '✅ Sua compra no FotoClic foi confirmada!',
