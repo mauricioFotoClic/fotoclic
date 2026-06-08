@@ -203,7 +203,7 @@ const PhotographerPayouts: React.FC<PhotographerPayoutsProps> = ({ user }) => {
                                 </div>
                                 <p className="text-lg font-mono bg-neutral-50 px-3 py-1 rounded border border-neutral-200 inline-block text-neutral-800">{user.pix_key || bankInfo.pixKey}</p>
                                 <p className="text-[10px] text-neutral-400 mt-1 italic">
-                                    * Será descontada uma taxa de R$ 1,80 por saque Pix no ato da transferência.
+                                    * Será descontada uma taxa de R$ 0,80 por saque Pix no ato da transferência.
                                 </p>
                                 <p className="text-xs text-green-600 mt-2 flex items-center">
                                     <CheckCircleIcon /> <span className="ml-1">Conta configurada para saques automáticos.</span>
@@ -234,7 +234,7 @@ const PhotographerPayouts: React.FC<PhotographerPayoutsProps> = ({ user }) => {
                         <h3 className="font-bold text-xl mb-1">Status de Pagamento Automático</h3>
                         <p className="text-emerald-100 text-sm max-w-md">
                             O sistema processa saques automaticamente sempre que seu **Saldo Disponível** atinge **R$ 100,00**, respeitando sua frequência escolhida. Os pagamentos com frequência diária são processados todos os dias à meia-noite.
-                            <span className="block mt-1 font-bold text-white bg-emerald-700/50 p-2 rounded inline-block">⚠️ No ato do saque, uma taxa de R$ 1,80 será descontada.</span>
+                            <span className="block mt-1 font-bold text-white bg-emerald-700/50 p-2 rounded inline-block">⚠️ No ato do saque, uma taxa de R$ 0,80 será descontada.</span>
                         </p>
                     </div>
                     <div className="text-center md:text-right">
@@ -290,7 +290,7 @@ const PhotographerPayouts: React.FC<PhotographerPayoutsProps> = ({ user }) => {
                         <span className="mr-2 mt-0.5"><InfoIcon /></span>
                         <div>
                             <p>O pagamento é feito exclusivamente via PIX para garantir agilidade e segurança.</p>
-                            <p className="font-bold mt-1">⚠️ Importante: A taxa de transferência da processadora de pagamentos (R$ 1,80) será descontada do valor no ato do saque. A comissão da plataforma FotoClic já foi descontada do seu saldo disponível no momento em que as vendas foram realizadas.</p>
+                            <p className="font-bold mt-1">⚠️ Importante: A taxa de transferência da processadora de pagamentos (R$ 0,80) será descontada do valor no ato do saque. A comissão da plataforma FotoClic já foi descontada do seu saldo disponível no momento em que as vendas foram realizadas.</p>
                         </div>
                     </div>
 
