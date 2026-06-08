@@ -2702,7 +2702,7 @@ export const api = {
     const { data: { session } } = await supabase.auth.getSession();
     const token = session?.access_token;
     
-    const response = await fetch(`${API_URL}/payout-transfer`, {
+    const response = await fetch(`${API_URL}/payout-worker`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
