@@ -2685,17 +2685,27 @@ export const api = {
   },
 
   getEligiblePhotographers: async (): Promise<any[]> => {
-    const { data, error } = await supabase
-      .from("photographer_wallet_summary")
-      .select("*, photographer:photographer_id ( email, pix_key, pix_key_type, payout_frequency )");
-    if (error) throw error;
-    return (data || []).map((item: any) => ({
-      ...item,
-      email: item.photographer?.email,
-      pixKey: item.photographer?.pix_key,
-      pixKeyType: item.photographer?.pix_key_type,
-      payoutFrequency: item.photographer?.payout_frequency
-    }));
+    const [walletRes, usersRes] = await Promise.all([
+      supabase.from("photographer_wallet_summary").select("*"),
+      supabase.from("users").select("id, email, pix_key, pix_key_type, payout_frequency").eq("role", "photographer")
+    ]);
+
+    if (walletRes.error) throw walletRes.error;
+    if (usersRes.error) throw usersRes.error;
+
+    const userMap = new Map();
+    (usersRes.data || []).forEach((u: any) => userMap.set(u.id, u));
+
+    return (walletRes.data || []).map((item: any) => {
+      const user = userMap.get(item.photographer_id);
+      return {
+        ...item,
+        email: user?.email,
+        pixKey: user?.pix_key,
+        pixKeyType: user?.pix_key_type,
+        payoutFrequency: user?.payout_frequency
+      };
+    });
   },
 
   transferPayoutAutomatically: async (photographerId: string): Promise<any> => {
