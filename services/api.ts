@@ -2684,6 +2684,37 @@ export const api = {
     return data;
   },
 
+  getEligiblePhotographers: async (): Promise<any[]> => {
+    const { data, error } = await supabase
+      .from("photographer_wallet_summary")
+      .select("*, photographer:photographer_id ( email, pix_key, pix_key_type, payout_frequency )");
+    if (error) throw error;
+    return (data || []).map((item: any) => ({
+      ...item,
+      email: item.photographer?.email,
+      pixKey: item.photographer?.pix_key,
+      pixKeyType: item.photographer?.pix_key_type,
+      payoutFrequency: item.photographer?.payout_frequency
+    }));
+  },
+
+  transferPayoutAutomatically: async (photographerId: string): Promise<any> => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    
+    const response = await fetch(`${API_URL}/payout-transfer`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ photographerId })
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Erro ao transferir saldo.');
+    return result;
+  },
+
 
 };
 

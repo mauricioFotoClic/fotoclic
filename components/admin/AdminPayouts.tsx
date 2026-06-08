@@ -5,10 +5,11 @@ import api from '../../services/api';
 import Spinner from '../Spinner';
 import Modal from '../Modal';
 
-type Tab = 'pending' | 'history';
+type Tab = 'pending' | 'history' | 'eligible';
 
 const AdminPayouts: React.FC = () => {
     const [payouts, setPayouts] = useState<(Payout & { photographer_name: string, bank_info?: BankInfo })[]>([]);
+    const [eligiblePhotographers, setEligiblePhotographers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<Tab>('pending');
 
@@ -17,21 +18,30 @@ const AdminPayouts: React.FC = () => {
     const [isProcessModalOpen, setIsProcessModalOpen] = useState(false);
     const [isApproving, setIsApproving] = useState(false);
 
-    const fetchPayouts = useCallback(async () => {
+    // Auto Pix Transfer Modal
+    const [selectedEligible, setSelectedEligible] = useState<any | null>(null);
+    const [isAutoTransferModalOpen, setIsAutoTransferModalOpen] = useState(false);
+    const [isTransferringAuto, setIsTransferringAuto] = useState(false);
+
+    const fetchAllData = useCallback(async () => {
         try {
             setLoading(true);
-            const data = await api.getAllPayouts();
-            setPayouts(data);
+            const [payoutsData, eligibleData] = await Promise.all([
+                api.getAllPayouts(),
+                api.getEligiblePhotographers()
+            ]);
+            setPayouts(payoutsData);
+            setEligiblePhotographers(eligibleData);
         } catch (error) {
-            console.error("Failed to fetch payouts", error);
+            console.error("Failed to fetch payouts and balances", error);
         } finally {
             setLoading(false);
         }
     }, []);
 
     useEffect(() => {
-        fetchPayouts();
-    }, [fetchPayouts]);
+        fetchAllData();
+    }, [fetchAllData]);
 
     const handleOpenProcessModal = (payout: any) => {
         setSelectedPayout(payout);
@@ -46,15 +56,6 @@ const AdminPayouts: React.FC = () => {
 
             // Send email notification
             const { emailService } = await import('../../services/emailService');
-            // Assuming photographer_email is available, if not we might need to fetch it or ensure it's in the joined data
-            // Since we only have photographer_name in the state, we might need a way to get email.
-            // However, the previous 'getAllPayouts' (not shown in full view) usually joins user data. 
-            // If email is missing, we skip or fetch. adminPayouts state definition suggests custom object.
-            // Let's check api.getAllPayouts return type or assume we need to fetch user if email isn't there.
-            // For now, I will try to use 'selectedPayout.photographer_email' if it existed, but type def above says:
-            // Payout & { photographer_name: string, bank_info?: BankInfo }
-            // So we need to fetch the email or rely on api to return it.
-
             // To be safe, let's fetch the user to get the email:
             const user = await api.getPhotographerById(selectedPayout.photographer_id);
             if (user) {
@@ -67,12 +68,33 @@ const AdminPayouts: React.FC = () => {
             }
 
             setIsProcessModalOpen(false);
-            fetchPayouts();
+            fetchAllData();
         } catch (error) {
             console.error("Error confirming payment:", error);
             alert("Erro ao confirmar pagamento.");
         } finally {
             setIsApproving(false);
+        }
+    };
+
+    const handleOpenAutoTransferModal = (photographer: any) => {
+        setSelectedEligible(photographer);
+        setIsAutoTransferModalOpen(true);
+    };
+
+    const handleConfirmAutoTransfer = async () => {
+        if (!selectedEligible) return;
+        setIsTransferringAuto(true);
+        try {
+            await api.transferPayoutAutomatically(selectedEligible.photographer_id);
+            alert("Transferência Pix automática realizada com sucesso!");
+            setIsAutoTransferModalOpen(false);
+            fetchAllData();
+        } catch (error: any) {
+            console.error("Error performing auto transfer:", error);
+            alert("Erro ao transferir: " + error.message);
+        } finally {
+            setIsTransferringAuto(false);
         }
     };
 
@@ -95,6 +117,12 @@ const AdminPayouts: React.FC = () => {
                     Solicitações Pendentes ({payouts.filter(p => p.status === 'pending').length})
                 </button>
                 <button
+                    onClick={() => setActiveTab('eligible')}
+                    className={`pb-2 px-4 font-medium transition-colors border-b-2 ${activeTab === 'eligible' ? 'border-primary text-primary' : 'border-transparent text-neutral-500 hover:text-neutral-700'}`}
+                >
+                    Saldos e Saques Automáticos ({eligiblePhotographers.filter(p => p.balance_available > 0).length})
+                </button>
+                <button
                     onClick={() => setActiveTab('history')}
                     className={`pb-2 px-4 font-medium transition-colors border-b-2 ${activeTab === 'history' ? 'border-primary text-primary' : 'border-transparent text-neutral-500 hover:text-neutral-700'}`}
                 >
@@ -102,81 +130,152 @@ const AdminPayouts: React.FC = () => {
                 </button>
             </div>
 
-            {/* Mobile cards */}
-            <div className="md:hidden space-y-3">
-                {filteredPayouts.map((payout) => (
-                    <div key={payout.id} className="bg-white rounded-lg border border-neutral-200 p-4">
-                        <div className="flex items-center justify-between mb-3">
-                            <span className="font-semibold text-neutral-800">{payout.photographer_name}</span>
-                            {payout.status === 'pending' ? (
-                                <button
-                                    onClick={() => handleOpenProcessModal(payout)}
-                                    className="px-3 py-1 text-xs font-medium text-white bg-primary-dark rounded-full hover:bg-primary-dark transition-colors"
-                                >
-                                    Processar
-                                </button>
-                            ) : (
-                                <span className={`px-2 py-1 text-xs font-bold rounded-full ${payout.status === 'paid' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                                    {payout.status === 'paid' ? 'Pago' : 'Rejeitado'}
-                                </span>
-                            )}
-                        </div>
-                        <div className="text-2xl font-bold text-green-600 mb-3">
-                            {payout.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                        </div>
-                        <div className="space-y-1 text-xs text-neutral-500">
-                            <div className="flex justify-between">
-                                <span>Solicitado</span>
-                                <span>{new Date(payout.request_date).toLocaleDateString('pt-BR')}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span>Agendado</span>
-                                <span>{new Date(payout.scheduled_date).toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'numeric' })}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span>Chave PIX</span>
-                                <span className={payout.bank_info ? 'text-neutral-700' : 'text-red-500'}>
-                                    {payout.bank_info ? `${payout.bank_info.pixKey} (${payout.bank_info.pixKeyType})` : 'Não cadastrada'}
-                                </span>
-                            </div>
-                        </div>
+            {activeTab === 'eligible' ? (
+                <>
+                    {/* Mobile cards para saldos */}
+                    <div className="md:hidden space-y-3">
+                        {eligiblePhotographers.map((item) => {
+                            const isEligible = item.balance_available >= 100;
+                            const hasPix = !!item.pixKey;
+                            
+                            return (
+                                <div key={item.photographer_id} className="bg-white rounded-lg border border-neutral-200 p-4">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <span className="font-semibold text-neutral-800">{item.photographer_name}</span>
+                                        {hasPix && item.balance_available > 0 ? (
+                                            <button
+                                                onClick={() => handleOpenAutoTransferModal(item)}
+                                                className="px-3 py-1 text-xs font-medium text-white bg-green-600 rounded-full hover:bg-green-700 transition-colors shadow-sm"
+                                            >
+                                                Pagar Pix
+                                            </button>
+                                        ) : (
+                                            <span className="px-2 py-1 text-xs font-bold rounded-full bg-neutral-100 text-neutral-500">
+                                                Inativo
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2 mb-3">
+                                        <div className="bg-neutral-50 rounded p-2 text-center">
+                                            <p className="text-[10px] text-neutral-500">Saldo Disponível</p>
+                                            <p className="text-sm font-bold text-neutral-800">{item.balance_available.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+                                        </div>
+                                        <div className="bg-neutral-50 rounded p-2 text-center">
+                                            <p className="text-[10px] text-neutral-500">Total Pago</p>
+                                            <p className="text-sm font-bold text-neutral-800">{item.total_withdrawn.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-1 text-xs text-neutral-500">
+                                        <div className="flex justify-between">
+                                            <span>Frequência</span>
+                                            <span className="capitalize">{item.payoutFrequency || 'diário'}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span>Chave PIX</span>
+                                            <span className={item.pixKey ? 'text-neutral-700 font-mono truncate max-w-[120px]' : 'text-red-500'}>
+                                                {item.pixKey ? `${item.pixKey} (${item.pixKeyType})` : 'Não cadastrada'}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span>Status</span>
+                                            <span className={`font-bold ${!hasPix ? 'text-red-500' : isEligible ? 'text-green-600' : 'text-orange-500'}`}>
+                                                {!hasPix ? 'Sem Pix' : isEligible ? 'Elegível (>= R$ 100)' : 'Abaixo do Mínimo'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                        {eligiblePhotographers.length === 0 && <p className="text-center py-8 text-neutral-500 bg-white rounded-lg">Nenhum fotógrafo cadastrado.</p>}
                     </div>
-                ))}
-                {filteredPayouts.length === 0 && <p className="text-center py-8 text-neutral-500 bg-white rounded-lg">Nenhum registro encontrado.</p>}
-            </div>
 
-            {/* Desktop table */}
-            <div className="hidden md:block bg-white rounded-lg shadow-md overflow-x-auto">
-                <table className="w-full min-w-[960px]">
-                    <thead className="bg-neutral-100">
-                        <tr>
-                            <th className="p-4 text-left text-sm font-semibold text-neutral-600">Fotógrafo</th>
-                            <th className="p-4 text-left text-sm font-semibold text-neutral-600">Solicitado em</th>
-                            <th className="p-4 text-left text-sm font-semibold text-neutral-600">Agendado Para</th>
-                            <th className="p-4 text-right text-sm font-semibold text-neutral-600">Valor</th>
-                            <th className="p-4 text-center text-sm font-semibold text-neutral-600">Chave PIX</th>
-                            <th className="p-4 text-center text-sm font-semibold text-neutral-600">Ação</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {filteredPayouts.map((payout, index) => (
-                            <tr key={payout.id} className={`border-t ${index % 2 === 0 ? 'bg-white' : 'bg-neutral-50'}`}>
-                                <td className="p-4 text-sm font-medium text-neutral-800">{payout.photographer_name}</td>
-                                <td className="p-4 text-sm text-neutral-500">{new Date(payout.request_date).toLocaleDateString('pt-BR')}</td>
-                                <td className="p-4 text-sm text-neutral-800 font-medium">
-                                    {new Date(payout.scheduled_date).toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'numeric' })}
-                                </td>
-                                <td className="p-4 text-sm text-green-600 font-bold text-right">
-                                    {payout.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                                </td>
-                                <td className="p-4 text-sm text-neutral-500 text-center">
-                                    {payout.bank_info ? `${payout.bank_info.pixKey} (${payout.bank_info.pixKeyType})` : <span className="text-red-500">Não cadastrada</span>}
-                                </td>
-                                <td className="p-4 text-center">
+                    {/* Desktop table para saldos */}
+                    <div className="hidden md:block bg-white rounded-lg shadow-md overflow-x-auto">
+                        <table className="w-full min-w-[960px]">
+                            <thead className="bg-neutral-100">
+                                <tr>
+                                    <th className="p-4 text-left text-sm font-semibold text-neutral-600">Fotógrafo</th>
+                                    <th className="p-4 text-left text-sm font-semibold text-neutral-600">Email</th>
+                                    <th className="p-4 text-center text-sm font-semibold text-neutral-600">Frequência</th>
+                                    <th className="p-4 text-right text-sm font-semibold text-neutral-600">Total Pago</th>
+                                    <th className="p-4 text-right text-sm font-semibold text-neutral-600">Saldo Disponível</th>
+                                    <th className="p-4 text-center text-sm font-semibold text-neutral-600">Chave PIX</th>
+                                    <th className="p-4 text-center text-sm font-semibold text-neutral-600">Status</th>
+                                    <th className="p-4 text-center text-sm font-semibold text-neutral-600">Ação</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {eligiblePhotographers.map((item, index) => {
+                                    const isEligible = item.balance_available >= 100;
+                                    const hasPix = !!item.pixKey;
+                                    
+                                    return (
+                                        <tr key={item.photographer_id} className={`border-t ${index % 2 === 0 ? 'bg-white' : 'bg-neutral-50'}`}>
+                                            <td className="p-4 text-sm font-medium text-neutral-800">{item.photographer_name}</td>
+                                            <td className="p-4 text-sm text-neutral-500">{item.email || '-'}</td>
+                                            <td className="p-4 text-sm text-neutral-800 text-center capitalize">{item.payoutFrequency || 'diário'}</td>
+                                            <td className="p-4 text-sm text-neutral-500 text-right">
+                                                {item.total_withdrawn.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                            </td>
+                                            <td className="p-4 text-sm text-neutral-800 font-bold text-right">
+                                                {item.balance_available.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                            </td>
+                                            <td className="p-4 text-sm text-neutral-500 text-center">
+                                                {item.pixKey ? (
+                                                    <span className="font-mono">{item.pixKey} ({item.pixKeyType})</span>
+                                                ) : (
+                                                    <span className="text-red-500">Não cadastrada</span>
+                                                )}
+                                            </td>
+                                            <td className="p-4 text-sm text-center">
+                                                <span className={`px-2.5 py-1 text-xs font-bold rounded-full ${
+                                                    !hasPix ? 'bg-red-100 text-red-800' :
+                                                    isEligible ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'
+                                                }`}>
+                                                    {!hasPix ? 'Sem Pix' : isEligible ? 'Elegível' : 'Abaixo do Mínimo'}
+                                                </span>
+                                            </td>
+                                            <td className="p-4 text-center">
+                                                {hasPix && item.balance_available > 0 ? (
+                                                    <button
+                                                        onClick={() => handleOpenAutoTransferModal(item)}
+                                                        className="px-4.5 py-1 text-xs font-bold text-white bg-green-600 rounded-full hover:bg-green-700 transition-colors shadow-sm"
+                                                    >
+                                                        Transferir Pix
+                                                    </button>
+                                                ) : (
+                                                    <button
+                                                        disabled
+                                                        className="px-4.5 py-1 text-xs font-bold text-neutral-400 bg-neutral-100 rounded-full cursor-not-allowed"
+                                                    >
+                                                        Indisponível
+                                                    </button>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                                {eligiblePhotographers.length === 0 && (
+                                    <tr>
+                                        <td colSpan={8} className="text-center p-8 text-neutral-500">Nenhum fotógrafo cadastrado.</td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </>
+            ) : (
+                <>
+                    {/* Mobile cards */}
+                    <div className="md:hidden space-y-3">
+                        {filteredPayouts.map((payout) => (
+                            <div key={payout.id} className="bg-white rounded-lg border border-neutral-200 p-4">
+                                <div className="flex items-center justify-between mb-3">
+                                    <span className="font-semibold text-neutral-800">{payout.photographer_name}</span>
                                     {payout.status === 'pending' ? (
                                         <button
                                             onClick={() => handleOpenProcessModal(payout)}
-                                            className="px-3 py-1 text-xs font-medium text-white bg-primary-dark rounded-full hover:bg-primary-dark transition-colors shadow-sm"
+                                            className="px-3 py-1 text-xs font-medium text-white bg-primary-dark rounded-full hover:bg-primary-dark transition-colors"
                                         >
                                             Processar
                                         </button>
@@ -185,23 +284,90 @@ const AdminPayouts: React.FC = () => {
                                             {payout.status === 'paid' ? 'Pago' : 'Rejeitado'}
                                         </span>
                                     )}
-                                </td>
-                            </tr>
+                                </div>
+                                <div className="text-2xl font-bold text-green-600 mb-3">
+                                    {payout.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                </div>
+                                <div className="space-y-1 text-xs text-neutral-500">
+                                    <div className="flex justify-between">
+                                        <span>Solicitado</span>
+                                        <span>{new Date(payout.request_date).toLocaleDateString('pt-BR')}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span>Agendado</span>
+                                        <span>{new Date(payout.scheduled_date).toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'numeric' })}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span>Chave PIX</span>
+                                        <span className={payout.bank_info ? 'text-neutral-700' : 'text-red-500'}>
+                                            {payout.bank_info ? `${payout.bank_info.pixKey} (${payout.bank_info.pixKeyType})` : 'Não cadastrada'}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
                         ))}
-                        {filteredPayouts.length === 0 && (
-                            <tr>
-                                <td colSpan={6} className="text-center p-8 text-neutral-500">Nenhum registro encontrado.</td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
-            </div>
+                        {filteredPayouts.length === 0 && <p className="text-center py-8 text-neutral-500 bg-white rounded-lg">Nenhum registro encontrado.</p>}
+                    </div>
+
+                    {/* Desktop table */}
+                    <div className="hidden md:block bg-white rounded-lg shadow-md overflow-x-auto">
+                        <table className="w-full min-w-[960px]">
+                            <thead className="bg-neutral-100">
+                                <tr>
+                                    <th className="p-4 text-left text-sm font-semibold text-neutral-600">Fotógrafo</th>
+                                    <th className="p-4 text-left text-sm font-semibold text-neutral-600">Solicitado em</th>
+                                    <th className="p-4 text-left text-sm font-semibold text-neutral-600">Agendado Para</th>
+                                    <th className="p-4 text-right text-sm font-semibold text-neutral-600">Valor</th>
+                                    <th className="p-4 text-center text-sm font-semibold text-neutral-600">Chave PIX</th>
+                                    <th className="p-4 text-center text-sm font-semibold text-neutral-600">Ação</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {filteredPayouts.map((payout, index) => (
+                                    <tr key={payout.id} className={`border-t ${index % 2 === 0 ? 'bg-white' : 'bg-neutral-50'}`}>
+                                        <td className="p-4 text-sm font-medium text-neutral-800">{payout.photographer_name}</td>
+                                        <td className="p-4 text-sm text-neutral-500">{new Date(payout.request_date).toLocaleDateString('pt-BR')}</td>
+                                        <td className="p-4 text-sm text-neutral-800 font-medium">
+                                            {new Date(payout.scheduled_date).toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'numeric' })}
+                                        </td>
+                                        <td className="p-4 text-sm text-green-600 font-bold text-right">
+                                            {payout.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                        </td>
+                                        <td className="p-4 text-sm text-neutral-500 text-center">
+                                            {payout.bank_info ? `${payout.bank_info.pixKey} (${payout.bank_info.pixKeyType})` : <span className="text-red-500">Não cadastrada</span>}
+                                        </td>
+                                        <td className="p-4 text-center">
+                                            {payout.status === 'pending' ? (
+                                                <button
+                                                    onClick={() => handleOpenProcessModal(payout)}
+                                                    className="px-3 py-1 text-xs font-medium text-white bg-primary-dark rounded-full hover:bg-primary-dark transition-colors shadow-sm"
+                                                >
+                                                    Processar
+                                                </button>
+                                            ) : (
+                                                <span className={`px-2 py-1 text-xs font-bold rounded-full ${payout.status === 'paid' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                                    {payout.status === 'paid' ? 'Pago' : 'Rejeitado'}
+                                                </span>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                                {filteredPayouts.length === 0 && (
+                                    <tr>
+                                        <td colSpan={6} className="text-center p-8 text-neutral-500">Nenhum registro encontrado.</td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </>
+            )}
 
             {/* Payment Process Modal */}
             <Modal
                 isOpen={isProcessModalOpen}
                 onClose={() => setIsProcessModalOpen(false)}
-                title="Processar Pagamento"
+                title="Processar Pagamento Manual"
             >
                 {selectedPayout && (
                     <div className="space-y-6">
@@ -240,6 +406,63 @@ const AdminPayouts: React.FC = () => {
                                 className="px-6 py-2 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 shadow-md flex items-center"
                             >
                                 {isApproving ? 'Confirmando...' : 'Confirmar Transferência Realizada'}
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </Modal>
+
+            {/* Auto Pix Transfer Modal */}
+            <Modal
+                isOpen={isAutoTransferModalOpen}
+                onClose={() => setIsAutoTransferModalOpen(false)}
+                title="Liberar Saque via Pix Automático"
+            >
+                {selectedEligible && (
+                    <div className="space-y-6">
+                        <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-100 text-sm text-emerald-800">
+                            <strong>Pix Automático via AbacatePay:</strong> Ao confirmar, o sistema enviará o Pix automaticamente da sua conta do AbacatePay para a conta do fotógrafo.
+                        </div>
+
+                        <div className="bg-white border border-neutral-200 rounded-lg p-4 space-y-3">
+                            <div className="flex justify-between border-b border-neutral-100 pb-2">
+                                <span className="text-neutral-500">Fotógrafo</span>
+                                <span className="font-bold text-neutral-800">{selectedEligible.photographer_name}</span>
+                            </div>
+                            <div className="flex justify-between border-b border-neutral-100 pb-2">
+                                <span className="text-neutral-500">Saldo Disponível (Bruto)</span>
+                                <span className="font-bold text-neutral-800">{selectedEligible.balance_available.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                            </div>
+                            <div className="flex justify-between border-b border-neutral-100 pb-2">
+                                <span className="text-neutral-500">Taxa de Saque Pix</span>
+                                <span className="font-bold text-red-600">- R$ 0,80</span>
+                            </div>
+                            <div className="flex justify-between border-b border-neutral-100 pb-2">
+                                <span className="text-neutral-500">Valor Líquido a Transferir</span>
+                                <span className="font-bold text-green-600 text-lg">{(selectedEligible.balance_available - 0.80).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                            </div>
+                            <div className="flex justify-between items-center pt-2">
+                                <span className="text-neutral-500">Chave PIX de Destino</span>
+                                <div className="text-right">
+                                    <span className="block font-mono bg-neutral-100 px-2 py-1 rounded">{selectedEligible.pixKey || 'N/A'}</span>
+                                    <span className="text-xs text-neutral-400 uppercase">{selectedEligible.pixKeyType}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end space-x-3 pt-4 border-t">
+                            <button
+                                onClick={() => setIsAutoTransferModalOpen(false)}
+                                className="px-4 py-2 text-neutral-600 hover:bg-neutral-100 rounded-lg transition-colors"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={handleConfirmAutoTransfer}
+                                disabled={isTransferringAuto}
+                                className="px-6 py-2 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 shadow-md flex items-center"
+                            >
+                                {isTransferringAuto ? 'Processando Pix...' : 'Confirmar e Enviar Pix Agora'}
                             </button>
                         </div>
                     </div>
