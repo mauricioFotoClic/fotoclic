@@ -521,6 +521,6 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error('[AbacatePay Webhook] Erro:', error);
-        return res.status(500).json({ error: 'Erro interno ao processar webhook.', details: error.message, stack: error.stack });
+        return res.status(500).json({ error: 'Erro interno ao processar webhook.' });
     }
 }

@@ -388,6 +388,6 @@ export default async function handler(req, res) {
         return res.status(200).json({ message: 'Sincronização concluída.', count: createdCount });
     } catch (err) {
         console.error('Erro no sync-purchases:', err);
-        return res.status(500).json({ error: 'Falha na sincronização.', details: err.message, stack: err.stack });
+        return res.status(500).json({ error: 'Falha na sincronização.' });
     }
 }
