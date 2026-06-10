@@ -192,10 +192,19 @@ export default async function handler(req, res) {
         console.error('[PayoutWorker - Manual] Erro ao vincular vendas ao saque:', updateSalesError);
       }
 
-      // Enviar e-mail de confirmação via Resend (não-bloqueante)
-      if (process.env.RESEND_API_KEY) {
+      // Enviar e-mail de confirmação via Locaweb SMTP (não-bloqueante)
+      if (process.env.LOCAWEB_SMTP_TOKEN) {
         try {
           console.log(`[PayoutWorker - Manual] Enviando e-mail de confirmação para ${photographer.email}...`);
+
+          // Buscar templates do banco de dados system_settings
+          const { data: settingsRow } = await supabase.from('system_settings').select('email_templates').eq('id', 1).single();
+          const templates = settingsRow?.email_templates || {};
+          const template = templates.payoutProcessed || {
+            subject: 'Seu pagamento está sendo processado',
+            body: 'Olá {{nome_fotografo}},\n\nInformamos que estamos processando seu pagamento no valor de {{valor_pagamento}}.\n\nData do pagamento: {{data_pagamento}}.'
+          };
+
           const photographerName = photographer.name || 'Fotógrafo';
           const grossAmountFormatted = grossAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
           const netAmountFormatted = netAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -204,14 +213,27 @@ export default async function handler(req, res) {
           const receiptUrl = abacateTx.receiptUrl || '';
           const siteUrl = process.env.VITE_SITE_URL || 'https://fotoclic.com.br';
 
+          // Substituir placeholders do template
+          const replacements = {
+            'nome_fotografo': photographerName,
+            'valor_pagamento': netAmountFormatted,
+            'data_pagamento': new Date().toLocaleDateString('pt-BR')
+          };
+
+          let subject = template.subject || `💰 Seu saque de ${netAmountFormatted} foi processado!`;
+          let bodyHtml = template.body || '';
+          Object.entries(replacements).forEach(([key, val]) => {
+            subject = subject.split(`{{${key}}}`).join(val);
+            bodyHtml = bodyHtml.split(`{{${key}}}`).join(val);
+          });
+
           const emailHtml = `
             <div style="font-family: sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
                 <div style="background-color: #059669; padding: 32px 20px; text-align: center;">
                     <h1 style="color: white; margin: 0; font-size: 24px;">💰 Saque Processado com Sucesso!</h1>
                 </div>
                 <div style="padding: 32px 24px; background-color: white;">
-                    <p style="font-size: 16px;">Olá, <strong>${photographerName}</strong>!</p>
-                    <p style="font-size: 16px; color: #475569;">O seu saque de saldo acumulado foi autorizado manualmente pelo administrador e enviado para a sua conta Pix.</p>
+                    <div style="font-size: 16px; line-height: 1.6; color: #475569; white-space: pre-wrap; margin-bottom: 24px;">${bodyHtml}</div>
                     
                     <div style="background-color: #ecfdf5; border: 1px solid #a7f3d0; padding: 16px; border-radius: 8px; margin: 24px 0; text-align: center;">
                         <p style="margin: 0; color: #065f46; font-size: 14px;">Valor Líquido Recebido</p>
@@ -269,19 +291,29 @@ export default async function handler(req, res) {
                 </div>
             </div>`;
 
-          await fetch('https://api.resend.com/emails', {
+          const locawebRes = await fetch('https://api.smtplw.com.br/v1/messages', {
             method: 'POST',
             headers: {
-              'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+              'x-auth-token': process.env.LOCAWEB_SMTP_TOKEN,
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-              from: 'FotoClic <nao-responda@fotoclic.com.br>',
-              to: photographer.email,
-              subject: `💰 Seu saque de ${netAmountFormatted} foi processado!`,
-              html: emailHtml
+              from: 'nao-responda@email.fotoclic.com.br',
+              to: [photographer.email],
+              subject: subject,
+              body: emailHtml
             })
           });
+
+          const locawebData = locawebRes.headers.get('content-type')?.includes('application/json')
+            ? await locawebRes.json()
+            : { message: await locawebRes.text() };
+
+          if (locawebRes.ok) {
+            console.log('[PayoutWorker - Manual] E-mail de payout enviado com sucesso:', locawebData.id || locawebData);
+          } else {
+            console.error('[PayoutWorker - Manual] Erro ao enviar e-mail via Locaweb:', locawebData);
+          }
         } catch (emailErr) {
           console.error('[PayoutWorker - Manual] Erro ao enviar email de notificação:', emailErr);
         }
@@ -348,6 +380,15 @@ export default async function handler(req, res) {
     const now = new Date();
     const dayOfWeek = now.getDay(); // 0 (Sun) to 6 (Sat)
     const dayOfMonth = now.getDate();
+
+    // Buscar templates do banco de dados uma única vez
+    let emailTemplates = {};
+    try {
+      const { data: settingsRow } = await supabase.from('system_settings').select('email_templates').eq('id', 1).single();
+      emailTemplates = settingsRow?.email_templates || {};
+    } catch (dbErr) {
+      console.warn('[PayoutWorker - Cron] Falha ao buscar templates de e-mail do banco:', dbErr);
+    }
 
     for (const photographer of eligiblePhotographers) {
       const user = photographer.users;
@@ -448,7 +489,7 @@ export default async function handler(req, res) {
         results.push({ email: user.email, status: 'success', amount: photographer.balance_available, txId: abacateTx.id });
 
         // 7. Send Payout Email Notification to Photographer (Non-blocking for core transaction)
-        if (process.env.RESEND_API_KEY) {
+        if (process.env.LOCAWEB_SMTP_TOKEN) {
           try {
             console.log(`Enviando e-mail de confirmação para ${user.email}...`);
             const photographerName = photographer.photographer_name || 'Fotógrafo';
@@ -459,14 +500,31 @@ export default async function handler(req, res) {
             const receiptUrl = abacateTx.receiptUrl || '';
             const siteUrl = process.env.VITE_SITE_URL || 'https://fotoclic.com.br';
 
+            const template = emailTemplates.payoutProcessed || {
+              subject: 'Seu pagamento está sendo processado',
+              body: 'Olá {{nome_fotografo}},\n\nInformamos que estamos processando seu pagamento no valor de {{valor_pagamento}}.\n\nData do pagamento: {{data_pagamento}}.'
+            };
+
+            const replacements = {
+              'nome_fotografo': photographerName,
+              'valor_pagamento': netAmountFormatted,
+              'data_pagamento': new Date().toLocaleDateString('pt-BR')
+            };
+
+            let subject = template.subject || `💰 Seu pagamento de ${netAmountFormatted} foi enviado!`;
+            let bodyHtml = template.body || '';
+            Object.entries(replacements).forEach(([key, val]) => {
+              subject = subject.split(`{{${key}}}`).join(val);
+              bodyHtml = bodyHtml.split(`{{${key}}}`).join(val);
+            });
+
             const emailHtml = `
               <div style="font-family: sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
                   <div style="background-color: #059669; padding: 32px 20px; text-align: center;">
                       <h1 style="color: white; margin: 0; font-size: 24px;">💰 Pagamento Processado com Sucesso!</h1>
                   </div>
                   <div style="padding: 32px 24px; background-color: white;">
-                      <p style="font-size: 16px;">Olá, <strong>${photographerName}</strong>!</p>
-                      <p style="font-size: 16px; color: #475569;">O seu saldo acumulado no FotoClic foi enviado com sucesso para a sua conta Pix.</p>
+                      <div style="font-size: 16px; line-height: 1.6; color: #475569; white-space: pre-wrap; margin-bottom: 24px;">${bodyHtml}</div>
                       
                       <div style="background-color: #ecfdf5; border: 1px solid #a7f3d0; padding: 16px; border-radius: 8px; margin: 24px 0; text-align: center;">
                           <p style="margin: 0; color: #065f46; font-size: 14px;">Valor Líquido Recebido</p>
@@ -516,7 +574,7 @@ export default async function handler(req, res) {
                       <div style="text-align: center; margin: ${receiptUrl ? '20px' : '40px'} 0;">
                           <a href="${siteUrl}/photographer-dashboard" style="color: #059669; text-decoration: underline; font-weight: bold; font-size: 14px;">
                               Acessar minha Central Financeira
-                          </a>
+                        </a>
                       </div>
                   </div>
                   <div style="background-color: #f8fafc; padding: 20px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #f1f5f9;">
@@ -524,31 +582,34 @@ export default async function handler(req, res) {
                   </div>
               </div>`;
 
-            const resendResponse = await fetch('https://api.resend.com/emails', {
+            const locawebRes = await fetch('https://api.smtplw.com.br/v1/messages', {
               method: 'POST',
               headers: {
-                'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+                'x-auth-token': process.env.LOCAWEB_SMTP_TOKEN,
                 'Content-Type': 'application/json'
               },
               body: JSON.stringify({
-                from: 'FotoClic <nao-responda@fotoclic.com.br>',
-                to: user.email,
-                subject: `💰 Seu pagamento de ${netAmountFormatted} foi enviado!`,
-                html: emailHtml
+                from: 'nao-responda@email.fotoclic.com.br',
+                to: [user.email],
+                subject: subject,
+                body: emailHtml
               })
             });
 
-            const resendData = await resendResponse.json();
-            if (resendResponse.ok) {
-              console.log(`E-mail de payout enviado com sucesso: ${resendData.id}`);
+            const locawebData = locawebRes.headers.get('content-type')?.includes('application/json')
+              ? await locawebRes.json()
+              : { message: await locawebRes.text() };
+
+            if (locawebRes.ok) {
+              console.log(`E-mail de payout enviado com sucesso: ${locawebData.id || locawebData}`);
             } else {
-              console.error('Erro ao enviar e-mail via Resend:', resendData);
+              console.error('Erro ao enviar e-mail via Locaweb:', locawebData);
             }
           } catch (emailErr) {
-            console.error('Erro de rede ao enviar e-mail via Resend:', emailErr);
+            console.error('Erro de rede ao enviar e-mail via Locaweb:', emailErr);
           }
         } else {
-          console.warn('RESEND_API_KEY não configurada no ambiente. E-mail de confirmação pulado.');
+          console.warn('LOCAWEB_SMTP_TOKEN não configurada no ambiente. E-mail de confirmação pulado.');
         }
 
       } catch (err) {

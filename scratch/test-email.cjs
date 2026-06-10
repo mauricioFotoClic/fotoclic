@@ -22,33 +22,33 @@ try {
     console.error('Erro ao ler .env.local', e);
 }
 
-const resendApiKey = process.env.RESEND_API_KEY;
+const locawebToken = process.env.LOCAWEB_SMTP_TOKEN;
 
-if (!resendApiKey) {
-    console.error('RESEND_API_KEY não configurada no .env.local');
+if (!locawebToken) {
+    console.error('LOCAWEB_SMTP_TOKEN não configurada no .env.local');
     process.exit(1);
 }
 
 async function test() {
-    console.log('Testando envio de e-mail via Resend...');
+    console.log('Testando envio de e-mail via SMTP Locaweb REST API...');
     try {
-        const res = await fetch('https://api.resend.com/emails', {
+        const res = await fetch('https://api.smtplw.com.br/v1/messages', {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${resendApiKey}`,
+                'x-auth-token': locawebToken,
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                from: 'FotoClic <nao-responda@fotoclic.com.br>',
-                to: 'svalmauricio@gmail.com', // e-mail do admin que é verificado ou para fins de teste
-                subject: 'Teste de Envio - Resend',
-                html: '<p>Este é um e-mail de teste para verificar se a API do Resend está funcionando.</p>',
+                from: 'nao-responda@email.fotoclic.com.br', // Subdomínio autenticado SPF/DKIM/DMARC
+                to: ['svalmauricio@gmail.com'], // E-mail de teste
+                subject: 'Teste de Envio - SMTP Locaweb REST API',
+                body: '<p>Este é um e-mail de teste para verificar se o token e as credenciais do SMTP Locaweb estão funcionando perfeitamente no FotoClic.</p>',
             }),
         });
 
-        const data = await res.json();
+        const textResponse = await res.text();
         console.log('Status HTTP:', res.status);
-        console.log('Resposta da API:', JSON.stringify(data, null, 2));
+        console.log('Resposta da API:', textResponse);
     } catch (err) {
         console.error('Erro na requisição:', err);
     }

@@ -253,26 +253,28 @@ export default async function handler(req, res) {
                                 </div>
                             </div>`;
 
-                        const resendRes = await fetch('https://api.resend.com/emails', {
+                        const resendRes = await fetch('https://api.smtplw.com.br/v1/messages', {
                             method: 'POST',
                             headers: {
-                                'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+                                'x-auth-token': process.env.LOCAWEB_SMTP_TOKEN,
                                 'Content-Type': 'application/json',
                             },
                             body: JSON.stringify({
-                                from: 'FotoClic <nao-responda@fotoclic.com.br>',
-                                to: user.email,
+                                from: 'nao-responda@email.fotoclic.com.br',
+                                to: [user.email],
                                 subject: subject,
-                                html: finalHtml
+                                body: finalHtml
                             }),
                         });
 
-                        const resendData = await resendRes.json();
+                        const resendData = resendRes.headers.get('content-type')?.includes('application/json')
+                            ? await resendRes.json()
+                            : { message: await resendRes.text() };
                         if (resendRes.ok) {
-                            console.log('[Sync] Email enviado com sucesso ao comprador:', resendData.id);
-                            buyerEmailLog = { success: true, id: resendData.id, to: user.email };
+                            console.log('[Sync] Email enviado com sucesso ao comprador:', resendData.id || resendData);
+                            buyerEmailLog = { success: true, id: resendData.id || 'locaweb-ok', to: user.email };
                         } else {
-                            console.error('[Sync] Erro na API do Resend (Comprador):', resendData);
+                            console.error('[Sync] Erro na API do SMTP Locaweb (Comprador):', resendData);
                             buyerEmailLog = { success: false, error: resendData, to: user.email };
                         }
                     } catch (emailErr) {
@@ -333,23 +335,25 @@ export default async function handler(req, res) {
                                     </div>`;
 
                                 console.log('[Sync] Enviando e-mail para Fotógrafo:', saleData.photographer.email);
-                                const resendRes = await fetch('https://api.resend.com/emails', {
+                                const resendRes = await fetch('https://api.smtplw.com.br/v1/messages', {
                                     method: 'POST',
                                     headers: {
-                                        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+                                        'x-auth-token': process.env.LOCAWEB_SMTP_TOKEN,
                                         'Content-Type': 'application/json',
                                     },
                                     body: JSON.stringify({
-                                        from: 'FotoClic <nao-responda@fotoclic.com.br>',
-                                        to: saleData.photographer.email,
+                                        from: 'nao-responda@email.fotoclic.com.br',
+                                        to: [saleData.photographer.email],
                                         subject: '🎉 Você realizou uma nova venda no FotoClic!',
-                                        html: finalHtmlPhotog
+                                        body: finalHtmlPhotog
                                     }),
                                 });
 
-                                const resendData = await resendRes.json();
+                                const resendData = resendRes.headers.get('content-type')?.includes('application/json')
+                                    ? await resendRes.json()
+                                    : { message: await resendRes.text() };
                                 if (resendRes.ok) {
-                                    photographerEmailsLog.push({ success: true, id: resendData.id, to: saleData.photographer.email });
+                                    photographerEmailsLog.push({ success: true, id: resendData.id || 'locaweb-ok', to: saleData.photographer.email });
                                 } else {
                                     photographerEmailsLog.push({ success: false, error: resendData, to: saleData.photographer.email });
                                 }

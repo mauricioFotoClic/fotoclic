@@ -30,38 +30,40 @@ export default async function handler(request, response) {
         return response.status(400).json({ error: 'Missing required fields' });
     }
 
-    const RESEND_API_KEY = process.env.RESEND_API_KEY;
+    const LOCAWEB_SMTP_TOKEN = process.env.LOCAWEB_SMTP_TOKEN;
 
-    if (!RESEND_API_KEY) {
-        console.error('RESEND_API_KEY is missing');
+    if (!LOCAWEB_SMTP_TOKEN) {
+        console.error('LOCAWEB_SMTP_TOKEN is missing');
         return response.status(500).json({ error: 'Server configuration error' });
     }
 
     try {
-        const res = await fetch('https://api.resend.com/emails', {
+        const res = await fetch('https://api.smtplw.com.br/v1/messages', {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${RESEND_API_KEY}`,
+                'x-auth-token': LOCAWEB_SMTP_TOKEN,
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                from: 'nao-responda@fotoclic.com.br', // Verified domain
-                to: to,
+                from: 'nao-responda@email.fotoclic.com.br', // Authenticated subdomain
+                to: Array.isArray(to) ? to : [to],
                 subject: subject,
-                html: html,
+                body: html,
             }),
         });
 
-        const data = await res.json();
+        const data = res.headers.get('content-type')?.includes('application/json')
+            ? await res.json()
+            : { message: await res.text() };
 
         if (!res.ok) {
-            console.error('Resend API error:', data);
+            console.error('Locaweb SMTP API error:', data);
             return response.status(res.status).json(data);
         }
 
         return response.status(200).json(data);
     } catch (error) {
-        console.error('Failed to send email:', error);
+        console.error('Failed to send email via Locaweb:', error);
         return response.status(500).json({ error: 'Failed to send email' });
     }
 }
