@@ -1,4 +1,5 @@
 require('dotenv').config({ path: '.env.local' });
+
 const apiKey = process.env.ABACATEPAY_API_KEY;
 
 if (!apiKey) {
@@ -6,20 +7,18 @@ if (!apiKey) {
   process.exit(1);
 }
 
-const transferId = 'tran_wZbFQeMWjxnMscpPu4yb3BAq';
-
 async function main() {
-  console.log(`--- Consultando transferência ID: ${transferId} ---`);
+  console.log('--- Consultando AbacatePay Store API ---');
   try {
-    const res = await fetch(`https://api.abacatepay.com/v2/pix/send/status?id=${transferId}`, {
+    const storeRes = await fetch('https://api.abacatepay.com/v2/stores/get', {
       headers: { 
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json'
       }
     });
 
-    const data = await res.json();
-    console.log('API Status:', res.status);
+    const data = await storeRes.json();
+    console.log('API Status:', storeRes.status);
     console.log('API Data:', JSON.stringify(data, null, 2));
   } catch (err) {
     console.error('Error:', err);

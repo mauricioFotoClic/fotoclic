@@ -23,6 +23,7 @@ interface AbacateWithdrawal {
     withdraw_date: string;
     external_id?: string;
     note?: string;
+    is_automatic?: boolean;
 }
 
 interface AbacateStats {
@@ -400,7 +401,7 @@ const AdminAbacatePay: React.FC = () => {
     // Fetch once on mount
     useEffect(() => {
         fetchData(true);
-    }, []); // Only on mount
+    }, [fetchData]); // Only on mount
     
     // Auto-refresh every 60 seconds (silent update)
     useEffect(() => {
@@ -468,6 +469,13 @@ const AdminAbacatePay: React.FC = () => {
             available: availableCents
         };
     }, [allBillings, stats.total_paid, stats.total_withdrawals, stats.balance_adjustment]);
+
+    const displayAvailable = useMemo(() => {
+        if (apiConnected && apiBalance) {
+            return Math.min(apiBalance.available, gatewayFeesAndNet.available);
+        }
+        return gatewayFeesAndNet.available;
+    }, [apiConnected, apiBalance, gatewayFeesAndNet.available]);
 
     // ── Refund ─────────────────────────────────────────────────────────────────
 
@@ -663,7 +671,7 @@ const AdminAbacatePay: React.FC = () => {
                     
                     <div className="flex items-center gap-2 mb-1">
                         <p className="text-3xl font-display font-bold text-emerald-950">
-                            {apiConnected && apiBalance ? formatBRL(apiBalance.available) : formatBRL(gatewayFeesAndNet.available)}
+                            {formatBRL(displayAvailable)}
                         </p>
                         {!apiConnected && (
                             <button
@@ -781,12 +789,16 @@ const AdminAbacatePay: React.FC = () => {
                                         <td className="px-4 py-3 text-neutral-600 max-w-[250px] truncate" title={w.note}>{w.note || '—'}</td>
                                         <td className="px-4 py-3 text-right font-bold text-red-600">{formatBRL(w.amount)}</td>
                                         <td className="px-4 py-3 text-right">
-                                            <button
-                                                onClick={() => handleDeleteWithdrawal(w.id)}
-                                                className="text-red-500 hover:text-red-700 font-medium text-[10px] transition-colors"
-                                            >
-                                                Excluir
-                                            </button>
+                                            {w.is_automatic ? (
+                                                <span className="text-neutral-400 font-medium text-[10px]">Automático</span>
+                                            ) : (
+                                                <button
+                                                    onClick={() => handleDeleteWithdrawal(w.id)}
+                                                    className="text-red-500 hover:text-red-700 font-medium text-[10px] transition-colors"
+                                                >
+                                                    Excluir
+                                                </button>
+                                            )}
                                         </td>
                                     </tr>
                                 ))}

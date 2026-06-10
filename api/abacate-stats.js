@@ -318,12 +318,65 @@ export default async function handler(req, res) {
 
         const customRates = settings?.commission_custom_rates || {};
         const withdrawals = customRates.__withdrawals || [];
-        const totalWithdrawals = withdrawals.reduce((sum, w) => sum + (w.amount || 0), 0);
         const balanceAdjustment = customRates.__adjustment || 0;
+
+        // 7. Buscar saques automáticos (payouts) da tabela payouts
+        const { data: dbPayouts, error: payoutsError } = await supabase
+            .from('payouts')
+            .select('*')
+            .eq('status', 'paid');
+
+        if (payoutsError) {
+            console.error('[AbacateStats] Erro ao buscar payouts:', payoutsError);
+        }
+
+        const payoutWithdrawals = [];
+        if (dbPayouts && dbPayouts.length > 0) {
+            // Buscar nomes dos fotógrafos
+            const photographerIds = [...new Set(dbPayouts.map(p => p.photographer_id))].filter(Boolean);
+            let photographerMap = {};
+            if (photographerIds.length > 0) {
+                const { data: pData } = await supabase
+                    .from('users')
+                    .select('id, name')
+                    .in('id', photographerIds);
+                if (pData) {
+                    pData.forEach(p => {
+                        photographerMap[p.id] = p.name;
+                    });
+                }
+            }
+
+            dbPayouts.forEach(p => {
+                const photographerName = photographerMap[p.photographer_id] || 'Fotógrafo';
+                payoutWithdrawals.push({
+                    id: p.id,
+                    amount: Math.round(Number(p.amount) * 100), // converter de R$ float para centavos
+                    status: 'completed',
+                    withdraw_date: p.processed_date || p.request_date || new Date().toISOString(),
+                    external_id: p.external_id || `pay_${p.id}`,
+                    note: `Repasse automático (Pix) para o fotógrafo ${photographerName}`,
+                    is_automatic: true
+                });
+            });
+        }
+
+        // Mesclar saques manuais e repasses automáticos
+        const allWithdrawals = [...withdrawals, ...payoutWithdrawals];
+        allWithdrawals.sort((a, b) => new Date(b.withdraw_date) - new Date(a.withdraw_date));
+
+        // Calcular total de saques efetuados da conta Abacate Pay (ignora payouts com external_id de bypass manual)
+        const totalWithdrawals = allWithdrawals.reduce((sum, w) => {
+            const isManualPayout = w.is_automatic && w.external_id && (w.external_id.startsWith('manual_') || w.external_id.startsWith('payout_manual_'));
+            if (isManualPayout) {
+                return sum;
+            }
+            return sum + (w.amount || 0);
+        }, 0);
 
         return res.status(200).json({
             billings,
-            withdrawals,
+            withdrawals: allWithdrawals,
             api_balance: apiBalance,
             api_connected: apiConnected,
             api_error: apiError,
