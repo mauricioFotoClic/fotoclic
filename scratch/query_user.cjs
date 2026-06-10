@@ -7,7 +7,7 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function run() {
-    const userId = '00fcaeec-35e2-46ae-8d1e-6c3c12280460';
+    const userId = 'aa5ea2f0-3548-43f6-b4ea-8270abaeb98f'; // Mauricio Val
     console.log(`--- Buscando Usuário ${userId} ---`);
     const { data: user, error } = await supabase
         .from('users')

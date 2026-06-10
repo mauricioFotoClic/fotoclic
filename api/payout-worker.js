@@ -67,7 +67,7 @@ export default async function handler(req, res) {
       return res.status(401).json({ error: 'Falha na autenticação do administrador.' });
     }
 
-    const { photographerId } = req.body;
+    const { photographerId, isManualBypass } = req.body;
     if (!photographerId) {
       return res.status(400).json({ error: 'ID do fotógrafo é obrigatório.' });
     }
@@ -127,38 +127,50 @@ export default async function handler(req, res) {
         cleanPixKey = cleanPixKey.replace(/\D/g, '');
       }
 
-      console.log(`[PayoutWorker - Manual] Enviando Pix via AbacatePay: Bruto R$ ${grossAmount}, Líquido R$ ${netAmount}`);
+      let abacateTx = null;
+      let abacateStatus = 'COMPLETE';
+      let isPaid = true;
 
-      const abacateResponse = await fetch('https://api.abacatepay.com/v2/pix/send', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${ABACATE_PAY_API_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          amount: Math.round(netAmount * 100),
-          externalId: `payout_manual_${photographerId}_${Date.now()}`,
-          description: `FotoClic - Saque Manual Liberado por Admin`,
-          pix: {
-            key: cleanPixKey,
-            type: upperKeyType
-          }
-        })
-      });
+      if (!isManualBypass) {
+        console.log(`[PayoutWorker - Manual] Enviando Pix via AbacatePay: Bruto R$ ${grossAmount}, Líquido R$ ${netAmount}`);
 
-      const abacateData = await abacateResponse.json();
-
-      if (!abacateResponse.ok || !abacateData.success || !abacateData.data) {
-        console.error('[PayoutWorker - Manual] Erro do AbacatePay:', abacateData);
-        return res.status(500).json({ 
-          error: 'Erro no gateway de pagamento ao realizar a transferência.', 
-          details: abacateData.error || abacateData.message || abacateData 
+        const abacateResponse = await fetch('https://api.abacatepay.com/v2/pix/send', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${ABACATE_PAY_API_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            amount: Math.round(netAmount * 100),
+            externalId: `payout_manual_${photographerId}_${Date.now()}`,
+            description: `FotoClic - Saque Manual Liberado por Admin`,
+            pix: {
+              key: cleanPixKey,
+              type: upperKeyType
+            }
+          })
         });
-      }
 
-      const abacateTx = abacateData.data;
-      const abacateStatus = (abacateTx.status || '').toUpperCase();
-      const isPaid = abacateStatus === 'COMPLETE';
+        const abacateData = await abacateResponse.json();
+
+        if (!abacateResponse.ok || !abacateData.success || !abacateData.data) {
+          console.error('[PayoutWorker - Manual] Erro do AbacatePay:', abacateData);
+          return res.status(500).json({ 
+            error: 'Erro no gateway de pagamento ao realizar a transferência.', 
+            details: abacateData.error || abacateData.message || abacateData 
+          });
+        }
+
+        abacateTx = abacateData.data;
+        abacateStatus = (abacateTx.status || '').toUpperCase();
+        isPaid = abacateStatus === 'COMPLETE';
+      } else {
+        console.log(`[PayoutWorker - Manual] Bypass manual ativado. Pulando chamada do AbacatePay.`);
+        abacateTx = {
+          id: `manual_bypass_${photographerId}_${Date.now()}`,
+          receiptUrl: ''
+        };
+      }
 
       // Gravar registro de Payout
       const { data: payout, error: payoutError } = await supabase

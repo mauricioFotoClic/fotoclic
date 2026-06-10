@@ -82,12 +82,12 @@ const AdminPayouts: React.FC = () => {
         setIsAutoTransferModalOpen(true);
     };
 
-    const handleConfirmAutoTransfer = async () => {
+    const handleConfirmAutoTransfer = async (isManual: boolean = false) => {
         if (!selectedEligible) return;
         setIsTransferringAuto(true);
         try {
-            await api.transferPayoutAutomatically(selectedEligible.photographer_id);
-            alert("Transferência Pix automática realizada com sucesso!");
+            await api.transferPayoutAutomatically(selectedEligible.photographer_id, isManual);
+            alert(isManual ? "Pagamento manual registrado com sucesso!" : "Transferência Pix automática realizada com sucesso!");
             setIsAutoTransferModalOpen(false);
             fetchAllData();
         } catch (error: any) {
@@ -421,7 +421,7 @@ const AdminPayouts: React.FC = () => {
                 {selectedEligible && (
                     <div className="space-y-6">
                         <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-100 text-sm text-emerald-800">
-                            <strong>Pix Automático via AbacatePay:</strong> Ao confirmar, o sistema enviará o Pix automaticamente da sua conta do AbacatePay para a conta do fotógrafo.
+                            <strong>Pix Automático ou Registro Manual:</strong> Você pode tentar enviar o Pix automaticamente via AbacatePay ou, caso prefira (ou em caso de erro na API), realizar a transferência Pix a partir do aplicativo do seu banco e clicar em <strong>Registrar Pagamento Manual</strong> para dar baixa no sistema e notificar o fotógrafo.
                         </div>
 
                         <div className="bg-white border border-neutral-200 rounded-lg p-4 space-y-3">
@@ -458,11 +458,18 @@ const AdminPayouts: React.FC = () => {
                                 Cancelar
                             </button>
                             <button
-                                onClick={handleConfirmAutoTransfer}
+                                onClick={() => handleConfirmAutoTransfer(true)}
                                 disabled={isTransferringAuto}
-                                className="px-6 py-2 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 shadow-md flex items-center"
+                                className="px-6 py-2 bg-amber-600 text-white font-bold rounded-lg hover:bg-amber-700 shadow-md flex items-center transition-colors"
                             >
-                                {isTransferringAuto ? 'Processando Pix...' : 'Confirmar e Enviar Pix Agora'}
+                                Registrar Pagamento Manual
+                            </button>
+                            <button
+                                onClick={() => handleConfirmAutoTransfer(false)}
+                                disabled={isTransferringAuto}
+                                className="px-6 py-2 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 shadow-md flex items-center transition-colors"
+                            >
+                                {isTransferringAuto ? 'Processando...' : 'Enviar Pix Automático'}
                             </button>
                         </div>
                     </div>

@@ -2708,7 +2708,7 @@ export const api = {
     });
   },
 
-  transferPayoutAutomatically: async (photographerId: string): Promise<any> => {
+  transferPayoutAutomatically: async (photographerId: string, isManualBypass: boolean = false): Promise<any> => {
     const { data: { session } } = await supabase.auth.getSession();
     const token = session?.access_token;
     
@@ -2718,7 +2718,7 @@ export const api = {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify({ photographerId })
+      body: JSON.stringify({ photographerId, isManualBypass })
     });
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || 'Erro ao transferir saldo.');
