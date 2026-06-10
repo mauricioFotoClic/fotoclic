@@ -28,6 +28,7 @@ const FaceScanIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" he
 const ArrowLeftIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>;
 const FolderIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>;
 const PlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>;
+const PriceIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>;
 
 interface PhotographerPhotosProps {
     user: User;
@@ -96,6 +97,12 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
     const [itemsPerPage, setItemsPerPage] = useState(10);
 
     const [stats, setStats] = useState<any>(null); // Add stats state
+
+    // Bulk Price Edit State
+    const [isBulkPriceModalOpen, setIsBulkPriceModalOpen] = useState(false);
+    const [selectedFilterPrice, setSelectedFilterPrice] = useState<string>('all');
+    const [newBulkPrice, setNewBulkPrice] = useState<string>('');
+    const [bulkPriceLoading, setBulkPriceLoading] = useState(false);
 
     // --- DATA FETCHING ---
     const fetchData = useCallback(async () => {
@@ -478,6 +485,20 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
         });
     }, [photos, searchTerm, filterStatus, selectedEvent, view]);
 
+    const priceGroups = useMemo(() => {
+        if (!selectedEvent) return [];
+        const groups: Record<number, number> = {};
+        photos.forEach(photo => {
+            if (photo.event_id === selectedEvent.id) {
+                groups[photo.price] = (groups[photo.price] || 0) + 1;
+            }
+        });
+        return Object.entries(groups).map(([priceStr, count]) => ({
+            price: Number(priceStr),
+            count
+        })).sort((a, b) => b.count - a.count);
+    }, [photos, selectedEvent]);
+
     // Pagination Logic
     const totalPages = Math.ceil(filteredPhotos.length / itemsPerPage);
     const paginatedPhotos = useMemo(() => {
@@ -522,6 +543,54 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
             setPhotos(prev => prev.map(p => p.id === photoToIndex.id ? { ...p, is_face_indexed: true } : p));
             showToast("Sucesso! Rostos indexados.", 'success');
         } catch (error: any) { showToast(`Erro: ${error.message}`, 'error'); }
+    };
+
+    const handleConfirmBulkPriceUpdate = async () => {
+        if (!selectedEvent) return;
+        const newPrice = parseFloat(newBulkPrice);
+        if (isNaN(newPrice) || newPrice < 0) {
+            showToast("Por favor, insira um preço válido.", "error");
+            return;
+        }
+
+        const isConfirmed = await confirm({
+            title: "Confirmar Alteração de Preços",
+            message: `Você tem certeza que deseja alterar o preço para ${newPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}? Esta ação afetará as fotos selecionadas e não pode ser desfeita.`,
+            confirmText: "Confirmar",
+            cancelText: "Cancelar"
+        });
+
+        if (!isConfirmed) return;
+
+        setBulkPriceLoading(true);
+        try {
+            let query = api.supabase
+                .from('photos')
+                .update({ price: newPrice })
+                .eq('event_id', selectedEvent.id);
+
+            if (selectedFilterPrice !== 'all') {
+                query = query.eq('price', parseFloat(selectedFilterPrice));
+            }
+
+            const { error } = await query;
+            if (error) throw error;
+
+            showToast("Preços atualizados com sucesso!", "success");
+            setIsBulkPriceModalOpen(false);
+            setNewBulkPrice('');
+            setSelectedFilterPrice('all');
+
+            // Recarregar fotos e estatísticas
+            const evPhotos = await api.getPhotographerPhotosByEventId(selectedEvent.id);
+            setPhotos(evPhotos);
+            fetchData();
+        } catch (err: any) {
+            console.error(err);
+            showToast(err.message || "Erro ao alterar preços em lote.", "error");
+        } finally {
+            setBulkPriceLoading(false);
+        }
     };
 
     const confirmBulkIndex = async () => {
@@ -607,7 +676,13 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                             <PlusIcon /> Novo Evento
                         </button>
                     ) : (
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 flex-wrap sm:flex-nowrap">
+                            <button
+                                onClick={() => setIsBulkPriceModalOpen(true)}
+                                className="px-4 py-2 text-sm font-medium text-primary-dark bg-primary/10 border border-primary-dark rounded-full hover:bg-primary/20 transition-colors shadow-sm flex items-center gap-1.5"
+                            >
+                                <PriceIcon /> Alterar Preços em Lote
+                            </button>
                             <button
                                 onClick={() => setIsBulkStartConfirmOpen(true)}
                                 className="px-4 py-2 text-sm font-medium text-primary-dark bg-primary/10 border border-primary-dark rounded-full hover:bg-primary/20 transition-colors shadow-sm"
@@ -923,6 +998,111 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                         onCancel={() => setIsBatchUploadModalOpen(false)}
                     />
                 )}
+            </Modal>
+
+            {/* Bulk Price Edit Modal */}
+            <Modal
+                isOpen={isBulkPriceModalOpen}
+                onClose={() => {
+                    setIsBulkPriceModalOpen(false);
+                    setNewBulkPrice('');
+                    setSelectedFilterPrice('all');
+                }}
+                title="Alterar Preços em Lote"
+            >
+                <div className="space-y-6">
+                    {/* Price distribution summary */}
+                    <div>
+                        <h4 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-3">
+                            Distribuição de Preços Atual no Evento
+                        </h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-1">
+                            {priceGroups.map((group) => (
+                                <div
+                                    key={group.price}
+                                    className="flex items-center justify-between p-3 bg-neutral-50 rounded-xl border border-neutral-100 transition-all hover:bg-neutral-100/50"
+                                >
+                                    <span className="text-sm font-medium text-neutral-700">
+                                        {group.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                    </span>
+                                    <span className="text-xs font-bold text-neutral-500 bg-neutral-200 px-2 py-0.5 rounded-full">
+                                        {group.count} {group.count === 1 ? 'foto' : 'fotos'}
+                                    </span>
+                                </div>
+                            ))}
+                            {priceGroups.length === 0 && (
+                                <p className="text-sm text-neutral-400 italic py-2 col-span-2 text-center">
+                                    Nenhuma foto cadastrada neste evento.
+                                </p>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="border-t border-neutral-100 my-4" />
+
+                    {/* Form Controls */}
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-neutral-700 mb-1.5">
+                                Quais fotos você deseja alterar?
+                            </label>
+                            <select
+                                value={selectedFilterPrice}
+                                onChange={(e) => setSelectedFilterPrice(e.target.value)}
+                                className="w-full px-4 py-2.5 bg-white border border-neutral-300 rounded-lg text-sm text-neutral-800 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                            >
+                                <option value="all">Todas as fotos do evento ({photos.length} fotos)</option>
+                                {priceGroups.map((group) => (
+                                    <option key={group.price} value={group.price}>
+                                        Fotos que hoje custam {group.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} ({group.count} fotos)
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-neutral-700 mb-1.5">
+                                Novo preço unitário
+                            </label>
+                            <div className="relative">
+                                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400 font-semibold text-sm">R$</span>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    placeholder="0,00"
+                                    value={newBulkPrice}
+                                    onChange={(e) => setNewBulkPrice(e.target.value)}
+                                    className="w-full pl-9 pr-4 py-2.5 bg-white border border-neutral-300 rounded-lg text-sm font-medium text-neutral-800 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex justify-end gap-3 pt-4 border-t border-neutral-100">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setIsBulkPriceModalOpen(false);
+                                setNewBulkPrice('');
+                                setSelectedFilterPrice('all');
+                            }}
+                            disabled={bulkPriceLoading}
+                            className="px-5 py-2 text-sm font-medium text-neutral-600 bg-neutral-100 rounded-full hover:bg-neutral-200 transition-all active:scale-95 disabled:opacity-50"
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleConfirmBulkPriceUpdate}
+                            disabled={bulkPriceLoading || !newBulkPrice}
+                            className="px-5 py-2 text-sm font-bold text-white bg-primary rounded-full hover:bg-opacity-90 transition-all shadow-sm active:scale-95 disabled:opacity-50 flex items-center justify-center min-w-[120px]"
+                        >
+                            {bulkPriceLoading ? 'Aplicando...' : 'Confirmar'}
+                        </button>
+                    </div>
+                </div>
             </Modal>
 
             {/* ... Other modals (Edit, Delete, Toast, etc. - ensure they are rendered) */}
