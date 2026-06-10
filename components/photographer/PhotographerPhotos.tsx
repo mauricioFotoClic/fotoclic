@@ -548,8 +548,8 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
     const handleConfirmBulkPriceUpdate = async () => {
         if (!selectedEvent) return;
         const newPrice = parseFloat(newBulkPrice);
-        if (isNaN(newPrice) || newPrice < 0) {
-            showToast("Por favor, insira um preço válido.", "error");
+        if (isNaN(newPrice) || newPrice < 10) {
+            showToast("O preço mínimo por foto deve ser de R$ 10,00.", "error");
             return;
         }
 
@@ -1069,13 +1069,14 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                                 <input
                                     type="number"
                                     step="0.01"
-                                    min="0"
-                                    placeholder="0,00"
+                                    min="10"
+                                    placeholder="10,00"
                                     value={newBulkPrice}
                                     onChange={(e) => setNewBulkPrice(e.target.value)}
                                     className="w-full pl-9 pr-4 py-2.5 bg-white border border-neutral-300 rounded-lg text-sm font-medium text-neutral-800 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
                                 />
                             </div>
+                            <p className="text-xs text-red-500 mt-1 font-semibold">⚠️ Mínimo: R$ 10,00 por foto</p>
                         </div>
                     </div>
 
