@@ -315,13 +315,15 @@ export default async function handler(req, res) {
                                         bodyHtml = body.replace(photoListText, photoListHtml);
                                     }
 
+                                    const formattedBodyHtml = bodyHtml.split('\n').join('<br />');
+
                                     const finalHtml = `
                                         <div style="font-family: sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 12px; overflow: hidden;">
                                             <div style="background-color: #FF6B00; padding: 32px 20px; text-align: center;">
                                                 <h1 style="color: white; margin: 0; font-size: 24px;">Compra Confirmada!</h1>
                                             </div>
                                             <div style="padding: 32px 24px;">
-                                                <div style="font-size: 16px; line-height: 1.6; color: #475569; white-space: pre-wrap;">${bodyHtml}</div>
+                                                <div style="font-size: 16px; line-height: 1.6; color: #475569;">${formattedBodyHtml}</div>
                                                 <div style="text-align: center; margin: 40px 0;">
                                                     <a href="${process.env.VITE_SITE_URL || 'https://fotoclic.com.br'}/minhas-compras" style="background-color: #FF6B00; color: white; padding: 14px 32px; text-decoration: none; border-radius: 30px; font-weight: bold; display: inline-block;">
                                                         Acessar Minhas Fotos

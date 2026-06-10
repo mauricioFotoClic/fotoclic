@@ -239,13 +239,15 @@ export default async function handler(req, res) {
             bodyHtml = bodyHtml.split(`{{${key}}}`).join(val);
           });
 
+          const formattedBodyHtml = bodyHtml.split('\n').join('<br />');
+
           const emailHtml = `
             <div style="font-family: sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
                 <div style="background-color: #059669; padding: 32px 20px; text-align: center;">
                     <h1 style="color: white; margin: 0; font-size: 24px;">💰 Saque Processado com Sucesso!</h1>
                 </div>
                 <div style="padding: 32px 24px; background-color: white;">
-                    <div style="font-size: 16px; line-height: 1.6; color: #475569; white-space: pre-wrap; margin-bottom: 24px;">${bodyHtml}</div>
+                    <div style="font-size: 16px; line-height: 1.6; color: #475569; margin-bottom: 24px;">${formattedBodyHtml}</div>
                     
                     <div style="background-color: #ecfdf5; border: 1px solid #a7f3d0; padding: 16px; border-radius: 8px; margin: 24px 0; text-align: center;">
                         <p style="margin: 0; color: #065f46; font-size: 14px;">Valor Líquido Recebido</p>
@@ -530,13 +532,15 @@ export default async function handler(req, res) {
               bodyHtml = bodyHtml.split(`{{${key}}}`).join(val);
             });
 
+            const formattedBodyHtml = bodyHtml.split('\n').join('<br />');
+
             const emailHtml = `
               <div style="font-family: sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
                   <div style="background-color: #059669; padding: 32px 20px; text-align: center;">
                       <h1 style="color: white; margin: 0; font-size: 24px;">💰 Pagamento Processado com Sucesso!</h1>
                   </div>
                   <div style="padding: 32px 24px; background-color: white;">
-                      <div style="font-size: 16px; line-height: 1.6; color: #475569; white-space: pre-wrap; margin-bottom: 24px;">${bodyHtml}</div>
+                      <div style="font-size: 16px; line-height: 1.6; color: #475569; margin-bottom: 24px;">${formattedBodyHtml}</div>
                       
                       <div style="background-color: #ecfdf5; border: 1px solid #a7f3d0; padding: 16px; border-radius: 8px; margin: 24px 0; text-align: center;">
                           <p style="margin: 0; color: #065f46; font-size: 14px;">Valor Líquido Recebido</p>
