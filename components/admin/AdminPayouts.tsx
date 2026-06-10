@@ -4,10 +4,12 @@ import { Payout, BankInfo } from '../../types';
 import api from '../../services/api';
 import Spinner from '../Spinner';
 import Modal from '../Modal';
+import { useToast } from '../../contexts/ToastContext';
 
 type Tab = 'pending' | 'history' | 'eligible';
 
 const AdminPayouts: React.FC = () => {
+    const { showToast } = useToast();
     const [payouts, setPayouts] = useState<(Payout & { photographer_name: string, bank_info?: BankInfo })[]>([]);
     const [eligiblePhotographers, setEligiblePhotographers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -71,7 +73,7 @@ const AdminPayouts: React.FC = () => {
             fetchAllData();
         } catch (error) {
             console.error("Error confirming payment:", error);
-            alert("Erro ao confirmar pagamento.");
+            showToast("Erro ao confirmar pagamento.", "error");
         } finally {
             setIsApproving(false);
         }
@@ -87,12 +89,12 @@ const AdminPayouts: React.FC = () => {
         setIsTransferringAuto(true);
         try {
             await api.transferPayoutAutomatically(selectedEligible.photographer_id, isManual);
-            alert(isManual ? "Pagamento manual registrado com sucesso!" : "Transferência Pix automática realizada com sucesso!");
+            showToast(isManual ? "Pagamento manual registrado com sucesso!" : "Transferência Pix automática realizada com sucesso!", "success");
             setIsAutoTransferModalOpen(false);
             fetchAllData();
         } catch (error: any) {
             console.error("Error performing auto transfer:", error);
-            alert("Erro ao transferir: " + error.message);
+            showToast("Erro ao transferir: " + error.message, "error");
         } finally {
             setIsTransferringAuto(false);
         }
