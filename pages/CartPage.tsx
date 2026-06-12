@@ -22,6 +22,7 @@ interface CartGrouping {
     photos: Photo[];
     bulkRules: BulkDiscountRule[];
     appliedBulkRule: BulkDiscountRule | null;
+    eligiblePhotoIds?: string[];
 }
 
 const CartPage: React.FC<CartPageProps> = ({ currentUser, cartItemIds, onRemoveItem, onRemoveMultipleItems, onCheckout, onNavigate }) => {
@@ -107,7 +108,20 @@ const CartPage: React.FC<CartPageProps> = ({ currentUser, cartItemIds, onRemoveI
                     const photographer = await api.getPhotographerById(photographerId);
                     const rules = photographer?.bulkDiscountRules || [];
 
-                    const qty = photos.length;
+                    // Fetch event for each photo to check allow_discounts eligibility
+                    const photoEligibilities = await Promise.all(
+                        photos.map(async (p) => {
+                            if (!p.event_id) return { photo: p, eligible: true };
+                            const event = await api.getEventById(p.event_id);
+                            const isEligible = event ? (event.allow_discounts !== false) : true;
+                            return { photo: p, eligible: isEligible };
+                        })
+                    );
+
+                    const eligiblePhotos = photoEligibilities.filter(pe => pe.eligible).map(pe => pe.photo);
+                    const eligiblePhotoIds = eligiblePhotos.map(p => p.id);
+
+                    const qty = eligiblePhotos.length;
                     let appliedRule = null;
 
                     if (qty >= 2 && qty <= 4) {
@@ -122,7 +136,8 @@ const CartPage: React.FC<CartPageProps> = ({ currentUser, cartItemIds, onRemoveI
                         photographerId,
                         photos,
                         bulkRules: rules,
-                        appliedBulkRule: appliedRule
+                        appliedBulkRule: appliedRule,
+                        eligiblePhotoIds
                     });
                 }
                 setGroupedCart(groupedData);
@@ -173,7 +188,8 @@ const CartPage: React.FC<CartPageProps> = ({ currentUser, cartItemIds, onRemoveI
     let bulkDiscountTotal = 0;
     groupedCart.forEach(group => {
         if (group.appliedBulkRule) {
-            const groupSubtotal = group.photos.reduce((sum, p) => sum + p.price, 0);
+            const eligiblePhotos = group.photos.filter(p => !group.eligiblePhotoIds || group.eligiblePhotoIds.includes(p.id));
+            const groupSubtotal = eligiblePhotos.reduce((sum, p) => sum + p.price, 0);
             const discount = groupSubtotal * (group.appliedBulkRule.discountPercent / 100);
             bulkDiscountTotal += discount;
         }
@@ -221,7 +237,8 @@ const CartPage: React.FC<CartPageProps> = ({ currentUser, cartItemIds, onRemoveI
                         <div className="flex-grow space-y-6">
                             {cartPhotos.map(photo => {
                                 const group = groupedCart.find(g => g.photographerId === photo.photographer_id);
-                                const hasBulk = !!group?.appliedBulkRule;
+                                const isEligible = !group?.eligiblePhotoIds || group.eligiblePhotoIds.includes(photo.id);
+                                const hasBulk = !!group?.appliedBulkRule && isEligible;
                                 const hasCoupon = appliedCoupon && appliedCoupon.photographer_id === photo.photographer_id;
 
                                 return (

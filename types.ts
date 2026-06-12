@@ -121,6 +121,7 @@ export interface PhotoEvent {
   event_date: string;
   cover_photo_url?: string;
   created_at: string;
+  allow_discounts?: boolean;
   photographer?: {
     name: string;
     avatar_url?: string;

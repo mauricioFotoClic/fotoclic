@@ -16,7 +16,8 @@ const CreateEventForm: React.FC<CreateEventFormProps> = ({ onSubmit, onCancel, c
         description: initialData?.description || '',
         location: initialData?.location || '',
         event_date: initialData?.event_date ? new Date(initialData.event_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-        cover_photo_url: initialData?.cover_photo_url || ''
+        cover_photo_url: initialData?.cover_photo_url || '',
+        allow_discounts: initialData ? (initialData.allow_discounts !== false) : true
     });
 
     const [loading, setLoading] = useState(false);
@@ -105,6 +106,25 @@ const CreateEventForm: React.FC<CreateEventFormProps> = ({ onSubmit, onCancel, c
                     rows={3}
                     placeholder="Detalhes opcionais sobre o evento..."
                 />
+            </div>
+
+            <div className="flex items-center bg-neutral-50 p-3.5 rounded-xl border border-neutral-200/60 shadow-sm transition-all hover:bg-neutral-100/30">
+                <input
+                    id="allow_discounts"
+                    name="allow_discounts"
+                    type="checkbox"
+                    checked={formData.allow_discounts}
+                    onChange={(e) => setFormData(prev => ({ ...prev, allow_discounts: e.target.checked }))}
+                    className="h-4.5 w-4.5 text-primary focus:ring-primary border-neutral-300 rounded cursor-pointer"
+                />
+                <div className="ml-3">
+                    <label htmlFor="allow_discounts" className="block text-sm font-bold text-neutral-800 cursor-pointer">
+                        Permitir descontos progressivos neste evento
+                    </label>
+                    <p className="text-xs text-neutral-500 mt-0.5">
+                        Se ativado, as fotos deste evento participarão das regras de descontos por volume configuradas no painel.
+                    </p>
+                </div>
             </div>
 
             <div>
