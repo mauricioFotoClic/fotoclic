@@ -1184,6 +1184,10 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                             }
                             setIsModalOpen(false);
                             fetchData();
+                            if (selectedEvent) {
+                                const evPhotos = await api.getPhotographerPhotosByEventId(selectedEvent.id);
+                                setPhotos(evPhotos);
+                            }
                         } catch (err: any) {
                             console.error(err);
                             showToast("Erro ao salvar foto.", "error");
