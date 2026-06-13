@@ -30,6 +30,22 @@ const FolderIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" heig
 const PlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>;
 const PriceIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>;
 
+// Helper to convert base64 to Blob without fetch (which violates connect-src CSP)
+const base64ToBlob = (b64Data: string): Blob => {
+    if (!b64Data || !b64Data.includes(';base64,')) {
+        return new Blob([], { type: 'image/jpeg' });
+    }
+    const parts = b64Data.split(';base64,');
+    const contentType = parts[0].split(':')[1] || 'image/jpeg';
+    const raw = window.atob(parts[1]);
+    const rawLength = raw.length;
+    const uInt8Array = new Uint8Array(rawLength);
+    for (let i = 0; i < rawLength; ++i) {
+        uInt8Array[i] = raw.charCodeAt(i);
+    }
+    return new Blob([uInt8Array], { type: contentType });
+};
+
 interface PhotographerPhotosProps {
     user: User;
     onDataChange?: () => void;
@@ -242,12 +258,6 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
         const failedFiles: Array<{ name: string; reason: string }> = [];
 
         showToast(`Iniciando envio de ${files.length} arquivos...`, "info");
-
-        // Helper to convert base64 to Blob
-        const base64ToBlob = async (b64Data: string) => {
-            const res = await fetch(b64Data);
-            return await res.blob();
-        };
 
         const uploadSingleFile = async (file: File, index: number) => {
             const isVideo = file.type.startsWith('video/') || !!file.name.match(/\.(mp4|mov|webm)$/i);
@@ -1116,8 +1126,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                         try {
                             // Helper to upload blob
                             const uploadToStorage = async (b64: string, path: string, bucket: string) => {
-                                const res = await fetch(b64);
-                                const blob = await res.blob();
+                                const blob = base64ToBlob(b64);
                                 const { error } = await api.supabase.storage.from(bucket).upload(path, blob);
                                 if (error) throw error;
                             };
