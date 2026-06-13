@@ -381,7 +381,7 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
                     return [{
                         id: event.id,
                         title: event.name,
-                        subtitle: `${new Date(event.event_date).toLocaleDateString()} - ${event.location || ''}`,
+                        subtitle: `${new Date(event.event_date.replace(/-/g, '/')).toLocaleDateString()} - ${event.location || ''}`,
                         photos: photos,
                         isEvent: true
                     }];
@@ -395,7 +395,7 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
             return {
                 id: event.id,
                 title: event.name,
-                subtitle: `${new Date(event.event_date).toLocaleDateString()} - ${event.location || ''}`,
+                subtitle: `${new Date(event.event_date.replace(/-/g, '/')).toLocaleDateString()} - ${event.location || ''}`,
                 photos: photos,
                 isEvent: true
             };

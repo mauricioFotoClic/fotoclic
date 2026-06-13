@@ -103,14 +103,14 @@ const FindPhotosPage: React.FC<FindPhotosPageProps> = ({ onNavigate, initialSear
       if (filterDate === 'recent') {
         const cutoff = new Date();
         cutoff.setDate(now.getDate() - 30);
-        result = result.filter(e => new Date(e.event_date) >= cutoff);
+        result = result.filter(e => new Date(e.event_date.replace(/-/g, '/')) >= cutoff);
       } else if (filterDate === 'month') {
         result = result.filter(e => {
-          const d = new Date(e.event_date);
+          const d = new Date(e.event_date.replace(/-/g, '/'));
           return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
         });
       } else if (filterDate === 'year') {
-        result = result.filter(e => new Date(e.event_date).getFullYear() === now.getFullYear());
+        result = result.filter(e => new Date(e.event_date.replace(/-/g, '/')).getFullYear() === now.getFullYear());
       }
     }
 
@@ -250,7 +250,7 @@ const FindPhotosPage: React.FC<FindPhotosPageProps> = ({ onNavigate, initialSear
                 const photographer = photographers[event.photographer_id];
                 const category = categories[event.category_id];
                 const eventDate = event.event_date
-                  ? new Date(event.event_date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
+                  ? new Date(event.event_date.replace(/-/g, '/')).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
                   : null;
 
                 return (

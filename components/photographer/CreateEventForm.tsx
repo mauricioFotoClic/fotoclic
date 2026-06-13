@@ -15,7 +15,13 @@ const CreateEventForm: React.FC<CreateEventFormProps> = ({ onSubmit, onCancel, c
         category_id: initialData?.category_id || '',
         description: initialData?.description || '',
         location: initialData?.location || '',
-        event_date: initialData?.event_date ? new Date(initialData.event_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        event_date: initialData?.event_date ? initialData.event_date.substring(0, 10) : (() => {
+            const d = new Date();
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        })(),
         cover_photo_url: initialData?.cover_photo_url || '',
         allow_discounts: initialData ? (initialData.allow_discounts !== false) : true
     });

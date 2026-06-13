@@ -123,7 +123,7 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ categoryId, onNavigate }) =
               {events.map(event => {
                 const photographer = photographers[event.photographer_id];
                 const eventDate = event.event_date
-                  ? new Date(event.event_date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
+                  ? new Date(event.event_date.replace(/-/g, '/')).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
                   : null;
 
                 return (

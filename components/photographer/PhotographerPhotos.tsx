@@ -672,7 +672,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                             {view === 'events' ? 'Meus Eventos' : selectedEvent?.name}
                         </h1>
                         {view === 'photos' && selectedEvent && (
-                            <p className="text-neutral-500 text-sm">{getCategoryName(selectedEvent.category_id)} • {new Date(selectedEvent.event_date).toLocaleDateString()}</p>
+                            <p className="text-neutral-500 text-sm">{getCategoryName(selectedEvent.category_id)} • {new Date(selectedEvent.event_date.replace(/-/g, '/')).toLocaleDateString()}</p>
                         )}
                     </div>
                 </div>
@@ -795,7 +795,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                                             </div>
                                             <p className="text-sm text-neutral-500 mb-3">{getCategoryName(event.category_id)}</p>
                                             <div className="flex items-center text-xs text-neutral-400 gap-4">
-                                                <span>📅 {new Date(event.event_date).toLocaleDateString()}</span>
+                                                <span>📅 {new Date(event.event_date.replace(/-/g, '/')).toLocaleDateString()}</span>
                                                 {event.location && <span>📍 {event.location}</span>}
                                             </div>
                                         </div>

@@ -184,7 +184,7 @@ const EventPage: React.FC<EventPageProps> = ({ eventId, onNavigate, onAddToCart,
   }
 
   const eventDate = event.event_date
-    ? new Date(event.event_date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
+    ? new Date(event.event_date.replace(/-/g, '/')).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
     : null;
 
   return (
