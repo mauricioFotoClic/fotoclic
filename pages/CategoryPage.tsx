@@ -8,6 +8,22 @@ import WatermarkedImage from '../components/WatermarkedImage';
 import { getOptimizedImageUrl } from '../utils/imageOptimization';
 import { getAvatarFallbackUrl } from '../utils/stringUtils';
 
+// Helper to safely format event dates in local timezone without UTC shift or Invalid Date bugs
+const formatEventDate = (dateStr: string | null | undefined, options?: Intl.DateTimeFormatOptions): string => {
+    if (!dateStr) return '';
+    try {
+        const cleanDate = dateStr.substring(0, 10).replace(/-/g, '/');
+        const d = new Date(cleanDate);
+        if (isNaN(d.getTime())) {
+            const d2 = new Date(dateStr);
+            return isNaN(d2.getTime()) ? '' : d2.toLocaleDateString('pt-BR', options);
+        }
+        return d.toLocaleDateString('pt-BR', options);
+    } catch (e) {
+        return '';
+    }
+};
+
 interface CategoryPageProps {
   categoryId: string;
   onNavigate: (page: Page) => void;
@@ -122,9 +138,7 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ categoryId, onNavigate }) =
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
               {events.map(event => {
                 const photographer = photographers[event.photographer_id];
-                const eventDate = event.event_date
-                  ? new Date(event.event_date.replace(/-/g, '/')).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
-                  : null;
+                const eventDate = formatEventDate(event.event_date, { day: '2-digit', month: 'short', year: 'numeric' }) || null;
 
                 return (
                   <div

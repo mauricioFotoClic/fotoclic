@@ -46,6 +46,22 @@ const base64ToBlob = (b64Data: string): Blob => {
     return new Blob([uInt8Array], { type: contentType });
 };
 
+// Helper to safely format event dates in local timezone without UTC shift or Invalid Date bugs
+const formatEventDate = (dateStr: string | null | undefined, options?: Intl.DateTimeFormatOptions): string => {
+    if (!dateStr) return '';
+    try {
+        const cleanDate = dateStr.substring(0, 10).replace(/-/g, '/');
+        const d = new Date(cleanDate);
+        if (isNaN(d.getTime())) {
+            const d2 = new Date(dateStr);
+            return isNaN(d2.getTime()) ? '' : d2.toLocaleDateString('pt-BR', options);
+        }
+        return d.toLocaleDateString('pt-BR', options);
+    } catch (e) {
+        return '';
+    }
+};
+
 interface PhotographerPhotosProps {
     user: User;
     onDataChange?: () => void;
@@ -672,7 +688,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                             {view === 'events' ? 'Meus Eventos' : selectedEvent?.name}
                         </h1>
                         {view === 'photos' && selectedEvent && (
-                            <p className="text-neutral-500 text-sm">{getCategoryName(selectedEvent.category_id)} • {new Date(selectedEvent.event_date.replace(/-/g, '/')).toLocaleDateString()}</p>
+                            <p className="text-neutral-500 text-sm">{getCategoryName(selectedEvent.category_id)} • {formatEventDate(selectedEvent.event_date)}</p>
                         )}
                     </div>
                 </div>
@@ -795,7 +811,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                                             </div>
                                             <p className="text-sm text-neutral-500 mb-3">{getCategoryName(event.category_id)}</p>
                                             <div className="flex items-center text-xs text-neutral-400 gap-4">
-                                                <span>📅 {new Date(event.event_date.replace(/-/g, '/')).toLocaleDateString()}</span>
+                                                <span>📅 {formatEventDate(event.event_date)}</span>
                                                 {event.location && <span>📍 {event.location}</span>}
                                             </div>
                                         </div>

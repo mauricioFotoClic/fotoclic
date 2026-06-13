@@ -34,6 +34,22 @@ const WhatsAppIcon = () => <svg viewBox="0 0 24 24" fill="currentColor" width="1
 
 
 
+// Helper to safely format event dates in local timezone without UTC shift or Invalid Date bugs
+const formatEventDate = (dateStr: string | null | undefined, options?: Intl.DateTimeFormatOptions): string => {
+    if (!dateStr) return '';
+    try {
+        const cleanDate = dateStr.substring(0, 10).replace(/-/g, '/');
+        const d = new Date(cleanDate);
+        if (isNaN(d.getTime())) {
+            const d2 = new Date(dateStr);
+            return isNaN(d2.getTime()) ? '' : d2.toLocaleDateString('pt-BR', options);
+        }
+        return d.toLocaleDateString('pt-BR', options);
+    } catch (e) {
+        return '';
+    }
+};
+
 const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> = ({ user, onNavigate, editable = false, onAddToCart, currentUser, isActive = true, refreshTrigger }) => {
     const { showToast } = useToast();
     const [eventPhotoCounts, setEventPhotoCounts] = useState<Record<string, number>>({});
@@ -406,7 +422,7 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
                                             <div className="flex items-center text-sm text-neutral-500 gap-4 mt-3">
                                                 <span className="flex items-center gap-1">
                                                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                                                    {new Date(event.event_date.replace(/-/g, '/')).toLocaleDateString()}
+                                                    {formatEventDate(event.event_date)}
                                                 </span>
                                                 {event.location && (
                                                     <span className="flex items-center gap-1">

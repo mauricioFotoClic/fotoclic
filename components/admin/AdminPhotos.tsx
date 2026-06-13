@@ -39,6 +39,22 @@ const ToggleSwitch: React.FC<{ checked: boolean; onChange: () => void; }> = ({ c
     </label>
 );
 
+// Helper to safely format event dates in local timezone without UTC shift or Invalid Date bugs
+const formatEventDate = (dateStr: string | null | undefined, options?: Intl.DateTimeFormatOptions): string => {
+    if (!dateStr) return '';
+    try {
+        const cleanDate = dateStr.substring(0, 10).replace(/-/g, '/');
+        const d = new Date(cleanDate);
+        if (isNaN(d.getTime())) {
+            const d2 = new Date(dateStr);
+            return isNaN(d2.getTime()) ? '' : d2.toLocaleDateString('pt-BR', options);
+        }
+        return d.toLocaleDateString('pt-BR', options);
+    } catch (e) {
+        return '';
+    }
+};
+
 const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
     const [photos, setPhotos] = useState<Photo[]>([]);
     const [photographers, setPhotographers] = useState<PhotographerWithStats[]>([]);
@@ -381,7 +397,7 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
                     return [{
                         id: event.id,
                         title: event.name,
-                        subtitle: `${new Date(event.event_date.replace(/-/g, '/')).toLocaleDateString()} - ${event.location || ''}`,
+                        subtitle: `${formatEventDate(event.event_date)} - ${event.location || ''}`,
                         photos: photos,
                         isEvent: true
                     }];
@@ -395,7 +411,7 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
             return {
                 id: event.id,
                 title: event.name,
-                subtitle: `${new Date(event.event_date.replace(/-/g, '/')).toLocaleDateString()} - ${event.location || ''}`,
+                subtitle: `${formatEventDate(event.event_date)} - ${event.location || ''}`,
                 photos: photos,
                 isEvent: true
             };
