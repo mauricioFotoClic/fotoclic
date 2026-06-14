@@ -2725,6 +2725,18 @@ export const api = {
     return result;
   },
 
+  sendEmail: async (to: string | string[], subject: string, html: string): Promise<any> => {
+    const response = await fetch('/api/send-email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ to, subject, html }),
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Erro ao enviar e-mail.');
+    return result;
+  },
 
 };
 
