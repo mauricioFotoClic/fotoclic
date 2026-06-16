@@ -99,7 +99,12 @@ export default async function handler(req, res) {
                 const { data: photos } = await supabase.from('photos').select('*').in('id', cartIds);
                 
                 if (photos && photos.length > 0) {
-                    const flatFeePerPhoto = 0.50 / photos.length;
+                    const totalAmountReais = billing.amount / 100;
+                    let gatewayFeeTotal = 0.50; // PIX
+                    if (billing.payment_method === 'CARD') {
+                        gatewayFeeTotal = (totalAmountReais * 0.035) + 0.60;
+                    }
+                    const flatFeePerPhoto = gatewayFeeTotal / photos.length;
                     for (const photo of photos) {
                         const isVideo = photo.media_type === 'video';
                         let rate;
@@ -169,13 +174,15 @@ export default async function handler(req, res) {
                         } else {
                             rate = customRates[photo.photographer_id] !== undefined ? customRates[photo.photographer_id] : defaultRate;
                         }
-                        const commissionValue = photo.price * rate;
+                        const commissionValue = Math.min(photo.price, (photo.price * rate) + flatFeePerPhoto);
 
                         photographerSalesMap[photo.photographer_id].totalCommission += commissionValue;
                         photographerSalesMap[photo.photographer_id].photos.push({
                             title: photo.title,
                             price: photo.price,
                             commission: commissionValue,
+                            rate: rate,
+                            gatewayFee: flatFeePerPhoto,
                             preview_url: photo.preview_url
                         });
                     }
@@ -288,16 +295,22 @@ export default async function handler(req, res) {
                     for (const [pId, saleData] of Object.entries(photographerSalesMap)) {
                         if (saleData.photographer && saleData.photographer.email) {
                             try {
+                                const totalPhotosPrice = saleData.photos.reduce((acc, p) => acc + p.price, 0);
+                                const totalPlatformFee = saleData.photos.reduce((acc, p) => acc + (p.price * p.rate), 0);
+                                const totalGatewayFee = saleData.photos.reduce((acc, p) => acc + p.gatewayFee, 0);
                                 const totalPhotogNet = saleData.photos.reduce((acc, p) => acc + (p.price - p.commission), 0);
 
                                 const photoListHtmlPhotog = saleData.photos.map(p => {
-                                    const photogNet = p.price - p.commission;
+                                    const platformFee = p.price * p.rate;
                                     return `
                                     <div style="display: flex; align-items: center; margin-bottom: 12px; padding: 10px; background: #f9fafb; border-radius: 8px; border: 1px solid #edf2f7;">
                                         <img src="${p.preview_url}" width="60" height="60" style="object-fit: cover; border-radius: 4px; margin-right: 12px; border: 1px solid #e2e8f0;" />
-                                        <div>
-                                            <div style="font-weight: bold; color: #2d3748; font-size: 14px;">${p.title || 'Foto'}</div>
-                                            <div style="color: #718096; font-size: 12px;">Venda: R$ ${p.price.toFixed(2).replace('.', ',')} | Receber da Foto: <strong style="color: #059669;">R$ ${photogNet.toFixed(2).replace('.', ',')}</strong></div>
+                                        <div style="width: 100%;">
+                                            <div style="font-weight: bold; color: #2d3748; font-size: 14px; margin-bottom: 4px;">${p.title || 'Foto'}</div>
+                                            <div style="color: #475569; font-size: 13px; line-height: 1.4;">
+                                                Venda Realizada: <strong>R$ ${p.price.toFixed(2).replace('.', ',')}</strong><br/>
+                                                Desconto Plataforma (${(p.rate * 100).toFixed(0)}%): <span style="color: #ef4444;">- R$ ${platformFee.toFixed(2).replace('.', ',')}</span>
+                                            </div>
                                         </div>
                                     </div>
                                     `;
@@ -313,17 +326,29 @@ export default async function handler(req, res) {
                                             <p style="font-size: 16px;">Olá, <strong>${saleData.photographer.name || 'Fotógrafo'}</strong>!</p>
                                             <p style="font-size: 16px; color: #475569;">Excelentes notícias! Você acabou de realizar <strong>${saleData.photos.length} venda(s)</strong> no FotoClic.</p>
                                             
-                                            <div style="background-color: #ecfdf5; border: 1px solid #a7f3d0; padding: 16px; border-radius: 8px; margin: 24px 0; text-align: center;">
-                                                <p style="margin: 0; color: #065f46; font-size: 14px;">Valor a Receber (Sem taxa do Gateway)</p>
-                                                <p style="margin: 4px 0 0 0; color: #047857; font-size: 28px; font-weight: bold;">R$ ${totalPhotogNet.toFixed(2).replace('.', ',')}</p>
+                                            <div style="background-color: #ecfdf5; border: 1px solid #a7f3d0; padding: 20px; border-radius: 8px; margin: 24px 0;">
+                                                <div style="text-align: center; border-bottom: 1px solid #a7f3d0; padding-bottom: 12px; margin-bottom: 12px;">
+                                                    <p style="margin: 0; color: #065f46; font-size: 14px;">Total Líquido a Receber</p>
+                                                    <p style="margin: 4px 0 0 0; color: #047857; font-size: 28px; font-weight: bold;">R$ ${totalPhotogNet.toFixed(2).replace('.', ',')}</p>
+                                                </div>
+                                                <table style="width: 100%; font-size: 13px; color: #374151; border-collapse: collapse;">
+                                                    <tr style="height: 22px;">
+                                                        <td style="text-align: left; color: #065f46;">Total das Fotos:</td>
+                                                        <td style="text-align: right; font-weight: bold; color: #065f46;">R$ ${totalPhotosPrice.toFixed(2).replace('.', ',')}</td>
+                                                    </tr>
+                                                    <tr style="height: 22px;">
+                                                        <td style="text-align: left; color: #065f46;">Desconto Plataforma:</td>
+                                                        <td style="text-align: right; color: #ef4444;">- R$ ${totalPlatformFee.toFixed(2).replace('.', ',')}</td>
+                                                    </tr>
+                                                    <tr style="height: 22px;">
+                                                        <td style="text-align: left; color: #065f46;">Desconto Op. Pagamento (${billing.payment_method === 'CARD' ? 'Cartão' : 'Pix'}):</td>
+                                                        <td style="text-align: right; color: #ef4444;">- R$ ${totalGatewayFee.toFixed(2).replace('.', ',')}</td>
+                                                    </tr>
+                                                </table>
                                             </div>
 
                                             <h3 style="color: #1e293b; margin-top: 24px;">Fotos Vendidas:</h3>
                                             ${photoListHtmlPhotog}
-
-                                            <p style="font-size: 13px; color: #64748b; margin-top: 24px; padding: 12px; background-color: #f8fafc; border-radius: 6px; border-left: 4px solid #0ea5e9;">
-                                                <strong>Importante:</strong> Além da taxa do FotoClic que já foi descontada, no momento do <strong>saque</strong> na Central Financeira será deduzida a taxa do provedor de processamento de pagamentos (taxas relativas a Pix e Cartão).
-                                            </p>
 
                                             <div style="text-align: center; margin: 40px 0;">
                                                 <a href="${siteUrl}/photographer-dashboard" style="background-color: #059669; color: white; padding: 14px 32px; text-decoration: none; border-radius: 30px; font-weight: bold; display: inline-block;">

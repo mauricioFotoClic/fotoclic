@@ -264,7 +264,12 @@ export default async function handler(req, res) {
                         if (cartIds.length > 0) {
                             const { data: photos } = await supabase.from('photos').select('*').in('id', cartIds);
                             if (photos && photos.length > 0) {
-                                const flatFeePerPhoto = 0.50 / photos.length;
+                                const totalAmountReais = billing.amount / 100;
+                                let gatewayFeeTotal = 0.50; // PIX
+                                if (billing.payment_method === 'CARD') {
+                                    gatewayFeeTotal = (totalAmountReais * 0.035) + 0.60;
+                                }
+                                const flatFeePerPhoto = gatewayFeeTotal / photos.length;
                                 for (const photo of photos) {
                                     const isVideo = photo.media_type === 'video';
                                     let rate;
