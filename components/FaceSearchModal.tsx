@@ -81,7 +81,17 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({ isOpen, onClose, onNa
     };
 
     useEffect(() => {
-        if (!isOpen) {
+        if (isOpen) {
+            setSelectedImage(null);
+            setResults([]);
+            setHasSearched(false);
+            setShowTips(false);
+            setIsProcessing(false);
+            
+            // Reset input values so onChange triggers even if the user selects the same file
+            if (fileInputRef.current) fileInputRef.current.value = '';
+            if (cameraInputRef.current) cameraInputRef.current.value = '';
+        } else {
             stopCamera();
         }
     }, [isOpen]);
