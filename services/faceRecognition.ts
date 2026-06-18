@@ -2,18 +2,32 @@ import { supabase } from './supabaseClient';
 
 const API_BASE = '';
 
-// Converts any image URL or data URL to JPEG via browser Canvas (handles WebP natively)
+// Converts any image URL or data URL to JPEG via browser Canvas (handles WebP natively and resizes to 1024px maximum dimension)
 async function toJpegDataUrl(source: string): Promise<string> {
     return new Promise((resolve, reject) => {
         const img = new Image();
         img.crossOrigin = 'anonymous';
         img.onload = () => {
+            const MAX_DIMENSION = 1024;
+            let width = img.naturalWidth;
+            let height = img.naturalHeight;
+
+            if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+                if (width > height) {
+                    height = Math.round((height * MAX_DIMENSION) / width);
+                    width = MAX_DIMENSION;
+                } else {
+                    width = Math.round((width * MAX_DIMENSION) / height);
+                    height = MAX_DIMENSION;
+                }
+            }
+
             const canvas = document.createElement('canvas');
-            canvas.width = img.naturalWidth;
-            canvas.height = img.naturalHeight;
+            canvas.width = width;
+            canvas.height = height;
             const ctx = canvas.getContext('2d')!;
-            ctx.drawImage(img, 0, 0);
-            resolve(canvas.toDataURL('image/jpeg', 0.92));
+            ctx.drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/jpeg', 0.85));
         };
         img.onerror = () => reject(new Error('Failed to load image for conversion'));
         img.src = source;
