@@ -27,13 +27,74 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({ isOpen, onClose, onNa
     const fileInputRef = useRef<HTMLInputElement>(null);
     const cameraInputRef = useRef<HTMLInputElement>(null);
 
+    const [isCameraOpen, setIsCameraOpen] = useState(false);
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const streamRef = useRef<MediaStream | null>(null);
+
+    const isMobileDevice = () => {
+        if (typeof window === 'undefined' || typeof navigator === 'undefined') return false;
+        return /Mobi|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    };
+
+    const stopCamera = () => {
+        if (streamRef.current) {
+            streamRef.current.getTracks().forEach(track => track.stop());
+            streamRef.current = null;
+        }
+        setIsCameraOpen(false);
+    };
+
+    const startCamera = async () => {
+        try {
+            setIsCameraOpen(true);
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }
+            });
+            streamRef.current = stream;
+            if (videoRef.current) {
+                videoRef.current.srcObject = stream;
+            }
+        } catch (err) {
+            console.error("Error accessing camera:", err);
+            onShowToast("Não foi possível acessar a webcam. Por favor, verifique as permissões de câmera do navegador ou utilize a opção 'Enviar Foto'.", 'error');
+            setIsCameraOpen(false);
+        }
+    };
+
+    const capturePhoto = () => {
+        if (videoRef.current) {
+            const canvas = document.createElement('canvas');
+            canvas.width = videoRef.current.videoWidth;
+            canvas.height = videoRef.current.videoHeight;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+                // Real orientation (no flip or scale translate)
+                ctx.drawImage(videoRef.current, 0, 0);
+
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+                setSelectedImage(dataUrl);
+                setResults([]);
+                setHasSearched(false);
+                stopCamera();
+            }
+        }
+    };
+
     useEffect(() => {
-        // No-op: Rekognition runs server-side, no local model loading needed
+        if (!isOpen) {
+            stopCamera();
+        }
     }, [isOpen]);
 
+    useEffect(() => {
+        return () => {
+            if (streamRef.current) {
+                streamRef.current.getTracks().forEach(track => track.stop());
+            }
+        };
+    }, []);
+
     if (!isOpen) return null;
-
-
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -47,8 +108,6 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({ isOpen, onClose, onNa
             reader.readAsDataURL(file);
         }
     };
-
-    // Removed WebRTC Camera state for better mobile compatibility using native HTML5 capture="user"
 
     const handleSearch = async () => {
         if (!selectedImage) return;
@@ -286,40 +345,81 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({ isOpen, onClose, onNa
                                     </div>
 
 
-                                    <div className="grid grid-cols-2 gap-3 md:gap-4 mb-6">
-                                        <div
-                                            onClick={() => cameraInputRef.current?.click()}
-                                            className="border-2 border-dashed border-neutral-200 hover:border-primary hover:bg-primary/10 rounded-2xl p-4 md:p-6 cursor-pointer transition-all duration-300 group flex flex-col items-center justify-center text-center h-36 md:h-48"
-                                        >
-                                            <div className="w-12 h-12 md:w-14 md:h-14 bg-primary/20 rounded-full flex items-center justify-center mb-2 md:mb-3 group-hover:scale-110 transition-transform text-primary-dark">
-                                                <Camera className="w-6 h-6 md:w-7 md:h-7" />
-                                            </div>
-                                            <span className="font-semibold text-neutral-800 text-sm">Tirar Selfie</span>
-                                            <span className="text-xs text-neutral-400 mt-1 hidden md:block">Usar Câmera</span>
-                                        </div>
-
-                                        <div
-                                            onClick={() => fileInputRef.current?.click()}
-                                            className="border-2 border-dashed border-neutral-200 hover:border-primary-dark hover:bg-primary/10 rounded-2xl p-4 md:p-6 cursor-pointer transition-all duration-300 group flex flex-col items-center justify-center text-center h-36 md:h-48"
-                                        >
-                                            {selectedImage ? (
-                                                <div className="relative w-full h-full rounded-xl overflow-hidden">
-                                                    <img src={selectedImage} alt="Preview" className="w-full h-full object-cover" />
-                                                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <Upload className="text-white" />
-                                                    </div>
+                                    {isCameraOpen ? (
+                                        <div className="mb-6 flex flex-col items-center">
+                                            <div className="relative w-full max-w-md aspect-video bg-neutral-950 rounded-2xl overflow-hidden shadow-inner border-2 border-neutral-200">
+                                                <video
+                                                    ref={videoRef}
+                                                    autoPlay
+                                                    playsInline
+                                                    muted
+                                                    className="w-full h-full object-cover transform -scale-x-100 bg-neutral-900"
+                                                />
+                                                <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full text-white text-xs font-semibold flex items-center gap-1.5 animate-pulse">
+                                                    <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                                                    Ao Vivo
                                                 </div>
-                                            ) : (
-                                                <>
-                                                    <div className="w-12 h-12 md:w-14 md:h-14 bg-primary/20 rounded-full flex items-center justify-center mb-2 md:mb-3 group-hover:scale-110 transition-transform text-primary-dark">
-                                                        <Upload className="w-6 h-6 md:w-7 md:h-7" />
-                                                    </div>
-                                                    <span className="font-semibold text-neutral-800 text-sm">Enviar Foto</span>
-                                                    <span className="text-xs text-neutral-400 mt-1 hidden md:block">Da Galeria</span>
-                                                </>
-                                            )}
+                                            </div>
+                                            <div className="flex gap-3 mt-4 w-full max-w-md">
+                                                <button
+                                                    type="button"
+                                                    onClick={stopCamera}
+                                                    className="flex-1 py-3 px-4 rounded-xl border border-neutral-200 text-neutral-700 font-semibold hover:bg-neutral-50 transition-all active:scale-95 text-sm"
+                                                >
+                                                    Cancelar
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={capturePhoto}
+                                                    className="flex-1 py-3 px-4 rounded-xl bg-primary text-white font-semibold hover:bg-primary-dark shadow-md hover:shadow-primary/20 transition-all active:scale-95 text-sm flex items-center justify-center gap-2"
+                                                >
+                                                    <Camera size={18} />
+                                                    Capturar Foto
+                                                </button>
+                                            </div>
                                         </div>
-                                    </div>
+                                    ) : (
+                                        <div className="grid grid-cols-2 gap-3 md:gap-4 mb-6">
+                                            <div
+                                                onClick={() => {
+                                                    if (isMobileDevice()) {
+                                                        cameraInputRef.current?.click();
+                                                    } else {
+                                                        startCamera();
+                                                    }
+                                                }}
+                                                className="border-2 border-dashed border-neutral-200 hover:border-primary hover:bg-primary/10 rounded-2xl p-4 md:p-6 cursor-pointer transition-all duration-300 group flex flex-col items-center justify-center text-center h-36 md:h-48"
+                                            >
+                                                <div className="w-12 h-12 md:w-14 md:h-14 bg-primary/20 rounded-full flex items-center justify-center mb-2 md:mb-3 group-hover:scale-110 transition-transform text-primary-dark">
+                                                    <Camera className="w-6 h-6 md:w-7 md:h-7" />
+                                                </div>
+                                                <span className="font-semibold text-neutral-800 text-sm">Tirar Selfie</span>
+                                                <span className="text-xs text-neutral-400 mt-1 hidden md:block">Usar Câmera</span>
+                                            </div>
+
+                                            <div
+                                                onClick={() => fileInputRef.current?.click()}
+                                                className="border-2 border-dashed border-neutral-200 hover:border-primary-dark hover:bg-primary/10 rounded-2xl p-4 md:p-6 cursor-pointer transition-all duration-300 group flex flex-col items-center justify-center text-center h-36 md:h-48"
+                                            >
+                                                {selectedImage ? (
+                                                    <div className="relative w-full h-full rounded-xl overflow-hidden">
+                                                        <img src={selectedImage} alt="Preview" className="w-full h-full object-cover" />
+                                                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <Upload className="text-white" />
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        <div className="w-12 h-12 md:w-14 md:h-14 bg-primary/20 rounded-full flex items-center justify-center mb-2 md:mb-3 group-hover:scale-110 transition-transform text-primary-dark">
+                                                            <Upload className="w-6 h-6 md:w-7 md:h-7" />
+                                                        </div>
+                                                        <span className="font-semibold text-neutral-800 text-sm">Enviar Foto</span>
+                                                        <span className="text-xs text-neutral-400 mt-1 hidden md:block">Da Galeria</span>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
 
                                     <div className="mt-2">
                                         <button
