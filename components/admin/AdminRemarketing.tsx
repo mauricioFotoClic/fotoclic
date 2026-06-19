@@ -105,6 +105,9 @@ const AdminRemarketing: React.FC = () => {
         const eventName = selectedEvent ? selectedEvent.name : '[Nome do Evento]';
 
         if (template === 'new_photos') {
+            if (selectedStatus === 'abandoned') {
+                setSelectedStatus('all');
+            }
             setEmailSubject(`Novas fotos do evento ${eventName} já estão disponíveis!`);
             setEmailBody(
                 `<p>Olá [Nome],</p>\n` +
@@ -114,6 +117,9 @@ const AdminRemarketing: React.FC = () => {
                 `<p style="margin-top: 30px; font-size:12px; color:#888;">Equipe FotoClic</p>`
             );
         } else if (template === 'discount_coupon') {
+            if (selectedStatus === 'abandoned') {
+                setSelectedStatus('all');
+            }
             setEmailSubject(`Desconto Exclusivo para o evento ${eventName}`);
             setEmailBody(
                 `<p>Olá [Nome],</p>\n` +
@@ -123,6 +129,7 @@ const AdminRemarketing: React.FC = () => {
                 `<p style="margin-top: 30px; font-size:12px; color:#888;">Equipe FotoClic</p>`
             );
         } else if (template === 'abandoned_cart') {
+            setSelectedStatus('abandoned');
             setEmailSubject(`Você deixou momentos incríveis no seu carrinho!`);
             setEmailBody(
                 `<p>Olá [Nome],</p>\n` +
@@ -227,7 +234,13 @@ const AdminRemarketing: React.FC = () => {
     // Envio de E-mails em Lote
     const handleSendBulkEmails = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (filteredCustomers.length === 0) {
+        
+        // Garantia de segurança extra: se o template for abandoned_cart, só envia para clientes com carrinho abandonado
+        const targets = selectedTemplate === 'abandoned_cart'
+            ? filteredCustomers.filter(c => c.hasAbandonedCart)
+            : filteredCustomers;
+
+        if (targets.length === 0) {
             alert("Nenhum cliente selecionado nos filtros atuais.");
             return;
         }
@@ -237,18 +250,18 @@ const AdminRemarketing: React.FC = () => {
         }
 
         const confirmSend = window.confirm(
-            `Você está prestes a disparar e-mails em lote para ${filteredCustomers.length} clientes. Deseja continuar?`
+            `Você está prestes a disparar e-mails em lote para ${targets.length} clientes. Deseja continuar?`
         );
         if (!confirmSend) return;
 
         setSendingEmail(true);
-        setEmailProgress({ current: 0, total: filteredCustomers.length, status: 'Iniciando disparos...' });
+        setEmailProgress({ current: 0, total: targets.length, status: 'Iniciando disparos...' });
 
         let successCount = 0;
         let failCount = 0;
 
-        for (let i = 0; i < filteredCustomers.length; i++) {
-            const client = filteredCustomers[i];
+        for (let i = 0; i < targets.length; i++) {
+            const client = targets[i];
             
             // Substituir placeholders como [Nome]
             const personalizedBody = emailBody.replace(/\[Nome\]/g, client.name);
@@ -365,8 +378,13 @@ const AdminRemarketing: React.FC = () => {
                         <select
                             value={selectedStatus}
                             onChange={(e) => {
-                                setSelectedStatus(e.target.value as any);
+                                const newStatus = e.target.value as any;
+                                setSelectedStatus(newStatus);
                                 setCurrentPage(1);
+                                // Se o usuário mudar o filtro manualmente e não for mais carrinho abandonado, reseta o template selecionado
+                                if (newStatus !== 'abandoned' && selectedTemplate === 'abandoned_cart') {
+                                    setSelectedTemplate('custom');
+                                }
                             }}
                             className="w-full px-4 py-2 border border-neutral-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent bg-white text-sm"
                         >
@@ -465,11 +483,11 @@ const AdminRemarketing: React.FC = () => {
 
                             <button
                                 type="submit"
-                                disabled={sendingEmail || filteredCustomers.length === 0}
+                                disabled={sendingEmail || (selectedTemplate === 'abandoned_cart' ? filteredCustomers.filter(c => c.hasAbandonedCart).length === 0 : filteredCustomers.length === 0)}
                                 className="w-full py-3 bg-primary text-white font-bold rounded-full hover:bg-opacity-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm flex items-center justify-center gap-2 shadow-md shadow-primary/10"
                             >
                                 <MailIcon className="w-5 h-5" />
-                                Disparar E-mails em Lote ({filteredCustomers.length})
+                                Disparar E-mails em Lote ({selectedTemplate === 'abandoned_cart' ? filteredCustomers.filter(c => c.hasAbandonedCart).length : filteredCustomers.length})
                             </button>
                         </form>
                     </div>
