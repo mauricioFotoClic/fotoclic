@@ -466,6 +466,46 @@ const AdminRemarketing: React.FC = () => {
                                 />
                             </div>
 
+                            {/* Live Preview do E-mail */}
+                            <div className="space-y-2">
+                                <label className="block text-sm font-semibold text-neutral-700">
+                                    Visualização em Tempo Real (Live Preview)
+                                </label>
+                                <div className="border border-neutral-200 rounded-2xl overflow-hidden bg-white shadow-sm">
+                                    {/* Mock Email Header */}
+                                    <div className="bg-neutral-50 px-4 py-3 border-b border-neutral-200 text-xs text-neutral-500 space-y-1.5 font-sans">
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-semibold text-neutral-400 w-12 text-right">De:</span>
+                                            <span className="text-neutral-700 font-medium">contato@fotoclic.com.br (via FotoClic)</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-semibold text-neutral-400 w-12 text-right">Para:</span>
+                                            <span className="text-neutral-700 font-medium">cliente_exemplo@gmail.com</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-semibold text-neutral-400 w-12 text-right">Assunto:</span>
+                                            <span className="text-neutral-800 font-bold">{emailSubject || '(Sem assunto)'}</span>
+                                        </div>
+                                    </div>
+                                    {/* Mock Email Body */}
+                                    <div className="p-4 md:p-6 bg-neutral-50 min-h-[180px] flex items-center justify-center">
+                                        <div className="bg-white p-5 rounded-xl border border-neutral-100 shadow-sm max-w-2xl w-full font-sans text-sm text-neutral-800 leading-relaxed overflow-x-auto">
+                                            {emailBody ? (
+                                                <div 
+                                                    dangerouslySetInnerHTML={{ 
+                                                        __html: emailBody.replace(/\[Nome\]/g, '<span class="font-bold text-primary">Maurício</span>') 
+                                                    }} 
+                                                />
+                                            ) : (
+                                                <div className="text-center text-neutral-400 italic py-6">
+                                                    O preview do corpo do e-mail aparecerá aqui conforme você digita...
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             {sendingEmail && (
                                 <div className="p-4 bg-neutral-50 border border-neutral-200 rounded-xl space-y-2">
                                     <div className="flex justify-between text-xs font-semibold text-neutral-600">
