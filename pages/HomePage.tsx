@@ -636,6 +636,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
                             alt={event.name}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                             loading="lazy"
+                            containWithBlur={true}
                           />
                         ) : (
                           <div className="w-full h-full flex flex-col items-center justify-center bg-neutral-100 gap-2">

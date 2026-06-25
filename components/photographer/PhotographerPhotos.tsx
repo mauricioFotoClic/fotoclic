@@ -763,6 +763,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                                                     src={getOptimizedImageUrl(event.cover_photo_url, 600, 75)}
                                                     alt="Capa"
                                                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                                    containWithBlur={true}
                                                 />
                                             ) : (
                                                 <div className="w-full h-full flex items-center justify-center text-neutral-400">

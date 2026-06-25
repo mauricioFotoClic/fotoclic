@@ -105,6 +105,7 @@ const PhotoCard: React.FC<PhotoCardProps> = ({ photo, photographer, onNavigate, 
                     loading={loading || "lazy"}
                     decoding="async"
                     className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    containWithBlur={true}
                 />
                 {photo.media_type === 'video' && (
                     <div className="absolute top-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded backdrop-blur-sm flex items-center gap-1 z-20">

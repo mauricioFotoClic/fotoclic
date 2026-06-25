@@ -404,6 +404,7 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
                                                     src={getOptimizedImageUrl(coverPhotoUrl, 600, 75)}
                                                     alt={event.name}
                                                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                                    containWithBlur={true}
                                                 />
                                             ) : (
                                                 <div className="w-full h-full flex items-center justify-center text-neutral-400 bg-neutral-100">

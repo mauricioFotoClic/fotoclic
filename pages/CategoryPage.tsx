@@ -153,6 +153,7 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ categoryId, onNavigate }) =
                           src={getOptimizedImageUrl(event.cover_photo_url, 600, 75)}
                           alt={event.name}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          containWithBlur={true}
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-neutral-200">
