@@ -36,7 +36,7 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigate, currentView
 
     const handleCopyLink = () => {
         if (!user) return;
-        const url = `${window.location.origin}/portfolio/${user.id}`;
+        const url = `${window.location.origin}/portfolio/${user.slug || user.id}`;
         navigator.clipboard.writeText(url).then(() => {
             showToast('Link do portfólio copiado!', 'success');
         }).catch(err => {

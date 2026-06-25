@@ -60,6 +60,7 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
     const [loading, setLoading] = useState(true);
     const [selectedEventPhotos, setSelectedEventPhotos] = useState<Photo[]>([]);
     const [loadingEventPhotos, setLoadingEventPhotos] = useState(false);
+    const [visiblePhotosCount, setVisiblePhotosCount] = useState(24);
 
     // Edit/Delete State
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -87,13 +88,17 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
                     }
                 }).catch(e => console.error("Failed to refresh user", e));
 
-                // Load only events and counts for both views. Photos are loaded per-event on selection.
-                const [allEvents, countsData] = await Promise.all([
-                    api.getPhotographerEvents(user.id),
-                    api.getEventPhotoCounts(user.id)
-                ]);
+                // Load events first, then fetch counts optimized for those event IDs
+                const allEvents = await api.getPhotographerEvents(user.id);
                 setEvents(allEvents);
-                setEventPhotoCounts(countsData);
+
+                const eventIds = allEvents.map(e => e.id);
+                if (eventIds.length > 0) {
+                    const countsData = await api.getEventPhotoCounts(user.id, eventIds, !editable);
+                    setEventPhotoCounts(countsData);
+                } else {
+                    setEventPhotoCounts({});
+                }
 
                 if (editable) {
                     const cats = await api.getCategories();
@@ -113,6 +118,7 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
         setSelectedEvent(event);
         setLoadingEventPhotos(true);
         setSelectedEventPhotos([]);
+        setVisiblePhotosCount(24); // Resets photo grid limit when switching events
         try {
             const eventPhotos = await api.getPhotosByEventId(event.id);
             setSelectedEventPhotos(eventPhotos);
@@ -186,7 +192,8 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
     };
 
     const handleCopyLink = () => {
-        const url = `${window.location.origin}/portfolio/${user.id}`;
+        const targetSlug = displayUser.slug || user.slug || user.id;
+        const url = `${window.location.origin}/portfolio/${targetSlug}`;
         navigator.clipboard.writeText(url).then(() => {
             showToast('Link do portfólio copiado!', 'success');
         }).catch(err => {
@@ -196,7 +203,8 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
     };
 
     const handleShare = () => {
-        const url = `${window.location.origin}/portfolio/${user.id}`;
+        const targetSlug = displayUser.slug || user.slug || user.id;
+        const url = `${window.location.origin}/portfolio/${targetSlug}`;
         shareContent(
             'Portfólio FotoClic',
             `Confira o portfólio de ${user.name} no FotoClic`,
@@ -455,55 +463,69 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
                     loadingEventPhotos ? (
                         <div className="flex justify-center py-16"><Spinner size="lg" label="Carregando fotos do evento..." /></div>
                     ) : selectedEventPhotos.length > 0 ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                            {selectedEventPhotos.map(photo => (
-                                editable ? (
-                                    // Editable CRUD Card
-                                    <div key={photo.id} className="bg-white rounded-lg shadow-sm overflow-hidden border border-neutral-200 hover:shadow-md transition-all group">
-                                        <div className="relative h-48 overflow-hidden bg-neutral-100">
-                                            <img src={photo.preview_url} alt={photo.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                                            <div className="absolute top-2 right-2 flex flex-col items-end gap-1">
-                                                {getStatusChip(photo.moderation_status, photo.rejection_reason)}
-                                                <span className={`px-2 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full border shadow-sm ${photo.is_public ? 'bg-white text-green-700 border-green-200' : 'bg-neutral-100 text-neutral-500 border-neutral-200'}`}>
-                                                    {photo.is_public ? 'Pública' : 'Privada'}
-                                                </span>
+                        <>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                {selectedEventPhotos.slice(0, visiblePhotosCount).map(photo => (
+                                    editable ? (
+                                        // Editable CRUD Card
+                                        <div key={photo.id} className="bg-white rounded-lg shadow-sm overflow-hidden border border-neutral-200 hover:shadow-md transition-all group">
+                                            <div className="relative h-48 overflow-hidden bg-neutral-100">
+                                                <img src={photo.preview_url} alt={photo.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                                                <div className="absolute top-2 right-2 flex flex-col items-end gap-1">
+                                                    {getStatusChip(photo.moderation_status, photo.rejection_reason)}
+                                                    <span className={`px-2 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full border shadow-sm ${photo.is_public ? 'bg-white text-green-700 border-green-200' : 'bg-neutral-100 text-neutral-500 border-neutral-200'}`}>
+                                                        {photo.is_public ? 'Pública' : 'Privada'}
+                                                    </span>
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div className="p-4">
-                                            <h4 className="font-semibold text-neutral-900 truncate mb-1" title={photo.title}>{photo.title}</h4>
-                                            <p className="text-sm text-neutral-500 mb-4">R$ {photo.price.toFixed(2).replace('.', ',')}</p>
+                                            <div className="p-4">
+                                                <h4 className="font-semibold text-neutral-900 truncate mb-1" title={photo.title}>{photo.title}</h4>
+                                                <p className="text-sm text-neutral-500 mb-4">R$ {photo.price.toFixed(2).replace('.', ',')}</p>
 
-                                            <div className="flex gap-2 pt-2 border-t border-neutral-100">
-                                                <button
-                                                    onClick={() => handleOpenModal(photo)}
-                                                    className="flex-1 flex items-center justify-center px-3 py-2 text-sm font-medium text-primary-dark bg-primary/10 rounded-md hover:bg-primary/20 transition-colors"
-                                                >
-                                                    <span className="mr-1"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></span>
-                                                    Editar
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDelete(photo)}
-                                                    className="flex items-center justify-center px-3 py-2 text-red-600 bg-red-50 rounded-md hover:bg-red-100 transition-colors"
-                                                    title="Excluir"
-                                                >
-                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-                                                </button>
+                                                <div className="flex gap-2 pt-2 border-t border-neutral-100">
+                                                    <button
+                                                        onClick={() => handleOpenModal(photo)}
+                                                        className="flex-1 flex items-center justify-center px-3 py-2 text-sm font-medium text-primary-dark bg-primary/10 rounded-md hover:bg-primary/20 transition-colors"
+                                                    >
+                                                        <span className="mr-1"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></span>
+                                                        Editar
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDelete(photo)}
+                                                        className="flex items-center justify-center px-3 py-2 text-red-600 bg-red-50 rounded-md hover:bg-red-100 transition-colors"
+                                                        title="Excluir"
+                                                    >
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                ) : (
-                                    // Public View Card
-                                    <PhotoCard
-                                        key={photo.id}
-                                        photo={photo}
-                                        photographer={displayUser}
-                                        onNavigate={onNavigate}
-                                        onAddToCart={onAddToCart}
-                                        currentUser={currentUser}
-                                    />
-                                )
-                            ))}
-                        </div>
+                                    ) : (
+                                        // Public View Card
+                                        <PhotoCard
+                                            key={photo.id}
+                                            photo={photo}
+                                            photographer={displayUser}
+                                            onNavigate={onNavigate}
+                                            onAddToCart={onAddToCart}
+                                            currentUser={currentUser}
+                                        />
+                                    )
+                                ))}
+                            </div>
+
+                            {selectedEventPhotos.length > visiblePhotosCount && (
+                                <div className="flex justify-center mt-10">
+                                    <button
+                                        onClick={() => setVisiblePhotosCount(prev => prev + 24)}
+                                        className="px-8 py-3 bg-primary hover:bg-primary-dark text-white rounded-full font-bold shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition-all duration-150 flex items-center gap-2 text-sm uppercase tracking-wider focus:outline-none"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>
+                                        Carregar mais fotos
+                                    </button>
+                                </div>
+                            )}
+                        </>
                     ) : (
                         <div className="text-center py-16 bg-white rounded-lg border border-dashed border-neutral-300">
                             <div className="inline-block p-4 rounded-full bg-neutral-100 mb-4">

@@ -55,6 +55,7 @@ const mapUser = (dbUser: any): User => {
     role: dbUser.role as UserRole,
     name: formatNameAsTitleCase(dbUser.name),
     email: dbUser.email,
+    slug: dbUser.slug,
     bio: dbUser.bio,
     avatar_url: dbUser.avatar_url,
     banner_url: dbUser.banner_url,
@@ -1010,6 +1011,27 @@ export const api = {
     inMemoryCache.userCache[id] = { data: user, ts: now };
     return user;
   },
+  getPhotographerBySlug: async (slug: string): Promise<User | undefined> => {
+    const now = Date.now();
+    const cachedEntry = Object.values(inMemoryCache.userCache).find(
+      (c) => c.data.slug === slug
+    );
+    if (cachedEntry && (now - cachedEntry.ts < CACHE_TTL)) {
+      return cachedEntry.data;
+    }
+    const { data, error } = await supabase
+      .from("users")
+      .select("*")
+      .eq("slug", slug)
+      .single();
+    if (error) {
+      if (error.code === "PGRST116") return undefined;
+      throw error;
+    }
+    const user = mapUser(data);
+    inMemoryCache.userCache[user.id] = { data: user, ts: now };
+    return user;
+  },
   getActivePhotographersPreview: async (): Promise<PhotographerWithStats[]> => {
     const now = Date.now();
     if (inMemoryCache.activePhotographers.data && (now - inMemoryCache.activePhotographers.ts < CACHE_TTL)) {
@@ -1227,45 +1249,47 @@ export const api = {
 
   getEventPhotoCounts: async (
     photographerId: string,
+    eventIds?: string[],
+    onlyPublicAndApproved: boolean = false,
   ): Promise<Record<string, number>> => {
-    let allData: any[] = [];
-    let from = 0;
-    const limit = 1000;
-    let hasMore = true;
-
-    // Fetch in chunks to bypass Supabase 1000 row limit
-    while (hasMore) {
-      const { data, error } = await supabase
-        .from("photos")
-        .select("event_id")
-        .eq("photographer_id", photographerId)
-        .range(from, from + limit - 1);
-
-      if (error) {
-        console.warn("Error fetching event photo counts:", error);
-        break;
+    let ids = eventIds;
+    
+    if (!ids || ids.length === 0) {
+      const { data: events, error: eventsError } = await supabase
+        .from("events")
+        .select("id")
+        .eq("photographer_id", photographerId);
+      
+      if (eventsError || !events) {
+        console.error("Error fetching events for counts:", eventsError);
+        return {};
       }
-
-      if (data && data.length > 0) {
-        allData = allData.concat(data);
-        if (data.length < limit) {
-          hasMore = false;
-        } else {
-          from += limit;
-        }
-      } else {
-        hasMore = false;
-      }
+      ids = events.map((e: any) => e.id);
     }
 
     const counts: Record<string, number> = {};
-    if (allData.length > 0) {
-      allData.forEach((p: any) => {
-        if (p.event_id) {
-          counts[p.event_id] = (counts[p.event_id] || 0) + 1;
+    if (ids.length === 0) return counts;
+
+    await Promise.all(
+      ids.map(async (eventId) => {
+        let query = supabase
+          .from("photos")
+          .select("id", { count: "exact", head: true })
+          .eq("event_id", eventId);
+        
+        if (onlyPublicAndApproved) {
+          query = query
+            .eq("moderation_status", "approved")
+            .eq("is_public", true);
         }
-      });
-    }
+
+        const { count, error } = await query;
+        if (!error && count !== null) {
+          counts[eventId] = count;
+        }
+      })
+    );
+
     return counts;
   },
 

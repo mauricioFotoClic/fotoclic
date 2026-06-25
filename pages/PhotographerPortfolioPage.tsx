@@ -23,7 +23,21 @@ const PhotographerPortfolioPage: React.FC<PhotographerPortfolioPageProps> = ({ p
         const loadPhotographer = async () => {
             try {
                 setLoading(true);
-                const data = await api.getPhotographerById(photographerId);
+                const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(photographerId);
+                let data: User | undefined;
+
+                if (isUUID) {
+                    data = await api.getPhotographerById(photographerId);
+                    if (!data) {
+                        data = await api.getPhotographerBySlug(photographerId);
+                    }
+                } else {
+                    data = await api.getPhotographerBySlug(photographerId);
+                    if (!data) {
+                        data = await api.getPhotographerById(photographerId);
+                    }
+                }
+
                 // Only show if user exists AND is active
                 if (data && data.is_active) {
                     setPhotographer(data);

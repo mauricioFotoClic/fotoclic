@@ -12,7 +12,7 @@ const PhotographerBusinessCard: React.FC<PhotographerBusinessCardProps> = ({ use
     const [downloading, setDownloading] = useState(false);
 
     // Link para o portfólio público do fotógrafo (corrigido para /portfolio/)
-    const publicUrl = `${window.location.origin}/portfolio/${user.id}`;
+    const publicUrl = `${window.location.origin}/portfolio/${user.slug || user.id}`;
 
     const handleDownload = async () => {
         if (!cardRef.current) return;

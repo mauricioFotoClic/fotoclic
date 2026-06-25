@@ -25,6 +25,7 @@ export interface User {
   role: UserRole;
   name: string;
   email: string;
+  slug?: string;
   bio?: string;
   avatar_url: string;
   banner_url?: string;

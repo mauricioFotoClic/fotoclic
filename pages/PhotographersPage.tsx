@@ -131,7 +131,7 @@ const PhotographersPage: React.FC<PhotographersPageProps> = ({ onNavigate }) => 
                 <div
                   key={p.id}
                   className="flex flex-col items-center text-center p-6 rounded-xl bg-white border border-neutral-200 shadow-sm hover:shadow-md transition-all duration-300 group cursor-pointer"
-                  onClick={() => onNavigate({ name: 'photographer-portfolio', photographerId: p.id })}
+                  onClick={() => onNavigate({ name: 'photographer-portfolio', photographerId: p.slug || p.id })}
                 >
                   <div className="relative mb-4">
                     <img

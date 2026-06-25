@@ -737,7 +737,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
                 <div
                   key={p.id}
                   className="group relative flex-none w-4/5 sm:w-1/2 lg:w-[calc(25%-18px)] rounded-2xl shadow-sm hover:shadow-xl transition-all duration-500 cursor-pointer transform hover:-translate-y-2 snap-start"
-                  onClick={() => onNavigate({ name: 'photographer-portfolio', photographerId: p.id })}
+                  onClick={() => onNavigate({ name: 'photographer-portfolio', photographerId: p.slug || p.id })}
                 >
                   <div className="bg-white rounded-2xl overflow-hidden">
                   <div className={`h-24 w-full bg-gradient-to-r ${index % 2 === 0 ? 'from-neutral-900 to-neutral-800' : 'from-neutral-800 to-neutral-900'}`} />

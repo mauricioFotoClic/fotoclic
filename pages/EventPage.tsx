@@ -298,7 +298,7 @@ const EventPage: React.FC<EventPageProps> = ({ eventId, onNavigate, onAddToCart,
             {/* Fotógrafo inline */}
             {photographer && (
               <button
-                onClick={() => onNavigate({ name: 'photographer-portfolio', photographerId: photographer.id })}
+                onClick={() => onNavigate({ name: 'photographer-portfolio', photographerId: photographer.slug || photographer.id })}
                 className="flex items-center gap-1.5 hover:text-primary transition-colors"
               >
                 <img
