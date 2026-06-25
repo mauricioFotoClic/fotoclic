@@ -76,6 +76,36 @@ const PhotographerProfile: React.FC<PhotographerProfileProps> = ({ user, onProfi
         setFormData(prev => ({ ...prev, phone: masked }));
     };
 
+    const compressBanner = (base64Src: string): Promise<string> => {
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.src = base64Src;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const MAX_WIDTH = 1200;
+                const MAX_HEIGHT = 400;
+                let width = img.width;
+                let height = img.height;
+
+                if (width > MAX_WIDTH) {
+                    height = Math.round((height * MAX_WIDTH) / width);
+                    width = MAX_WIDTH;
+                }
+                if (height > MAX_HEIGHT) {
+                    width = Math.round((width * MAX_HEIGHT) / height);
+                    height = MAX_HEIGHT;
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d')!;
+                ctx.drawImage(img, 0, 0, width, height);
+                resolve(canvas.toDataURL('image/jpeg', 0.75));
+            };
+            img.onerror = () => resolve(base64Src);
+        });
+    };
+
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, field: 'avatar' | 'banner') => {
         const file = e.target.files?.[0];
         if (file) {
@@ -91,8 +121,10 @@ const PhotographerProfile: React.FC<PhotographerProfileProps> = ({ user, onProfi
                     // Reset input so same file can be selected again if cancelled
                     if (fileInputRef.current) fileInputRef.current.value = '';
                 } else {
-                    setFormData(prev => ({ ...prev, banner_url: result }));
-                    setBannerPreview(result);
+                    compressBanner(result).then((compressed) => {
+                        setFormData(prev => ({ ...prev, banner_url: compressed }));
+                        setBannerPreview(compressed);
+                    });
                 }
             };
             reader.readAsDataURL(file);
