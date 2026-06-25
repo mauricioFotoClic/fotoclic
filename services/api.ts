@@ -1252,43 +1252,43 @@ export const api = {
     eventIds?: string[],
     onlyPublicAndApproved: boolean = false,
   ): Promise<Record<string, number>> => {
-    let ids = eventIds;
-    
-    if (!ids || ids.length === 0) {
-      const { data: events, error: eventsError } = await supabase
-        .from("events")
-        .select("id")
-        .eq("photographer_id", photographerId);
-      
-      if (eventsError || !events) {
-        console.error("Error fetching events for counts:", eventsError);
-        return {};
-      }
-      ids = events.map((e: any) => e.id);
+    let query = supabase
+      .from("events")
+      .select(`
+        id,
+        photos:photos(count)
+      `)
+      .eq("photographer_id", photographerId);
+
+    if (onlyPublicAndApproved) {
+      query = query
+        .eq("photos.moderation_status", "approved")
+        .eq("photos.is_public", true);
+    }
+
+    if (eventIds && eventIds.length > 0) {
+      query = query.in("id", eventIds);
+    }
+
+    const { data, error } = await query;
+    if (error) {
+      console.error("Error fetching event photo counts:", error);
+      return {};
     }
 
     const counts: Record<string, number> = {};
-    if (ids.length === 0) return counts;
-
-    await Promise.all(
-      ids.map(async (eventId) => {
-        let query = supabase
-          .from("photos")
-          .select("id", { count: "exact", head: true })
-          .eq("event_id", eventId);
-        
-        if (onlyPublicAndApproved) {
-          query = query
-            .eq("moderation_status", "approved")
-            .eq("is_public", true);
+    if (data) {
+      data.forEach((item: any) => {
+        const photosObj = item.photos;
+        let count = 0;
+        if (Array.isArray(photosObj) && photosObj.length > 0) {
+          count = photosObj[0].count || 0;
+        } else if (photosObj && typeof photosObj === 'object') {
+          count = (photosObj as any).count || 0;
         }
-
-        const { count, error } = await query;
-        if (!error && count !== null) {
-          counts[eventId] = count;
-        }
-      })
-    );
+        counts[item.id] = count;
+      });
+    }
 
     return counts;
   },
