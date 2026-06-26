@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Database tool</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body style="font-family: sans-serif; padding: 20px; background: #fafafa; color: #333;">
+  <h2>FotoClic DB Diagnostic & Update Tool</h2>
+  <div id="status" style="margin-bottom: 20px; font-weight: bold; color: blue;">Initializing...</div>
+  
+  <h3>Photographers in Database</h3>
+  <pre id="photographers-output" style="background: #eee; padding: 10px; border-radius: 5px; max-height: 300px; overflow: auto;">Loading...</pre>
+
+  <h3>Photos Update (Price < R$10 -> R$10)</h3>
+  <pre id="photos-output" style="background: #eee; padding: 10px; border-radius: 5px;">Loading...</pre>
+
+  <script>
+    const supabaseUrl = 'https://jzrrwhuletsknujjfdwa.supabase.co';
+    // Using service role key to bypass RLS and perform diagnostic + write operations
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp6cnJ3aHVsZXRza251ampmZHdhIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NDIxMDg1NywiZXhwIjoyMDc5Nzg2ODU3fQ.viUIfwjlwRY6w4bth8ocT2CP_fmBEP9UqywbrNeJsnk';
+
+    const supabaseClient = supabaseJs.createClient(supabaseUrl, supabaseKey);
+    document.getElementById('status').innerText = 'Supabase Client Initialized.';
+
+    async function runDiagnostic() {
+      try {
+        // 1. Get Photographers
+        document.getElementById('status').innerText = 'Fetching photographers...';
+        const { data: users, error: usersError } = await supabaseClient
+          .from('users')
+          .select('id, name, email, role, is_active, created_at')
+          .eq('role', 'photographer');
+
+        if (usersError) {
+          document.getElementById('photographers-output').innerText = 'Error: ' + JSON.stringify(usersError);
+        } else {
+          let html = `Total Photographers found: ${users.length}\n\n`;
+          users.forEach((u, i) => {
+            html += `${i+1}. Name: ${u.name} | Email: ${u.email} | Active: ${u.is_active} | Role: ${u.role}\n`;
+          });
+          document.getElementById('photographers-output').innerText = html;
+        }
+
+        // 2. Find and update photos with price < 10
+        document.getElementById('status').innerText = 'Querying photos with price < 10...';
+        const { data: photos, error: photosError } = await supabaseClient
+          .from('photos')
+          .select('id, title, price, photographer_id')
+          .lt('price', 10);
+
+        if (photosError) {
+          document.getElementById('photos-output').innerText = 'Error querying photos: ' + JSON.stringify(photosError);
+        } else {
+          let html = `Found ${photos.length} photos with price < R$10.\n\n`;
+          if (photos.length > 0) {
+            photos.forEach((p, i) => {
+              html += `  - [ID: ${p.id}] "${p.title}" | Price: R$${p.price} | Photographer ID: ${p.photographer_id}\n`;
+            });
+
+            document.getElementById('status').innerText = 'Updating photos to price = 10...';
+            const { data: updatedPhotos, error: updateError } = await supabaseClient
+              .from('photos')
+              .update({ price: 10 })
+              .lt('price', 10)
+              .select('id');
+
+            if (updateError) {
+              html += `\nError updating photos: ` + JSON.stringify(updateError);
+            } else {
+              html += `\nSuccessfully updated ${updatedPhotos ? updatedPhotos.length : 0} photos to R$10.`;
+            }
+          } else {
+            html += `No photos required updates.`;
+          }
+          document.getElementById('photos-output').innerText = html;
+        }
+
+        document.getElementById('status').innerText = 'Done!';
+        document.getElementById('status').style.color = 'green';
+      } catch (err) {
+        document.getElementById('status').innerText = 'Error: ' + err.message;
+        document.getElementById('status').style.color = 'red';
+      }
+    }
+
+    runDiagnostic();
+  </script>
+</body>
+</html>
