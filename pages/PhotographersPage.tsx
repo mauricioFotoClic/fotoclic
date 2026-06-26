@@ -17,7 +17,7 @@ const PhotographersPage: React.FC<PhotographersPageProps> = ({ onNavigate }) => 
 
   useEffect(() => {
     api.getPhotographers().then(data => {
-      setPhotographers(data.filter(p => p.is_active && p.approvedCount > 0));
+      setPhotographers(data.filter(p => p.is_active));
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);
