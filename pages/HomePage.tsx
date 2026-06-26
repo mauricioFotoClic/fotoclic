@@ -1,8 +1,9 @@
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import type { Photo, User, PhotographerWithStats, Category, PhotoEvent, Page } from '../types';
-import { User as UserIcon, Camera } from 'lucide-react';
+import { User as UserIcon, Camera, Gift } from 'lucide-react';
 import api from '../services/api';
+import FounderProgramModal from '../components/FounderProgramModal';
 import PhotoCard from '../components/PhotoCard';
 import WatermarkedImage from '../components/WatermarkedImage';
 import SEO from '../components/SEO';
@@ -96,6 +97,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
   const [loadingCats, setLoadingCats] = useState(true);
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [isFounderModalOpen, setIsFounderModalOpen] = useState(false);
 
   // Carousel refs
   const catsRef = useRef<HTMLDivElement>(null);
@@ -270,6 +272,30 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
                   <p className="text-sm font-bold">vender minhas fotos</p>
                 </div>
               </button>
+          </div>
+
+          {/* Card de Promoção - Fotógrafo Fundador */}
+          <div 
+            onClick={() => setIsFounderModalOpen(true)}
+            className="mt-6 mx-auto max-w-md bg-black/40 hover:bg-black/55 backdrop-blur-md border border-primary/40 hover:border-primary/70 rounded-2xl p-4 flex items-center gap-4 cursor-pointer transition-all duration-300 shadow-lg hover:shadow-primary/5 group"
+          >
+            <div className="p-3 bg-primary/20 rounded-xl text-primary flex-shrink-0 group-hover:scale-105 transition-transform duration-300 shadow-[0_0_15px_rgba(249,115,22,0.15)] group-hover:shadow-[0_0_20px_rgba(249,115,22,0.3)]">
+              <Gift size={28} className="animate-pulse" />
+            </div>
+            <div className="text-left flex-1 min-w-0">
+              <p className="text-[10px] md:text-xs font-bold text-primary uppercase tracking-wider mb-0.5">
+                Promoção de Lançamento
+              </p>
+              <h3 className="text-sm md:text-base font-bold text-white leading-tight">
+                Garanta sua comissão de apenas <span className="text-primary font-black">6%</span>.
+              </h3>
+              <p className="text-xs text-primary-light/95 hover:text-primary mt-1 flex items-center gap-1 font-medium">
+                Descubra como manter esse benefício.
+                <svg className="w-3.5 h-3.5 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </p>
+            </div>
           </div>
         </div>
       </section>
@@ -813,6 +839,12 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
           )}
         </div>
       </section>
+
+      <FounderProgramModal 
+        isOpen={isFounderModalOpen} 
+        onClose={() => setIsFounderModalOpen(false)} 
+        onNavigate={onNavigate} 
+      />
     </div>
   );
 };
