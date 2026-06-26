@@ -1040,9 +1040,7 @@ export const api = {
 
     try {
       const allPhotogs = await api.getPhotographers();
-      const result = allPhotogs
-        .filter(p => p.is_active && p.avatar_url)
-        .slice(0, 10);
+      const result = allPhotogs.filter(p => p.is_active);
 
       inMemoryCache.activePhotographers = { data: result, ts: now };
       return result;

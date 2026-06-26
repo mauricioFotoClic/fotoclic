@@ -254,12 +254,15 @@ const PhotoDetailPage: React.FC<PhotoDetailPageProps> = ({ photoId, onNavigate, 
                                             </div>
                                         )
                                     ) : (
-                                        hasPurchased ? (
-                                            <img src={photo.preview_url} alt={photo.title} className="w-full h-auto max-h-[70vh] object-contain" />
-                                        ) : (
-                                            <WatermarkedImage src={photo.preview_url} alt={photo.title} className="w-full h-auto max-h-[70vh] object-contain" />
-                                        )
-                                    )}
+                                         hasPurchased ? (
+                                             <div className="relative w-full h-[70vh] bg-neutral-950 flex items-center justify-center overflow-hidden">
+                                                 <img src={photo.preview_url} alt={photo.title} className="absolute inset-0 w-full h-full object-cover filter blur-md opacity-40 scale-110 select-none pointer-events-none" />
+                                                 <img src={photo.preview_url} alt={photo.title} className="relative z-10 w-full h-full object-contain" />
+                                             </div>
+                                         ) : (
+                                             <WatermarkedImage src={photo.preview_url} alt={photo.title} className="w-full h-[70vh]" containWithBlur={true} />
+                                         )
+                                     )}
                                 </div>
                                 {photo.media_type === 'video' && !hasPurchased && (
                                     <div className="mt-3 p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg flex items-center space-x-2 text-sm shadow-sm">
