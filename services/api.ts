@@ -88,9 +88,13 @@ const mapPhoto = (dbPhoto: any): Photo => {
     category_id: dbPhoto.category_id,
     title: dbPhoto.title,
     description: dbPhoto.description || "",
-    preview_url: dbPhoto.preview_url,
+    preview_url: dbPhoto.media_type === 'video' && dbPhoto.preview_url && dbPhoto.preview_url.includes('videodelivery.net') && !dbPhoto.preview_url.includes('?time=')
+      ? `${dbPhoto.preview_url}?time=2s`
+      : dbPhoto.preview_url,
     file_url: dbPhoto.file_url || "",
-    thumb_url: dbPhoto.thumb_url || dbPhoto.preview_url, // Fallback to preview if no thumb
+    thumb_url: dbPhoto.media_type === 'video' && dbPhoto.thumb_url && dbPhoto.thumb_url.includes('videodelivery.net') && !dbPhoto.thumb_url.includes('?time=')
+      ? `${dbPhoto.thumb_url}?time=2s`
+      : (dbPhoto.thumb_url || dbPhoto.preview_url),
     price: Number(dbPhoto.price),
     resolution: dbPhoto.resolution,
     width: dbPhoto.width,

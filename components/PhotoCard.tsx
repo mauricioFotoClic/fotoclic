@@ -108,10 +108,15 @@ const PhotoCard: React.FC<PhotoCardProps> = ({ photo, photographer, onNavigate, 
                     containWithBlur={true}
                 />
                 {photo.media_type === 'video' && (
-                    <div className="absolute top-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded backdrop-blur-sm flex items-center gap-1 z-20">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className="text-white"><path d="M8 5v14l11-7z"/></svg>
-                        <span>Vídeo</span>
-                    </div>
+                    <>
+                        <div className="absolute top-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded backdrop-blur-sm flex items-center gap-1 z-20">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className="text-white"><path d="M8 5v14l11-7z"/></svg>
+                            <span>Vídeo</span>
+                        </div>
+                        <div className="absolute inset-0 m-auto w-12 h-12 bg-white/25 backdrop-blur-sm border border-white/40 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 group-hover:scale-110 group-hover:bg-white/40 z-10">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="text-white ml-0.5"><path d="M8 5v14l11-7z"/></svg>
+                        </div>
+                    </>
                 )}
             </div>
             <div className="absolute top-2 right-2 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity z-30">
@@ -147,10 +152,17 @@ const PhotoCard: React.FC<PhotoCardProps> = ({ photo, photographer, onNavigate, 
                     )}
                 </div>
 
-                {photo.width && photo.height && (
-                    <p className="text-xs text-neutral-400 mt-0.5 font-mono">
-                        {photo.width} x {photo.height}
+                {photo.media_type === 'video' ? (
+                    <p className="text-xs text-primary font-semibold mt-0.5 flex items-center gap-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                        Vídeo
                     </p>
+                ) : (
+                    !!photo.width && !!photo.height && (
+                        <p className="text-xs text-neutral-400 mt-0.5 font-mono">
+                            {photo.width} x {photo.height}
+                        </p>
+                    )
                 )}
 
                 {photographer && (

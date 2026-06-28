@@ -19,7 +19,7 @@
     // Using service role key to bypass RLS and perform diagnostic + write operations
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp6cnJ3aHVsZXRza251ampmZHdhIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NDIxMDg1NywiZXhwIjoyMDc5Nzg2ODU3fQ.viUIfwjlwRY6w4bth8ocT2CP_fmBEP9UqywbrNeJsnk';
 
-    const supabaseClient = supabaseJs.createClient(supabaseUrl, supabaseKey);
+    const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
     document.getElementById('status').innerText = 'Supabase Client Initialized.';
 
     async function runDiagnostic() {
@@ -71,6 +71,32 @@
             }
           } else {
             html += `No photos required updates.`;
+          }
+          document.getElementById('photos-output').innerText = html;
+        }
+
+        // 3. Query all videos and show their details
+        document.getElementById('status').innerText = 'Querying video items...';
+        const { data: videos, error: videosError } = await supabaseClient
+          .from('photos')
+          .select('id, title, preview_url, thumb_url, file_url, video_uid, media_type')
+          .eq('id', '0e5c42e4-50fc-4dfd-8705-156c7f1a04eb');
+
+        if (videosError) {
+          document.getElementById('photos-output').innerText = 'Error querying videos: ' + JSON.stringify(videosError);
+        } else {
+          let html = `Video with ID 0e5c42e4-50fc-4dfd-8705-156c7f1a04eb:\n\n`;
+          if (videos && videos.length > 0) {
+            const v = videos[0];
+            html += `Title: ${v.title}\n`;
+            html += `ID: ${v.id}\n`;
+            html += `Video UID: ${v.video_uid}\n`;
+            html += `Preview URL: ${v.preview_url}\n`;
+            html += `Thumb URL: ${v.thumb_url}\n`;
+            html += `File URL: ${v.file_url}\n`;
+            html += `Media Type: ${v.media_type}\n`;
+          } else {
+            html += `Not found in DB!`;
           }
           document.getElementById('photos-output').innerText = html;
         }
