@@ -66,6 +66,7 @@ const CheckoutPage = lazyWithRetry(() => import('./pages/CheckoutPage'));
 const CheckoutSuccessPage = lazyWithRetry(() => import('./pages/CheckoutSuccessPage'));
 const HelpCenterPage = lazyWithRetry(() => import('./pages/HelpCenterPage'));
 const NotFoundPage = lazyWithRetry(() => import('./pages/NotFoundPage'));
+const WelcomePage = lazyWithRetry(() => import('./pages/WelcomePage'));
 
 
 interface FlyingImage {
@@ -187,6 +188,7 @@ const MainApp: React.FC = () => {
             case 'cart': return '/carrinho';
             case 'checkout': return '/checkout';
             case 'checkout-success': return '/checkout-success';
+            case 'welcome': return page.role ? `/bem-vindo?role=${page.role}` : '/bem-vindo';
 
             // case 'face-search': return '/busca-facial'; // Modal usually
             case 'reset-password': return page.token ? `/reset-password?token=${page.token}` : '/reset-password';
@@ -219,6 +221,10 @@ const MainApp: React.FC = () => {
         if (pathname === '/carrinho') return { name: 'cart' };
         if (pathname === '/checkout') return { name: 'checkout' };
         if (pathname === '/checkout-success') return { name: 'checkout-success' };
+        if (pathname === '/bem-vindo') {
+            const role = searchParams.get('role');
+            return { name: 'welcome', role: (role as any) || undefined };
+        }
 
         if (pathname === '/reset-password') return { name: 'reset-password', token: searchParams.get('token') || undefined };
 
@@ -596,6 +602,8 @@ const MainApp: React.FC = () => {
                 return <CheckoutPage cartItemIds={cartItems} currentUser={currentUser} onPurchaseComplete={handlePurchaseComplete} onNavigate={handleNavigate} />;
             case 'checkout-success':
                 return <CheckoutSuccessPage currentUser={currentUser} onClearCart={() => setCartItems([])} onNavigate={handleNavigate} />;
+            case 'welcome':
+                return <WelcomePage onNavigate={handleNavigate} role={currentPage.name === 'welcome' ? currentPage.role : undefined} />;
 
             case 'reset-password':
                 return <ResetPasswordPage token={currentPage.token} onNavigate={handleNavigate} />;

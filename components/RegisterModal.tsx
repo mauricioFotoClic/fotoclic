@@ -145,7 +145,7 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginS
                     }
                     onClose();
                     onLoginSuccess(user);
-                    onNavigate({ name: 'home' });
+                    onNavigate({ name: 'welcome', role: 'customer' });
                 }
             } else {
                 setError('Este e-mail já está cadastrado.');
@@ -167,7 +167,7 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginS
             if (success) {
                 onClose();
                 onLoginSuccess(pendingUser);
-                onNavigate({ name: 'photographer' }); // Ir para dashboard
+                onNavigate({ name: 'welcome', role: 'photographer' }); // Ir para boas-vindas
             } else {
                 alert("Erro ao salvar aceitação do termo. Tente novamente.");
             }

@@ -98,11 +98,11 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onLoginSuccess 
 
             if (response?.user) {
                 if (response.user.role === UserRole.PHOTOGRAPHER) {
-                    // Fotógrafos não logam imediatamente, vão para página de moderação
-                    onNavigate({ name: 'pending-approval' });
+                    // Fotógrafos não logam imediatamente, vão para a página de boas-vindas com status pendente
+                    onNavigate({ name: 'welcome', role: 'pending-approval' });
                 } else {
                     onLoginSuccess(response.user);
-                    onNavigate({ name: 'home' });
+                    onNavigate({ name: 'welcome', role: 'customer' });
                 }
             } else {
                 setError('Este e-mail já está cadastrado.');

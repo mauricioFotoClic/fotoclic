@@ -274,6 +274,7 @@ export type PageRoute =
   { name: 'cart' } |
   { name: 'checkout' } |
   { name: 'checkout-success' } |
+  { name: 'welcome'; role?: 'photographer' | 'customer' | 'pending-approval' } |
 
   { name: 'face-search' } |
   { name: 'not-found' } |
