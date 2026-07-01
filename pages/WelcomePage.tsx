@@ -11,9 +11,20 @@ interface WelcomePageProps {
 const WelcomePage: React.FC<WelcomePageProps> = ({ onNavigate, role = 'customer' }) => {
     const [secondsLeft, setSecondsLeft] = useState(5);
 
+    const onNavigateRef = React.useRef(onNavigate);
+    const roleRef = React.useRef(role);
+
+    useEffect(() => {
+        onNavigateRef.current = onNavigate;
+    }, [onNavigate]);
+
+    useEffect(() => {
+        roleRef.current = role;
+    }, [role]);
+
     // Determina o destino correto com base na role recebida
     const getTargetRoute = (): PageRoute => {
-        switch (role) {
+        switch (roleRef.current) {
             case 'photographer':
                 return { name: 'photographer' };
             case 'pending-approval':
@@ -24,15 +35,13 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onNavigate, role = 'customer'
         }
     };
 
-    const targetRoute = getTargetRoute();
-
     useEffect(() => {
         // Envia evento para o dataLayer (Google Ads / Analytics) se disponível
         const win = window as any;
         if (win.dataLayer) {
             win.dataLayer.push({
                 event: 'registration_success',
-                user_role: role
+                user_role: roleRef.current
             });
         }
 
@@ -41,17 +50,19 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onNavigate, role = 'customer'
         }, 1000);
 
         const timeout = setTimeout(() => {
-            onNavigate(targetRoute);
+            const target = getTargetRoute();
+            console.log("WelcomePage Redirecting to:", target);
+            onNavigateRef.current(target);
         }, 5000);
 
         return () => {
             clearInterval(interval);
             clearTimeout(timeout);
         };
-    }, [role, onNavigate]);
+    }, []);
 
     const handleSkip = () => {
-        onNavigate(targetRoute);
+        onNavigate(getTargetRoute());
     };
 
     const getRoleMessage = () => {
