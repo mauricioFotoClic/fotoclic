@@ -9,7 +9,7 @@ import LiabilityWaiverModal from './LiabilityWaiverModal';
 interface RegisterModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onLoginSuccess: (user: User) => void;
+    onLoginSuccess: (user: User, skipRedirect?: boolean) => void;
     onNavigate: (page: Page) => void;
     onShowToast: (message: string, type?: 'success' | 'error' | 'info') => void;
 }
@@ -144,7 +144,7 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginS
                         console.error("Failed to send customer welcome email:", emailError);
                     }
                     onClose();
-                    onLoginSuccess(user);
+                    onLoginSuccess(user, true);
                     onNavigate({ name: 'welcome', role: 'customer' });
                 }
             } else {
@@ -166,7 +166,7 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginS
             const success = await api.updateUserLiabilityWaiver(pendingUser.id);
             if (success) {
                 onClose();
-                onLoginSuccess(pendingUser);
+                onLoginSuccess(pendingUser, true);
                 onNavigate({ name: 'welcome', role: 'photographer' }); // Ir para boas-vindas
             } else {
                 alert("Erro ao salvar aceitação do termo. Tente novamente.");

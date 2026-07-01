@@ -8,7 +8,7 @@ import Logo from '../components/Logo';
 
 interface RegisterPageProps {
     onNavigate: (page: Page) => void;
-    onLoginSuccess: (user: User) => void;
+    onLoginSuccess: (user: User, skipRedirect?: boolean) => void;
 }
 
 const ddiList = [
@@ -101,7 +101,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onLoginSuccess 
                     // Fotógrafos não logam imediatamente, vão para a página de boas-vindas com status pendente
                     onNavigate({ name: 'welcome', role: 'pending-approval' });
                 } else {
-                    onLoginSuccess(response.user);
+                    onLoginSuccess(response.user, true);
                     onNavigate({ name: 'welcome', role: 'customer' });
                 }
             } else {

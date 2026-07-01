@@ -326,19 +326,21 @@ const MainApp: React.FC = () => {
         }
     }, [cartItems, currentUser]);
 
-    const handleLoginSuccess = async (user: User) => {
+    const handleLoginSuccess = async (user: User, skipRedirect = false) => {
         if (user.role === UserRole.ADMIN || user.role === UserRole.PHOTOGRAPHER) {
             sessionStorage.setItem('active_session_panel', 'true');
         }
         setCurrentUser(user);
 
         // Redirection based on role
-        if (user.role === UserRole.PHOTOGRAPHER) {
-            handleNavigate({ name: 'photographer' }, user);
-        } else if (user.role === UserRole.ADMIN) {
-            handleNavigate({ name: 'admin' }, user);
-        } else {
-            // Customers stay on the same page
+        if (!skipRedirect) {
+            if (user.role === UserRole.PHOTOGRAPHER) {
+                handleNavigate({ name: 'photographer' }, user);
+            } else if (user.role === UserRole.ADMIN) {
+                handleNavigate({ name: 'admin' }, user);
+            } else {
+                // Customers stay on the same page
+            }
         }
 
         // If customer, fetch their saved cart
