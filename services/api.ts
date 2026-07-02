@@ -1530,8 +1530,80 @@ export const api = {
     if (error) throw error;
     return mapUser(newUser);
   },
-  deletePhotographer: async (id: string): Promise<boolean> => {
-    return true;
+  deletePhotographer: async (id: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      // 1. Get all photos of this photographer
+      const { data: photos, error: photosErr } = await supabase
+        .from("photos")
+        .select("id")
+        .eq("photographer_id", id);
+      
+      if (photosErr) throw photosErr;
+      const photoIds = photos ? photos.map(p => p.id) : [];
+
+      // 2. Identify sold photos
+      let soldPhotoIds: string[] = [];
+      if (photoIds.length > 0) {
+        const { data: sales, error: salesErr } = await supabase
+          .from("sales")
+          .select("photo_id")
+          .in("photo_id", photoIds);
+        if (salesErr) throw salesErr;
+        soldPhotoIds = sales ? sales.map(s => s.photo_id) : [];
+      }
+      const soldPhotoSet = new Set(soldPhotoIds);
+      const unsoldPhotoIds = photoIds.filter(pid => !soldPhotoSet.has(pid));
+
+      // 3. Delete related logs for all photos of the photographer (to avoid FK issues)
+      if (photoIds.length > 0) {
+        await supabase.from("download_logs").delete().in("photo_id", photoIds);
+      }
+
+      // 4. Delete unsold photos (Cascade will handle photo_likes and face_encodings)
+      if (unsoldPhotoIds.length > 0) {
+        const { error: delPhotosErr } = await supabase
+          .from("photos")
+          .delete()
+          .in("id", unsoldPhotoIds);
+        if (delPhotosErr) throw delPhotosErr;
+      }
+
+      // 5. Update sold photos to set photographer_id = null and is_public = false
+      if (soldPhotoIds.length > 0) {
+        const { error: updPhotosErr } = await supabase
+          .from("photos")
+          .update({ photographer_id: null, is_public: false })
+          .in("id", soldPhotoIds);
+        if (updPhotosErr) throw updPhotosErr;
+      }
+
+      // 6. Delete other photographer records (coupons, events, payouts, reviews, reports, storage_requests)
+      await Promise.all([
+        supabase.from("coupons").delete().eq("photographer_id", id),
+        supabase.from("events").delete().eq("photographer_id", id),
+        supabase.from("reviews").delete().eq("photographer_id", id),
+        supabase.from("photographer_reports").delete().eq("photographer_id", id),
+        supabase.from("payouts").delete().eq("photographer_id", id),
+        supabase.from("storage_requests").delete().eq("photographer_id", id)
+      ]);
+
+      // 7. Update any sales to set photographer_id = null
+      await supabase
+        .from("sales")
+        .update({ photographer_id: null })
+        .eq("photographer_id", id);
+
+      // 8. Delete the user from both public.users and auth.users via RPC
+      const { error: rpcErr } = await supabase.rpc("admin_delete_user", {
+        target_user_id: id,
+      });
+      if (rpcErr) throw rpcErr;
+
+      return { success: true };
+    } catch (e: any) {
+      console.error("Error deleting photographer:", e);
+      return { success: false, error: e.message || "Erro desconhecido ao excluir o fotógrafo." };
+    }
   },
   getCustomers: async (): Promise<
     (User & { purchaseCount: number; totalSpent: number })[]

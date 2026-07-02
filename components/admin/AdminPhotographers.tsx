@@ -6,12 +6,15 @@ import Spinner from '../Spinner';
 import { includesNormalized } from '../../utils/stringUtils';
 import Modal from '../Modal';
 import PhotographerForm from './PhotographerForm';
+import { useToast } from '../../contexts/ToastContext';
+import { useConfirm } from '../../contexts/ConfirmContext';
 
 interface AdminPhotographersProps {
     onNavigate: (page: Page) => void;
 }
 
 const EditIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>;
+const TrashIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>;
 
 const WarningIcon: React.FC<{ className?: string }> = ({ className }) => <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 3.001-1.742 3.001H4.42c-1.53 0-2.493-1.667-1.743-3.001l5.58-9.92zM10 13a1 1 0 110-2 1 1 0 010 2zm-1-8a1 1 0 00-1 1v3a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>;
 const SearchIcon: React.FC<{ className?: string }> = ({ className }) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>;
@@ -51,6 +54,9 @@ const StarRating: React.FC<{ rating: number }> = ({ rating }) => (
 );
 
 const AdminPhotographers: React.FC<AdminPhotographersProps> = ({ onNavigate }) => {
+    const { showToast } = useToast();
+    const { confirm } = useConfirm();
+
     const [photographers, setPhotographers] = useState<PhotographerWithStats[]>([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -115,14 +121,43 @@ const AdminPhotographers: React.FC<AdminPhotographersProps> = ({ onNavigate }) =
         try {
             if (editingPhotographer) {
                 await api.updatePhotographer(editingPhotographer.id, formData);
+                showToast("Fotógrafo atualizado com sucesso!", "success");
             } else {
                 await api.createPhotographer(formData);
+                showToast("Fotógrafo criado com sucesso!", "success");
             }
             handleCloseModal();
             fetchPhotographers();
         } catch (error) {
             console.error("Failed to save photographer", error);
-            alert("Ocorreu um erro ao salvar o fotógrafo.");
+            showToast("Ocorreu um erro ao salvar o fotógrafo.", "error");
+        }
+    };
+
+    const handleDeletePhotographer = async (photographer: PhotographerWithStats) => {
+        const isConfirmed = await confirm({
+            title: "Excluir Fotógrafo",
+            message: `Tem certeza que deseja excluir o fotógrafo "${photographer.name}"? Esta ação é irreversível. Todas as fotos não vendidas, cupons, eventos e a conta dele serão excluídos permanentemente. Fotos já vendidas continuarão acessíveis aos compradores.`,
+            confirmText: "Excluir",
+            variant: "danger"
+        });
+
+        if (!isConfirmed) return;
+
+        setLoading(true);
+        try {
+            const res = await api.deletePhotographer(photographer.id);
+            if (res.success) {
+                showToast(`Fotógrafo "${photographer.name}" excluído com sucesso!`, 'success');
+                fetchPhotographers();
+            } else {
+                showToast(res.error || "Erro ao excluir o fotógrafo.", 'error');
+                setLoading(false);
+            }
+        } catch (error: any) {
+            console.error("Failed to delete photographer", error);
+            showToast("Falha ao excluir o fotógrafo.", 'error');
+            setLoading(false);
         }
     };
 
@@ -200,7 +235,9 @@ const AdminPhotographers: React.FC<AdminPhotographersProps> = ({ onNavigate }) =
                 );
 
                 if (!emailSent) {
-                    alert('Status atualizado, mas falha ao enviar o e-mail de notificação. Verifique se a chave da API Resend está correta e se o e-mail do destinatário é válido/permitido.');
+                    showToast('Status atualizado, mas falha ao enviar o e-mail de notificação.', 'error');
+                } else {
+                    showToast(`Status do fotógrafo atualizado com sucesso!`, 'success');
                 }
             }
 
@@ -208,7 +245,7 @@ const AdminPhotographers: React.FC<AdminPhotographersProps> = ({ onNavigate }) =
             // Revert on error
             setPhotographers(prev => prev.map(p => p.id === id ? { ...p, is_active: !newStatus } : p));
             console.error("Failed to update photographer status:", error);
-            alert('Falha ao atualizar o status do fotógrafo.');
+            showToast('Falha ao atualizar o status do fotógrafo.', 'error');
         }
     };
 
@@ -349,118 +386,130 @@ const AdminPhotographers: React.FC<AdminPhotographersProps> = ({ onNavigate }) =
 
             {/* Desktop table */}
             <div className="hidden md:block bg-white rounded-lg shadow-md overflow-x-auto">
-                <table className="w-full min-w-[1200px]">
+                <table className="w-full min-w-[950px] table-auto">
                     <thead className="bg-neutral-100">
                         <tr>
-                            <th className="p-4 text-left text-sm font-semibold text-neutral-600">Nome</th>
-                            <th className="p-4 text-left text-sm font-semibold text-neutral-600">Email</th>
-                            <th className="p-4 text-center text-sm font-semibold text-neutral-600">Fotos</th>
-                            <th className="p-4 text-center text-sm font-semibold text-neutral-600">Vendas</th>
-                            <th className="p-4 text-center text-sm font-semibold text-neutral-600">Comissão (%)</th>
-                            <th className="p-4 text-left text-sm font-semibold text-neutral-600">Comissão Gerada</th>
-                            <th className="p-4 text-center text-sm font-semibold text-neutral-600">Status</th>
-                            <th className="p-4 text-center text-sm font-semibold text-neutral-600">Termo</th>
-                            <th className="p-4 text-center text-sm font-semibold text-neutral-600">Avaliação</th>
-                            <th className="p-4 text-center text-sm font-semibold text-neutral-600">Portfólio</th>
-                            <th className="p-4 text-right text-sm font-semibold text-neutral-600">Ações</th>
+                            <th className="px-2 py-3 text-left text-sm font-semibold text-neutral-600">Nome</th>
+                            <th className="px-2 py-3 text-left text-sm font-semibold text-neutral-600">Email</th>
+                            <th className="px-2 py-3 text-center text-sm font-semibold text-neutral-600">Fotos</th>
+                            <th className="px-2 py-3 text-center text-sm font-semibold text-neutral-600">Vendas</th>
+                            <th className="px-2 py-3 text-center text-sm font-semibold text-neutral-600">Taxa</th>
+                            <th className="px-2 py-3 text-left text-sm font-semibold text-neutral-600">Gerado</th>
+                            <th className="px-2 py-3 text-center text-sm font-semibold text-neutral-600">Status</th>
+                            <th className="px-2 py-3 text-center text-sm font-semibold text-neutral-600">Termo</th>
+                            <th className="px-2 py-3 text-center text-sm font-semibold text-neutral-600">Avaliação</th>
+                            <th className="px-2 py-3 text-center text-sm font-semibold text-neutral-600">Portfólio</th>
+                            <th className="px-2 py-3 text-right text-sm font-semibold text-neutral-600">Ações</th>
                         </tr>
                     </thead>
                     <tbody>
                         {paginatedPhotographers.map((user, index) => (
                             <tr key={user.id} className={`border-t ${pendingReportCounts[user.id] ? 'bg-red-50 border-l-4 border-l-red-400' : index % 2 === 0 ? 'bg-white' : 'bg-neutral-50'}`}>
-                                <td className="p-4 text-sm text-neutral-800 font-medium">
+                                <td className="px-2 py-3 text-sm text-neutral-800 font-medium">
                                     <div className="flex items-center">
-                                        <div className="w-8 h-8 rounded-full bg-neutral-200 overflow-hidden mr-3 flex-shrink-0 flex items-center justify-center">
+                                        <div className="w-7 h-7 rounded-full bg-neutral-200 overflow-hidden mr-2.5 flex-shrink-0 flex items-center justify-center">
                                             {user.avatar_url ? (
                                                 <img src={user.avatar_url} alt={user.name} className="w-full h-full object-cover" />
                                             ) : (
                                                 <span className="text-xs text-neutral-500 font-bold">{user.name.charAt(0)}</span>
                                             )}
                                         </div>
-                                        <span className="truncate max-w-[200px]">{user.name}</span>
+                                        <span className="truncate max-w-[150px]">{user.name}</span>
                                     </div>
                                 </td>
-                                <td className="p-4 text-sm text-neutral-500">{user.email}</td>
-                                <td className="p-4 text-sm text-neutral-500 text-center">{user.photoCount}</td>
-                                <td className="p-4 text-sm text-neutral-500 text-center">{user.salesCount}</td>
-                                <td className="p-4 text-sm text-neutral-800 font-bold text-center">{(user.commissionRate * 100).toFixed(0)}%</td>
-                                <td className="p-4 text-sm text-green-600 font-medium">{user.commissionValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
-                                <td className="p-4 text-center">
+                                <td className="px-2 py-3 text-sm text-neutral-500 truncate max-w-[180px]">{user.email}</td>
+                                <td className="px-2 py-3 text-sm text-neutral-500 text-center">{user.photoCount}</td>
+                                <td className="px-2 py-3 text-sm text-neutral-500 text-center">{user.salesCount}</td>
+                                <td className="px-2 py-3 text-sm text-neutral-800 font-bold text-center">{(user.commissionRate * 100).toFixed(0)}%</td>
+                                <td className="px-2 py-3 text-sm text-green-600 font-medium">{user.commissionValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+                                <td className="px-2 py-3 text-center">
                                     <div className="flex flex-col items-center">
                                         <ToggleSwitch
                                             checked={user.is_active}
                                             onChange={() => handleToggleStatus(user.id, !user.is_active)}
                                         />
-                                        <span className={`mt-1 text-xs font-semibold ${user.is_active ? 'text-green-700' : 'text-red-700'}`}>
+                                        <span className={`mt-0.5 text-[10px] font-semibold ${user.is_active ? 'text-green-700' : 'text-red-700'}`}>
                                             {user.is_active ? 'Ativo' : 'Inativo'}
                                         </span>
                                     </div>
                                 </td>
-                                <td className="p-4 text-center">
+                                <td className="px-2 py-3 text-center">
                                     <div className="flex justify-center">
                                         {user.liability_waiver_accepted_at ? (
                                             <div className="group relative">
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                                 </svg>
-                                                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                                                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
                                                     Aceito em: {new Date(user.liability_waiver_accepted_at).toLocaleDateString('pt-BR')}
                                                 </div>
                                             </div>
                                         ) : (
                                             <div className="group relative">
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                                 </svg>
-                                                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                                                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
                                                     Pendente
                                                 </div>
                                             </div>
                                         )}
                                     </div>
                                 </td>
-                                <td className="p-4 text-center">
+                                <td className="px-2 py-3 text-center">
                                     <button
                                         onClick={() => handleOpenDetail(user, 'reviews')}
-                                        className="flex flex-col items-center gap-0.5 mx-auto hover:opacity-80 transition-opacity"
+                                        className="inline-flex items-center gap-1 hover:opacity-80 transition-opacity"
                                         title="Ver avaliações"
                                     >
                                         {user.avgRating > 0 ? (
-                                            <StarRating rating={user.avgRating} />
+                                            <>
+                                                <svg className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                                                </svg>
+                                                <span className="text-xs font-semibold text-neutral-700">{user.avgRating.toFixed(1)}</span>
+                                            </>
                                         ) : (
-                                            <span className="text-xs text-neutral-400">Sem avaliações</span>
+                                            <span className="text-xs text-neutral-400">Nenhuma</span>
                                         )}
                                     </button>
                                 </td>
-                                <td className="p-4 text-center">
+                                <td className="px-2 py-3 text-center">
                                     <button
                                         onClick={() => onNavigate({ name: 'photographer-portfolio', photographerId: user.id })}
-                                        className="text-secondary hover:text-secondary-light p-2 rounded-full hover:bg-neutral-100 transition-colors"
+                                        className="text-secondary hover:text-secondary-light p-1.5 rounded-full hover:bg-neutral-100 transition-colors"
                                         title="Ver Portfólio Público"
                                     >
                                         <ExternalLinkIcon />
                                     </button>
                                 </td>
-                                <td className="p-4 text-right">
-                                    <div className="flex items-center justify-end gap-2">
+                                <td className="px-2 py-3 text-right">
+                                    <div className="flex items-center justify-end gap-1">
                                         <button
                                             onClick={() => handleOpenDetail(user, 'reports')}
-                                            className="relative flex items-center justify-center w-9 h-9 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full transition-colors"
+                                            className="relative flex items-center justify-center w-8 h-8 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full transition-colors"
                                             title={pendingReportCounts[user.id] ? `${pendingReportCounts[user.id]} denúncia(s) pendente(s)` : 'Ver denúncias'}
                                         >
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>
                                             {pendingReportCounts[user.id] ? (
-                                                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center leading-none">
+                                                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-bold w-3.5 h-3.5 rounded-full flex items-center justify-center leading-none">
                                                     {pendingReportCounts[user.id]}
                                                 </span>
                                             ) : null}
                                         </button>
                                         <button
                                             onClick={() => handleOpenModal(user)}
-                                            className="flex items-center justify-center w-9 h-9 text-primary-dark hover:text-primary hover:bg-primary/10 rounded-full transition-colors"
+                                            className="flex items-center justify-center w-8 h-8 text-primary-dark hover:text-primary hover:bg-primary/10 rounded-full transition-colors"
                                             title="Editar"
                                         >
                                             <EditIcon />
+                                        </button>
+                                        <button
+                                            onClick={() => handleDeletePhotographer(user)}
+                                            className="flex items-center justify-center w-8 h-8 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-full transition-colors"
+                                            title="Excluir Fotógrafo"
+                                        >
+                                            <TrashIcon />
                                         </button>
                                     </div>
                                 </td>
@@ -468,7 +517,7 @@ const AdminPhotographers: React.FC<AdminPhotographersProps> = ({ onNavigate }) =
                         ))}
                         {filteredPhotographers.length === 0 && (
                             <tr>
-                                <td colSpan={10} className="text-center p-8 text-neutral-500">
+                                <td colSpan={11} className="text-center p-8 text-neutral-500">
                                     {searchTerm ? 'Nenhum fotógrafo encontrado para sua busca.' : 'Nenhum fotógrafo cadastrado.'}
                                 </td>
                             </tr>
