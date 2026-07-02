@@ -527,6 +527,8 @@ export const api = {
       .single();
     const mappedUser = mapUser(updatedUser);
     inMemoryCache.userCache[id] = { data: mappedUser, ts: Date.now() };
+    inMemoryCache.allPhotographers = { data: null, ts: 0 };
+    inMemoryCache.activePhotographers = { data: null, ts: 0 };
     return mappedUser;
   },
 
@@ -1528,6 +1530,8 @@ export const api = {
       .select()
       .single();
     if (error) throw error;
+    inMemoryCache.allPhotographers = { data: null, ts: 0 };
+    inMemoryCache.activePhotographers = { data: null, ts: 0 };
     return mapUser(newUser);
   },
   deletePhotographer: async (id: string): Promise<{ success: boolean; error?: string }> => {
@@ -1598,6 +1602,10 @@ export const api = {
         target_user_id: id,
       });
       if (rpcErr) throw rpcErr;
+
+      inMemoryCache.allPhotographers = { data: null, ts: 0 };
+      inMemoryCache.activePhotographers = { data: null, ts: 0 };
+      delete inMemoryCache.userCache[id];
 
       return { success: true };
     } catch (e: any) {
