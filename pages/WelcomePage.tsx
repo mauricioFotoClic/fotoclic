@@ -36,13 +36,22 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onNavigate, role = 'customer'
     };
 
     useEffect(() => {
-        // Envia evento para o dataLayer (Google Ads / Analytics) se disponível
         const win = window as any;
+
+        // Envia evento para o dataLayer (Google Ads / Analytics) se disponível
         if (win.dataLayer) {
             win.dataLayer.push({
                 event: 'registration_success',
                 user_role: roleRef.current
             });
+        }
+
+        // Dispara a conversão específica do Google Ads somente se for cadastro de fotógrafo
+        if (win.gtag && (roleRef.current === 'photographer' || roleRef.current === 'pending-approval')) {
+            win.gtag('event', 'conversion', {
+                'send_to': 'AW-16960525575/NqzgCKeRoskcEIeqtJc_'
+            });
+            console.log("Google Ads conversion event sent for photographer!");
         }
 
         const interval = setInterval(() => {
