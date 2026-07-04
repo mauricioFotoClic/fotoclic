@@ -174,6 +174,9 @@ export interface Sale {
   price: number;
   commission: number;
   status?: string;
+  billing_id?: string | null;
+  commission_rate?: number;
+  photographer_id?: string;
 }
 
 export interface Payout {
