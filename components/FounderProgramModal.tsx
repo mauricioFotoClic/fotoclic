@@ -18,12 +18,12 @@ const FounderProgramModal: React.FC<FounderProgramModalProps> = ({ isOpen, onClo
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-      <div 
+      <div
         className="relative bg-white rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col animate-scale-up"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}
-        <button 
+        <button
           onClick={onClose}
           className="absolute top-6 right-6 p-2 rounded-full hover:bg-neutral-100 text-neutral-400 hover:text-neutral-700 transition-colors z-10"
           aria-label="Fechar"
@@ -45,7 +45,8 @@ const FounderProgramModal: React.FC<FounderProgramModalProps> = ({ isOpen, onClo
                 Uma recompensa para quem faz o FotoClic crescer.
               </p>
               <p className="text-neutral-700 text-sm md:text-base mt-3 leading-relaxed">
-                Ao se cadastrar no FotoClic, você garante <span className="text-primary font-semibold">1 ano de comissão de apenas 6%</span>, independente de futuros reajustes da plataforma.
+                Ao se cadastrar no FotoClic e <span className="text-primary font-semibold">publicar</span> suas fotos para venda,
+                você garante <span className="text-primary font-semibold">1 ano de comissão de apenas 6%</span>, independente de futuros reajustes da plataforma.
               </p>
             </div>
           </div>
@@ -71,7 +72,7 @@ const FounderProgramModal: React.FC<FounderProgramModalProps> = ({ isOpen, onClo
                       <div className="p-0.5 rounded-full bg-orange-50 border border-orange-100 text-primary shrink-0 mt-0.5">
                         <Check size={14} strokeWidth={3} />
                       </div>
-                      <span>mantenham vendas de R$ 3.000 ou mais por mês;</span>
+                      <span>mantenham vendas ativas e constantesde;</span>
                     </li>
                     <li className="flex gap-3 text-sm text-neutral-600 items-start">
                       <div className="p-0.5 rounded-full bg-orange-50 border border-orange-100 text-primary shrink-0 mt-0.5">
@@ -103,7 +104,7 @@ const FounderProgramModal: React.FC<FounderProgramModalProps> = ({ isOpen, onClo
               {/* Practical Example Box */}
               <div className="border border-neutral-100 bg-neutral-50/60 rounded-2xl p-5 flex flex-col gap-5">
                 <h4 className="font-bold text-neutral-900 text-sm uppercase tracking-wider">Exemplo na prática</h4>
-                
+
                 {/* Scenario 1 */}
                 <div className="flex flex-col gap-3">
                   <h5 className="font-bold text-neutral-900 text-xs">Comissão da plataforma aumenta para 8%</h5>
@@ -151,7 +152,7 @@ const FounderProgramModal: React.FC<FounderProgramModalProps> = ({ isOpen, onClo
                   </div>
                 </div>
 
-                <button 
+                <button
                   onClick={handleRegisterRedirect}
                   className="w-full bg-primary hover:bg-primary-dark text-white rounded-2xl py-3.5 px-6 flex items-center justify-center gap-2 font-bold shadow-md hover:shadow-lg transition-all text-sm"
                 >
@@ -163,7 +164,7 @@ const FounderProgramModal: React.FC<FounderProgramModalProps> = ({ isOpen, onClo
           </div>
         </div>
       </div>
-    </div>
+    </div >
   );
 };
 
