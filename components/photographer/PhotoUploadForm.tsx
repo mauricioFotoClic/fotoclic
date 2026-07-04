@@ -28,6 +28,7 @@ const PhotoUploadForm: React.FC<PhotoUploadFormProps> = ({ onSubmit, onCancel, i
         tags: [],
         is_public: true,
         is_featured: false,
+        sub_group: null,
     });
     const [previewImage, setPreviewImage] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -53,6 +54,7 @@ const PhotoUploadForm: React.FC<PhotoUploadFormProps> = ({ onSubmit, onCancel, i
                 tags: initialData.tags || [],
                 is_public: initialData.is_public,
                 is_featured: initialData.is_featured,
+                sub_group: initialData.sub_group || null,
             });
             if (initialData.preview_url) setPreviewImage(initialData.preview_url);
         } else {
@@ -65,6 +67,7 @@ const PhotoUploadForm: React.FC<PhotoUploadFormProps> = ({ onSubmit, onCancel, i
                 width: 0, height: 0,
                 tags: [], is_public: true,
                 is_featured: false,
+                sub_group: null,
             });
             setPreviewImage(null);
         }
@@ -255,6 +258,20 @@ const PhotoUploadForm: React.FC<PhotoUploadFormProps> = ({ onSubmit, onCancel, i
             <div>
                 <label htmlFor="description" className="block text-sm font-medium text-neutral-700 mb-1">Descrição</label>
                 <textarea id="description" name="description" value={formData.description} onChange={handleChange} className={inputClass} rows={3} disabled={isSubmitting}></textarea>
+            </div>
+            <div>
+                <label htmlFor="sub_group" className="block text-sm font-medium text-neutral-700 mb-1">Pasta / Dia de Evento (Opcional)</label>
+                <input
+                    id="sub_group"
+                    name="sub_group"
+                    type="text"
+                    value={formData.sub_group || ''}
+                    onChange={handleChange}
+                    className={inputClass}
+                    placeholder="Ex: Dia 1, Sábado, Finais"
+                    disabled={isSubmitting}
+                />
+                <p className="text-xs text-neutral-500 mt-1">Organize esta foto dentro de uma pasta específica no evento.</p>
             </div>
 
             <div>

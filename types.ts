@@ -110,6 +110,7 @@ export interface Photo {
   video_uid?: string;
   video_duration?: number;
   file_size_bytes?: number;
+  sub_group?: string | null;
 }
 
 export interface PhotoEvent {

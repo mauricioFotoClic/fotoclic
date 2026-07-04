@@ -136,6 +136,14 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
     const [newBulkPrice, setNewBulkPrice] = useState<string>('');
     const [bulkPriceLoading, setBulkPriceLoading] = useState(false);
 
+    const existingFolders = useMemo(() => {
+        if (!selectedEvent) return [];
+        const folders = photos
+            .filter(p => p.event_id === selectedEvent.id && p.sub_group)
+            .map(p => p.sub_group as string);
+        return Array.from(new Set(folders)).filter(Boolean);
+    }, [photos, selectedEvent]);
+
     // --- DATA FETCHING ---
     const fetchData = useCallback(async () => {
         try {
@@ -263,7 +271,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
 
     const handleBatchUpload = async (
         files: File[],
-        metadata: { price: number, tags: string[], is_public: boolean },
+        metadata: { price: number, tags: string[], is_public: boolean, sub_group?: string | null },
         onProgress?: (stats: { current: number, total: number, successes: number, failures: number }) => void
     ): Promise<{ successCount: number; failCount: number; failedFiles: Array<{ name: string; reason: string }> }> => {
         if (!selectedEvent) return { successCount: 0, failCount: 0, failedFiles: [] };
@@ -363,7 +371,8 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                         media_type: 'video',
                         video_uid: uid,
                         video_duration: Math.round(videoDetails.duration),
-                        file_size_bytes: file.size
+                        file_size_bytes: file.size,
+                        sub_group: metadata.sub_group
                     });
 
                     if (newPhoto) {
@@ -412,7 +421,8 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                         is_public: metadata.is_public,
                         is_featured: false,
                         event_id: selectedEvent.id,
-                        file_size_bytes: originalBlob.size
+                        file_size_bytes: originalBlob.size,
+                        sub_group: metadata.sub_group
                     });
 
                     if (newPhoto) {
@@ -1031,6 +1041,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                     <BatchUploadForm
                         event={selectedEvent}
                         photographerId={user.id}
+                        existingFolders={existingFolders}
                         onSubmit={handleBatchUpload}
                         onCancel={() => setIsBatchUploadModalOpen(false)}
                     />

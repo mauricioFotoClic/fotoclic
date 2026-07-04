@@ -115,6 +115,7 @@ const mapPhoto = (dbPhoto: any): Photo => {
     video_uid: dbPhoto.video_uid,
     video_duration: dbPhoto.video_duration,
     file_size_bytes: dbPhoto.file_size_bytes,
+    sub_group: dbPhoto.sub_group,
   };
 };
 
@@ -441,6 +442,7 @@ export const api = {
     if (data.video_uid) extraFields.video_uid = data.video_uid;
     if (data.video_duration !== undefined) extraFields.video_duration = data.video_duration;
     if (data.file_size_bytes !== undefined) extraFields.file_size_bytes = data.file_size_bytes;
+    if (data.sub_group !== undefined) extraFields.sub_group = data.sub_group;
 
     if (Object.keys(extraFields).length > 0) {
       const { error: updateError } = await supabase
@@ -1126,7 +1128,7 @@ export const api = {
       const { data, error } = await supabase
         .from("photos")
         .select(
-          "id, photographer_id, category_id, title, preview_url, thumb_url, price, resolution, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags, event_id, sales_count, media_type, video_uid, video_duration, file_size_bytes",
+          "id, photographer_id, category_id, title, preview_url, thumb_url, price, resolution, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags, event_id, sales_count, media_type, video_uid, video_duration, file_size_bytes, sub_group",
         )
         .eq("event_id", eventId)
         .eq("moderation_status", "approved")
@@ -1161,7 +1163,7 @@ export const api = {
       const { data, error } = await supabase
         .from("photos")
         .select(
-          "id, photographer_id, category_id, title, description, preview_url, thumb_url, price, resolution, width, height, tags, is_public, created_at, moderation_status, rejection_reason, is_featured, likes_count, quality_analysis, is_face_indexed, event_id, sales_count, media_type, video_uid, video_duration, file_size_bytes, photo_likes(user_id)"
+          "id, photographer_id, category_id, title, description, preview_url, thumb_url, price, resolution, width, height, tags, is_public, created_at, moderation_status, rejection_reason, is_featured, likes_count, quality_analysis, is_face_indexed, event_id, sales_count, media_type, video_uid, video_duration, file_size_bytes, photo_likes(user_id), sub_group"
         )
         .eq("event_id", eventId)
         .order("created_at", { ascending: false })

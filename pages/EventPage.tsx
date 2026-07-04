@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { Photo, User, PhotoEvent, Page } from '../types';
 import api from '../services/api';
 import PhotoCard from '../components/PhotoCard';
@@ -49,6 +49,20 @@ const EventPage: React.FC<EventPageProps> = ({ eventId, onNavigate, onAddToCart,
   const [reportReason, setReportReason] = useState('');
   const [reportSent, setReportSent] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  const [selectedFolder, setSelectedFolder] = useState<string>('all');
+
+  // Extrair pastas/dias únicos das fotos do evento
+  const folders = useMemo(() => {
+    const list = photos.map(p => p.sub_group).filter(Boolean) as string[];
+    return Array.from(new Set(list));
+  }, [photos]);
+
+  // Filtrar fotos com base na pasta selecionada
+  const filteredPhotos = useMemo(() => {
+    if (!selectedFolder || selectedFolder === 'all') return photos;
+    return photos.filter(p => p.sub_group === selectedFolder);
+  }, [photos, selectedFolder]);
 
   // Close menu on outside click
   useEffect(() => {
@@ -134,6 +148,7 @@ const EventPage: React.FC<EventPageProps> = ({ eventId, onNavigate, onAddToCart,
   ];
 
   useEffect(() => {
+    setSelectedFolder('all');
     api.getEventById(eventId).then(setEvent).catch(() => null).finally(() => setLoadingEvent(false));
 
     Promise.all([
@@ -375,6 +390,38 @@ const EventPage: React.FC<EventPageProps> = ({ eventId, onNavigate, onAddToCart,
       {/* ── Galeria de Fotos ──────────────────────────────────────────────── */}
       <section className="py-12">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Seletor de Pastas/Dias (Dropdown) */}
+          {!loadingPhotos && folders.length > 0 && (
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 pb-6 border-b border-neutral-100">
+              <div>
+                <h3 className="text-sm font-semibold text-neutral-800">Filtrar por pasta / dia</h3>
+                <p className="text-xs text-neutral-500">Selecione uma pasta para ver as fotos correspondentes</p>
+              </div>
+              <div className="relative w-full sm:w-64">
+                <select
+                  value={selectedFolder}
+                  onChange={(e) => setSelectedFolder(e.target.value)}
+                  className="w-full pl-4 pr-10 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl text-sm font-medium text-neutral-800 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all appearance-none cursor-pointer"
+                >
+                  <option value="all">Todas as fotos ({photos.length})</option>
+                  {folders.map(folder => {
+                    const count = photos.filter(p => p.sub_group === folder).length;
+                    return (
+                      <option key={folder} value={folder}>
+                        {folder} ({count})
+                      </option>
+                    );
+                  })}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-neutral-500">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          )}
+
           {loadingPhotos ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
               {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
@@ -390,9 +437,9 @@ const EventPage: React.FC<EventPageProps> = ({ eventId, onNavigate, onAddToCart,
                 </div>
               ))}
             </div>
-          ) : photos.length > 0 ? (
+          ) : filteredPhotos.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-              {photos.map(photo => (
+              {filteredPhotos.map(photo => (
                 <PhotoCard
                   key={photo.id}
                   photo={photo}
@@ -408,7 +455,7 @@ const EventPage: React.FC<EventPageProps> = ({ eventId, onNavigate, onAddToCart,
               <svg className="w-16 h-16 text-neutral-200 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
-              <p className="text-neutral-500">Nenhuma foto encontrada neste evento ainda.</p>
+              <p className="text-neutral-500">Nenhuma foto encontrada com os filtros selecionados.</p>
             </div>
           )}
         </div>

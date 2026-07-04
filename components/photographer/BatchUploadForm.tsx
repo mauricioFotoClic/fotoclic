@@ -5,19 +5,23 @@ import { Photo, PhotoEvent } from '../../types';
 interface BatchUploadFormProps {
     event: PhotoEvent;
     photographerId: string;
+    existingFolders?: string[];
     onSubmit: (
         files: File[],
-        metadata: { price: number, tags: string[], is_public: boolean },
+        metadata: { price: number, tags: string[], is_public: boolean, sub_group?: string | null },
         onProgress: (stats: { current: number, total: number, successes: number, failures: number }) => void
     ) => Promise<{ successCount: number; failCount: number; failedFiles: Array<{ name: string; reason: string }> }>;
     onCancel: () => void;
 }
 
-const BatchUploadForm: React.FC<BatchUploadFormProps> = ({ event, photographerId, onSubmit, onCancel }) => {
+const BatchUploadForm: React.FC<BatchUploadFormProps> = ({ event, photographerId, existingFolders = [], onSubmit, onCancel }) => {
     const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
     const [price, setPrice] = useState<string>('');
     const [tags, setTags] = useState<string>('');
     const [isPublic, setIsPublic] = useState(true);
+    const [subGroupMode, setSubGroupMode] = useState<'none' | 'select' | 'new'>(existingFolders.length > 0 ? 'select' : 'none');
+    const [selectedSubGroup, setSelectedSubGroup] = useState<string>(existingFolders[0] || '');
+    const [newSubGroup, setNewSubGroup] = useState<string>('');
     const [isUploading, setIsUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState<{ current: number, total: number, successes: number, failures: number }>({ current: 0, total: 0, successes: 0, failures: 0 });
     const [uploadResult, setUploadResult] = useState<{
@@ -52,11 +56,14 @@ const BatchUploadForm: React.FC<BatchUploadFormProps> = ({ event, photographerId
         setUploadResult(null);
         setShowResults(false);
 
+        const subGroupValue = subGroupMode === 'select' ? selectedSubGroup : subGroupMode === 'new' ? newSubGroup.trim() : null;
+
         try {
             const result = await onSubmit(selectedFiles, {
                 price: numPrice,
                 tags: tags.split(',').map(t => t.trim()).filter(t => t),
                 is_public: isPublic,
+                sub_group: subGroupValue
             }, (stats) => {
                 setUploadProgress(stats);
             });
@@ -239,6 +246,80 @@ const BatchUploadForm: React.FC<BatchUploadFormProps> = ({ event, photographerId
                             />
                             <p className="text-xs text-neutral-500 mt-1">Separadas por vírgula</p>
                         </div>
+                    </div>
+
+                    <div className="bg-neutral-50 p-4 rounded-lg border border-neutral-200/80">
+                        <label className="block text-sm font-semibold text-neutral-800 mb-2">Organizar em Pastas / Dias de Evento? (Opcional)</label>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+                            <label className="flex items-center gap-2 p-2.5 bg-white border border-neutral-200 rounded-md cursor-pointer hover:bg-neutral-50">
+                                <input
+                                    type="radio"
+                                    name="subGroupMode"
+                                    checked={subGroupMode === 'none'}
+                                    onChange={() => setSubGroupMode('none')}
+                                    className="text-primary focus:ring-primary"
+                                    disabled={isUploading}
+                                />
+                                <span className="text-xs text-neutral-700 font-medium">Não organizar</span>
+                            </label>
+                            {existingFolders.length > 0 && (
+                                <label className="flex items-center gap-2 p-2.5 bg-white border border-neutral-200 rounded-md cursor-pointer hover:bg-neutral-50">
+                                    <input
+                                        type="radio"
+                                        name="subGroupMode"
+                                        checked={subGroupMode === 'select'}
+                                        onChange={() => setSubGroupMode('select')}
+                                        className="text-primary focus:ring-primary"
+                                        disabled={isUploading}
+                                    />
+                                    <span className="text-xs text-neutral-700 font-medium">Pasta existente</span>
+                                </label>
+                            )}
+                            <label className="flex items-center gap-2 p-2.5 bg-white border border-neutral-200 rounded-md cursor-pointer hover:bg-neutral-50">
+                                <input
+                                    type="radio"
+                                    name="subGroupMode"
+                                    checked={subGroupMode === 'new'}
+                                    onChange={() => setSubGroupMode('new')}
+                                    className="text-primary focus:ring-primary"
+                                    disabled={isUploading}
+                                />
+                                <span className="text-xs text-neutral-700 font-medium">Criar nova pasta</span>
+                            </label>
+                        </div>
+
+                        {subGroupMode === 'select' && existingFolders.length > 0 && (
+                            <div>
+                                <label htmlFor="select_subgroup" className="block text-xs font-medium text-neutral-500 mb-1">Escolha a pasta *</label>
+                                <select
+                                    id="select_subgroup"
+                                    value={selectedSubGroup}
+                                    onChange={(e) => setSelectedSubGroup(e.target.value)}
+                                    className={inputClass}
+                                    disabled={isUploading}
+                                >
+                                    {existingFolders.map(folder => (
+                                        <option key={folder} value={folder}>{folder}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+
+                        {subGroupMode === 'new' && (
+                            <div>
+                                <label htmlFor="new_subgroup" className="block text-xs font-medium text-neutral-500 mb-1">Nome da nova pasta *</label>
+                                <input
+                                    id="new_subgroup"
+                                    type="text"
+                                    value={newSubGroup}
+                                    onChange={(e) => setNewSubGroup(e.target.value)}
+                                    className={inputClass}
+                                    disabled={isUploading}
+                                    placeholder="Ex: Dia 1, Sábado, Finais"
+                                    required={subGroupMode === 'new'}
+                                />
+                            </div>
+                        )}
                     </div>
 
                     <div className="flex flex-col gap-3">
