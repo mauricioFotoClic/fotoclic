@@ -3,6 +3,7 @@ import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { Sale, Photo, User } from '../../types';
 import api from '../../services/api';
 import Spinner from '../Spinner';
+import Modal from '../Modal';
 import { ChevronDown, ChevronUp, Copy, Check, HelpCircle } from 'lucide-react';
 
 const StatCard: React.FC<{ title: string; value: string; }> = ({ title, value }) => (
@@ -28,6 +29,7 @@ const AdminSales: React.FC = () => {
     const [photographers, setPhotographers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
+    const [previewPhoto, setPreviewPhoto] = useState<any | null>(null);
     const [filters, setFilters] = useState({
         photographerId: '',
         dateRange: 'all',
@@ -404,8 +406,15 @@ const AdminSales: React.FC = () => {
                                                                             <td className="p-3 font-semibold text-neutral-800">
                                                                                 {photo ? (
                                                                                     <div className="flex items-center">
-                                                                                        <img src={photo.preview_url} alt={photo.title} className="w-10 h-8 object-cover rounded mr-3 border border-neutral-200" />
-                                                                                        <span className="truncate max-w-[200px]" title={photo.title}>{photo.title}</span>
+                                                                                        <button
+                                                                                            type="button"
+                                                                                            onClick={() => setPreviewPhoto(photo)}
+                                                                                            className="flex items-center text-left hover:text-primary hover:underline transition-all focus:outline-none"
+                                                                                            title="Clique para ampliar a foto"
+                                                                                        >
+                                                                                            <img src={photo.preview_url} alt={photo.title} className="w-10 h-8 object-cover rounded mr-3 border border-neutral-200 cursor-zoom-in hover:scale-105 transition-transform" />
+                                                                                            <span className="truncate max-w-[200px] font-semibold text-neutral-800 hover:text-primary" title={photo.title}>{photo.title}</span>
+                                                                                        </button>
                                                                                     </div>
                                                                                 ) : (
                                                                                     <span className="text-neutral-400">Foto não encontrada</span>
@@ -462,6 +471,24 @@ const AdminSales: React.FC = () => {
                     </button>
                 </div>
             )}
+
+            {/* Modal de Pré-visualização da Foto */}
+            <Modal
+                isOpen={!!previewPhoto}
+                onClose={() => setPreviewPhoto(null)}
+                title={previewPhoto?.title || 'Visualizar Foto'}
+                size="xl"
+            >
+                {previewPhoto && (
+                    <div className="flex flex-col items-center justify-center p-2 bg-neutral-900 rounded-lg overflow-hidden">
+                        <img
+                            src={previewPhoto.preview_url}
+                            alt={previewPhoto.title}
+                            className="max-h-[75vh] max-w-full object-contain rounded-md shadow-2xl"
+                        />
+                    </div>
+                )}
+            </Modal>
         </div>
     );
 }
