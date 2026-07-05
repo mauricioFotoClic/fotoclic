@@ -89,6 +89,30 @@ const MainApp: React.FC = () => {
     const [isNavigating, setIsNavigating] = useState(false);
     const [cartItems, setCartItems] = useState<string[]>([]);
     const [isSessionLoading, setIsSessionLoading] = useState(true);
+    const [originalAdminUser, setOriginalAdminUser] = useState<User | null>(null);
+
+    const impersonateUser = (user: User) => {
+        setOriginalAdminUser(currentUser);
+        setCurrentUser(user);
+        sessionStorage.setItem('is_impersonating', 'true');
+        
+        if (user.role === UserRole.PHOTOGRAPHER) {
+            handleNavigate({ name: 'photographer' });
+        } else {
+            handleNavigate({ name: 'customer-dashboard' });
+        }
+        showToast(`Simulando painel de ${user.name}`, "success");
+    };
+
+    const stopImpersonating = () => {
+        if (originalAdminUser) {
+            setCurrentUser(originalAdminUser);
+            setOriginalAdminUser(null);
+            sessionStorage.removeItem('is_impersonating');
+            handleNavigate({ name: 'admin' });
+            showToast("Voltou ao painel administrativo.", "success");
+        }
+    };
 
     // Animation State
     const [flyingImage, setFlyingImage] = useState<FlyingImage | null>(null);
@@ -558,7 +582,7 @@ const MainApp: React.FC = () => {
                 return <PendingApprovalPage onNavigate={handleNavigate} />;
             case 'admin':
                 if (isSessionLoading) return <Spinner size="lg" fullHeight={true} label="Autenticando sessão..." />;
-                return currentUser?.role === UserRole.ADMIN ? <AdminPage onNavigate={handleNavigate} /> : <HomePage onNavigate={handleNavigate} onAddToCart={handleAddToCart} currentUser={currentUser} />;
+                return currentUser?.role === UserRole.ADMIN ? <AdminPage onNavigate={handleNavigate} onImpersonate={impersonateUser} /> : <HomePage onNavigate={handleNavigate} onAddToCart={handleAddToCart} currentUser={currentUser} />;
             case 'photographer':
                 if (isSessionLoading) return <Spinner size="lg" fullHeight={true} label="Autenticando sessão..." />;
                 return currentUser?.role === UserRole.PHOTOGRAPHER ? <PhotographerPage user={currentUser} onLogout={handleLogout} onNavigate={handleNavigate} showToast={showToast} /> : <HomePage onNavigate={handleNavigate} onAddToCart={handleAddToCart} currentUser={currentUser} />;
@@ -621,6 +645,25 @@ const MainApp: React.FC = () => {
 
     return (
         <div className="bg-neutral-100 text-neutral-800 min-h-screen flex flex-col font-sans relative">
+            {originalAdminUser && (
+                <div className="bg-amber-500 text-white px-4 py-2.5 flex items-center justify-between shadow-md relative z-[1000] animate-in slide-in-from-top duration-300">
+                    <div className="flex items-center gap-2 mx-auto">
+                        <svg className="w-5 h-5 animate-pulse text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        <span className="text-sm font-semibold">
+                            Modo Vistoria Ativo: Você está visualizando o painel como <strong className="underline">{currentUser?.name}</strong> ({currentUser?.email})
+                        </span>
+                        <button
+                            onClick={stopImpersonating}
+                            className="ml-4 bg-white text-amber-600 hover:bg-neutral-50 px-4 py-1 rounded-full text-xs font-bold transition-all shadow hover:shadow-md active:scale-95"
+                        >
+                            Sair e Voltar ao Admin
+                        </button>
+                    </div>
+                </div>
+            )}
             <TopProgressBar isAnimating={isNavigating} />
             <Header
                 user={currentUser}

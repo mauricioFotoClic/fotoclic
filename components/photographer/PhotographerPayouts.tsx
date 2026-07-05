@@ -12,6 +12,7 @@ const InfoIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height
 const CheckCircleIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-500"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>;
 
 const PhotographerPayouts: React.FC<PhotographerPayoutsProps> = ({ user }) => {
+    const isImpersonating = sessionStorage.getItem('is_impersonating') === 'true';
     const [payouts, setPayouts] = useState<Payout[]>([]);
     const [balance, setBalance] = useState<PhotographerBalance | null>(null);
     const [loading, setLoading] = useState(true);
@@ -93,6 +94,10 @@ const PhotographerPayouts: React.FC<PhotographerPayoutsProps> = ({ user }) => {
 
     const handleSaveBankInfo = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (isImpersonating) {
+            alert("Ação não permitida em modo de vistoria.");
+            return;
+        }
         setIsSavingBank(true);
         try {
             await api.updateBankInfo(user.id, bankInfo);
@@ -120,11 +125,17 @@ const PhotographerPayouts: React.FC<PhotographerPayoutsProps> = ({ user }) => {
 
     return (
         <div>
+            {isImpersonating && (
+                <div className="mb-6 p-4 bg-amber-50 border-l-4 border-amber-500 rounded text-amber-800 text-sm">
+                    ⚠️ <strong>Modo Vistoria Ativo:</strong> As ações de alteração de chave PIX e solicitação de saques estão desabilitadas para garantir a segurança financeira do fotógrafo.
+                </div>
+            )}
             <div className="flex justify-between items-start mb-6">
                 <h1 className="text-3xl font-display font-bold text-primary-dark">Central Financeira</h1>
                 <button
-                    onClick={() => setIsBankModalOpen(true)}
-                    className="text-sm text-primary hover:underline flex items-center bg-white px-4 py-2 rounded-lg shadow-sm border border-neutral-200 hover:bg-neutral-50"
+                    onClick={() => !isImpersonating && setIsBankModalOpen(true)}
+                    disabled={isImpersonating}
+                    className={`text-sm text-primary hover:underline flex items-center bg-white px-4 py-2 rounded-lg shadow-sm border border-neutral-200 hover:bg-neutral-50 ${isImpersonating ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                     <span className="mr-2">⚙️</span> Configurar Recebimento
                 </button>
@@ -216,8 +227,9 @@ const PhotographerPayouts: React.FC<PhotographerPayoutsProps> = ({ user }) => {
                         )}
                     </div>
                     <button
-                        onClick={() => setIsBankModalOpen(true)}
-                        className="px-6 py-2 border border-primary text-primary rounded-full font-medium hover:bg-primary-50 transition-colors"
+                        onClick={() => !isImpersonating && setIsBankModalOpen(true)}
+                        disabled={isImpersonating}
+                        className={`px-6 py-2 border border-primary text-primary rounded-full font-medium transition-colors ${isImpersonating ? 'opacity-55 cursor-not-allowed border-neutral-300 text-neutral-400 bg-neutral-50' : 'hover:bg-primary-50'}`}
                     >
                         {bankInfo.pixKey ? 'Alterar Dados' : 'Configurar Agora'}
                     </button>

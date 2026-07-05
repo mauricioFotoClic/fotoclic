@@ -54,9 +54,10 @@ const KeepAliveView = React.memo(
 
 interface AdminPageProps {
     onNavigate: (page: Page) => void;
+    onImpersonate: (user: User) => void;
 }
 
-const AdminPage: React.FC<AdminPageProps> = ({ onNavigate }) => {
+const AdminPage: React.FC<AdminPageProps> = ({ onNavigate, onImpersonate }) => {
     const getInitialView = (): AdminView => {
         const hash = window.location.hash.replace('#', '');
         return (hash as AdminView) || 'dashboard';
@@ -90,10 +91,10 @@ const AdminPage: React.FC<AdminPageProps> = ({ onNavigate }) => {
                     <AdminCategories />
                 </KeepAliveView>
                 <KeepAliveView active={view === 'photographers'} index={2}>
-                    <AdminPhotographers onNavigate={onNavigate} />
+                    <AdminPhotographers onNavigate={onNavigate} onImpersonate={onImpersonate} />
                 </KeepAliveView>
                 <KeepAliveView active={view === 'customers'} index={3}>
-                    <AdminCustomers />
+                    <AdminCustomers onImpersonate={onImpersonate} />
                 </KeepAliveView>
                 <KeepAliveView active={view === 'photos'} index={4}>
                     <AdminPhotos context={navContext} setContext={setNavContext} />
