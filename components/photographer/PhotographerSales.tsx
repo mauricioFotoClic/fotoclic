@@ -37,7 +37,7 @@ const PhotographerSales: React.FC<PhotographerSalesProps> = ({ user }) => {
         fetchData();
     }, [fetchData]);
 
-    const getPhotoInfo = (photoId: string) => photos.find(p => p.id === photoId);
+    const getPhotoInfo = (sale: Sale) => sale.photo || photos.find(p => p.id === sale.photo_id);
 
     // Lógica de Paginação
     const totalPages = Math.ceil(sales.length / itemsPerPage);
@@ -59,7 +59,7 @@ const PhotographerSales: React.FC<PhotographerSalesProps> = ({ user }) => {
             {/* Mobile cards */}
             <div className="md:hidden space-y-3">
                 {paginatedSales.map((sale) => {
-                    const photo = getPhotoInfo(sale.photo_id);
+                    const photo = getPhotoInfo(sale);
                     const earning = sale.price - sale.commission;
                     return (
                         <div key={sale.id} className="bg-white rounded-lg border border-neutral-200 p-4">
@@ -116,7 +116,7 @@ const PhotographerSales: React.FC<PhotographerSalesProps> = ({ user }) => {
                     </thead>
                     <tbody>
                         {paginatedSales.map((sale, index) => {
-                             const photo = getPhotoInfo(sale.photo_id);
+                             const photo = getPhotoInfo(sale);
                              const earning = sale.price - sale.commission;
                              return (
                                 <tr key={sale.id} className={`border-t ${index % 2 === 0 ? 'bg-white' : 'bg-neutral-50'}`}>

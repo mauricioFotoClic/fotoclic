@@ -558,7 +558,7 @@ export const api = {
     // We need buyer name, let's fetch it or map it if possible contextually
     let joinQuery = supabase
       .from("sales")
-      .select("*, buyer:users!buyer_id(name)")
+      .select("*, buyer:users!buyer_id(name), photo:photos(title, preview_url, thumb_url, photographer_id)")
       .eq("photographer_id", photographerId)
       .order("sale_date", { ascending: false });
 
@@ -580,6 +580,12 @@ export const api = {
       ? salesWithBuyer.map((s: any) => ({
         ...s,
         buyer_name: s.buyer?.name || "Cliente",
+        photo: s.photo ? {
+          title: s.photo.title,
+          preview_url: s.photo.preview_url,
+          thumb_url: s.photo.thumb_url,
+          photographer_id: s.photo.photographer_id
+        } : null
       }))
       : [];
   },
@@ -2629,10 +2635,10 @@ export const api = {
     return data;
   },
   getSales: async (): Promise<Sale[]> => {
-    // Select sales and join with the buyer (users table) to get the name
+    // Select sales and join with the buyer (users table) and photos table
     const { data, error } = await supabase
       .from("sales")
-      .select("*, buyer:buyer_id(name)")
+      .select("*, buyer:buyer_id(name), photo:photos(title, preview_url, thumb_url, photographer_id)")
       .order("sale_date", { ascending: false });
 
     if (error) {
@@ -2645,6 +2651,12 @@ export const api = {
       data?.map((s: any) => ({
         ...s,
         buyer_name: s.buyer?.name || "Comprador Desconhecido",
+        photo: s.photo ? {
+          title: s.photo.title,
+          preview_url: s.photo.preview_url,
+          thumb_url: s.photo.thumb_url,
+          photographer_id: s.photo.photographer_id
+        } : null
       })) || []
     );
   },

@@ -394,7 +394,7 @@ const AdminSales: React.FC = () => {
                                                             </thead>
                                                             <tbody className="divide-y divide-neutral-100">
                                                                 {tx.sales.map((sale) => {
-                                                                    const photo = getPhotoInfo(sale.photo_id);
+                                                                    const photo = sale.photo || getPhotoInfo(sale.photo_id);
                                                                     const photographerName = photo ? getPhotographerName(photo.photographer_id) : 'N/A';
                                                                     const baseRate = sale.commission_rate || 0.15;
                                                                     const baseComm = sale.price * baseRate;

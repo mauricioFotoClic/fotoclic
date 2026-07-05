@@ -178,6 +178,7 @@ export interface Sale {
   billing_id?: string | null;
   commission_rate?: number;
   photographer_id?: string;
+  photo?: any;
 }
 
 export interface Payout {
