@@ -97,9 +97,9 @@ const MainApp: React.FC = () => {
         sessionStorage.setItem('is_impersonating', 'true');
         
         if (user.role === UserRole.PHOTOGRAPHER) {
-            handleNavigate({ name: 'photographer' });
+            handleNavigate({ name: 'photographer' }, user);
         } else {
-            handleNavigate({ name: 'customer-dashboard' });
+            handleNavigate({ name: 'customer-dashboard' }, user);
         }
         showToast(`Simulando painel de ${user.name}`, "success");
     };
@@ -109,7 +109,7 @@ const MainApp: React.FC = () => {
             setCurrentUser(originalAdminUser);
             setOriginalAdminUser(null);
             sessionStorage.removeItem('is_impersonating');
-            handleNavigate({ name: 'admin' });
+            handleNavigate({ name: 'admin' }, originalAdminUser);
             showToast("Voltou ao painel administrativo.", "success");
         }
     };
