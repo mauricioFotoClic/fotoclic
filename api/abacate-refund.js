@@ -34,6 +34,9 @@ export default async function handler(req, res) {
             throw new Error('Configuração de API ou ID da cobrança ausente.');
         }
 
+        let apiRefundFailed = false;
+        let apiRefundError = null;
+
         try {
             console.log('[AbacateRefund] Tentando estorno via V1 para ID:', targetBillingId);
             const abacateRes = await fetch(
@@ -65,19 +68,19 @@ export default async function handler(req, res) {
                 
                 const apiDataV2 = await abacateResV2.json().catch(() => ({}));
                 
-                if (abacateResV2.ok) {
-                    console.log('[AbacateRefund] Estorno via V2/Billing funcionou.');
-                } else {
-                    const errorMessage = apiDataV2.error || apiDataV2.message || apiData.error || apiData.message || `Erro da API (${abacateResV2.status})`;
-                    throw new Error(`O Abacate Pay não processou o estorno: ${errorMessage}`);
+                if (!abacateResV2.ok) {
+                    apiRefundFailed = true;
+                    apiRefundError = apiDataV2.error || apiDataV2.message || apiData.error || apiData.message || `Erro da API (${abacateResV2.status})`;
+                    console.warn('[AbacateRefund] API do Abacate Pay retornou erro para estorno:', apiRefundError);
                 }
             }
         } catch (apiErr) {
-            console.error('[AbacateRefund] Erro na comunicação:', apiErr);
-            throw apiErr;
+            console.warn('[AbacateRefund] Erro na comunicação:', apiErr);
+            apiRefundFailed = true;
+            apiRefundError = apiErr.message || String(apiErr);
         }
 
-        // Update status in our DB
+        // Update status in our DB - we always proceed so the admin can log refunds manually
         const { error: updateError } = await supabase
             .from('abacate_pay_billings')
             .update({ status: 'REFUNDED' })
@@ -85,8 +88,12 @@ export default async function handler(req, res) {
 
         if (updateError) throw updateError;
 
-        console.log('[AbacateRefund] Estorno registrado para billing id:', id);
-        return res.status(200).json({ success: true });
+        console.log('[AbacateRefund] Estorno registrado localmente para billing id:', id);
+        return res.status(200).json({ 
+            success: true, 
+            apiRefundFailed,
+            apiRefundError
+        });
 
     } catch (error) {
         console.error('[AbacateRefund] Erro:', error);

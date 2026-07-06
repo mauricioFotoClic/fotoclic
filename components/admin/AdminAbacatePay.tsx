@@ -503,7 +503,12 @@ const AdminAbacatePay: React.FC = () => {
                 refunded_amount: prev.refunded_amount + refundTarget.amount,
                 balance:         Math.max(0, prev.balance - refundTarget.amount * 0.97),
             }));
-            showToast('Estorno registrado com sucesso.', 'success');
+            
+            if (json.apiRefundFailed) {
+                showToast('Estorno registrado no FotoClic. Lembre-se de realizar o reembolso manual no painel do Abacate Pay!', 'warning');
+            } else {
+                showToast('Estorno registrado com sucesso.', 'success');
+            }
             setRefundTarget(null);
         } catch (err: any) {
             showToast(err.message || 'Erro ao processar estorno.', 'error');
