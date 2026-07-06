@@ -123,6 +123,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
     // Filters
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
+    const [selectedFolder, setSelectedFolder] = useState('all');
 
     // Pagination
     const [currentPage, setCurrentPage] = useState(1);
@@ -189,6 +190,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
 
     const handleViewEvent = async (event: PhotoEvent) => {
         setSelectedEvent(event);
+        setSelectedFolder('all');
         setView('photos');
         setLoading(true);
         try {
@@ -509,6 +511,10 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
             list = list.filter(p => p.event_id === selectedEvent.id);
         }
 
+        if (selectedFolder && selectedFolder !== 'all') {
+            list = list.filter(p => p.sub_group === selectedFolder);
+        }
+
         return list.filter(photo => {
             const matchesSearch = photo.title.toLowerCase().includes(searchTerm.toLowerCase());
             let matchesFilter = true;
@@ -519,7 +525,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
             if (filterStatus === 'rejected') matchesFilter = photo.moderation_status === 'rejected';
             return matchesSearch && matchesFilter;
         });
-    }, [photos, searchTerm, filterStatus, selectedEvent, view]);
+    }, [photos, searchTerm, filterStatus, selectedFolder, selectedEvent, view]);
 
     const priceGroups = useMemo(() => {
         if (!selectedEvent) return [];
@@ -879,6 +885,20 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                             />
                             <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-neutral-400" />
                         </div>
+                        {existingFolders.length > 0 && (
+                            <div className="md:w-64">
+                                <select
+                                    value={selectedFolder}
+                                    onChange={(e) => { setSelectedFolder(e.target.value); setCurrentPage(1); }}
+                                    className="w-full px-4 py-2.5 bg-white border border-neutral-300 rounded-lg text-sm"
+                                >
+                                    <option value="all">Todas as Pastas</option>
+                                    {existingFolders.map(folder => (
+                                        <option key={folder} value={folder}>{folder}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
                         <div className="md:w-64">
                             <select
                                 value={filterStatus}

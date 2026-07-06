@@ -61,6 +61,17 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
     const [selectedEventPhotos, setSelectedEventPhotos] = useState<Photo[]>([]);
     const [loadingEventPhotos, setLoadingEventPhotos] = useState(false);
     const [visiblePhotosCount, setVisiblePhotosCount] = useState(24);
+    const [selectedFolder, setSelectedFolder] = useState<string>('all');
+
+    const folders = React.useMemo(() => {
+        const list = selectedEventPhotos.map(p => p.sub_group).filter(Boolean) as string[];
+        return Array.from(new Set(list));
+    }, [selectedEventPhotos]);
+
+    const filteredPhotos = React.useMemo(() => {
+        if (!selectedFolder || selectedFolder === 'all') return selectedEventPhotos;
+        return selectedEventPhotos.filter(p => p.sub_group === selectedFolder);
+    }, [selectedEventPhotos, selectedFolder]);
 
     // Edit/Delete State
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -118,6 +129,7 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
         setSelectedEvent(event);
         setLoadingEventPhotos(true);
         setSelectedEventPhotos([]);
+        setSelectedFolder('all');
         setVisiblePhotosCount(24); // Resets photo grid limit when switching events
         try {
             const eventPhotos = await api.getPhotosByEventId(event.id);
@@ -464,8 +476,40 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
                         <div className="flex justify-center py-16"><Spinner size="lg" label="Carregando fotos do evento..." /></div>
                     ) : selectedEventPhotos.length > 0 ? (
                         <>
+                            {/* Seletor de Pastas/Dias (Dropdown) */}
+                            {folders.length > 0 && (
+                                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 pb-6 border-b border-neutral-100 bg-white p-4 rounded-xl shadow-sm">
+                                    <div>
+                                        <h3 className="text-sm font-semibold text-neutral-800">Filtrar por pasta / dia</h3>
+                                        <p className="text-xs text-neutral-500">Selecione uma pasta para ver as fotos correspondentes</p>
+                                    </div>
+                                    <div className="relative w-full sm:w-64">
+                                        <select
+                                            value={selectedFolder}
+                                            onChange={(e) => setSelectedFolder(e.target.value)}
+                                            className="w-full pl-4 pr-10 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl text-sm font-medium text-neutral-855 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all appearance-none cursor-pointer"
+                                        >
+                                            <option value="all">Todas as fotos ({selectedEventPhotos.length})</option>
+                                            {folders.map(folder => {
+                                                const count = selectedEventPhotos.filter(p => p.sub_group === folder).length;
+                                                return (
+                                                    <option key={folder} value={folder}>
+                                                        {folder} ({count})
+                                                    </option>
+                                                );
+                                            })}
+                                        </select>
+                                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-neutral-500">
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                                {selectedEventPhotos.slice(0, visiblePhotosCount).map(photo => (
+                                {filteredPhotos.slice(0, visiblePhotosCount).map(photo => (
                                     editable ? (
                                         // Editable CRUD Card
                                         <div key={photo.id} className="bg-white rounded-lg shadow-sm overflow-hidden border border-neutral-200 hover:shadow-md transition-all group">
