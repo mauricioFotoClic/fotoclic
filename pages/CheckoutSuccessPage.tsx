@@ -52,6 +52,31 @@ const CheckoutSuccessPage: React.FC<CheckoutSuccessPageProps> = ({ currentUser, 
                 // Vamos mostrar apenas as compras mais recentes (limitando às que foram processadas agora)
                 // A API getPurchasesByUserId já retorna por data desc (as mais novas primeiro)
                 setPurchases(data);
+
+                // Google Ads Conversion Event for Purchase
+                try {
+                    const now = new Date();
+                    const recentPurchases = data.filter(p => {
+                        const purchaseTime = new Date(p.purchase_date);
+                        const diffMinutes = (now.getTime() - purchaseTime.getTime()) / (1000 * 60);
+                        return diffMinutes < 5; // compras feitas nos últimos 5 minutos
+                    });
+
+                    if (recentPurchases.length > 0) {
+                        const totalValue = recentPurchases.reduce((sum, p) => sum + (p.paid_price || p.price || 0), 0);
+                        if (typeof (window as any).gtag === 'function') {
+                            (window as any).gtag('event', 'conversion', {
+                                'send_to': 'AW-16960525575/OSHjCJSyuskcEleqtJc_',
+                                'value': totalValue,
+                                'currency': 'BRL',
+                                'transaction_id': recentPurchases[0].sale_id || undefined
+                            });
+                            console.log("Google Ads Purchase Conversion tracked successfully:", totalValue);
+                        }
+                    }
+                } catch (tagErr) {
+                    console.warn("Failed to track Google Ads purchase conversion:", tagErr);
+                }
             } catch (error) {
                 console.error("Failed to fetch purchases on success page", error);
             } finally {
