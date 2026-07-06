@@ -137,6 +137,14 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
     const [newBulkPrice, setNewBulkPrice] = useState<string>('');
     const [bulkPriceLoading, setBulkPriceLoading] = useState(false);
 
+    // Bulk Folder State
+    const [isBulkFolderModalOpen, setIsBulkFolderModalOpen] = useState(false);
+    const [bulkFolderSource, setBulkFolderSource] = useState<string>('none');
+    const [bulkFolderDestMode, setBulkFolderDestMode] = useState<'select' | 'new'>('select');
+    const [bulkFolderDestSelect, setBulkFolderDestSelect] = useState<string>('none');
+    const [bulkFolderDestNew, setBulkFolderDestNew] = useState<string>('');
+    const [bulkFolderLoading, setBulkFolderLoading] = useState(false);
+
     const existingFolders = useMemo(() => {
         if (!selectedEvent) return [];
         const folders = photos
@@ -635,6 +643,60 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
         }
     };
 
+    const handleConfirmBulkFolder = async () => {
+        if (!selectedEvent) return;
+
+        let targetFolder: string | null = null;
+        if (bulkFolderDestMode === 'new') {
+            if (!bulkFolderDestNew.trim()) {
+                showToast("Por favor, digite o nome da nova pasta.", "error");
+                return;
+            }
+            targetFolder = bulkFolderDestNew.trim();
+        } else {
+            targetFolder = bulkFolderDestSelect === 'none' ? null : bulkFolderDestSelect;
+        }
+
+        const isConfirmed = await confirm({
+            title: "Confirmar Organização em Pasta",
+            message: `Você tem certeza que deseja mover as fotos selecionadas para a pasta "${targetFolder || 'Sem Pasta'}"?`,
+            confirmText: "Confirmar",
+            cancelText: "Cancelar"
+        });
+
+        if (!isConfirmed) return;
+
+        setBulkFolderLoading(true);
+        try {
+            let query = api.supabase
+                .from('photos')
+                .update({ sub_group: targetFolder })
+                .eq('event_id', selectedEvent.id);
+
+            if (bulkFolderSource === 'none') {
+                query = query.or('sub_group.is.null,sub_group.eq.');
+            } else if (bulkFolderSource !== 'all') {
+                query = query.eq('sub_group', bulkFolderSource);
+            }
+
+            const { error } = await query;
+            if (error) throw error;
+
+            showToast("Pastas organizadas com sucesso!", "success");
+            setIsBulkFolderModalOpen(false);
+            setBulkFolderDestNew('');
+            
+            // Reload photos
+            const evPhotos = await api.getPhotographerPhotosByEventId(selectedEvent.id);
+            setPhotos(evPhotos);
+        } catch (error) {
+            console.error(error);
+            showToast("Erro ao organizar pastas.", "error");
+        } finally {
+            setBulkFolderLoading(false);
+        }
+    };
+
     const confirmBulkIndex = async () => {
         setIsBulkStartConfirmOpen(false);
         const unindexedPhotos = photos.filter(p => !p.is_face_indexed && (selectedEvent ? p.event_id === selectedEvent.id : true));
@@ -724,6 +786,12 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                                 className="px-4 py-2 text-sm font-medium text-primary-dark bg-primary/10 border border-primary-dark rounded-full hover:bg-primary/20 transition-colors shadow-sm flex items-center gap-1.5"
                             >
                                 <PriceIcon /> Alterar Preços em Lote
+                            </button>
+                            <button
+                                onClick={() => setIsBulkFolderModalOpen(true)}
+                                className="px-4 py-2 text-sm font-medium text-primary-dark bg-primary/10 border border-primary-dark rounded-full hover:bg-primary/20 transition-colors shadow-sm flex items-center gap-1.5"
+                            >
+                                📁 Organizar Pastas
                             </button>
                             <button
                                 onClick={() => setIsBulkStartConfirmOpen(true)}
@@ -938,6 +1006,9 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                                         <div className="flex-1 min-w-0">
                                             <p className="font-medium text-neutral-800 text-sm truncate">{photo.title}</p>
                                             <p className="text-xs text-neutral-500 mt-0.5">{getCategoryName(photo.category_id)}</p>
+                                            {photo.sub_group && (
+                                                <p className="text-[11px] text-primary-dark font-semibold mt-0.5">📁 {photo.sub_group}</p>
+                                            )}
                                             <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                                                 <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${photo.is_public ? 'bg-green-100 text-green-800' : 'bg-neutral-200 text-neutral-600'}`}>
                                                     {photo.is_public ? 'Pública' : 'Privada'}
@@ -969,6 +1040,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                                         <th className="p-4 text-left text-sm font-semibold text-neutral-600">Foto</th>
                                         <th className="p-4 text-left text-sm font-semibold text-neutral-600">Título</th>
                                         <th className="p-4 text-left text-sm font-semibold text-neutral-600">Categoria</th>
+                                        <th className="p-4 text-left text-sm font-semibold text-neutral-600">Pasta</th>
                                         <th className="p-4 text-center text-sm font-semibold text-neutral-600">Qtd Vendas</th>
                                         <th className="p-4 text-right text-sm font-semibold text-neutral-600">Preço</th>
                                         <th className="p-4 text-center text-sm font-semibold text-neutral-600">Visibilidade</th>
@@ -997,6 +1069,15 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                                             </td>
                                             <td className="p-4 text-sm font-medium text-neutral-800">{photo.title}</td>
                                             <td className="p-4 text-sm text-neutral-500">{getCategoryName(photo.category_id)}</td>
+                                            <td className="p-4 text-sm text-neutral-500">
+                                                {photo.sub_group ? (
+                                                    <span className="inline-flex items-center gap-1 bg-primary/10 text-primary-dark px-2.5 py-1 rounded-full text-xs font-semibold">
+                                                        📁 {photo.sub_group}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-neutral-400 italic text-xs">Sem pasta</span>
+                                                )}
+                                            </td>
                                             <td className="p-4 text-sm font-bold text-neutral-700 text-center bg-neutral-50/50">{photo.sales_count || 0}</td>
                                             <td className="p-4 text-sm text-green-600 font-medium text-right">{photo.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
                                             <td className="p-4 text-center">
@@ -1016,7 +1097,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                                         </tr>
                                     ))}
                                     {filteredPhotos.length === 0 && (
-                                        <tr><td colSpan={8} className="text-center p-8 text-neutral-500">Nenhuma foto encontrada neste evento.</td></tr>
+                                        <tr><td colSpan={9} className="text-center p-8 text-neutral-500">Nenhuma foto encontrada neste evento.</td></tr>
                                     )}
                                 </tbody>
                             </table>
@@ -1066,6 +1147,108 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                         onCancel={() => setIsBatchUploadModalOpen(false)}
                     />
                 )}
+            </Modal>
+
+            {/* Bulk Folder Organizer Modal */}
+            <Modal
+                isOpen={isBulkFolderModalOpen}
+                onClose={() => {
+                    setIsBulkFolderModalOpen(false);
+                    setBulkFolderSource('none');
+                    setBulkFolderDestMode('select');
+                    setBulkFolderDestSelect('none');
+                    setBulkFolderDestNew('');
+                }}
+                title="Organizar Pastas em Lote"
+            >
+                <div className="space-y-5">
+                    <div>
+                        <label className="block text-sm font-semibold text-neutral-800 mb-1 font-sans">1. Quais fotos deseja mover?</label>
+                        <select
+                            value={bulkFolderSource}
+                            onChange={(e) => setBulkFolderSource(e.target.value)}
+                            className="w-full px-3 py-2 bg-white border border-neutral-300 rounded-lg text-sm"
+                        >
+                            <option value="none">Apenas fotos sem pasta (fora de qualquer pasta)</option>
+                            <option value="all">Todas as fotos do evento</option>
+                            {existingFolders.map(folder => (
+                                <option key={folder} value={folder}>Fotos atualmente na pasta "{folder}"</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-semibold text-neutral-800 mb-2 font-sans">2. Para qual pasta de destino?</label>
+                        <div className="grid grid-cols-2 gap-3 mb-3">
+                            <label className="flex items-center gap-2 p-2.5 bg-white border border-neutral-200 rounded-md cursor-pointer hover:bg-neutral-50">
+                                <input
+                                    type="radio"
+                                    name="bulkFolderDestMode"
+                                    checked={bulkFolderDestMode === 'select'}
+                                    onChange={() => setBulkFolderDestMode('select')}
+                                    className="text-primary focus:ring-primary"
+                                />
+                                <span className="text-xs text-neutral-700 font-medium">Pasta existente / Sem pasta</span>
+                            </label>
+                            <label className="flex items-center gap-2 p-2.5 bg-white border border-neutral-200 rounded-md cursor-pointer hover:bg-neutral-50">
+                                <input
+                                    type="radio"
+                                    name="bulkFolderDestMode"
+                                    checked={bulkFolderDestMode === 'new'}
+                                    onChange={() => setBulkFolderDestMode('new')}
+                                    className="text-primary focus:ring-primary"
+                                />
+                                <span className="text-xs text-neutral-700 font-medium">Criar nova pasta</span>
+                            </label>
+                        </div>
+
+                        {bulkFolderDestMode === 'select' ? (
+                            <select
+                                value={bulkFolderDestSelect}
+                                onChange={(e) => setBulkFolderDestSelect(e.target.value)}
+                                className="w-full px-3 py-2 bg-white border border-neutral-300 rounded-lg text-sm"
+                            >
+                                <option value="none">Remover de qualquer pasta (deixar soltas)</option>
+                                {existingFolders.map(folder => (
+                                    <option key={folder} value={folder}>{folder}</option>
+                                ))}
+                            </select>
+                        ) : (
+                            <input
+                                type="text"
+                                value={bulkFolderDestNew}
+                                onChange={(e) => setBulkFolderDestNew(e.target.value)}
+                                placeholder="Digite o nome da nova pasta (ex: Sábado, Dia 2)"
+                                className="w-full px-3 py-2 bg-white border border-neutral-300 rounded-lg text-sm"
+                            />
+                        )}
+                    </div>
+
+                    <div className="flex justify-end space-x-2 pt-4 border-t">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setIsBulkFolderModalOpen(false);
+                                setBulkFolderSource('none');
+                                setBulkFolderDestMode('select');
+                                setBulkFolderDestSelect('none');
+                                setBulkFolderDestNew('');
+                            }}
+                            disabled={bulkFolderLoading}
+                            className="px-4 py-2 text-sm font-medium text-neutral-700 bg-neutral-100 border border-neutral-200 rounded-full hover:bg-neutral-200 transition-colors"
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleConfirmBulkFolder}
+                            disabled={bulkFolderLoading}
+                            className="px-6 py-2 text-sm font-medium text-white bg-primary rounded-full hover:bg-opacity-90 transition-colors disabled:opacity-70 disabled:cursor-wait font-bold shadow-md"
+                        >
+                            {bulkFolderLoading ? 'Movendo...' : 'Mover Fotos'}
+                        </button>
+                    </div>
+                </div>
             </Modal>
 
             {/* Bulk Price Edit Modal */}
