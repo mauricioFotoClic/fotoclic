@@ -98,6 +98,12 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onLoginSuccess 
 
             if (response?.user) {
                 if (response.user.role === UserRole.PHOTOGRAPHER) {
+                    // Google Ads Conversion Event
+                    if (typeof (window as any).gtag === 'function') {
+                        (window as any).gtag('event', 'conversion', {
+                            'send_to': 'AW-16960525575/NqzgCKeRoskcEleqtJc_'
+                        });
+                    }
                     // Fotógrafos não logam imediatamente, vão para a página de boas-vindas com status pendente
                     onNavigate({ name: 'welcome', role: 'pending-approval' });
                 } else {
