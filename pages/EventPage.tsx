@@ -390,34 +390,65 @@ const EventPage: React.FC<EventPageProps> = ({ eventId, onNavigate, onAddToCart,
       {/* ── Galeria de Fotos ──────────────────────────────────────────────── */}
       <section className="py-12">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Seletor de Pastas/Dias (Dropdown) */}
+          {/* Seletor de Pastas/Dias (Modern Grid) */}
           {!loadingPhotos && folders.length > 0 && (
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 pb-6 border-b border-neutral-100">
-              <div>
-                <h3 className="text-sm font-semibold text-neutral-800">Filtrar por pasta / dia</h3>
-                <p className="text-xs text-neutral-500">Selecione uma pasta para ver as fotos correspondentes</p>
+            <div className="mb-8 bg-neutral-50/50 p-6 rounded-2xl border border-neutral-200/60">
+              <div className="mb-4">
+                <h3 className="text-base font-bold text-neutral-800">Pastas deste Evento</h3>
+                <p className="text-xs text-neutral-500">Selecione uma pasta para filtrar as fotos abaixo</p>
               </div>
-              <div className="relative w-full sm:w-64">
-                <select
-                  value={selectedFolder}
-                  onChange={(e) => setSelectedFolder(e.target.value)}
-                  className="w-full pl-4 pr-10 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl text-sm font-medium text-neutral-800 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all appearance-none cursor-pointer"
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                {/* Todas as fotos */}
+                <button
+                  onClick={() => setSelectedFolder('all')}
+                  className={`flex items-center justify-between p-3.5 px-4 rounded-xl text-sm font-bold transition-all duration-200 border shadow-sm ${
+                    selectedFolder === 'all'
+                      ? 'bg-primary/5 border-primary text-primary shadow-primary/5'
+                      : 'bg-white border-neutral-200 text-neutral-700 hover:bg-neutral-50 hover:border-neutral-300'
+                  }`}
                 >
-                  <option value="all">Todas as fotos ({photos.length})</option>
-                  {folders.map(folder => {
-                    const count = photos.filter(p => p.sub_group === folder).length;
-                    return (
-                      <option key={folder} value={folder}>
-                        {folder} ({count})
-                      </option>
-                    );
-                  })}
-                </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-neutral-500">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
+                  <div className="flex items-center gap-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={selectedFolder === 'all' ? 'text-primary' : 'text-neutral-400'}>
+                      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                    <span className="uppercase tracking-wide">TODAS AS FOTOS</span>
+                  </div>
+                  <span className={`text-[11px] font-extrabold px-2 py-0.5 rounded-full ${
+                    selectedFolder === 'all' ? 'bg-primary/10 text-primary' : 'bg-neutral-100 text-neutral-500'
+                  }`}>
+                    {photos.length}
+                  </span>
+                </button>
+
+                {/* Pastas individuais */}
+                {folders.map(folder => {
+                  const count = photos.filter(p => p.sub_group === folder).length;
+                  const isSelected = selectedFolder === folder;
+                  return (
+                    <button
+                      key={folder}
+                      onClick={() => setSelectedFolder(folder)}
+                      className={`flex items-center justify-between p-3.5 px-4 rounded-xl text-sm font-bold transition-all duration-200 border shadow-sm ${
+                        isSelected
+                          ? 'bg-primary/5 border-primary text-primary shadow-primary/5'
+                          : 'bg-white border-neutral-200 text-neutral-700 hover:bg-neutral-50 hover:border-neutral-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={isSelected ? 'text-primary' : 'text-neutral-400'}>
+                          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                        </svg>
+                        <span className="uppercase tracking-wide truncate" title={folder}>{folder}</span>
+                      </div>
+                      <span className={`text-[11px] font-extrabold px-2 py-0.5 rounded-full shrink-0 ${
+                        isSelected ? 'bg-primary/10 text-primary' : 'bg-neutral-100 text-neutral-500'
+                      }`}>
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
