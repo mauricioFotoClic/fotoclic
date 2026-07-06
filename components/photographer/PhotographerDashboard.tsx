@@ -52,6 +52,7 @@ const PercentIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" hei
 const SpinnerIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin-slow"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"></path></svg>;
 
 const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({ user, setView, showToast }) => {
+    const [fullUser, setFullUser] = useState<User>(user);
     const [balance, setBalance] = useState<PhotographerBalance | null>(null);
     const [sales, setSales] = useState<Sale[]>([]);
     const [photos, setPhotos] = useState<Photo[]>([]);
@@ -60,18 +61,26 @@ const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({ user, set
     const [hasNotified, setHasNotified] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+    useEffect(() => {
+        setFullUser(user);
+    }, [user]);
+
     const fetchData = useCallback(async () => {
         try {
             setLoading(true);
-            const [balanceData, salesData, photosData, abandonedData] = await Promise.all([
+            const [balanceData, salesData, photosData, abandonedData, freshUser] = await Promise.all([
                 api.getPhotographerBalanceById(user.id),
                 api.getSalesByPhotographerId(user.id, 100),
                 api.getPhotosByPhotographerId(user.id),
-                api.getAbandonedCartsByPhotographerId(user.id)
+                api.getAbandonedCartsByPhotographerId(user.id),
+                api.getPhotographerById(user.id)
             ]);
             setBalance(balanceData || null);
             setSales(salesData);
             setPhotos(photosData);
+            if (freshUser) {
+                setFullUser(freshUser);
+            }
 
             let viewedCarts: string[] = [];
             try {
@@ -150,7 +159,7 @@ const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({ user, set
         <div>
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
                 <div>
-                    <h1 className="text-3xl font-display font-bold text-primary-dark mb-2">Bem-vindo, {user.name}!</h1>
+                    <h1 className="text-3xl font-display font-bold text-primary-dark mb-2">Bem-vindo, {fullUser.name || user.name}!</h1>
                     <p className="text-neutral-500">Este é o resumo da sua atividade na plataforma.</p>
                 </div>
                 <button
@@ -164,7 +173,7 @@ const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({ user, set
                 </button>
             </div>
 
-            {(!user.avatar_url || !user.banner_url) && (
+            {(!fullUser.avatar_url || !fullUser.banner_url) && (
                 <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4 rounded-r-lg shadow-sm">
                     <div className="flex items-start">
                         <div className="flex-shrink-0">
@@ -177,8 +186,8 @@ const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({ user, set
                             <div className="mt-2 text-sm text-red-700">
                                 <p>Seu perfil <strong>não está sendo exibido</strong> na página inicial do FotoClic. Para aparecer na vitrine principal, você precisa:</p>
                                 <ul className="mt-2 list-disc list-inside space-y-1">
-                                    {!user.avatar_url && <li><strong>Adicionar uma foto de perfil</strong></li>}
-                                    {!user.banner_url && <li><strong>Adicionar um banner</strong></li>}
+                                    {!fullUser.avatar_url && <li><strong>Adicionar uma foto de perfil</strong></li>}
+                                    {!fullUser.banner_url && <li><strong>Adicionar um banner</strong></li>}
                                     {balance.photoCount === 0 && <li><strong>Publicar pelo menos 1 foto</strong></li>}
                                 </ul>
                             </div>
@@ -196,7 +205,7 @@ const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({ user, set
                 </div>
             )}
 
-            {(user.avatar_url && user.banner_url && balance.photoCount === 0) && (
+            {(fullUser.avatar_url && fullUser.banner_url && balance.photoCount === 0) && (
                 <div className="bg-amber-50 border-l-4 border-amber-400 p-4 mb-4 rounded-r-lg shadow-sm">
                     <div className="flex items-start">
                         <div className="flex-shrink-0">
