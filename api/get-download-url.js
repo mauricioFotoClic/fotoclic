@@ -82,6 +82,7 @@ export default async function handler(req, res) {
                 .select('id')
                 .eq('photo_id', photoId)
                 .eq('buyer_id', userId)
+                .neq('status', 'refunded')
                 .maybeSingle();
 
             if (!sale) {

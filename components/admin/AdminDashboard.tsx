@@ -164,7 +164,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setView }) => {
                     const sMonth = String(d.getMonth() + 1).padStart(2, '0');
                     const sDay = String(d.getDate()).padStart(2, '0');
                     const saleLocalDate = `${sYear}-${sMonth}-${sDay}`;
-                    return saleLocalDate === date;
+                    return saleLocalDate === date && sale.status !== 'refunded';
                 })
                 .reduce((sum, sale) => sum + Number(sale.price), 0);
             return { date, total };

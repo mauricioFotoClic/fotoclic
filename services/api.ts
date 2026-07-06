@@ -2056,6 +2056,7 @@ export const api = {
       .from("sales")
       .select("*, photo:photos(*, photographer:users!photos_photographer_id_fkey(name))")
       .eq("buyer_id", userId)
+      .neq("status", "refunded")
       .order("sale_date", { ascending: false });
 
     if (error) {
