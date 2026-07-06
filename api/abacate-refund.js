@@ -88,6 +88,20 @@ export default async function handler(req, res) {
 
         if (updateError) throw updateError;
 
+        // Also update all linked sales to 'refunded' (Anti-Fraud and stats update)
+        if (targetBillingId) {
+            const { error: saleUpdateError } = await supabase
+                .from('sales')
+                .update({ status: 'refunded' })
+                .eq('billing_id', targetBillingId);
+            
+            if (saleUpdateError) {
+                console.error('[AbacateRefund] Erro ao atualizar vendas vinculadas para refunded:', saleUpdateError);
+            } else {
+                console.log('[AbacateRefund] Vendas marcadas como refunded para billing_id:', targetBillingId);
+            }
+        }
+
         console.log('[AbacateRefund] Estorno registrado localmente para billing id:', id);
         return res.status(200).json({ 
             success: true, 
