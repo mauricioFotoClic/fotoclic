@@ -315,12 +315,20 @@ const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({ user, set
                     </div>
                     <div className="space-y-3 max-h-56 overflow-y-auto pr-2">
                         {sales.slice(0, 5).map(sale => {
-                            const photo = photos.find(p => p.id === sale.photo_id);
+                            const photo = photos.find(p => p.id === sale.photo_id) || sale.photo;
+                            const photoSrc = photo?.thumb_url || photo?.preview_url;
+                            const photoTitle = photo?.title || 'Foto (Excluída)';
                             return (
                                 <div key={sale.id} className="flex items-center p-2 rounded-md hover:bg-neutral-50">
-                                    <img src={photo?.preview_url} alt={photo?.title} className="w-12 h-9 object-cover rounded-md mr-4 flex-shrink-0" />
+                                    {photoSrc ? (
+                                        <img src={photoSrc} alt={photoTitle} className="w-12 h-9 object-cover rounded-md mr-4 flex-shrink-0" />
+                                    ) : (
+                                        <div className="w-12 h-9 bg-neutral-100 rounded-md mr-4 flex-shrink-0 flex items-center justify-center text-neutral-400 border border-neutral-200">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M21 21H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3m3-3h6l2 3h4a2 2 0 0 1 2 2v9.34"></path><circle cx="12" cy="13" r="3"></circle></svg>
+                                        </div>
+                                    )}
                                     <div className="flex-grow min-w-0">
-                                        <p className="font-semibold text-neutral-800 truncate">{photo?.title || 'Foto'}</p>
+                                        <p className="font-semibold text-neutral-800 truncate">{photoTitle}</p>
                                         <p className="text-xs text-neutral-500">{new Date(sale.sale_date).toLocaleDateString('pt-BR')}</p>
                                     </div>
                                     <span className="font-bold text-green-600 text-sm">

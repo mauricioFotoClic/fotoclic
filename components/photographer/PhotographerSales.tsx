@@ -77,7 +77,12 @@ const PhotographerSales: React.FC<PhotographerSalesProps> = ({ user }) => {
                                     <span className="font-medium text-neutral-800 text-sm">{photo.title}</span>
                                 </div>
                             ) : (
-                                <p className="text-sm text-neutral-500 mb-3">Foto não encontrada</p>
+                                <div className="flex items-center mb-3 text-sm text-neutral-500">
+                                    <div className="w-14 h-10 bg-neutral-100 rounded-md mr-3 flex-shrink-0 flex items-center justify-center text-neutral-400 border border-neutral-200">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M21 21H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3m3-3h6l2 3h4a2 2 0 0 1 2 2v9.34"></path><circle cx="12" cy="13" r="3"></circle></svg>
+                                    </div>
+                                    <span className="italic text-neutral-400">Foto Excluída</span>
+                                </div>
                             )}
                             <div className="grid grid-cols-3 gap-2 mb-2">
                                 <div className="bg-neutral-50 rounded-lg p-2 text-center">
@@ -129,7 +134,12 @@ const PhotographerSales: React.FC<PhotographerSalesProps> = ({ user }) => {
                                                 <span>{photo.title}</span>
                                             </div>
                                         ) : (
-                                            <span>Foto não encontrada</span>
+                                            <div className="flex items-center text-neutral-500">
+                                                <div className="w-12 h-9 bg-neutral-100 rounded-md mr-3 flex-shrink-0 flex items-center justify-center text-neutral-400 border border-neutral-200">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M21 21H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3m3-3h6l2 3h4a2 2 0 0 1 2 2v9.34"></path><circle cx="12" cy="13" r="3"></circle></svg>
+                                                </div>
+                                                <span className="italic text-neutral-400">Foto Excluída</span>
+                                            </div>
                                         )}
                                     </td>
                                     <td className="p-4 text-sm text-neutral-500">{new Date(sale.sale_date).toLocaleDateString('pt-BR')}</td>
