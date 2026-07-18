@@ -154,10 +154,23 @@ export default async function handler(req, res) {
         const abacateData = await abacateResponse.json();
 
         if (!abacateResponse.ok || !abacateData.success || !abacateData.data) {
+          const abacateError = abacateData.error || abacateData.message || 'Erro desconhecido no gateway';
           console.error('[PayoutWorker - Manual] Erro do AbacatePay:', abacateData);
-          return res.status(500).json({ 
-            error: 'Erro no gateway de pagamento ao realizar a transferência.', 
-            details: abacateData.error || abacateData.message || abacateData 
+          // Traduz erros conhecidos da AbacatePay para português
+          let friendlyError = abacateError;
+          if (typeof abacateError === 'string') {
+            if (abacateError.toLowerCase().includes('saldo insuficiente') || abacateError.toLowerCase().includes('insufficient')) {
+              friendlyError = 'Saldo insuficiente na conta AbacatePay. Recarregue o saldo da conta antes de prosseguir.';
+            } else if (abacateError.toLowerCase().includes('chave pix') || abacateError.toLowerCase().includes('pix key')) {
+              friendlyError = 'Chave Pix inválida ou não encontrada.';
+            } else if (abacateError.toLowerCase().includes('greater or equal')) {
+              friendlyError = 'Valor mínimo de transferência não atingido (mínimo R$ 1,00).';
+            }
+          }
+          return res.status(400).json({ 
+            error: friendlyError,
+            rawError: abacateData.error || abacateData.message,
+            httpStatus: abacateResponse.status
           });
         }
 
@@ -466,7 +479,12 @@ export default async function handler(req, res) {
         const abacateData = await abacateResponse.json();
 
         if (!abacateResponse.ok || !abacateData.success || !abacateData.data) {
-          throw new Error(`AbacatePay Error: ${JSON.stringify(abacateData)}`);
+          const abacateError = abacateData.error || abacateData.message || 'Erro desconhecido';
+          let friendlyError = abacateError;
+          if (typeof abacateError === 'string' && (abacateError.toLowerCase().includes('saldo insuficiente') || abacateError.toLowerCase().includes('insufficient'))) {
+            friendlyError = 'Saldo insuficiente na conta AbacatePay';
+          }
+          throw new Error(`AbacatePay: ${friendlyError} (HTTP ${abacateResponse.status})`);
         }
 
         const abacateTx = abacateData.data;
