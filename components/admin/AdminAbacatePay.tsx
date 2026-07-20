@@ -472,7 +472,7 @@ const AdminAbacatePay: React.FC = () => {
 
     const displayAvailable = useMemo(() => {
         if (apiConnected && apiBalance) {
-            return Math.min(apiBalance.available, gatewayFeesAndNet.available);
+            return apiBalance.available;
         }
         return gatewayFeesAndNet.available;
     }, [apiConnected, apiBalance, gatewayFeesAndNet.available]);
@@ -550,6 +550,69 @@ const AdminAbacatePay: React.FC = () => {
                 >
                     <RefreshIcon />
                 </button>
+            </div>
+
+            {/* ── Abacate Pay Official Balance Cards (Real-time API) ── */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-white p-6 rounded-2xl border border-neutral-200 shadow-sm relative overflow-hidden">
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <p className="text-neutral-400 text-xs font-semibold uppercase tracking-wider mb-1">Disponível para saque</p>
+                            <p className="text-3xl font-bold text-neutral-900">{formatBRL(apiConnected && apiBalance ? apiBalance.available : gatewayFeesAndNet.available)}</p>
+                        </div>
+                        <div className="text-neutral-300">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                    </div>
+                    <div className="mt-2 flex items-center justify-between">
+                        <span className="text-[10px] text-neutral-400">Saldo utilizável para repasses</span>
+                        {apiConnected && (
+                            <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" title="Sincronizado via API" />
+                        )}
+                    </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-2xl border border-neutral-200 shadow-sm relative overflow-hidden">
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <p className="text-neutral-400 text-xs font-semibold uppercase tracking-wider mb-1">Em processamento</p>
+                            <p className="text-3xl font-bold text-neutral-900">{formatBRL(apiConnected && apiBalance ? apiBalance.pending : 0)}</p>
+                        </div>
+                        <div className="text-neutral-300">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                    </div>
+                    <div className="mt-2 flex items-center justify-between">
+                        <span className="text-[10px] text-neutral-400">Aguardando prazo de liberação</span>
+                        {apiConnected && (
+                            <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                        )}
+                    </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-2xl border border-neutral-200 shadow-sm relative overflow-hidden">
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <p className="text-neutral-400 text-xs font-semibold uppercase tracking-wider mb-1">Bloqueado</p>
+                            <p className="text-3xl font-bold text-neutral-900">{formatBRL(apiConnected && apiBalance ? apiBalance.blocked : 0)}</p>
+                        </div>
+                        <div className="text-neutral-300">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                        </div>
+                    </div>
+                    <div className="mt-2 flex items-center justify-between">
+                        <span className="text-[10px] text-neutral-400">Retido por segurança / disputas</span>
+                        {apiConnected && (
+                            <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                        )}
+                    </div>
+                </div>
             </div>
 
             {/* ── Abacate Pay Style Dashboard ── */}
