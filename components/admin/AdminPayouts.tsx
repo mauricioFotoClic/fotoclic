@@ -193,65 +193,104 @@ const AdminPayouts: React.FC = () => {
 
                     {/* Desktop table para saldos */}
                     <div className="hidden md:block bg-white rounded-lg shadow-md overflow-x-auto">
-                        <table className="w-full min-w-[960px]">
+                        <table className="w-full table-fixed">
+                            <colgroup>
+                                <col style={{ width: '16%' }} />
+                                <col style={{ width: '10%' }} />
+                                <col style={{ width: '13%' }} />
+                                <col style={{ width: '13%' }} />
+                                <col style={{ width: '26%' }} />
+                                <col style={{ width: '12%' }} />
+                                <col style={{ width: '10%' }} />
+                            </colgroup>
                             <thead className="bg-neutral-100">
                                 <tr>
-                                    <th className="p-4 text-left text-sm font-semibold text-neutral-600">Fotógrafo</th>
-                                    <th className="p-4 text-left text-sm font-semibold text-neutral-600">Email</th>
-                                    <th className="p-4 text-center text-sm font-semibold text-neutral-600">Frequência</th>
-                                    <th className="p-4 text-right text-sm font-semibold text-neutral-600">Total Pago</th>
-                                    <th className="p-4 text-right text-sm font-semibold text-neutral-600">Saldo Disponível</th>
-                                    <th className="p-4 text-center text-sm font-semibold text-neutral-600">Chave PIX</th>
-                                    <th className="p-4 text-center text-sm font-semibold text-neutral-600">Status</th>
-                                    <th className="p-4 text-center text-sm font-semibold text-neutral-600">Ação</th>
+                                    <th className="px-3 py-2.5 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wide">Fotógrafo</th>
+                                    <th className="px-3 py-2.5 text-center text-xs font-semibold text-neutral-600 uppercase tracking-wide">Freq.</th>
+                                    <th className="px-3 py-2.5 text-right text-xs font-semibold text-neutral-600 uppercase tracking-wide">Total Pago</th>
+                                    <th className="px-3 py-2.5 text-right text-xs font-semibold text-neutral-600 uppercase tracking-wide">Saldo Disp.</th>
+                                    <th className="px-3 py-2.5 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wide">Chave PIX</th>
+                                    <th className="px-3 py-2.5 text-center text-xs font-semibold text-neutral-600 uppercase tracking-wide">Status</th>
+                                    <th className="px-3 py-2.5 text-center text-xs font-semibold text-neutral-600 uppercase tracking-wide">Ação</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody className="divide-y divide-neutral-100">
                                 {eligiblePhotographers.map((item, index) => {
                                     const isEligible = item.balance_available >= 100;
                                     const hasPix = !!item.pixKey;
-                                    
+                                    const canTransfer = hasPix && item.balance_available > 0;
+                                    const pixDisplay = item.pixKey
+                                        ? `${item.pixKey}`
+                                        : null;
+                                    const pixType = item.pixKeyType ? item.pixKeyType.toUpperCase() : '';
+
                                     return (
-                                        <tr key={item.photographer_id} className={`border-t ${index % 2 === 0 ? 'bg-white' : 'bg-neutral-50'}`}>
-                                            <td className="p-4 text-sm font-medium text-neutral-800">{item.photographer_name}</td>
-                                            <td className="p-4 text-sm text-neutral-500">{item.email || '-'}</td>
-                                            <td className="p-4 text-sm text-neutral-800 text-center capitalize">{item.payoutFrequency || 'diário'}</td>
-                                            <td className="p-4 text-sm text-neutral-500 text-right">
-                                                {item.total_withdrawn.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                                            </td>
-                                            <td className="p-4 text-sm text-neutral-800 font-bold text-right">
-                                                {item.balance_available.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                                            </td>
-                                            <td className="p-4 text-sm text-neutral-500 text-center">
-                                                {item.pixKey ? (
-                                                    <span className="font-mono">{item.pixKey} ({item.pixKeyType})</span>
-                                                ) : (
-                                                    <span className="text-red-500">Não cadastrada</span>
-                                                )}
-                                            </td>
-                                            <td className="p-4 text-sm text-center">
-                                                <span className={`px-2.5 py-1 text-xs font-bold rounded-full ${
-                                                    !hasPix ? 'bg-red-100 text-red-800' :
-                                                    isEligible ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'
-                                                }`}>
-                                                    {!hasPix ? 'Sem Pix' : isEligible ? 'Elegível' : 'Abaixo do Mínimo'}
+                                        <tr key={item.photographer_id} className={`hover:bg-primary/5 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-neutral-50/60'}`}>
+                                            {/* Fotógrafo */}
+                                            <td className="px-3 py-2.5">
+                                                <span className="block text-sm font-semibold text-neutral-800 truncate" title={item.photographer_name}>
+                                                    {item.photographer_name}
+                                                </span>
+                                                <span className="block text-xs text-neutral-400 truncate" title={item.email}>
+                                                    {item.email || '—'}
                                                 </span>
                                             </td>
-                                            <td className="p-4 text-center">
-                                                {hasPix && item.balance_available > 0 ? (
+                                            {/* Frequência */}
+                                            <td className="px-3 py-2.5 text-center">
+                                                <span className="text-xs font-medium text-neutral-600 capitalize whitespace-nowrap">
+                                                    {item.payoutFrequency || 'Diário'}
+                                                </span>
+                                            </td>
+                                            {/* Total Pago */}
+                                            <td className="px-3 py-2.5 text-right">
+                                                <span className="text-sm text-neutral-500 whitespace-nowrap">
+                                                    {item.total_withdrawn.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                                </span>
+                                            </td>
+                                            {/* Saldo Disponível */}
+                                            <td className="px-3 py-2.5 text-right">
+                                                <span className={`text-sm font-bold whitespace-nowrap ${item.balance_available > 0 ? 'text-neutral-800' : 'text-neutral-400'}`}>
+                                                    {item.balance_available.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                                </span>
+                                            </td>
+                                            {/* Chave PIX */}
+                                            <td className="px-3 py-2.5">
+                                                {pixDisplay ? (
+                                                    <div className="group relative flex items-center gap-1.5">
+                                                        <span className="inline-block px-1.5 py-0.5 text-[10px] font-bold bg-neutral-100 text-neutral-500 rounded uppercase flex-shrink-0">
+                                                            {pixType}
+                                                        </span>
+                                                        <span className="text-xs font-mono text-neutral-700 truncate" title={pixDisplay}>
+                                                            {pixDisplay}
+                                                        </span>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-xs font-medium text-red-500 whitespace-nowrap">Não cadastrada</span>
+                                                )}
+                                            </td>
+                                            {/* Status */}
+                                            <td className="px-3 py-2.5 text-center">
+                                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold whitespace-nowrap ${
+                                                    !hasPix
+                                                        ? 'bg-red-100 text-red-700'
+                                                        : isEligible
+                                                        ? 'bg-green-100 text-green-700'
+                                                        : 'bg-amber-100 text-amber-700'
+                                                }`}>
+                                                    {!hasPix ? 'Sem Pix' : isEligible ? 'Elegível' : '< Mínimo'}
+                                                </span>
+                                            </td>
+                                            {/* Ação */}
+                                            <td className="px-3 py-2.5 text-center">
+                                                {canTransfer ? (
                                                     <button
                                                         onClick={() => handleOpenAutoTransferModal(item)}
-                                                        className="px-4.5 py-1 text-xs font-bold text-white bg-green-600 rounded-full hover:bg-green-700 transition-colors shadow-sm"
+                                                        className="px-3 py-1 text-xs font-bold text-white bg-green-600 rounded-full hover:bg-green-700 transition-colors shadow-sm whitespace-nowrap"
                                                     >
-                                                        Transferir Pix
+                                                        Pagar
                                                     </button>
                                                 ) : (
-                                                    <button
-                                                        disabled
-                                                        className="px-4.5 py-1 text-xs font-bold text-neutral-400 bg-neutral-100 rounded-full cursor-not-allowed"
-                                                    >
-                                                        Indisponível
-                                                    </button>
+                                                    <span className="text-xs text-neutral-300 font-medium">—</span>
                                                 )}
                                             </td>
                                         </tr>
@@ -259,7 +298,7 @@ const AdminPayouts: React.FC = () => {
                                 })}
                                 {eligiblePhotographers.length === 0 && (
                                     <tr>
-                                        <td colSpan={8} className="text-center p-8 text-neutral-500">Nenhum fotógrafo cadastrado.</td>
+                                        <td colSpan={7} className="text-center py-10 text-neutral-400 text-sm">Nenhum fotógrafo cadastrado.</td>
                                     </tr>
                                 )}
                             </tbody>
