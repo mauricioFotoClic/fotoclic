@@ -1917,18 +1917,15 @@ export const api = {
       throw new Error("Falha ao criar usuário de autenticação.");
 
     // 2. Create Public Profile with SAME ID
+    // NOTE: password is managed by Supabase Auth (signUp above).
+    // Do NOT insert password into the public users table — the column does not exist.
+    const { password: _pw, ...dataWithoutPassword } = data as any;
     const userData: any = {
       id: authData.user.id, // CRITICAL: Sync IDs
-      ...data,
+      ...dataWithoutPassword,
       name: formatNameAsTitleCase(data.name),
       is_active: true,
     };
-
-    // Store hash solely for legacy compatibility / redundancy, or remove if column allows null.
-    // Assuming we stick to the existing schema:
-    if (data.password) {
-      userData.password = await bcrypt.hash(data.password, 10);
-    }
 
     const { data: newUser, error } = await supabase
       .from("users")
