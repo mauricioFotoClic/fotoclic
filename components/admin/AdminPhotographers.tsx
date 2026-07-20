@@ -257,6 +257,11 @@ const AdminPhotographers: React.FC<AdminPhotographersProps> = ({ onNavigate, onI
         );
     }, [photographers, searchTerm]);
 
+    // Summary counts (based on full list, not filtered)
+    const totalCount  = photographers.length;
+    const activeCount = photographers.filter(p => p.is_active).length;
+    const inactiveCount = totalCount - activeCount;
+
     // Pagination logic
     const totalPages = Math.ceil(filteredPhotographers.length / itemsPerPage);
     const paginatedPhotographers = useMemo(() => {
@@ -289,6 +294,37 @@ const AdminPhotographers: React.FC<AdminPhotographersProps> = ({ onNavigate, onI
                 >
                     Novo Fotógrafo
                 </button>
+            </div>
+
+            {/* Summary cards */}
+            <div className="grid grid-cols-3 gap-3 mb-5">
+                <div className="bg-white rounded-xl border border-neutral-200 shadow-sm px-4 py-3 flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-neutral-100 flex items-center justify-center flex-shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-neutral-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    </div>
+                    <div>
+                        <p className="text-xs text-neutral-500 font-medium leading-none mb-0.5">Total</p>
+                        <p className="text-2xl font-bold text-neutral-800 leading-none">{totalCount}</p>
+                    </div>
+                </div>
+                <div className="bg-white rounded-xl border border-green-200 shadow-sm px-4 py-3 flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-green-50 flex items-center justify-center flex-shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    </div>
+                    <div>
+                        <p className="text-xs text-green-600 font-medium leading-none mb-0.5">Ativos</p>
+                        <p className="text-2xl font-bold text-green-700 leading-none">{activeCount}</p>
+                    </div>
+                </div>
+                <div className="bg-white rounded-xl border border-red-200 shadow-sm px-4 py-3 flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+                    </div>
+                    <div>
+                        <p className="text-xs text-red-500 font-medium leading-none mb-0.5">Inativos</p>
+                        <p className="text-2xl font-bold text-red-600 leading-none">{inactiveCount}</p>
+                    </div>
+                </div>
             </div>
 
             <div className="mb-4 flex flex-col sm:flex-row gap-4 items-center">
