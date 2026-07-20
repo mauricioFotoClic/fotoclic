@@ -101,7 +101,8 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onLoginSuccess 
                     // Google Ads Conversion Event
                     if (typeof (window as any).gtag === 'function') {
                         (window as any).gtag('event', 'conversion', {
-                            'send_to': 'AW-16960525575/NqzgCKeRoskcEleqtJc_'
+                            'send_to': 'AW-16960525575/NqzgCKeRoskcEleqtJc_',
+                            'transport_type': 'beacon'
                         });
                     }
                     // Fotógrafos não logam imediatamente, vão para a página de boas-vindas com status pendente

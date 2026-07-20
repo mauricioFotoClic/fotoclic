@@ -69,7 +69,8 @@ const CheckoutSuccessPage: React.FC<CheckoutSuccessPageProps> = ({ currentUser, 
                                 'send_to': 'AW-16960525575/OSHjCJSyuskcEleqtJc_',
                                 'value': totalValue,
                                 'currency': 'BRL',
-                                'transaction_id': recentPurchases[0].sale_id || undefined
+                                'transaction_id': recentPurchases[0].sale_id || undefined,
+                                'transport_type': 'beacon'
                             });
                             console.log("Google Ads Purchase Conversion tracked successfully:", totalValue);
                         }

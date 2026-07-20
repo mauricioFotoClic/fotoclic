@@ -49,7 +49,8 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onNavigate, role = 'customer'
         // Dispara a conversão específica do Google Ads somente se for cadastro de fotógrafo
         if (win.gtag && (roleRef.current === 'photographer' || roleRef.current === 'pending-approval')) {
             win.gtag('event', 'conversion', {
-                'send_to': 'AW-16960525575/NqzgCKeRoskcEIeqtJc_'
+                'send_to': 'AW-16960525575/NqzgCKeRoskcEleqtJc_',
+                'transport_type': 'beacon'
             });
             console.log("Google Ads conversion event sent for photographer!");
         }
