@@ -106,6 +106,19 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginS
             });
 
             if (newUser && newUser.user) {
+                const user = newUser.user;
+
+                // Google Ads Conversion Event (disparado imediatamente após a criação do registro)
+                if (user.role === UserRole.PHOTOGRAPHER) {
+                    if (typeof (window as any).gtag === 'function') {
+                        (window as any).gtag('event', 'conversion', {
+                            'send_to': 'AW-16960525575/NqzgCKeRoskcEleqtJc_',
+                            'transport_type': 'beacon'
+                        });
+                        console.log("Google Ads photographer registration conversion event sent from modal!");
+                    }
+                }
+
                 // Check if session exists (email confirmed or not required)
                 if (!newUser.session) {
                     setLoading(false);
@@ -120,17 +133,8 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginS
                     return;
                 }
 
-                const user = newUser.user;
-
                 // Se for fotógrafo, mostrar o termo de responsabilidade
                 if (user.role === UserRole.PHOTOGRAPHER) {
-                    // Google Ads Conversion Event
-                    if (typeof (window as any).gtag === 'function') {
-                        (window as any).gtag('event', 'conversion', {
-                            'send_to': 'AW-16960525575/NqzgCKeRoskcEleqtJc_',
-                            'transport_type': 'beacon'
-                        });
-                    }
                     try {
                         const { emailService } = await import('../services/emailService');
                         await Promise.all([
