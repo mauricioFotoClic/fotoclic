@@ -124,6 +124,13 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginS
 
                 // Se for fotógrafo, mostrar o termo de responsabilidade
                 if (user.role === UserRole.PHOTOGRAPHER) {
+                    // Google Ads Conversion Event
+                    if (typeof (window as any).gtag === 'function') {
+                        (window as any).gtag('event', 'conversion', {
+                            'send_to': 'AW-16960525575/NqzgCKeRoskcEleqtJc_',
+                            'transport_type': 'beacon'
+                        });
+                    }
                     try {
                         const { emailService } = await import('../services/emailService');
                         await Promise.all([
