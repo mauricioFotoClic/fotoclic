@@ -285,6 +285,13 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
         metadata: { price: number, tags: string[], is_public: boolean, sub_group?: string | null },
         onProgress?: (stats: { current: number, total: number, successes: number, failures: number }) => void
     ): Promise<{ successCount: number; failCount: number; failedFiles: Array<{ name: string; reason: string }> }> => {
+        if (!selectedEvent) return { successCount: 0, failCount: 0, failedFiles: [] };
+
+        let successCount = 0;
+        let failCount = 0;
+        let processedCount = 0;
+        const failedFiles: Array<{ name: string; reason: string }> = [];
+
         uploadAbortRef.current = false;
         showToast(`Iniciando envio de ${files.length} arquivos...`, "info");
 

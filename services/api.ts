@@ -447,12 +447,16 @@ export const api = {
     if (data.original_filename) extraFields.original_filename = data.original_filename;
 
     if (Object.keys(extraFields).length > 0) {
-      const { error: updateError } = await supabase
-        .from('photos')
-        .update(extraFields)
-        .eq('id', photo.id);
-      
-      if (updateError) console.error("Error updating extra fields:", updateError);
+      try {
+        const { error: updateError } = await supabase
+          .from('photos')
+          .update(extraFields)
+          .eq('id', photo.id);
+        
+        if (updateError) console.warn("Notice: extraFields update notice:", updateError.message);
+      } catch (e) {
+        console.warn("Notice: extraFields update bypassed:", e);
+      }
 
       // Invalidate photographer photos cache
       delete inMemoryCache.photographerPhotosCache[data.photographer_id];
