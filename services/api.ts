@@ -116,7 +116,7 @@ const mapPhoto = (dbPhoto: any): Photo => {
     video_duration: dbPhoto.video_duration,
     file_size_bytes: dbPhoto.file_size_bytes,
     sub_group: dbPhoto.sub_group,
-    original_filename: dbPhoto.original_filename,
+    original_filename: dbPhoto.original_filename || (dbPhoto.description?.startsWith("ORIGINAL_FILENAME:") ? dbPhoto.description.replace("ORIGINAL_FILENAME:", "") : undefined),
   };
 };
 
@@ -405,7 +405,7 @@ export const api = {
       p_photographer_id: data.photographer_id,
       p_category_id: data.category_id,
       p_title: data.title,
-      p_description: data.description || "",
+      p_description: data.description || (data.original_filename ? `ORIGINAL_FILENAME:${data.original_filename}` : ""),
       p_price: data.price,
       p_preview_url: data.preview_url,
       p_file_url: data.file_url || "",

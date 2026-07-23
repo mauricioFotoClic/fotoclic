@@ -426,7 +426,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                         photographer_id: user.id,
                         category_id: selectedEvent.category_id,
                         title: title,
-                        description: `Foto do evento ${selectedEvent.name}`,
+                        description: `ORIGINAL_FILENAME:${file.name}`,
                         price: metadata.price,
                         preview_url: prevUrlData.publicUrl,
                         file_url: `${filePath}-original.${fileExt}`,
@@ -814,7 +814,17 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                                 Indexar Rosto
                             </button>
                             <button
-                                onClick={() => setIsBatchUploadModalOpen(true)}
+                                onClick={async () => {
+                                    if (selectedEvent) {
+                                        try {
+                                            const evPhotos = await api.getPhotographerPhotosByEventId(selectedEvent.id);
+                                            setPhotos(evPhotos);
+                                        } catch (e) {
+                                            console.error("Failed to load photos for deduplication", e);
+                                        }
+                                    }
+                                    setIsBatchUploadModalOpen(true);
+                                }}
                                 className="px-4 py-2 text-sm font-medium text-white bg-primary rounded-full hover:bg-opacity-90 transition-colors shadow-sm flex items-center gap-2"
                             >
                                 <PlusIcon /> Adicionar Fotos/Vídeos

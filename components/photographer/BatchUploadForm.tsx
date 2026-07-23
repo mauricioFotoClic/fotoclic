@@ -39,8 +39,9 @@ const BatchUploadForm: React.FC<BatchUploadFormProps> = ({ event, photographerId
         const sizes = new Set<number>();
 
         existingPhotos.forEach(p => {
-            if (p.original_filename) {
-                const normName = p.original_filename.trim().toLowerCase();
+            const orig = p.original_filename || (p.description?.startsWith("ORIGINAL_FILENAME:") ? p.description.replace("ORIGINAL_FILENAME:", "") : null);
+            if (orig) {
+                const normName = orig.trim().toLowerCase();
                 names.add(normName);
                 const nameWithoutExt = normName.substring(0, normName.lastIndexOf('.'));
                 if (nameWithoutExt) names.add(nameWithoutExt);
