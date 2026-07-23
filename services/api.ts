@@ -1210,11 +1210,17 @@ export const api = {
     eventData: Omit<PhotoEvent, "id" | "created_at">,
   ): Promise<PhotoEvent> => {
     let photographerId = (eventData as any).photographer_id;
+
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user?.id) photographerId = user.id;
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user?.id) {
+        photographerId = session.user.id;
+      } else {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user?.id) photographerId = user.id;
+      }
     } catch (e) {
-      console.warn("Notice: Auth check fallback in createEvent:", e);
+      console.warn("Notice: Auth session check in createEvent:", e);
     }
 
     if (!photographerId) {
@@ -1234,7 +1240,10 @@ export const api = {
 
     if (error) {
       console.error("Error creating event:", error);
-      throw error;
+      if (error.code === '42501' || error.message?.includes('row-level security')) {
+        throw new Error("Sessão de autenticação expirada no servidor. Por favor, faça login novamente para criar o evento.");
+      }
+      throw new Error(error.message || "Erro ao criar evento.");
     }
 
     // Invalidate event cache
