@@ -159,23 +159,46 @@ export const api = {
     if (inMemoryCache.featured.data && (now - inMemoryCache.featured.ts < CACHE_TTL)) {
       return inMemoryCache.featured.data;
     }
-    const { data, error } = await supabase
-      .from("photos")
-      .select(
-        "id, photographer_id, category_id, title, preview_url, thumb_url, price, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags, sales_count",
-      )
-      .eq("is_featured", true)
-      .eq("moderation_status", "approved")
-      .eq("is_public", true)
-      .order("created_at", { ascending: false })
-      .limit(12);
-    if (error) {
-      console.warn("Error fetching featured photos:", error);
+
+    try {
+      // 1. Fetch featured event IDs
+      const { data: featuredEvents } = await supabase
+        .from("events")
+        .select("id")
+        .eq("is_featured", true);
+
+      const featuredEventIds = (featuredEvents || []).map((e: any) => e.id);
+
+      // 2. Query photos where photo.is_featured = true OR photo.event_id is in featuredEventIds
+      let query = supabase
+        .from("photos")
+        .select(
+          "id, photographer_id, category_id, title, preview_url, thumb_url, price, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags, sales_count, event_id",
+        )
+        .eq("moderation_status", "approved")
+        .eq("is_public", true);
+
+      if (featuredEventIds.length > 0) {
+        query = query.or(`is_featured.eq.true,event_id.in.(${featuredEventIds.join(",")})`);
+      } else {
+        query = query.eq("is_featured", true);
+      }
+
+      const { data, error } = await query
+        .order("created_at", { ascending: false })
+        .limit(100);
+
+      if (error) {
+        console.warn("Error fetching featured photos:", error);
+        return [];
+      }
+      const result = data ? data.map(mapPhoto) : [];
+      inMemoryCache.featured = { data: result, ts: now };
+      return result;
+    } catch (e) {
+      console.error("Failed to fetch featured photos:", e);
       return [];
     }
-    const result = data ? data.map(mapPhoto) : [];
-    inMemoryCache.featured = { data: result, ts: now };
-    return result;
   },
 
   searchPhotos: async (searchTerm: string, categoryId?: string): Promise<Photo[]> => {
@@ -1425,6 +1448,7 @@ export const api = {
         delete inMemoryCache.photographerPhotosCache[updatedEvent.photographer_id];
       }
       inMemoryCache.allEvents = { data: null, ts: 0 };
+      inMemoryCache.featured = { data: null, ts: 0 };
     }
 
     return updatedEvent as PhotoEvent;
