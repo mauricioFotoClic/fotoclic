@@ -535,55 +535,62 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
                 {isExpanded && (
                     <div>
                     {/* Mobile cards */}
-                    <div className="md:hidden divide-y divide-neutral-100">
+                    <div className="md:hidden divide-y divide-neutral-100 bg-white rounded-lg border border-neutral-100 shadow-sm overflow-hidden">
                         {photos.map((photo) => (
-                            <div key={photo.id} className={`p-4 ${photo.moderation_status === 'pending' ? 'bg-yellow-50/50' : ''}`}>
+                            <div key={photo.id} className={`p-4 transition-colors ${photo.moderation_status === 'pending' ? 'bg-amber-50/40' : ''}`}>
                                 <div className="flex items-start gap-3">
                                     <img
                                         src={getOptimizedImageUrl(photo.thumb_url || photo.preview_url, 150, 75)}
                                         alt={photo.title}
                                         loading="lazy"
                                         decoding="async"
-                                        className="w-20 h-14 object-cover rounded-md flex-shrink-0"
+                                        className="w-20 h-14 object-cover rounded-md flex-shrink-0 border border-neutral-200"
                                     />
                                     <div className="flex-1 min-w-0">
                                         <p className="font-medium text-neutral-800 text-sm truncate">{photo.title}</p>
-                                        {photo.width && <p className="text-xs text-neutral-400">{photo.width}x{photo.height}</p>}
-                                        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                                            <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${photo.is_public ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                        {photo.width && <p className="text-xs text-neutral-400 mt-0.5">{photo.width} × {photo.height} px</p>}
+                                        <div className="flex items-center gap-2 mt-2 flex-wrap">
+                                            <span className={`px-2.5 py-0.5 text-xs font-semibold rounded-full border ${photo.is_public ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'}`}>
                                                 {photo.is_public ? 'Pública' : 'Privada'}
                                             </span>
-                                            <span className="text-xs font-bold text-green-600">{photo.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                                            <span className="text-xs font-bold text-emerald-600">{photo.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                                            <div className="flex items-center gap-1.5 ml-auto text-xs text-neutral-500">
+                                                <span>Destaque:</span>
+                                                <ToggleSwitch
+                                                    checked={photo.is_featured}
+                                                    onChange={() => handleToggleFeatured(photo.id, !photo.is_featured)}
+                                                />
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                                <div className="flex items-center justify-between mt-3">
+                                <div className="flex items-center justify-between mt-3 pt-3 border-t border-neutral-100">
                                     <div className="flex items-center gap-2">
                                         {photo.moderation_status === 'pending' && (
                                             <>
-                                                <button onClick={() => handleAnalyze(photo)} className="p-1.5 text-primary-dark bg-primary/10 rounded-full" title="Análise IA">
+                                                <button onClick={() => handleAnalyze(photo)} className="p-1.5 text-primary-dark bg-primary/10 rounded-full hover:bg-primary/20 transition-colors" title="Análise IA">
                                                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path></svg>
                                                 </button>
-                                                <button onClick={() => handleApprove(photo.id)} className="px-2 py-1 text-xs text-white bg-green-500 rounded-full">Aprovar</button>
-                                                <button onClick={() => handleOpenRejectModal(photo)} className="px-2 py-1 text-xs text-white bg-red-500 rounded-full">Rejeitar</button>
+                                                <button onClick={() => handleApprove(photo.id)} className="px-2.5 py-1 text-xs font-medium text-white bg-emerald-600 rounded-md hover:bg-emerald-700 transition-colors shadow-2xs">Aprovar</button>
+                                                <button onClick={() => handleOpenRejectModal(photo)} className="px-2.5 py-1 text-xs font-medium text-white bg-rose-500 rounded-md hover:bg-rose-600 transition-colors shadow-2xs">Rejeitar</button>
                                             </>
                                         )}
                                         {photo.moderation_status === 'approved' && (
                                             <>
-                                                <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-green-100 text-green-800">Aprovado</span>
-                                                <button onClick={() => handleOpenRejectModal(photo)} className="px-2 py-1 text-xs text-white bg-red-500 rounded-full">Rejeitar</button>
+                                                <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">Aprovado</span>
+                                                <button onClick={() => handleOpenRejectModal(photo)} className="px-2 py-0.5 text-xs font-medium text-rose-600 hover:bg-rose-50 rounded border border-rose-200 transition-colors">Rejeitar</button>
                                             </>
                                         )}
                                         {photo.moderation_status === 'rejected' && (
                                             <>
-                                                <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-red-100 text-red-800">Rejeitado</span>
-                                                <button onClick={() => handleApprove(photo.id)} className="px-2 py-0.5 text-xs text-white bg-green-500 rounded-full">Aprovar</button>
+                                                <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-rose-50 text-rose-700 border border-rose-200" title={`Motivo: ${photo.rejection_reason || 'Nenhum informado'}`}>Rejeitado</span>
+                                                <button onClick={() => handleApprove(photo.id)} className="px-2 py-0.5 text-xs font-medium text-emerald-600 hover:bg-emerald-50 rounded border border-emerald-200 transition-colors">Aprovar</button>
                                             </>
                                         )}
                                     </div>
                                     <div className="flex items-center gap-1">
-                                        <button onClick={() => handleOpenModal(photo)} className="p-2 text-primary-dark hover:bg-primary/10 rounded-full" title="Editar"><EditIcon /></button>
-                                        <button onClick={() => handleDelete(photo)} className="p-2 text-red-600 hover:bg-red-50 rounded-full" title="Excluir"><TrashIcon /></button>
+                                        <button onClick={() => handleOpenModal(photo)} className="p-1.5 text-neutral-600 hover:text-primary hover:bg-primary/10 rounded-full transition-colors" title="Editar"><EditIcon /></button>
+                                        <button onClick={() => handleDelete(photo)} className="p-1.5 text-neutral-600 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-colors" title="Excluir"><TrashIcon /></button>
                                     </div>
                                 </div>
                             </div>
