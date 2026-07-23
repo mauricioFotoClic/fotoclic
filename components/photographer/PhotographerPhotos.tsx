@@ -13,7 +13,7 @@ import CreateEventForm from './CreateEventForm';
 import BatchUploadForm from './BatchUploadForm';
 
 import { faceRecognitionService } from '../../services/faceRecognition';
-import { processImageForUpload } from '../../utils/imageProcessing';
+import { processImageForUpload, processImageFast } from '../../utils/imageProcessing';
 
 import { useToast } from '../../contexts/ToastContext';
 import { useConfirm } from '../../contexts/ConfirmContext';
@@ -392,13 +392,8 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                     }
 
                 } else {
-                    // Original Photo Upload Logic
-                    const processed = await processImageForUpload(file);
-                    const [originalBlob, previewBlob, thumbBlob] = await Promise.all([
-                        base64ToBlob(processed.original),
-                        base64ToBlob(processed.preview),
-                        base64ToBlob(processed.thumb)
-                    ]);
+                    // Fast Hardware Accelerated Processing (2K WebP 85% Quality + Watermark)
+                    const { thumbBlob, previewBlob, width, height } = await processImageFast(file);
 
                     const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`; 
                     const filePath = `${user.id}/${selectedEvent.id}/${fileName}`;
@@ -413,7 +408,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
 
                     // Attempt original storage upload without failing batch on private bucket RLS errors
                     try {
-                        const { error: origErr } = await api.supabase.storage.from('photos-original').upload(`${filePath}-original.${fileExt}`, originalBlob, { upsert: true });
+                        const { error: origErr } = await api.supabase.storage.from('photos-original').upload(`${filePath}-original.${fileExt}`, file, { upsert: true });
                         if (origErr) console.warn("Photos-original RLS notice:", origErr.message);
                     } catch (e) {
                         console.warn("Photos-original upload exception:", e);
@@ -432,13 +427,13 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                         file_url: `${filePath}-original.${fileExt}`,
                         thumb_url: thumbUrlData.publicUrl,
                         resolution: '4K',
-                        width: processed.width,
-                        height: processed.height,
+                        width: width,
+                        height: height,
                         tags: metadata.tags,
                         is_public: metadata.is_public,
                         is_featured: false,
                         event_id: selectedEvent.id,
-                        file_size_bytes: originalBlob.size,
+                        file_size_bytes: file.size,
                         sub_group: metadata.sub_group,
                         original_filename: file.name
                     });
@@ -469,8 +464,8 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
             }
         };
 
-        // Execution with concurrency limit (e.g., 3 files at a time)
-        const CONCURRENCY = 3;
+        // Execution with concurrency limit (5 files simultaneously)
+        const CONCURRENCY = 5;
         const fileEntries = Array.from(files.entries());
         const executeTasks = async () => {
             const workers = [];

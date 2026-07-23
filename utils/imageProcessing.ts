@@ -5,173 +5,186 @@
 
 import imageCompression from 'browser-image-compression';
 
-interface ProcessedImages {
-    thumb: string; // Base64 (WebP, ~400px)
-    preview: string; // Base64 (WebP, ~1600px + Watermark)
+export interface ProcessedImages {
+    thumb: string; // Base64 (WebP, ~500px)
+    preview: string; // Base64 (WebP, ~2048px + Watermark)
     original: string; // Base64 (Original File)
     width: number;
     height: number;
 }
 
+export interface FastProcessedImages {
+    thumbBlob: Blob;
+    previewBlob: Blob;
+    width: number;
+    height: number;
+}
+
+/**
+ * Ultra-fast hardware accelerated image processor (GPU / Canvas native)
+ * Preserves 2K resolution (2048px) with 85% WebP quality + crisp watermark.
+ */
+export const processImageFast = async (file: File): Promise<FastProcessedImages> => {
+    let source: ImageBitmap | HTMLImageElement;
+    let width = 0;
+    let height = 0;
+
+    try {
+        source = await createImageBitmap(file);
+        width = source.width;
+        height = source.height;
+    } catch {
+        const img = await loadImageElement(file);
+        source = img;
+        width = img.naturalWidth;
+        height = img.naturalHeight;
+    }
+
+    // 1. Generate Thumb (Max 500px, 0.82 quality)
+    const thumbBlob = await drawToBlob(source, width, height, 500, 0.82, false);
+
+    // 2. Generate Preview (Max 2048px 2K, 0.85 quality + Watermark)
+    const previewBlob = await drawToBlob(source, width, height, 2048, 0.85, true, "FOTOCLIC   PROVA   ");
+
+    if ('close' in source && typeof source.close === 'function') {
+        source.close();
+    }
+
+    return { thumbBlob, previewBlob, width, height };
+};
+
+const loadImageElement = (file: File): Promise<HTMLImageElement> => {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        img.onload = () => {
+            URL.revokeObjectURL(url);
+            resolve(img);
+        };
+        img.onerror = (err) => {
+            URL.revokeObjectURL(url);
+            reject(err);
+        };
+        img.src = url;
+    });
+};
+
+const drawToBlob = (
+    img: ImageBitmap | HTMLImageElement,
+    origW: number,
+    origH: number,
+    maxSide: number,
+    quality: number,
+    addWatermark: boolean,
+    watermarkText = "FOTOCLIC   PROVA   "
+): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+        let width = origW;
+        let height = origH;
+
+        if (width > maxSide || height > maxSide) {
+            if (width > height) {
+                height = Math.round(height * (maxSide / width));
+                width = maxSide;
+            } else {
+                width = Math.round(width * (maxSide / height));
+                height = maxSide;
+            }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+
+        if (!ctx) {
+            reject(new Error("Canvas context failed"));
+            return;
+        }
+
+        // Draw High Quality Scaled Image
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, 0, 0, width, height);
+
+        if (addWatermark) {
+            ctx.save();
+            ctx.font = `bold ${Math.max(22, Math.round(width / 18))}px sans-serif`;
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.72)';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.85)';
+            ctx.shadowBlur = 8;
+            ctx.shadowOffsetX = 3;
+            ctx.shadowOffsetY = 3;
+
+            ctx.translate(width / 2, height / 2);
+            ctx.rotate(-45 * Math.PI / 180);
+            ctx.translate(-width / 2, -height / 2);
+
+            const stepX = Math.round(width / 3);
+            const stepY = Math.round(height / 3);
+
+            for (let y = -height; y < height * 2; y += stepY) {
+                for (let x = -width; x < width * 2; x += stepX) {
+                    ctx.fillText(watermarkText, x, y);
+                }
+            }
+            ctx.restore();
+        }
+
+        canvas.toBlob(
+            (blob) => {
+                if (blob) resolve(blob);
+                else reject(new Error("Failed to convert canvas to blob"));
+            },
+            'image/webp',
+            quality
+        );
+    });
+};
+
 export const processImageForUpload = async (file: File): Promise<ProcessedImages> => {
     const isHeic = file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif');
-    const isBig = file.size > 15 * 1024 * 1024; // acima de 15MB
+    const isBig = file.size > 15 * 1024 * 1024;
 
     let originalFileToUpload = file;
-
-    // 1. Se for HEIC ou for maior que 15MB, comprime silenciosamente para no máximo 15MB
     if (isHeic || isBig) {
         try {
             originalFileToUpload = await imageCompression(file, {
                 maxSizeMB: 15,
-                maxWidthOrHeight: 8192, // Resolução 8K para preservar qualidade
+                maxWidthOrHeight: 8192,
                 useWebWorker: true,
                 fileType: isHeic ? 'image/jpeg' : undefined
             });
         } catch (error) {
-            console.warn('Image compression for original file failed, using source file', error);
+            console.warn('Image compression failed, using source file', error);
         }
     }
 
-    // 2. Para processamento no Canvas do browser, gerar uma versão otimizada leve
-    let renderFile = file;
-    if (isHeic || file.size > 5 * 1024 * 1024) {
-        try {
-            renderFile = await imageCompression(file, {
-                maxSizeMB: 5,
-                maxWidthOrHeight: 4096, // Resolução máx para renderizar previews sem crashar navegadores mobile
-                useWebWorker: true,
-                fileType: isHeic ? 'image/jpeg' : undefined
-            });
-        } catch (error) {
-            console.warn('Failed to compress render file', error);
-        }
-    }
+    const { thumbBlob, previewBlob, width, height } = await processImageFast(originalFileToUpload);
 
-    return new Promise((resolve, reject) => {
-        const img = new Image();
-        const objectUrl = URL.createObjectURL(renderFile);
-        img.src = objectUrl;
+    const blobToDataUrl = (blob: Blob): Promise<string> => {
+        return new Promise((res, rej) => {
+            const r = new FileReader();
+            r.onloadend = () => res(r.result as string);
+            r.onerror = rej;
+            r.readAsDataURL(blob);
+        });
+    };
 
-        img.onload = () => {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                const originalBase64 = reader.result as string;
+    const [thumbUrl, previewUrl, originalUrl] = await Promise.all([
+        blobToDataUrl(thumbBlob),
+        blobToDataUrl(previewBlob),
+        blobToDataUrl(originalFileToUpload)
+    ]);
 
-                try {
-                    // 2. Generate Thumb (Max 400px)
-                    const thumbDataUrl = resizeImage(img, 400, 0.7);
-
-                    // 3. Generate Preview (Max 1600px) with Watermark
-                    const previewDataUrl = resizeImageWithWatermark(img, 1600, 0.8, "FOTOCLIC   PROVA   ");
-
-                    resolve({
-                        thumb: thumbDataUrl,
-                        preview: previewDataUrl,
-                        original: originalBase64,
-                        width: img.naturalWidth,
-                        height: img.naturalHeight
-                    });
-
-                } catch (err) {
-                    reject(err);
-                } finally {
-                    URL.revokeObjectURL(objectUrl);
-                }
-            };
-            reader.onerror = (e) => reject(new Error("Failed to read original file"));
-            reader.readAsDataURL(originalFileToUpload);
-        };
-
-        img.onerror = () => {
-            URL.revokeObjectURL(objectUrl);
-            reject(new Error("Failed to load image"));
-        };
-    });
-};
-
-const resizeImage = (img: HTMLImageElement, maxSide: number, quality: number): string => {
-    let width = img.naturalWidth;
-    let height = img.naturalHeight;
-
-    if (width > maxSide || height > maxSide) {
-        if (width > height) {
-            height *= maxSide / width;
-            width = maxSide;
-        } else {
-            width *= maxSide / height;
-            height = maxSide;
-        }
-    }
-
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) throw new Error("Canvas context failed");
-
-    ctx.drawImage(img, 0, 0, width, height);
-    return canvas.toDataURL('image/webp', quality);
-};
-
-const resizeImageWithWatermark = (img: HTMLImageElement, maxSide: number, quality: number, watermarkText: string): string => {
-    let width = img.naturalWidth;
-    let height = img.naturalHeight;
-
-    // Resize logic
-    if (width > maxSide || height > maxSide) {
-        if (width > height) {
-            height *= maxSide / width;
-            width = maxSide;
-        } else {
-            width *= maxSide / height;
-            height = maxSide;
-        }
-    }
-
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) throw new Error("Canvas context failed");
-
-    // Draw Image
-    ctx.drawImage(img, 0, 0, width, height);
-
-    // Apply Watermark
-    ctx.save();
-    ctx.font = `bold ${Math.max(20, width / 20)}px sans-serif`; // Responsive font size
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)'; // Marca muito mais visível
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    
-    // Adicionar sombra para contraste em imagens claras e escuras
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
-    ctx.shadowBlur = 8;
-    ctx.shadowOffsetX = 3;
-    ctx.shadowOffsetY = 3;
-
-    // Rotate 45 degrees
-    ctx.translate(width / 2, height / 2);
-    ctx.rotate(-45 * Math.PI / 180);
-    ctx.translate(-width / 2, -height / 2);
-
-    // Draw repeated text grid
-    const stepX = width / 3;
-    const stepY = height / 3;
-
-    // We draw a grid of text over the image, considering the rotation which makes coordinate space larger
-    // Just drawing a big centered "PROVA" or pattern for now simpler:
-    // User asked for "diagonal leve ou repetido". 
-    // Let's draw a few lines.
-
-    for (let y = -height; y < height * 2; y += stepY) {
-        for (let x = -width; x < width * 2; x += stepX) {
-            ctx.fillText(watermarkText, x, y);
-        }
-    }
-
-    ctx.restore();
-
-    return canvas.toDataURL('image/webp', quality);
+    return {
+        thumb: thumbUrl,
+        preview: previewUrl,
+        original: originalUrl,
+        width,
+        height
+    };
 };
