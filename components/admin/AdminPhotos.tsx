@@ -406,6 +406,8 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
             }
         }
 
+        const hasActiveSubFilters = Boolean(searchTerm || filters.category || filters.status || filters.moderation || filters.featured);
+
         const groups = photographerEvents.map(event => {
             const photos = filteredPhotos.filter(p => p.event_id === event.id);
             return {
@@ -415,16 +417,18 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
                 photos: photos,
                 isEvent: true
             };
-        }).filter(g => g.photos.length > 0); // Only show events with photos matching filters
+        }).filter(g => !hasActiveSubFilters || g.photos.length > 0);
 
-        if (noEventPhotos.length > 0) {
-            groups.push({
-                id: 'no-event',
-                title: 'Outras Fotos (Sem Evento)',
-                subtitle: 'Fotos enviadas individualmente',
-                photos: noEventPhotos,
-                isEvent: false
-            });
+        if (noEventPhotos.length > 0 || (!hasActiveSubFilters && eventFilter === 'all' && photographerEvents.length === 0)) {
+            if (noEventPhotos.length > 0) {
+                groups.push({
+                    id: 'no-event',
+                    title: 'Outras Fotos (Sem Evento)',
+                    subtitle: 'Fotos enviadas individualmente',
+                    photos: noEventPhotos,
+                    isEvent: false
+                });
+            }
         }
 
         return groups;
@@ -534,6 +538,11 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
 
                 {isExpanded && (
                     <div>
+                    {photos.length === 0 && (
+                        <div className="p-8 text-center text-neutral-400 text-sm italic bg-neutral-50/40">
+                            Nenhuma foto cadastrada neste evento.
+                        </div>
+                    )}
                     {/* Mobile cards */}
                     <div className="md:hidden divide-y divide-neutral-100 bg-white rounded-lg border border-neutral-100 shadow-sm overflow-hidden">
                         {photos.map((photo) => (
