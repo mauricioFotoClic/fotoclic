@@ -1209,26 +1209,21 @@ export const api = {
   createEvent: async (
     eventData: Omit<PhotoEvent, "id" | "created_at">,
   ): Promise<PhotoEvent> => {
-    // Force usage of the currently authenticated user's ID for RLS compliance
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
+    let photographerId = (eventData as any).photographer_id;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.id) photographerId = user.id;
+    } catch (e) {
+      console.warn("Notice: Auth check fallback in createEvent:", e);
+    }
 
-    if (!user) {
-      console.error("Auth Error details:", userError);
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      console.error("Fallback Session check:", session);
-      throw new Error(
-        `Sessão inválida (User: ${userError?.message || "null"}, Session: ${session ? "exists" : "null"}). Recarregue a página.`,
-      );
+    if (!photographerId) {
+      throw new Error("Sessão do fotógrafo não encontrada. Por favor, faça login novamente.");
     }
 
     const finalEventData = {
       ...eventData,
-      photographer_id: user.id,
+      photographer_id: photographerId,
     };
 
     const { data, error } = await supabase
