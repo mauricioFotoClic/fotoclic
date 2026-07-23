@@ -123,18 +123,26 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
         fetchData();
     }, [fetchData]);
 
+    const [eventPhotoCounts, setEventPhotoCounts] = useState<Record<string, number>>({});
+
     // Fetch Photos when photographer changes
     useEffect(() => {
         if (selectedPhotographerId) {
             setLoading(true);
-            api.getPhotographerEvents(selectedPhotographerId).then(setPhotographerEvents);
-            api.getAllPhotos(selectedPhotographerId).then(data => {
-                setPhotos(data);
+            Promise.all([
+                api.getPhotographerEvents(selectedPhotographerId),
+                api.getAllPhotos(selectedPhotographerId),
+                api.getEventPhotoCounts(selectedPhotographerId)
+            ]).then(([eventsData, photosData, countsData]) => {
+                setPhotographerEvents(eventsData);
+                setPhotos(photosData);
+                setEventPhotoCounts(countsData);
                 setLoading(false);
-            });
+            }).catch(() => setLoading(false));
         } else {
             setPhotographerEvents([]);
-            setPhotos([]); // Clear local photos when in folder view
+            setPhotos([]);
+            setEventPhotoCounts({});
         }
     }, [selectedPhotographerId]);
     // State for Events (Moved to top level)
@@ -533,7 +541,15 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
                         </h3>
                         {subtitle && <p className="text-sm text-neutral-500 ml-7">{subtitle}</p>}
                     </div>
-                    <span className="text-xs font-semibold bg-neutral-200 text-neutral-600 px-2 py-1 rounded-full">{photos.length} fotos</span>
+                    {(() => {
+                        const actualCount = id in eventPhotoCounts ? eventPhotoCounts[id] : photos.length;
+                        const hasActiveSubFilters = Boolean(searchTerm || filters.category || filters.status || filters.moderation || filters.featured);
+                        return (
+                            <span className="text-xs font-semibold bg-neutral-200 text-neutral-600 px-2.5 py-1 rounded-full">
+                                {hasActiveSubFilters ? `${photos.length} de ${actualCount} fotos` : `${actualCount} fotos`}
+                            </span>
+                        );
+                    })()}
                 </button>
 
                 {isExpanded && (
