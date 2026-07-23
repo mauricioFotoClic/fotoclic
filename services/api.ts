@@ -161,7 +161,7 @@ export const api = {
     }
 
     try {
-      // 1. Fetch featured event IDs
+      // 1. Fetch featured event IDs (events with is_featured = true)
       const { data: featuredEvents } = await supabase
         .from("events")
         .select("id")
@@ -169,22 +169,21 @@ export const api = {
 
       const featuredEventIds = (featuredEvents || []).map((e: any) => e.id);
 
-      // 2. Query photos where photo.is_featured = true OR photo.event_id is in featuredEventIds
-      let query = supabase
+      // If no events are marked as featured, return empty list
+      if (featuredEventIds.length === 0) {
+        inMemoryCache.featured = { data: [], ts: now };
+        return [];
+      }
+
+      // 2. Query photos strictly belonging to events with is_featured = true
+      const { data, error } = await supabase
         .from("photos")
         .select(
           "id, photographer_id, category_id, title, preview_url, thumb_url, price, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags, sales_count, event_id",
         )
+        .in("event_id", featuredEventIds)
         .eq("moderation_status", "approved")
-        .eq("is_public", true);
-
-      if (featuredEventIds.length > 0) {
-        query = query.or(`is_featured.eq.true,event_id.in.(${featuredEventIds.join(",")})`);
-      } else {
-        query = query.eq("is_featured", true);
-      }
-
-      const { data, error } = await query
+        .eq("is_public", true)
         .order("created_at", { ascending: false })
         .limit(100);
 
