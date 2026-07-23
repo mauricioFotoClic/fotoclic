@@ -1082,7 +1082,7 @@ export const api = {
     }
 
     const validEvents = (data || []).filter((e: any) => {
-      return e.photographer && e.photographer.is_active && e.photographer.avatar_url;
+      return !e.photographer || e.photographer.is_active !== false;
     });
 
     const result = validEvents as PhotoEvent[];

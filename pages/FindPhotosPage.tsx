@@ -35,17 +35,17 @@ const FindPhotosPage: React.FC<FindPhotosPageProps> = ({ onNavigate, initialSear
       api.getPhotographers(),
       api.getCategories(),
     ]).then(([allEvents, allPhotographers, allCategories]) => {
-      const activePhotographers = allPhotographers.filter(p => p.is_active && (p as any).approvedCount > 0);
-      const activeIds = new Set(activePhotographers.map(p => p.id));
+      const activePhotographers = allPhotographers.filter(p => p.is_active !== false);
+      const inactiveIds = new Set(allPhotographers.filter(p => p.is_active === false).map(p => p.id));
 
       const photographerMap: Record<string, User> = {};
-      activePhotographers.forEach(p => { photographerMap[p.id] = p; });
+      allPhotographers.forEach(p => { photographerMap[p.id] = p; });
 
       const categoryMap: Record<string, Category> = {};
       allCategories.forEach(c => { categoryMap[c.id] = c; });
 
-      // Only show events from active photographers
-      const validEvents = allEvents.filter(e => activeIds.has(e.photographer_id));
+      // Only show events if photographer is active
+      const validEvents = allEvents.filter(e => !inactiveIds.has(e.photographer_id));
 
       setEvents(validEvents);
       setPhotographers(photographerMap);

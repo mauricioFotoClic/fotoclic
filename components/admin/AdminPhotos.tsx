@@ -591,48 +591,52 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
                     </div>
 
                     {/* Desktop table */}
-                    <div className="hidden md:block overflow-x-auto">
-                        <table className="w-full min-w-[1200px]">
-                            <thead className="bg-white border-b border-neutral-100">
+                    <div className="hidden md:block overflow-x-auto bg-white rounded-lg border border-neutral-100 shadow-sm">
+                        <table className="w-full min-w-[1000px] border-collapse">
+                            <thead className="bg-neutral-50/80 border-b border-neutral-200">
                                 <tr>
-                                    <th className="p-4 text-left text-sm font-semibold text-neutral-600">Foto</th>
-                                    <th className="p-4 text-left text-sm font-semibold text-neutral-600">Título</th>
-                                    <th className="p-4 text-right text-sm font-semibold text-neutral-600">Preço</th>
-                                    <th className="p-4 text-center text-sm font-semibold text-neutral-600">Status</th>
-                                    <th className="p-4 text-center text-sm font-semibold text-neutral-600">Destaque</th>
-                                    <th className="p-4 text-center text-sm font-semibold text-neutral-600">Moderação</th>
-                                    <th className="p-4 text-right text-sm font-semibold text-neutral-600">Ações</th>
+                                    <th className="w-24 px-4 py-3 text-left text-xs font-semibold text-neutral-500 uppercase tracking-wider">Foto</th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-500 uppercase tracking-wider">Título</th>
+                                    <th className="w-28 px-4 py-3 text-right text-xs font-semibold text-neutral-500 uppercase tracking-wider">Preço</th>
+                                    <th className="w-28 px-4 py-3 text-center text-xs font-semibold text-neutral-500 uppercase tracking-wider">Status</th>
+                                    <th className="w-24 px-4 py-3 text-center text-xs font-semibold text-neutral-500 uppercase tracking-wider">Destaque</th>
+                                    <th className="w-60 px-4 py-3 text-center text-xs font-semibold text-neutral-500 uppercase tracking-wider">Moderação</th>
+                                    <th className="w-28 px-4 py-3 text-center text-xs font-semibold text-neutral-500 uppercase tracking-wider">Ações</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody className="divide-y divide-neutral-100">
                                 {photos.map((photo, index) => (
-                                    <tr key={photo.id} className={`border-t ${index % 2 === 0 ? 'bg-white' : 'bg-neutral-50'} ${photo.moderation_status === 'pending' ? 'bg-yellow-50/50' : ''}`}>
-                                        <td className="p-2">
+                                    <tr key={photo.id} className={`transition-colors hover:bg-neutral-50/60 ${index % 2 === 0 ? 'bg-white' : 'bg-neutral-50/30'} ${photo.moderation_status === 'pending' ? 'bg-amber-50/40 hover:bg-amber-50/70' : ''}`}>
+                                        <td className="px-4 py-3 align-middle">
                                             <img
                                                 src={getOptimizedImageUrl(photo.thumb_url || photo.preview_url, 150, 75)}
                                                 alt={photo.title}
                                                 loading="lazy"
                                                 decoding="async"
-                                                className="w-20 h-14 object-cover rounded-md"
+                                                className="w-16 h-12 object-cover rounded-md shadow-xs border border-neutral-200"
                                             />
                                         </td>
-                                        <td className="p-4 text-sm text-neutral-800 font-medium">
-                                            {photo.title}
-                                            {photo.width && <div className="text-xs text-neutral-400 mt-1">{photo.width}x{photo.height}</div>}
+                                        <td className="px-4 py-3 align-middle">
+                                            <div className="font-medium text-neutral-800 text-sm line-clamp-1">{photo.title}</div>
+                                            {photo.width && <div className="text-xs text-neutral-400 mt-0.5">{photo.width} × {photo.height} px</div>}
                                         </td>
-                                        <td className="p-4 text-sm text-green-600 font-medium text-right">{photo.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
-                                        <td className="p-4 text-center">
-                                            <span className={`px-2 py-1 text-xs font-semibold rounded-full ${photo.is_public ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                        <td className="px-4 py-3 align-middle text-right text-sm font-semibold text-emerald-600">
+                                            {photo.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                        </td>
+                                        <td className="px-4 py-3 align-middle text-center">
+                                            <span className={`inline-block px-2.5 py-0.5 text-xs font-semibold rounded-full border ${photo.is_public ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'}`}>
                                                 {photo.is_public ? 'Pública' : 'Privada'}
                                             </span>
                                         </td>
-                                        <td className="p-4 text-center">
-                                            <ToggleSwitch
-                                                checked={photo.is_featured}
-                                                onChange={() => handleToggleFeatured(photo.id, !photo.is_featured)}
-                                            />
+                                        <td className="px-4 py-3 align-middle text-center">
+                                            <div className="flex justify-center">
+                                                <ToggleSwitch
+                                                    checked={photo.is_featured}
+                                                    onChange={() => handleToggleFeatured(photo.id, !photo.is_featured)}
+                                                />
+                                            </div>
                                         </td>
-                                        <td className="p-4 text-center">
+                                        <td className="px-4 py-3 align-middle text-center">
                                             {photo.moderation_status === 'pending' && (
                                                 <div className="flex justify-center items-center gap-2">
                                                     <button
@@ -640,42 +644,39 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
                                                         className="p-1.5 text-primary-dark bg-primary/10 rounded-full hover:bg-primary/20 transition-colors"
                                                         title="Análise IA"
                                                     >
-                                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path></svg>
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path></svg>
                                                     </button>
-                                                    <button onClick={() => handleApprove(photo.id)} className="px-3 py-1 text-xs text-white bg-green-500 rounded-full hover:bg-green-600 transition-colors">Aprovar</button>
-                                                    <button onClick={() => handleOpenRejectModal(photo)} className="px-3 py-1 text-xs text-white bg-red-500 rounded-full hover:bg-red-600 transition-colors">Rejeitar</button>
+                                                    <button onClick={() => handleApprove(photo.id)} className="px-2.5 py-1 text-xs font-medium text-white bg-emerald-600 rounded-md hover:bg-emerald-700 transition-colors shadow-2xs">Aprovar</button>
+                                                    <button onClick={() => handleOpenRejectModal(photo)} className="px-2.5 py-1 text-xs font-medium text-white bg-rose-500 rounded-md hover:bg-rose-600 transition-colors shadow-2xs">Rejeitar</button>
                                                 </div>
                                             )}
                                             {photo.moderation_status === 'approved' && (
-                                                <div className="flex flex-col items-center justify-center gap-1">
-                                                    <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Aprovado</span>
-                                                    <button onClick={() => handleOpenRejectModal(photo)} className="mt-1 px-3 py-1 text-xs text-white bg-red-500 rounded-full hover:bg-red-600 transition-colors">Rejeitar</button>
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">Aprovado</span>
+                                                    <button onClick={() => handleOpenRejectModal(photo)} className="px-2 py-0.5 text-xs font-medium text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded border border-rose-200 transition-colors">Rejeitar</button>
                                                 </div>
                                             )}
                                             {photo.moderation_status === 'rejected' && (
-                                                <div className="flex flex-col items-center justify-center gap-1">
-                                                    <span className="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800" title={`Motivo: ${photo.rejection_reason}`}>
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-rose-50 text-rose-700 border border-rose-200" title={`Motivo: ${photo.rejection_reason || 'Nenhum informado'}`}>
                                                         Rejeitado
                                                     </span>
-                                                    <div className="flex items-center gap-2 mt-1">
-                                                        <button onClick={() => handleApprove(photo.id)} className="px-2 py-0.5 text-xs text-white bg-green-500 rounded-full hover:bg-green-600 transition-colors">Aprovar</button>
-                                                        <button onClick={() => handleOpenRejectModal(photo)} className="px-2 py-0.5 text-xs text-white bg-primary rounded-full hover:bg-primary-dark transition-colors">Editar</button>
-                                                    </div>
+                                                    <button onClick={() => handleApprove(photo.id)} className="px-2 py-0.5 text-xs font-medium text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded border border-emerald-200 transition-colors">Aprovar</button>
                                                 </div>
                                             )}
                                         </td>
-                                        <td className="p-4 text-right">
-                                            <div className="flex items-center justify-end gap-2">
+                                        <td className="px-4 py-3 align-middle text-center">
+                                            <div className="flex items-center justify-center gap-1">
                                                 <button
                                                     onClick={() => handleOpenModal(photo)}
-                                                    className="flex items-center justify-center w-9 h-9 text-primary-dark hover:text-primary hover:bg-primary/10 rounded-full transition-colors"
+                                                    className="flex items-center justify-center w-8 h-8 text-neutral-600 hover:text-primary hover:bg-primary/10 rounded-full transition-colors"
                                                     title="Editar"
                                                 >
                                                     <EditIcon />
                                                 </button>
                                                 <button
                                                     onClick={() => handleDelete(photo)}
-                                                    className="flex items-center justify-center w-9 h-9 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-full transition-colors"
+                                                    className="flex items-center justify-center w-8 h-8 text-neutral-600 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-colors"
                                                     title="Excluir"
                                                 >
                                                     <TrashIcon />
