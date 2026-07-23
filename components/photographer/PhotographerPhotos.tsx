@@ -409,12 +409,14 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                     if (prevRes.error) throw prevRes.error;
                     if (thumbRes.error) throw thumbRes.error;
 
-                    // Attempt original storage upload without failing batch on private bucket RLS errors
+                    // Upload original photo to private bucket if authenticated session exists
                     try {
-                        const { error: origErr } = await api.supabase.storage.from('photos-original').upload(`${filePath}-original.${fileExt}`, file, { upsert: true });
-                        if (origErr) console.warn("Photos-original RLS notice:", origErr.message);
+                        const { data: { user: authUser } } = await api.supabase.auth.getUser();
+                        if (authUser) {
+                            await api.supabase.storage.from('photos-original').upload(`${filePath}-original.${fileExt}`, file, { upsert: true });
+                        }
                     } catch (e) {
-                        console.warn("Photos-original upload exception:", e);
+                        // Silently ignore private bucket upload restrictions for custom sessions
                     }
 
                     const { data: prevUrlData } = api.supabase.storage.from('photos-preview').getPublicUrl(`${filePath}-preview.webp`);

@@ -444,7 +444,7 @@ export const api = {
     if (data.video_duration !== undefined) extraFields.video_duration = data.video_duration;
     if (data.file_size_bytes !== undefined) extraFields.file_size_bytes = data.file_size_bytes;
     if (data.sub_group !== undefined) extraFields.sub_group = data.sub_group;
-    if (data.original_filename) extraFields.original_filename = data.original_filename;
+    // if (data.original_filename) extraFields.original_filename = data.original_filename;
 
     if (Object.keys(extraFields).length > 0) {
       try {
