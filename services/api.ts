@@ -1135,7 +1135,7 @@ export const api = {
         return !e.photographer || e.photographer.is_active !== false;
       });
 
-      const result = validEvents as PhotoEvent[];
+      const result = validEvents as unknown as PhotoEvent[];
       inMemoryCache.allEvents = { data: result, ts: now };
       return result;
     } catch (err) {
@@ -1178,40 +1178,6 @@ export const api = {
     return validEvents as PhotoEvent[];
   },
 
-  getPhotosByEventId: async (eventId: string): Promise<Photo[]> => {
-    let allData: any[] = [];
-    let from = 0;
-    const limit = 1000;
-    let hasMore = true;
-
-    while (hasMore) {
-      const { data, error } = await supabase
-        .from("photos")
-        .select(
-          "id, photographer_id, category_id, title, preview_url, thumb_url, price, resolution, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags, event_id, sales_count, media_type, video_uid, video_duration, file_size_bytes, sub_group",
-        )
-        .eq("event_id", eventId)
-        .eq("moderation_status", "approved")
-        .eq("is_public", true)
-        .order("created_at", { ascending: true })
-        .range(from, from + limit - 1);
-
-      if (error) throw error;
-      
-      if (data && data.length > 0) {
-        allData = allData.concat(data);
-        if (data.length < limit) {
-          hasMore = false;
-        } else {
-          from += limit;
-        }
-      } else {
-        hasMore = false;
-      }
-    }
-
-    return allData.length > 0 ? allData.map(mapPhoto) : [];
-  },
 
   getPhotographerPhotosByEventId: async (eventId: string): Promise<Photo[]> => {
     let allData: any[] = [];

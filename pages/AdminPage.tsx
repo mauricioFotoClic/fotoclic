@@ -15,7 +15,7 @@ import AdminRekognitionStats from '../components/admin/AdminRekognitionStats';
 
 import AdminAbacatePay from '../components/admin/AdminAbacatePay';
 import AdminRemarketing from '../components/admin/AdminRemarketing';
-import { Page } from '../types';
+import { Page, User } from '../types';
 import api from '../services/api';
 
 type AdminView = 'dashboard' | 'photos' | 'photographers' | 'customers' | 'categories' | 'sales' | 'payouts' | 'settings' | 'storage-requests' | 'rekognition' | 'abacate' | 'remarketing';
