@@ -482,20 +482,25 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
             await Promise.all(workers);
         };
 
-        await executeTasks();
+        try {
+            await executeTasks();
 
-        if (failCount === 0) {
-            setIsBatchUploadModalOpen(false);
-            showToast(`Upload concluído! ${successCount} arquivos processados com sucesso.`, "success");
-        } else {
-            if (successCount === 0) {
-                showToast(`Falha no envio de todos os arquivos. Verifique os erros exibidos no painel.`, "error");
+            if (failCount === 0) {
+                setIsBatchUploadModalOpen(false);
+                showToast(`Upload concluído! ${successCount} arquivos processados com sucesso.`, "success");
             } else {
-                showToast(`Envio concluído com erros: ${successCount} com sucesso, ${failCount} falhas.`, "info");
+                if (successCount === 0) {
+                    showToast(`Falha no envio dos arquivos. Verifique a lista de erros.`, "error");
+                } else {
+                    showToast(`Envio concluído com alertas: ${successCount} com sucesso, ${failCount} falhas.`, "info");
+                }
             }
+        } catch (err: any) {
+            console.error("Batch upload overall failure:", err);
+            showToast("Erro durante o processamento do lote de arquivos.", "error");
+        } finally {
+            fetchData();
         }
-
-        fetchData();
 
         return {
             successCount,

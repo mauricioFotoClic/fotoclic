@@ -123,9 +123,10 @@ const BatchUploadForm: React.FC<BatchUploadFormProps> = ({ event, photographerId
                 setUploadResult(result);
                 setShowResults(true);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error("Upload error:", error);
-            alert("Erro inesperado ao enviar arquivos.");
+            const msg = error?.message || (typeof error === 'string' ? error : "Erro de comunicação ao enviar arquivos.");
+            alert(`Erro no envio: ${msg}`);
         } finally {
             setIsUploading(false);
         }
