@@ -543,6 +543,12 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
               <div className="md:col-span-2 md:row-span-2 h-[300px] md:h-auto bg-neutral-800 animate-pulse rounded-2xl" />
               {[1, 2, 3, 4].map(i => <div key={i} className="md:col-span-1 md:row-span-1 h-[200px] md:h-auto bg-neutral-800 animate-pulse rounded-2xl" />)}
             </div>
+          ) : featuredPhotos.length === 0 ? (
+            <div className="text-center py-16 text-neutral-400 font-light border border-dashed border-neutral-800 rounded-2xl bg-neutral-900/50">
+              <Camera className="w-12 h-12 mx-auto mb-3 text-neutral-600" />
+              <p className="text-lg">Nenhuma foto em destaque no momento.</p>
+              <p className="text-sm text-neutral-500 mt-1">Ative o switch "Destaque na Home" de um evento no painel Admin para exibir suas fotos aqui.</p>
+            </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-4 md:grid-rows-2 gap-4 h-auto md:h-[600px]">
               {featuredPhotos[0] && <MosaicCard photo={featuredPhotos[0]} className="md:col-span-2 md:row-span-2 h-[300px] md:h-auto" />}
