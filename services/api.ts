@@ -423,6 +423,23 @@ export const api = {
     return result;
   },
 
+  getPhotosByEventId: async (eventId: string, limit: number = 1000): Promise<Photo[]> => {
+    const { data, error } = await supabase
+      .from("photos")
+      .select(
+        "id, photographer_id, category_id, title, description, preview_url, thumb_url, price, resolution, width, height, tags, is_public, created_at, moderation_status, rejection_reason, is_featured, likes_count, quality_analysis, is_face_indexed, event_id, sales_count, media_type, video_uid, video_duration, file_size_bytes, photo_likes(user_id)"
+      )
+      .eq("event_id", eventId)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.error("Error fetching photos for event:", error);
+      return [];
+    }
+    return (data || []).map(mapPhoto);
+  },
+
   createPhoto: async (data: any): Promise<Photo> => {
     const { data: result, error } = await supabase.rpc("upload_photo", {
       p_photographer_id: data.photographer_id,

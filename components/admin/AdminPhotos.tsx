@@ -91,6 +91,7 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
     const [rejectionReason, setRejectionReason] = useState('');
 
     const [expandedEventId, setExpandedEventId] = useState<string | null>(null); // Accordion state
+    const [loadingEventIds, setLoadingEventIds] = useState<Record<string, boolean>>({});
     const [eventFilter, setEventFilter] = useState<string>('all'); // New event filter
     const [isAnalysisModalOpen, setIsAnalysisModalOpen] = useState(false);
     const [photoToAnalyze, setPhotoToAnalyze] = useState<Photo | null>(null);
@@ -531,13 +532,35 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
     const currentPhotographer = photographers.find(p => p.id === selectedPhotographerId);
     const currentPhotographerPendingCount = photos.filter(p => p.photographer_id === selectedPhotographerId && p.moderation_status === 'pending').length;
 
-    const handleToggleExpand = (id: string) => {
+    const handleToggleExpand = async (id: string) => {
+        const willExpand = expandedEventId !== id;
         setExpandedEventId(prev => prev === id ? null : id);
+
+        if (willExpand && id && id !== 'no-event') {
+            const hasPhotosInState = photos.some(p => p.event_id === id);
+            const expectedCount = eventPhotoCounts[id] || 0;
+
+            if (!hasPhotosInState && expectedCount > 0) {
+                setLoadingEventIds(prev => ({ ...prev, [id]: true }));
+                try {
+                    const eventPhotos = await api.getPhotosByEventId(id, 2000);
+                    setPhotos(prev => {
+                        const existingIds = new Set(prev.map(p => p.id));
+                        const newPhotos = eventPhotos.filter(p => !existingIds.has(p.id));
+                        return [...prev, ...newPhotos];
+                    });
+                } catch (err) {
+                    console.error("Failed to load event photos on demand:", err);
+                } finally {
+                    setLoadingEventIds(prev => ({ ...prev, [id]: false }));
+                }
+            }
+        }
     };
 
     const renderPhotoTable = (photos: Photo[], title: string, subtitle: string | undefined, id: string, eventObj?: any) => {
         const isExpanded = expandedEventId === id || eventFilter !== 'all'; // Always expanded if filtered by specific event
-
+        const isEventLoading = loadingEventIds[id];
 
         return (
             <div className="mb-4 bg-white rounded-lg shadow-md overflow-hidden border border-neutral-200">
@@ -581,7 +604,13 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
 
                 {isExpanded && (
                     <div>
-                    {photos.length === 0 && (
+                    {isEventLoading && (
+                        <div className="p-8 text-center text-primary font-medium text-sm bg-neutral-50/40 flex items-center justify-center gap-2">
+                            <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                            <span>Carregando fotos do evento...</span>
+                        </div>
+                    )}
+                    {!isEventLoading && photos.length === 0 && (
                         <div className="p-8 text-center text-neutral-400 text-sm italic bg-neutral-50/40">
                             Nenhuma foto cadastrada neste evento.
                         </div>
@@ -804,7 +833,13 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
                         <label className="text-xs text-neutral-500">Evento</label>
                         <select
                             value={eventFilter}
-                            onChange={(e) => setEventFilter(e.target.value)}
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                setEventFilter(val);
+                                if (val !== 'all' && val !== 'no_event') {
+                                    handleToggleExpand(val);
+                                }
+                            }}
                             className="w-full mt-1 p-2 border border-neutral-200 rounded-md bg-white focus:ring-2 focus:ring-primary"
                         >
                             <option value="all">Todos os Eventos</option>
