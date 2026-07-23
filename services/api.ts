@@ -156,50 +156,53 @@ export const api = {
   // --- PHOTOS ---
   getFeaturedPhotos: async (): Promise<Photo[]> => {
     const now = Date.now();
-    if (inMemoryCache.featured.data && (now - inMemoryCache.featured.ts < CACHE_TTL)) {
-      return inMemoryCache.featured.data;
+
+    // Cache the pool of photos (expensive DB query), but always re-shuffle on delivery
+    if (!inMemoryCache.featured.data || (now - inMemoryCache.featured.ts >= CACHE_TTL)) {
+      try {
+        // 1. Fetch featured event IDs (events with is_featured = true)
+        const { data: featuredEvents } = await supabase
+          .from("events")
+          .select("id")
+          .eq("is_featured", true);
+
+        const featuredEventIds = (featuredEvents || []).map((e: any) => e.id);
+
+        // If no events are marked as featured, return empty list
+        if (featuredEventIds.length === 0) {
+          inMemoryCache.featured = { data: [], ts: now };
+          return [];
+        }
+
+        // 2. Query photos from featured events — large pool for variety
+        const { data, error } = await supabase
+          .from("photos")
+          .select(
+            "id, photographer_id, category_id, title, preview_url, thumb_url, price, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags, sales_count, event_id",
+          )
+          .in("event_id", featuredEventIds)
+          .eq("moderation_status", "approved")
+          .eq("is_public", true)
+          .limit(200);
+
+        if (error) {
+          console.warn("Error fetching featured photos:", error);
+          return [];
+        }
+
+        // Cache the full pool (not shuffled)
+        const pool = data ? data.map(mapPhoto) : [];
+        inMemoryCache.featured = { data: pool, ts: now };
+      } catch (e) {
+        console.error("Failed to fetch featured photos:", e);
+        return inMemoryCache.featured.data || [];
+      }
     }
 
-    try {
-      // 1. Fetch featured event IDs (events with is_featured = true)
-      const { data: featuredEvents } = await supabase
-        .from("events")
-        .select("id")
-        .eq("is_featured", true);
-
-      const featuredEventIds = (featuredEvents || []).map((e: any) => e.id);
-
-      // If no events are marked as featured, return empty list
-      if (featuredEventIds.length === 0) {
-        inMemoryCache.featured = { data: [], ts: now };
-        return [];
-      }
-
-      // 2. Query photos strictly belonging to events with is_featured = true
-      const { data, error } = await supabase
-        .from("photos")
-        .select(
-          "id, photographer_id, category_id, title, preview_url, thumb_url, price, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags, sales_count, event_id",
-        )
-        .in("event_id", featuredEventIds)
-        .eq("moderation_status", "approved")
-        .eq("is_public", true)
-        .order("created_at", { ascending: false })
-        .limit(100);
-
-      if (error) {
-        console.warn("Error fetching featured photos:", error);
-        return [];
-      }
-      const result = data ? data.map(mapPhoto) : [];
-      const randomized = shuffleArray(result);
-      inMemoryCache.featured = { data: randomized, ts: now };
-      return randomized;
-    } catch (e) {
-      console.error("Failed to fetch featured photos:", e);
-      return [];
-    }
+    // Always re-shuffle the pool on every call for true randomness per page load
+    return shuffleArray(inMemoryCache.featured.data || []);
   },
+
 
   searchPhotos: async (searchTerm: string, categoryId?: string): Promise<Photo[]> => {
     const { normalizeString, includesNormalized } = await import("../utils/stringUtils");
