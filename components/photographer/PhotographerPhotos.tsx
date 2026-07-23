@@ -382,7 +382,8 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                         video_uid: uid,
                         video_duration: Math.round(videoDetails.duration),
                         file_size_bytes: file.size,
-                        sub_group: metadata.sub_group
+                        sub_group: metadata.sub_group,
+                        original_filename: file.name
                     });
 
                     if (newPhoto) {
@@ -432,7 +433,8 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                         is_featured: false,
                         event_id: selectedEvent.id,
                         file_size_bytes: originalBlob.size,
-                        sub_group: metadata.sub_group
+                        sub_group: metadata.sub_group,
+                        original_filename: file.name
                     });
 
                     if (newPhoto) {
@@ -1143,6 +1145,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                         event={selectedEvent}
                         photographerId={user.id}
                         existingFolders={existingFolders}
+                        existingPhotos={photos.filter(p => p.event_id === selectedEvent.id)}
                         onSubmit={handleBatchUpload}
                         onCancel={() => setIsBatchUploadModalOpen(false)}
                     />

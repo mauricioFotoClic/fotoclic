@@ -6,6 +6,7 @@ interface BatchUploadFormProps {
     event: PhotoEvent;
     photographerId: string;
     existingFolders?: string[];
+    existingPhotos?: Photo[];
     onSubmit: (
         files: File[],
         metadata: { price: number, tags: string[], is_public: boolean, sub_group?: string | null },
@@ -14,8 +15,9 @@ interface BatchUploadFormProps {
     onCancel: () => void;
 }
 
-const BatchUploadForm: React.FC<BatchUploadFormProps> = ({ event, photographerId, existingFolders = [], onSubmit, onCancel }) => {
+const BatchUploadForm: React.FC<BatchUploadFormProps> = ({ event, photographerId, existingFolders = [], existingPhotos = [], onSubmit, onCancel }) => {
     const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+    const [skipDuplicates, setSkipDuplicates] = useState(true);
     const [price, setPrice] = useState<string>('');
     const [tags, setTags] = useState<string>('');
     const [isPublic, setIsPublic] = useState(true);
@@ -31,6 +33,29 @@ const BatchUploadForm: React.FC<BatchUploadFormProps> = ({ event, photographerId
     } | null>(null);
     const [showResults, setShowResults] = useState(false);
 
+    // Build deduplication index of existing photos in event
+    const existingFileMap = React.useMemo(() => {
+        const set = new Set<string>();
+        existingPhotos.forEach(p => {
+            if (p.original_filename) set.add(p.original_filename.toLowerCase());
+            if (p.title) set.add(p.title.toLowerCase());
+        });
+        return set;
+    }, [existingPhotos]);
+
+    const { newFiles, duplicateFiles } = React.useMemo(() => {
+        const newF: File[] = [];
+        const dupF: File[] = [];
+        selectedFiles.forEach(f => {
+            if (existingFileMap.has(f.name.toLowerCase())) {
+                dupF.push(f);
+            } else {
+                newF.push(f);
+            }
+        });
+        return { newFiles: newF, duplicateFiles: dupF };
+    }, [selectedFiles, existingFileMap]);
+
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
             setSelectedFiles(Array.from(e.target.files));
@@ -45,6 +70,13 @@ const BatchUploadForm: React.FC<BatchUploadFormProps> = ({ event, photographerId
             return;
         }
 
+        const filesToUpload = (duplicateFiles.length > 0 && skipDuplicates) ? newFiles : selectedFiles;
+
+        if (filesToUpload.length === 0) {
+            alert("Todas as fotos selecionadas já foram enviadas para este evento anteriormente!");
+            return;
+        }
+
         const numPrice = parseFloat(price.replace(',', '.'));
         if (isNaN(numPrice) || numPrice < 10) {
             alert("O preço mínimo por foto deve ser de R$ 10,00.");
@@ -52,14 +84,14 @@ const BatchUploadForm: React.FC<BatchUploadFormProps> = ({ event, photographerId
         }
 
         setIsUploading(true);
-        setUploadProgress({ current: 0, total: selectedFiles.length, successes: 0, failures: 0 });
+        setUploadProgress({ current: 0, total: filesToUpload.length, successes: 0, failures: 0 });
         setUploadResult(null);
         setShowResults(false);
 
         const subGroupValue = subGroupMode === 'select' ? selectedSubGroup : subGroupMode === 'new' ? newSubGroup.trim() : null;
 
         try {
-            const result = await onSubmit(selectedFiles, {
+            const result = await onSubmit(filesToUpload, {
                 price: numPrice,
                 tags: tags.split(',').map(t => t.trim()).filter(t => t),
                 is_public: isPublic,
@@ -212,9 +244,36 @@ const BatchUploadForm: React.FC<BatchUploadFormProps> = ({ event, photographerId
                             </div>
                         </div>
                         {selectedFiles.length > 0 && (
-                            <p className="mt-2 text-sm text-green-600 font-medium">
-                                {selectedFiles.length} arquivo(s) selecionado(s)
-                            </p>
+                            <div className="mt-3 space-y-2">
+                                <p className="text-sm text-green-700 font-semibold">
+                                    ✓ {selectedFiles.length} arquivo(s) selecionado(s)
+                                </p>
+
+                                {duplicateFiles.length > 0 && (
+                                    <div className="bg-emerald-50 border border-emerald-200 p-3.5 rounded-lg space-y-2">
+                                        <div className="flex items-center space-x-2 text-emerald-900 font-semibold text-xs sm:text-sm">
+                                            <span className="p-1 bg-emerald-100 text-emerald-700 rounded-full flex-shrink-0">
+                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                                                </svg>
+                                            </span>
+                                            <span>Retomada Inteligente: {duplicateFiles.length} fotos já existem neste evento</span>
+                                        </div>
+                                        <p className="text-xs text-emerald-700 leading-relaxed">
+                                            Detectamos que <strong>{duplicateFiles.length}</strong> das {selectedFiles.length} fotos selecionadas já foram enviadas anteriormente.
+                                        </p>
+                                        <label className="flex items-center gap-2 pt-1 text-xs font-bold text-emerald-900 cursor-pointer select-none">
+                                            <input
+                                                type="checkbox"
+                                                checked={skipDuplicates}
+                                                onChange={(e) => setSkipDuplicates(e.target.checked)}
+                                                className="rounded text-emerald-600 focus:ring-emerald-500 h-4 w-4"
+                                            />
+                                            <span>Pular fotos já enviadas (Continuar upload enviando apenas {newFiles.length} novas)</span>
+                                        </label>
+                                    </div>
+                                )}
+                            </div>
                         )}
                     </div>
 
