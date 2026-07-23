@@ -1080,7 +1080,7 @@ export const api = {
     try {
       const { data, error } = await supabase
         .from("events")
-        .select("id, name, event_date, location, cover_photo_url, photographer_id, category_id, created_at, photographer:photographer_id(name, avatar_url, is_active)")
+        .select("id, name, event_date, location, cover_photo_url, photographer_id, category_id, is_featured, created_at, photographer:photographer_id(name, avatar_url, is_active)")
         .order("event_date", { ascending: false })
         .limit(200);
 

@@ -125,6 +125,7 @@ export interface PhotoEvent {
   cover_photo_url?: string;
   created_at: string;
   allow_discounts?: boolean;
+  is_featured?: boolean;
   photographer?: {
     name: string;
     avatar_url?: string;

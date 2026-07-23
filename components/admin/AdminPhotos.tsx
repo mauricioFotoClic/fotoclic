@@ -326,6 +326,15 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
         }
     };
 
+    const handleToggleEventFeatured = async (eventId: string, isFeatured: boolean) => {
+        setPhotographerEvents(prev => prev.map(ev => ev.id === eventId ? { ...ev, is_featured: isFeatured } : ev));
+        try {
+            await api.updateEvent(eventId, { is_featured: isFeatured });
+        } catch (error) {
+            setPhotographerEvents(prev => prev.map(ev => ev.id === eventId ? { ...ev, is_featured: !isFeatured } : ev));
+        }
+    };
+
     const handleAnalyze = (photo: Photo) => {
         setPhotoToAnalyze(photo);
         setIsAnalysisModalOpen(true);
@@ -407,7 +416,8 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
                         title: event.name,
                         subtitle: `${formatEventDate(event.event_date)} - ${event.location || ''}`,
                         photos: photos,
-                        isEvent: true
+                        isEvent: true,
+                        eventObj: event
                     }];
                 }
                 return [];
@@ -423,7 +433,8 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
                 title: event.name,
                 subtitle: `${formatEventDate(event.event_date)} - ${event.location || ''}`,
                 photos: photos,
-                isEvent: true
+                isEvent: true,
+                eventObj: event
             };
         }).filter(g => !hasActiveSubFilters || g.photos.length > 0);
 
@@ -854,7 +865,8 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
                         group.photos,
                         group.title,
                         group.subtitle,
-                        group.id
+                        group.id,
+                        group.eventObj
                     )}
                 </div>
             ))}
