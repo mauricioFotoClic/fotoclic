@@ -267,10 +267,12 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
                     </div>
                     <div className="mt-6 md:mt-28 w-full md:w-auto flex flex-col md:flex-col items-center md:items-end justify-between md:justify-start gap-4">
                         <div className="px-4 py-2 rounded-full text-neutral-700 bg-neutral-100 border border-neutral-200 text-sm font-medium shadow-sm w-full md:w-auto text-center">
-                            {selectedEvent
-                                ? `${selectedEventPhotos.length} Foto${selectedEventPhotos.length !== 1 ? 's' : ''} neste Evento`
-                                : `${events.length} Evento${events.length !== 1 ? 's' : ''}`
-                            }
+                            {(() => {
+                                const visibleCount = editable ? events.length : events.filter(e => (eventPhotoCounts[e.id] || 0) > 0).length;
+                                return selectedEvent
+                                    ? `${selectedEventPhotos.length} Foto${selectedEventPhotos.length !== 1 ? 's' : ''} neste Evento`
+                                    : `${visibleCount} Evento${visibleCount !== 1 ? 's' : ''}`;
+                            })()}
                         </div>
                         {editable && (
                             <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
@@ -409,8 +411,8 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
                                 const eventPhotoCount = eventPhotoCounts[event.id] || 0;
                                 const coverPhotoUrl = event.cover_photo_url;
 
-                                // Hide events with 0 photos in the portfolio page
-                                if (eventPhotoCount === 0) return null;
+                                // Hide events with 0 photos in the public portfolio page
+                                if (!editable && eventPhotoCount === 0) return null;
 
                                 return (
                                     <div
