@@ -33,28 +33,47 @@ const BatchUploadForm: React.FC<BatchUploadFormProps> = ({ event, photographerId
     } | null>(null);
     const [showResults, setShowResults] = useState(false);
 
-    // Build deduplication index of existing photos in event
-    const existingFileMap = React.useMemo(() => {
-        const set = new Set<string>();
+    // Build robust deduplication index of existing photos in event
+    const { existingNames, existingSizes } = React.useMemo(() => {
+        const names = new Set<string>();
+        const sizes = new Set<number>();
+
         existingPhotos.forEach(p => {
-            if (p.original_filename) set.add(p.original_filename.toLowerCase());
-            if (p.title) set.add(p.title.toLowerCase());
+            if (p.original_filename) {
+                const normName = p.original_filename.trim().toLowerCase();
+                names.add(normName);
+                const nameWithoutExt = normName.substring(0, normName.lastIndexOf('.'));
+                if (nameWithoutExt) names.add(nameWithoutExt);
+            }
+            if (p.title) {
+                const normTitle = p.title.trim().toLowerCase();
+                names.add(normTitle);
+            }
+            if (p.file_size_bytes && p.file_size_bytes > 0) {
+                sizes.add(p.file_size_bytes);
+            }
         });
-        return set;
+        return { existingNames: names, existingSizes: sizes };
     }, [existingPhotos]);
 
     const { newFiles, duplicateFiles } = React.useMemo(() => {
         const newF: File[] = [];
         const dupF: File[] = [];
         selectedFiles.forEach(f => {
-            if (existingFileMap.has(f.name.toLowerCase())) {
+            const fileName = f.name.trim().toLowerCase();
+            const fileNameWithoutExt = fileName.substring(0, fileName.lastIndexOf('.'));
+
+            const isDuplicateByName = existingNames.has(fileName) || (fileNameWithoutExt && existingNames.has(fileNameWithoutExt));
+            const isDuplicateBySize = existingSizes.has(f.size);
+
+            if (isDuplicateByName || isDuplicateBySize) {
                 dupF.push(f);
             } else {
                 newF.push(f);
             }
         });
         return { newFiles: newF, duplicateFiles: dupF };
-    }, [selectedFiles, existingFileMap]);
+    }, [selectedFiles, existingNames, existingSizes]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
