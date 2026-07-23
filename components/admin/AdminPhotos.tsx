@@ -535,33 +535,49 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
         setExpandedEventId(prev => prev === id ? null : id);
     };
 
-    const renderPhotoTable = (photos: Photo[], title: string, subtitle: string | undefined, id: string) => {
+    const renderPhotoTable = (photos: Photo[], title: string, subtitle: string | undefined, id: string, eventObj?: any) => {
         const isExpanded = expandedEventId === id || eventFilter !== 'all'; // Always expanded if filtered by specific event
 
 
         return (
             <div className="mb-4 bg-white rounded-lg shadow-md overflow-hidden border border-neutral-200">
-                <button
-                    onClick={() => handleToggleExpand(id)}
-                    className="w-full bg-neutral-50 px-6 py-4 border-b border-neutral-200 flex justify-between items-center hover:bg-neutral-100 transition-colors"
-                >
-                    <div className="text-left">
-                        <h3 className="text-lg font-bold text-neutral-800 flex items-center gap-2">
-                            {isExpanded ? <ChevronUpIcon /> : <ChevronDownIcon />}
-                            {title}
-                        </h3>
-                        {subtitle && <p className="text-sm text-neutral-500 ml-7">{subtitle}</p>}
+                <div className="w-full bg-neutral-50 px-6 py-4 border-b border-neutral-200 flex justify-between items-center hover:bg-neutral-100 transition-colors">
+                    <button
+                        onClick={() => handleToggleExpand(id)}
+                        className="flex items-center gap-3 text-left flex-1 min-w-0"
+                    >
+                        <div>
+                            <h3 className="text-lg font-bold text-neutral-800 flex items-center gap-2">
+                                {isExpanded ? <ChevronUpIcon /> : <ChevronDownIcon />}
+                                {title}
+                            </h3>
+                            {subtitle && <p className="text-sm text-neutral-500 ml-7">{subtitle}</p>}
+                        </div>
+                    </button>
+                    <div className="flex items-center gap-4">
+                        {eventObj && (
+                            <div 
+                                className="flex items-center gap-2 text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200 px-3 py-1.5 rounded-full shadow-2xs"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <span>Destaque na Home:</span>
+                                <ToggleSwitch
+                                    checked={!!eventObj.is_featured}
+                                    onChange={() => handleToggleEventFeatured(eventObj.id, !eventObj.is_featured)}
+                                />
+                            </div>
+                        )}
+                        {(() => {
+                            const actualCount = id in eventPhotoCounts ? eventPhotoCounts[id] : photos.length;
+                            const hasActiveSubFilters = Boolean(searchTerm || filters.category || filters.status || filters.moderation || filters.featured);
+                            return (
+                                <span className="text-xs font-semibold bg-neutral-200 text-neutral-600 px-2.5 py-1 rounded-full">
+                                    {hasActiveSubFilters ? `${photos.length} de ${actualCount} fotos` : `${actualCount} fotos`}
+                                </span>
+                            );
+                        })()}
                     </div>
-                    {(() => {
-                        const actualCount = id in eventPhotoCounts ? eventPhotoCounts[id] : photos.length;
-                        const hasActiveSubFilters = Boolean(searchTerm || filters.category || filters.status || filters.moderation || filters.featured);
-                        return (
-                            <span className="text-xs font-semibold bg-neutral-200 text-neutral-600 px-2.5 py-1 rounded-full">
-                                {hasActiveSubFilters ? `${photos.length} de ${actualCount} fotos` : `${actualCount} fotos`}
-                            </span>
-                        );
-                    })()}
-                </button>
+                </div>
 
                 {isExpanded && (
                     <div>
@@ -590,13 +606,6 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
                                                 {photo.is_public ? 'Pública' : 'Privada'}
                                             </span>
                                             <span className="text-xs font-bold text-emerald-600">{photo.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
-                                            <div className="flex items-center gap-1.5 ml-auto text-xs text-neutral-500">
-                                                <span>Destaque:</span>
-                                                <ToggleSwitch
-                                                    checked={photo.is_featured}
-                                                    onChange={() => handleToggleFeatured(photo.id, !photo.is_featured)}
-                                                />
-                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -642,7 +651,6 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
                                     <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-500 uppercase tracking-wider">Título</th>
                                     <th className="w-28 px-4 py-3 text-right text-xs font-semibold text-neutral-500 uppercase tracking-wider">Preço</th>
                                     <th className="w-28 px-4 py-3 text-center text-xs font-semibold text-neutral-500 uppercase tracking-wider">Status</th>
-                                    <th className="w-24 px-4 py-3 text-center text-xs font-semibold text-neutral-500 uppercase tracking-wider">Destaque</th>
                                     <th className="w-60 px-4 py-3 text-center text-xs font-semibold text-neutral-500 uppercase tracking-wider">Moderação</th>
                                     <th className="w-28 px-4 py-3 text-center text-xs font-semibold text-neutral-500 uppercase tracking-wider">Ações</th>
                                 </tr>
@@ -670,14 +678,6 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
                                             <span className={`inline-block px-2.5 py-0.5 text-xs font-semibold rounded-full border ${photo.is_public ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'}`}>
                                                 {photo.is_public ? 'Pública' : 'Privada'}
                                             </span>
-                                        </td>
-                                        <td className="px-4 py-3 align-middle text-center">
-                                            <div className="flex justify-center">
-                                                <ToggleSwitch
-                                                    checked={photo.is_featured}
-                                                    onChange={() => handleToggleFeatured(photo.id, !photo.is_featured)}
-                                                />
-                                            </div>
                                         </td>
                                         <td className="px-4 py-3 align-middle text-center">
                                             {photo.moderation_status === 'pending' && (
