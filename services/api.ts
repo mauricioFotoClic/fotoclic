@@ -1238,7 +1238,7 @@ export const api = {
     }
 
     // Invalidate event cache
-    delete inMemoryCache.photographerEventsCache[user.id];
+    delete inMemoryCache.photographerEventsCache[photographerId];
     inMemoryCache.allEvents = { data: null, ts: 0 };
 
     return data as PhotoEvent;
