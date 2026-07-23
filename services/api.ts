@@ -1073,23 +1073,31 @@ export const api = {
       return inMemoryCache.allEvents.data;
     }
 
-    const { data, error } = await supabase
-      .from("events")
-      .select("*, photographer:photographer_id(name, avatar_url, is_active)")
-      .order("event_date", { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .from("events")
+        .select("id, name, event_date, location, cover_photo_url, photographer_id, category_id, created_at, photographer:photographer_id(name, avatar_url, is_active)")
+        .order("event_date", { ascending: false })
+        .limit(200);
 
-    if (error) {
-      console.error("Error fetching all events:", error);
-      return [];
+      if (error) {
+        console.error("Error fetching all events:", error);
+        // Fallback: set short 15s cache on error to prevent polling spam
+        inMemoryCache.allEvents = { data: inMemoryCache.allEvents.data || [], ts: now - CACHE_TTL + 15000 };
+        return inMemoryCache.allEvents.data || [];
+      }
+
+      const validEvents = (data || []).filter((e: any) => {
+        return !e.photographer || e.photographer.is_active !== false;
+      });
+
+      const result = validEvents as PhotoEvent[];
+      inMemoryCache.allEvents = { data: result, ts: now };
+      return result;
+    } catch (err) {
+      console.error("Exception in getAllPublicEvents:", err);
+      return inMemoryCache.allEvents.data || [];
     }
-
-    const validEvents = (data || []).filter((e: any) => {
-      return !e.photographer || e.photographer.is_active !== false;
-    });
-
-    const result = validEvents as PhotoEvent[];
-    inMemoryCache.allEvents = { data: result, ts: now };
-    return result;
   },
 
   getEventById: async (eventId: string): Promise<PhotoEvent | null> => {
