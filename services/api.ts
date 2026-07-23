@@ -193,8 +193,9 @@ export const api = {
         return [];
       }
       const result = data ? data.map(mapPhoto) : [];
-      inMemoryCache.featured = { data: result, ts: now };
-      return result;
+      const randomized = shuffleArray(result);
+      inMemoryCache.featured = { data: randomized, ts: now };
+      return randomized;
     } catch (e) {
       console.error("Failed to fetch featured photos:", e);
       return [];
