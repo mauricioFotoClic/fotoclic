@@ -404,9 +404,9 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                     const filePath = `${user.id}/${selectedEvent.id}/${fileName}`;
 
                     const [origRes, prevRes, thumbRes] = await Promise.all([
-                        api.supabase.storage.from('photos-original').upload(`${filePath}-original.${fileExt}`, originalBlob),
-                        api.supabase.storage.from('photos-preview').upload(`${filePath}-preview.webp`, previewBlob),
-                        api.supabase.storage.from('photos-preview').upload(`${filePath}-thumb.webp`, thumbBlob)
+                        api.supabase.storage.from('photos-original').upload(`${filePath}-original.${fileExt}`, originalBlob, { upsert: true }),
+                        api.supabase.storage.from('photos-preview').upload(`${filePath}-preview.webp`, previewBlob, { upsert: true }),
+                        api.supabase.storage.from('photos-preview').upload(`${filePath}-thumb.webp`, thumbBlob, { upsert: true })
                     ]);
 
                     if (origRes.error) throw origRes.error;
@@ -1371,7 +1371,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                             // Helper to upload blob
                             const uploadToStorage = async (b64: string, path: string, bucket: string) => {
                                 const blob = base64ToBlob(b64);
-                                const { error } = await api.supabase.storage.from(bucket).upload(path, blob);
+                                const { error } = await api.supabase.storage.from(bucket).upload(path, blob, { upsert: true });
                                 if (error) throw error;
                             };
 

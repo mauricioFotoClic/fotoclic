@@ -1308,19 +1308,34 @@ export const api = {
   },
 
   deleteEvent: async (id: string): Promise<boolean> => {
-    const { data: event } = await supabase.from("events").select("photographer_id").eq("id", id).single();
-    const { error } = await supabase.from("events").delete().eq("id", id);
+    try {
+      const { data: event } = await supabase.from("events").select("photographer_id").eq("id", id).single();
 
-    if (error) {
-      console.error("Error deleting event:", error);
+      // 1. Delete all photos linked to this event first (prevents FK constraint failure)
+      const { error: photosErr } = await supabase.from("photos").delete().eq("event_id", id);
+      if (photosErr) {
+        console.error("Error deleting photos associated with event:", photosErr);
+      }
+
+      // 2. Delete the event row from events table
+      const { error } = await supabase.from("events").delete().eq("id", id);
+
+      if (error) {
+        console.error("Error deleting event:", error);
+        return false;
+      }
+
+      // 3. Clear in-memory caches
+      if (event && event.photographer_id) {
+        delete inMemoryCache.photographerEventsCache[event.photographer_id];
+        delete inMemoryCache.photographerPhotosCache[event.photographer_id];
+      }
+      inMemoryCache.allEvents = { data: null, ts: 0 };
+      return true;
+    } catch (err) {
+      console.error("Failed to delete event:", err);
       return false;
     }
-
-    if (event) {
-      delete inMemoryCache.photographerEventsCache[event.photographer_id];
-      inMemoryCache.allEvents = { data: null, ts: 0 };
-    }
-    return true;
   },
 
   updateEvent: async (
