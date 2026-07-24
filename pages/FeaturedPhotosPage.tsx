@@ -27,11 +27,7 @@ const FeaturedPhotosPage: React.FC<FeaturedPhotosPageProps> = ({ onNavigate, onA
           api.getPublicPhotographers(),
         ]);
         
-        // Double check: Ensure only photos from active photographers are shown
-        const activePhotographerIds = publicPhotographers.filter(p => p.is_active).map(p => p.id);
-        const validPhotos = featuredPhotos.filter(p => activePhotographerIds.includes(p.photographer_id));
-        
-        setPhotos(validPhotos);
+        setPhotos(featuredPhotos);
         setPhotographers(publicPhotographers);
       } catch (error) {
         console.error("Failed to load featured photos data", error);
@@ -41,6 +37,7 @@ const FeaturedPhotosPage: React.FC<FeaturedPhotosPageProps> = ({ onNavigate, onA
     };
     loadData();
   }, []);
+
 
   const getPhotographerForPhoto = (photographerId: string) => {
     return photographers.find(p => p.id === photographerId);
