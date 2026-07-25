@@ -550,6 +550,17 @@ export const api = {
     return true;
   },
 
+  deletePhotos: async (ids: string[], photographerId: string): Promise<boolean> => {
+    if (!ids || ids.length === 0) return true;
+    const { error } = await supabase.from("photos").delete().in("id", ids);
+    if (error) throw error;
+
+    delete inMemoryCache.photographerPhotosCache[photographerId];
+    inMemoryCache.recent = { data: null, ts: 0 };
+    inMemoryCache.featured = { data: null, ts: 0 };
+    return true;
+  },
+
   updatePhotographer: async (id: string, data: Partial<User>) => {
     // Explicitly map camelCase JS properties to snake_case DB columns
     const dbData: { [key: string]: any } = {};

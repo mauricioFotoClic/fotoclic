@@ -126,6 +126,10 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
     const [filterStatus, setFilterStatus] = useState('all');
     const [selectedFolder, setSelectedFolder] = useState('all');
 
+    // Multi-Selection State for Photos
+    const [selectedPhotoIds, setSelectedPhotoIds] = useState<string[]>([]);
+    const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+
     // Pagination
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -575,6 +579,58 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => { setSearchTerm(e.target.value); setCurrentPage(1); };
     const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => { setFilterStatus(e.target.value); setCurrentPage(1); };
 
+    // --- SELECTION & BULK DELETE HANDLERS ---
+    const handleToggleSelectPhoto = (id: string) => {
+        setSelectedPhotoIds(prev => 
+            prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+        );
+    };
+
+    const handleToggleSelectAll = () => {
+        const visibleIds = filteredPhotos.map(p => p.id);
+        const allSelected = visibleIds.every(id => selectedPhotoIds.includes(id));
+
+        if (allSelected) {
+            setSelectedPhotoIds(prev => prev.filter(id => !visibleIds.includes(id)));
+        } else {
+            setSelectedPhotoIds(prev => Array.from(new Set([...prev, ...visibleIds])));
+        }
+    };
+
+    const handleBulkDelete = async () => {
+        if (selectedPhotoIds.length === 0) return;
+
+        const count = selectedPhotoIds.length;
+        const isConfirmed = await confirm({
+            title: `Excluir ${count} Foto(s) Selecionada(s)`,
+            message: `Tem certeza absoluta que deseja excluir permanentemente ${count} foto(s)? Esta ação não poderá ser desfeita.`,
+            confirmText: `Sim, Excluir ${count} Fotos`,
+            variant: "danger"
+        });
+
+        if (!isConfirmed) return;
+
+        try {
+            setIsBulkDeleting(true);
+            const idsToDelete = [...selectedPhotoIds];
+            const success = await api.deletePhotos(idsToDelete, user.id);
+
+            if (success) {
+                setPhotos(prev => prev.filter(p => !idsToDelete.includes(p.id)));
+                setSelectedPhotoIds([]);
+                showToast(`${count} foto(s) excluída(s) com sucesso.`, 'success');
+                fetchData();
+            } else {
+                showToast('Erro ao excluir as fotos selecionadas.', 'error');
+            }
+        } catch (error: any) {
+            console.error("Bulk delete error:", error);
+            showToast(error.message || 'Erro ao excluir fotos.', 'error');
+        } finally {
+            setIsBulkDeleting(false);
+        }
+    };
+
     // --- REUSED HANDLERS (Delete, Edit, Likes) ---
     const handleDelete = async (photo: Photo) => {
         const isConfirmed = await confirm({
@@ -590,6 +646,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
             const success = await api.deletePhoto(photo.id);
             if (success) {
                 setPhotos(prev => prev.filter(p => p.id !== photo.id));
+                setSelectedPhotoIds(prev => prev.filter(id => id !== photo.id));
                 showToast('Foto excluída com sucesso.', 'success');
             } else { showToast('Erro ao excluir foto.', 'error'); }
         } catch (error) { showToast('Erro ao excluir foto.', 'error'); }
@@ -965,45 +1022,78 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                         </div>
                     </div>
 
-                    {/* Filters */}
-                    <div className="mb-6 flex flex-col md:flex-row gap-4">
-                        <div className="relative flex-grow">
-                            <input
-                                type="text"
-                                placeholder="Buscar fotos neste evento..."
-                                value={searchTerm}
-                                onChange={handleSearchChange}
-                                className="w-full pl-10 pr-4 py-2.5 bg-white border border-neutral-300 rounded-lg text-sm"
-                            />
-                            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-neutral-400" />
-                        </div>
-                        {existingFolders.length > 0 && (
+                    {/* Filters & Bulk Action Bar */}
+                    <div className="mb-6 flex flex-col gap-4">
+                        <div className="flex flex-col md:flex-row gap-4">
+                            <div className="relative flex-grow">
+                                <input
+                                    type="text"
+                                    placeholder="Buscar fotos neste evento..."
+                                    value={searchTerm}
+                                    onChange={handleSearchChange}
+                                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-neutral-300 rounded-lg text-sm"
+                                />
+                                <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-neutral-400" />
+                            </div>
+                            {existingFolders.length > 0 && (
+                                <div className="md:w-64">
+                                    <select
+                                        value={selectedFolder}
+                                        onChange={(e) => { setSelectedFolder(e.target.value); setCurrentPage(1); }}
+                                        className="w-full px-4 py-2.5 bg-white border border-neutral-300 rounded-lg text-sm"
+                                    >
+                                        <option value="all">Todas as Pastas</option>
+                                        {existingFolders.map(folder => (
+                                            <option key={folder} value={folder}>{folder}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
                             <div className="md:w-64">
                                 <select
-                                    value={selectedFolder}
-                                    onChange={(e) => { setSelectedFolder(e.target.value); setCurrentPage(1); }}
+                                    value={filterStatus}
+                                    onChange={handleFilterChange}
                                     className="w-full px-4 py-2.5 bg-white border border-neutral-300 rounded-lg text-sm"
                                 >
-                                    <option value="all">Todas as Pastas</option>
-                                    {existingFolders.map(folder => (
-                                        <option key={folder} value={folder}>{folder}</option>
-                                    ))}
+                                    <option value="all">Todos os Status</option>
+                                    <option value="public">Públicas</option>
+                                    <option value="private">Privadas</option>
+                                    <option value="approved">Aprovadas</option>
+                                    <option value="pending">Pendentes</option>
+                                    <option value="rejected">Rejeitadas</option>
                                 </select>
                             </div>
-                        )}
-                        <div className="md:w-64">
-                            <select
-                                value={filterStatus}
-                                onChange={handleFilterChange}
-                                className="w-full px-4 py-2.5 bg-white border border-neutral-300 rounded-lg text-sm"
-                            >
-                                <option value="all">Todos os Status</option>
-                                <option value="public">Públicas</option>
-                                <option value="private">Privadas</option>
-                                <option value="approved">Aprovadas</option>
-                                <option value="pending">Pendentes</option>
-                                <option value="rejected">Rejeitadas</option>
-                            </select>
+                        </div>
+
+                        {/* Barra de Ações em Lote */}
+                        <div className="bg-neutral-50 p-3 rounded-lg border border-neutral-200 flex flex-wrap items-center justify-between gap-3">
+                            <div className="flex items-center gap-3">
+                                <label className="flex items-center gap-2 cursor-pointer select-none text-sm font-semibold text-neutral-700">
+                                    <input
+                                        type="checkbox"
+                                        checked={filteredPhotos.length > 0 && filteredPhotos.every(p => selectedPhotoIds.includes(p.id))}
+                                        onChange={handleToggleSelectAll}
+                                        className="w-4 h-4 text-primary rounded border-neutral-300 focus:ring-primary"
+                                    />
+                                    <span>Selecionar Todas ({filteredPhotos.length})</span>
+                                </label>
+                                {selectedPhotoIds.length > 0 && (
+                                    <span className="text-xs bg-primary/10 text-primary-dark font-bold px-2.5 py-1 rounded-full">
+                                        {selectedPhotoIds.length} selecionada(s)
+                                    </span>
+                                )}
+                            </div>
+
+                            {selectedPhotoIds.length > 0 && (
+                                <button
+                                    onClick={handleBulkDelete}
+                                    disabled={isBulkDeleting}
+                                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-lg transition-colors flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+                                >
+                                    <TrashIcon />
+                                    <span>Excluir Selecionadas ({selectedPhotoIds.length})</span>
+                                </button>
+                            )}
                         </div>
                     </div>
 
@@ -1011,8 +1101,14 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                         {/* Mobile cards */}
                         <div className="md:hidden divide-y divide-neutral-100">
                             {paginatedPhotos.map((photo) => (
-                                <div key={photo.id} className="p-4">
+                                <div key={photo.id} className={`p-4 ${selectedPhotoIds.includes(photo.id) ? 'bg-red-50/40' : ''}`}>
                                     <div className="flex items-start gap-3">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedPhotoIds.includes(photo.id)}
+                                            onChange={() => handleToggleSelectPhoto(photo.id)}
+                                            className="w-4 h-4 mt-1 text-primary rounded border-neutral-300 focus:ring-primary flex-shrink-0"
+                                        />
                                         <div className="relative flex-shrink-0">
                                             <img
                                                 src={getOptimizedImageUrl(photo.thumb_url || photo.preview_url, 150, 70)}
@@ -1061,6 +1157,14 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                             <table className="w-full min-w-[960px]">
                                 <thead className="bg-neutral-100">
                                     <tr>
+                                        <th className="p-4 w-10 text-center">
+                                            <input
+                                                type="checkbox"
+                                                checked={filteredPhotos.length > 0 && filteredPhotos.every(p => selectedPhotoIds.includes(p.id))}
+                                                onChange={handleToggleSelectAll}
+                                                className="w-4 h-4 text-primary rounded border-neutral-300 focus:ring-primary"
+                                            />
+                                        </th>
                                         <th className="p-4 text-left text-sm font-semibold text-neutral-600">Foto</th>
                                         <th className="p-4 text-left text-sm font-semibold text-neutral-600">Título</th>
                                         <th className="p-4 text-left text-sm font-semibold text-neutral-600">Categoria</th>
@@ -1073,9 +1177,19 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {paginatedPhotos.map((photo, index) => (
-                                        <tr key={photo.id} className={`border-t ${index % 2 === 0 ? 'bg-white' : 'bg-neutral-50'}`}>
-                                            <td className="p-2">
+                                    {paginatedPhotos.map((photo, index) => {
+                                        const isSelected = selectedPhotoIds.includes(photo.id);
+                                        return (
+                                            <tr key={photo.id} className={`border-t ${isSelected ? 'bg-red-50/50' : (index % 2 === 0 ? 'bg-white' : 'bg-neutral-50')}`}>
+                                                <td className="p-4 text-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isSelected}
+                                                        onChange={() => handleToggleSelectPhoto(photo.id)}
+                                                        className="w-4 h-4 text-primary rounded border-neutral-300 focus:ring-primary"
+                                                    />
+                                                </td>
+                                                <td className="p-2">
                                                 <div className="relative w-16 h-12">
                                                     <img
                                                         src={getOptimizedImageUrl(photo.thumb_url || photo.preview_url, 150, 70)}
@@ -1119,9 +1233,10 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                                                 </div>
                                             </td>
                                         </tr>
-                                    ))}
+                                        );
+                                    })}
                                     {filteredPhotos.length === 0 && (
-                                        <tr><td colSpan={9} className="text-center p-8 text-neutral-500">Nenhuma foto encontrada neste evento.</td></tr>
+                                        <tr><td colSpan={10} className="text-center p-8 text-neutral-500">Nenhuma foto encontrada neste evento.</td></tr>
                                     )}
                                 </tbody>
                             </table>
