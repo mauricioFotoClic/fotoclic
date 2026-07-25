@@ -238,6 +238,10 @@ export default async function handler(req, res) {
                                         preview_url: photo.preview_url
                                     });
 
+                                    // Prazo de liberação de saldo: 30 dias para Cartão de Crédito, 7 dias para Pix/outros
+                                    const holdDays = method === 'CARD' ? 30 : 7;
+                                    const availableAtDate = new Date(Date.now() + (holdDays * 24 * 60 * 60 * 1000)).toISOString();
+
                                     const { data: upsertData, error: saleError } = await supabaseAdmin.from('sales').upsert({
                                         photo_id: photo.id,
                                         buyer_id: finalUserId,
@@ -247,6 +251,8 @@ export default async function handler(req, res) {
                                         photographer_id: photo.photographer_id,
                                         commission_rate: rate,
                                         sale_date: new Date().toISOString(),
+                                        available_at: availableAtDate,
+                                        is_available: false,
                                         billing_id: checkout.id
                                     }, { onConflict: 'photo_id, buyer_id', ignoreDuplicates: true });
 

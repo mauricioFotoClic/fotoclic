@@ -151,19 +151,22 @@ const PhotographerPayouts: React.FC<PhotographerPayoutsProps> = ({ user }) => {
                 
                 <div className="bg-white p-5 rounded-lg shadow-sm border border-neutral-100 relative group">
                     <div className="flex items-center gap-1 mb-1">
-                        <p className="text-xs text-orange-500 font-bold uppercase tracking-wider">Saldo Pendente (7 dias)</p>
+                        <p className="text-xs text-orange-500 font-bold uppercase tracking-wider">Saldo Pendente</p>
                         <div className="relative flex items-center">
                             <div className="text-neutral-300 hover:text-neutral-500 cursor-help transition-colors">
                                 <InfoIcon />
                             </div>
-                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-neutral-800 text-white text-[10px] rounded shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20 pointer-events-none text-center leading-tight normal-case font-normal">
-                                Valores de vendas recentes que estão aguardando o prazo de segurança de 7 dias.
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 p-2 bg-neutral-800 text-white text-[10px] rounded shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20 pointer-events-none text-center leading-tight normal-case font-normal">
+                                Valores de vendas a liberar (Pix em 7 dias, Cartão de Crédito em 30 dias pelo gateway).
                                 <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-neutral-800"></div>
                             </div>
                         </div>
                     </div>
                     <p className="text-xl font-bold text-orange-500">
                         {balance ? (balance.balance_pending || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'R$ 0,00'}
+                    </p>
+                    <p className="text-[10px] text-neutral-400 mt-1">
+                        Aguardando prazo (Pix 7d / Cartão 30d)
                     </p>
                 </div>
 
