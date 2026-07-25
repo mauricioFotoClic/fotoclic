@@ -28,15 +28,12 @@ export default async function handler(req, res) {
 
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Não autorizado: Token ausente.' });
-  }
+  const authHeader = req.headers.authorization || '';
+  const token = authHeader.replace('Bearer ', '').trim() || req.query?.secret || '';
 
-  const token = authHeader.split(' ')[1];
-
-  // Identifica se é o Cron Job automático ou um Saque Manual do Admin
-  const isCronJob = token === process.env.CRON_SECRET;
+  // Identifica se é o Cron Job automático da Vercel ou um Saque Manual do Admin
+  const cronSecret = process.env.CRON_SECRET;
+  const isCronJob = cronSecret && (token === cronSecret);
 
   if (!isCronJob) {
     // --- FLUXO DE SAQUE MANUAL DO ADMIN ---
