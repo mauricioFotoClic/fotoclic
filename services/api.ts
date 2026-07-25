@@ -692,6 +692,30 @@ export const api = {
         console.warn("Error fetching from photographer_wallet_summary:", walletError);
       }
 
+      // 1b. Direct calculation fallback from sales table for real-time accuracy
+      const { data: photographerSales } = await supabase
+        .from("sales")
+        .select("price, commission, is_available, payout_id, status")
+        .eq("photographer_id", photographerId);
+
+      let calcPending = 0;
+      let calcAvailable = 0;
+      if (photographerSales && photographerSales.length > 0) {
+        photographerSales.forEach((s: any) => {
+          if (s.payout_id === null && s.status !== "refunded") {
+            const net = (s.price || 0) - (s.commission || 0);
+            if (s.is_available) {
+              calcAvailable += net;
+            } else {
+              calcPending += net;
+            }
+          }
+        });
+      }
+
+      const finalPending = (walletData?.balance_pending && walletData.balance_pending > 0) ? walletData.balance_pending : calcPending;
+      const finalAvailable = (walletData && walletData.balance_pending > 0) ? walletData.balance_available : calcAvailable;
+
       // 2. Fetch basic photo stats
       const { count: photoCount } = await supabase
         .from("photos")
@@ -732,11 +756,11 @@ export const api = {
         commissionRate: effectiveRate,
         totalSalesGross: walletData?.total_sales_gross || 0,
         totalPlatformFees: walletData?.total_platform_fees || 0,
-        totalEarnings: (walletData?.balance_pending || 0) + (walletData?.balance_available || 0) + (walletData?.total_withdrawn || 0),
+        totalEarnings: finalPending + finalAvailable + (walletData?.total_withdrawn || 0),
         totalPaid: walletData?.total_withdrawn || 0,
-        currentBalance: walletData?.balance_available || 0,
-        balance_pending: walletData?.balance_pending || 0,
-        balance_available: walletData?.balance_available || 0,
+        currentBalance: finalAvailable,
+        balance_pending: finalPending,
+        balance_available: finalAvailable,
         likesCount: totalLikes,
         avgRating: 0,
         reviewCount: 0,
