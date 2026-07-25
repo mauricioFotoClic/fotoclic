@@ -235,6 +235,33 @@ const CartPage: React.FC<CartPageProps> = ({ currentUser, cartItemIds, onRemoveI
                 ) : (
                     <div className="flex flex-col lg:flex-row gap-12">
                         <div className="flex-grow space-y-6">
+                            {/* Banner de incentivo de Desconto Progressivo */}
+                            {groupedCart.map(group => {
+                                const eligiblePhotos = group.photos.filter(p => !group.eligiblePhotoIds || group.eligiblePhotoIds.includes(p.id));
+                                const qty = eligiblePhotos.length;
+                                const rules = group.bulkRules;
+
+                                if (rules && rules.length > 0 && !group.appliedBulkRule) {
+                                    // Achar o próximo nível de desconto que o cliente pode alcançar
+                                    const nextRule = [...rules].sort((a,b) => a.minQuantity - b.minQuantity).find(r => r.minQuantity > qty);
+                                    if (nextRule) {
+                                        const missing = nextRule.minQuantity - qty;
+                                        return (
+                                            <div key={`incentive-${group.photographerId}`} className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center justify-between gap-3 text-amber-900 shadow-sm">
+                                                <div className="flex items-center gap-3">
+                                                    <span className="text-2xl">🔥</span>
+                                                    <div className="text-sm">
+                                                        <span className="font-bold">Desconto Progressivo Disponível! </span>
+                                                        Adicione mais <strong className="text-amber-900 underline">{missing} foto(s)</strong> deste fotógrafo para ganhar <strong className="bg-amber-200/80 px-1.5 py-0.5 rounded text-amber-900 font-bold">{nextRule.discountPercent}% OFF</strong> no seu pedido.
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    }
+                                }
+                                return null;
+                            })}
+
                             {cartPhotos.map(photo => {
                                 const group = groupedCart.find(g => g.photographerId === photo.photographer_id);
                                 const isEligible = !group?.eligiblePhotoIds || group.eligiblePhotoIds.includes(photo.id);
