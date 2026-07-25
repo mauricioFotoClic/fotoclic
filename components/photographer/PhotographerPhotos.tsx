@@ -853,6 +853,20 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                     ) : (
                         <div className="flex gap-2 flex-wrap sm:flex-nowrap">
                             <button
+                                onClick={() => {
+                                    if (!selectedEvent) return;
+                                    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://fotoclic.com.br';
+                                    const eventUrl = `${origin}/evento/${selectedEvent.id}`;
+                                    navigator.clipboard.writeText(eventUrl);
+                                    showToast('Link do evento copiado para a área de transferência!', 'success');
+                                }}
+                                className="px-4 py-2 text-sm font-medium text-emerald-800 bg-emerald-50 border border-emerald-300 rounded-full hover:bg-emerald-100 transition-colors shadow-sm flex items-center gap-1.5"
+                                title="Copiar link público deste evento"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                                Copiar Link
+                            </button>
+                            <button
                                 onClick={() => setIsBulkPriceModalOpen(true)}
                                 className="px-4 py-2 text-sm font-medium text-primary-dark bg-primary/10 border border-primary-dark rounded-full hover:bg-primary/20 transition-colors shadow-sm flex items-center gap-1.5"
                             >
@@ -989,6 +1003,24 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                                                         </span>
                                                     </div>
                                                 )}
+
+                                                {/* Botão Copiar Link do Evento */}
+                                                <div className="pt-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            const origin = typeof window !== 'undefined' ? window.location.origin : 'https://fotoclic.com.br';
+                                                            const eventUrl = `${origin}/evento/${event.id}`;
+                                                            navigator.clipboard.writeText(eventUrl);
+                                                            showToast('Link do evento copiado para a área de transferência!', 'success');
+                                                        }}
+                                                        className="w-full py-2 px-3 bg-primary/10 hover:bg-primary/20 text-primary-dark font-bold rounded-lg transition-colors flex items-center justify-center gap-2 text-xs border border-primary/20"
+                                                    >
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                                                        <span>Copiar Link do Evento</span>
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
