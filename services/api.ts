@@ -604,10 +604,10 @@ export const api = {
       return [];
     }
 
-    // We need buyer name, let's fetch it or map it if possible contextually
+    // We need buyer details and photo preview/original
     let joinQuery = supabase
       .from("sales")
-      .select("*, buyer:users!buyer_id(name), photo:photos(title, preview_url, thumb_url, photographer_id)")
+      .select("*, buyer:users!buyer_id(name, email, phone), photo:photos(title, preview_url, thumb_url, file_url, photographer_id)")
       .eq("photographer_id", photographerId)
       .order("sale_date", { ascending: false });
 
@@ -621,18 +621,21 @@ export const api = {
       console.warn("Error fetching sales with buyer details:", joinError);
       // Fallback to simple data without name
       return data
-        ? data.map((s: any) => ({ ...s, buyer_name: "Cliente" }))
+        ? data.map((s: any) => ({ ...s, buyer_name: s.buyer_name || "Cliente" }))
         : [];
     }
 
     return salesWithBuyer
       ? salesWithBuyer.map((s: any) => ({
         ...s,
-        buyer_name: s.buyer?.name || "Cliente",
+        buyer_name: s.buyer?.name || s.buyer_name || "Cliente",
+        buyer_email: s.buyer?.email || null,
+        buyer_phone: s.buyer?.phone || null,
         photo: s.photo ? {
           title: s.photo.title,
           preview_url: s.photo.preview_url,
           thumb_url: s.photo.thumb_url,
+          file_url: s.photo.file_url,
           photographer_id: s.photo.photographer_id
         } : null
       }))

@@ -173,6 +173,8 @@ export interface Sale {
   photo_id: string;
   buyer_id: string;
   buyer_name: string;
+  buyer_email?: string | null;
+  buyer_phone?: string | null;
   sale_date: string;
   price: number;
   commission: number;
