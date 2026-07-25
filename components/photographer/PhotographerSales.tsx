@@ -42,7 +42,7 @@ const PhotographerSales: React.FC<PhotographerSalesProps> = ({ user }) => {
 
     const getPhotoInfo = (sale: Sale) => sale.photo || photos.find(p => p.id === sale.photo_id);
 
-    // Obter URL limpa / original da foto sem marca d'água
+    // Obter URL da foto para o fotógrafo no modal
     const getCleanPhotoUrl = (sale: Sale): string => {
         const photo = getPhotoInfo(sale);
         if (!photo) return '';
@@ -52,13 +52,12 @@ const PhotographerSales: React.FC<PhotographerSalesProps> = ({ user }) => {
             return photo.file_url;
         }
 
-        // Se file_url for caminho relativo do bucket Supabase original/photos-hd
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://jzrrwhuletsknujjfdwa.supabase.co';
         if (photo.file_url) {
-            return `${supabaseUrl}/storage/v1/object/public/photos-hd/${photo.file_url}`;
+            // O bucket de originais é photos-original
+            return `${supabaseUrl}/storage/v1/object/public/photos-original/${photo.file_url}`;
         }
 
-        // Fallback seguro: preview_url
         return photo.preview_url || photo.thumb_url || '';
     };
 
@@ -284,17 +283,14 @@ const PhotographerSales: React.FC<PhotographerSalesProps> = ({ user }) => {
             >
                 {selectedSale && (
                     <div className="p-6 space-y-6 max-h-[80vh] overflow-y-auto custom-scrollbar">
-                        {/* Seção 1: Foto Sem Marca d'Água */}
+                        {/* Seção 1: Foto Vendida */}
                         <div>
-                            <h3 className="text-sm font-bold text-neutral-500 uppercase tracking-wider mb-2 flex items-center gap-2">
-                                🖼️ Foto Vendida (Visualização Limpa / Alta Resolução)
-                            </h3>
                             {cleanPhotoUrl ? (
-                                <div className="relative bg-neutral-900 rounded-xl overflow-hidden shadow-inner flex justify-center items-center min-h-[300px] border border-neutral-800 group">
+                                <div className="relative bg-neutral-900 rounded-xl overflow-hidden shadow-inner flex justify-center items-center min-h-[250px] md:min-h-[350px] border border-neutral-800">
                                     <img 
                                         src={cleanPhotoUrl} 
                                         alt={selectedPhoto?.title || 'Foto Vendida'} 
-                                        className="max-h-[500px] w-auto object-contain select-none"
+                                        className="max-h-[70vh] md:max-h-[500px] w-auto object-contain select-none"
                                         onError={(e) => {
                                             // Fallback para preview_url se o file_url de alta resolução falhar
                                             if (selectedPhoto && selectedPhoto.preview_url && e.currentTarget.src !== selectedPhoto.preview_url) {
@@ -302,16 +298,13 @@ const PhotographerSales: React.FC<PhotographerSalesProps> = ({ user }) => {
                                             }
                                         }}
                                     />
-                                    <div className="absolute top-3 right-3 bg-black/70 backdrop-blur-sm text-white text-xs px-3 py-1.5 rounded-full font-medium flex items-center gap-1.5">
-                                        ✨ Sem marca d'água
-                                    </div>
                                 </div>
                             ) : (
                                 <div className="p-8 bg-neutral-100 rounded-xl text-center text-neutral-400 italic">
                                     Imagem indisponível ou excluída.
                                 </div>
                             )}
-                            <p className="mt-2 text-sm font-semibold text-neutral-800 text-center">
+                            <p className="mt-2 text-base font-bold text-neutral-900 text-center">
                                 {selectedPhoto?.title || 'Foto Vendida'}
                             </p>
                         </div>
