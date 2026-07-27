@@ -1160,15 +1160,26 @@ export const api = {
     }
 
     try {
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from("events")
-        .select("id, name, event_date, location, cover_photo_url, photographer_id, category_id, is_featured, created_at, photographer:photographer_id(name, avatar_url, is_active)")
+        .select("id, name, event_date, location, cover_photo_url, photographer_id, category_id, is_featured, created_at, photographer:users!photographer_id(name, avatar_url, is_active)")
         .order("event_date", { ascending: false })
         .limit(200);
 
       if (error) {
+        console.warn("Retrying getAllPublicEvents without join due to error:", error.message);
+        const fallbackRes = await supabase
+          .from("events")
+          .select("id, name, event_date, location, cover_photo_url, photographer_id, category_id, is_featured, created_at")
+          .order("event_date", { ascending: false })
+          .limit(200);
+
+        data = fallbackRes.data;
+        error = fallbackRes.error;
+      }
+
+      if (error) {
         console.error("Error fetching all events:", error);
-        // Fallback: set short 15s cache on error to prevent polling spam
         inMemoryCache.allEvents = { data: inMemoryCache.allEvents.data || [], ts: now - CACHE_TTL + 15000 };
         return inMemoryCache.allEvents.data || [];
       }
@@ -1202,11 +1213,22 @@ export const api = {
   },
 
   getEventsByCategoryId: async (categoryId: string): Promise<PhotoEvent[]> => {
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from("events")
-      .select("*, photographer:photographer_id(name, avatar_url, is_active)")
+      .select("*, photographer:users!photographer_id(name, avatar_url, is_active)")
       .eq("category_id", categoryId)
       .order("event_date", { ascending: false });
+
+    if (error) {
+      console.warn("Retrying getEventsByCategoryId without join:", error.message);
+      const fallback = await supabase
+        .from("events")
+        .select("*")
+        .eq("category_id", categoryId)
+        .order("event_date", { ascending: false });
+      data = fallback.data;
+      error = fallback.error;
+    }
 
     if (error) {
       console.error("Error fetching events by category:", error);
@@ -1214,7 +1236,7 @@ export const api = {
     }
 
     const validEvents = (data || []).filter((e: any) => {
-      return e.photographer && e.photographer.is_active && e.photographer.avatar_url;
+      return !e.photographer || (e.photographer.is_active !== false);
     });
 
     return validEvents as PhotoEvent[];
