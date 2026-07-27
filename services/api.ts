@@ -146,6 +146,7 @@ const inMemoryCache: {
   featured: { data: null, ts: 0 },
   recent: { data: null, ts: 0 },
   activePhotographers: { data: null, ts: 0 },
+  inactivePhotographers: { data: null as Set<string> | null, ts: 0 },
   allPhotographers: { data: null, ts: 0 },
   allEvents: { data: null, ts: 0 },
   userCache: {},
@@ -154,6 +155,26 @@ const inMemoryCache: {
 };
 
 export const api = {
+  getInactivePhotographerIds: async (): Promise<Set<string>> => {
+    const now = Date.now();
+    if (inMemoryCache.inactivePhotographers?.data && (now - inMemoryCache.inactivePhotographers.ts < CACHE_TTL)) {
+      return inMemoryCache.inactivePhotographers.data;
+    }
+    try {
+      const { data } = await supabase
+        .from("users")
+        .select("id")
+        .eq("role", "photographer")
+        .eq("is_active", false);
+
+      const set = new Set((data || []).map((u: any) => u.id));
+      inMemoryCache.inactivePhotographers = { data: set, ts: now };
+      return set;
+    } catch (e) {
+      return inMemoryCache.inactivePhotographers?.data || new Set();
+    }
+  },
+
   // --- PHOTOS ---
   getFeaturedPhotos: async (): Promise<Photo[]> => {
     const now = Date.now();
@@ -191,8 +212,12 @@ export const api = {
           return [];
         }
 
-        // Cache the full pool (not shuffled)
-        const pool = data ? data.map(mapPhoto) : [];
+        const inactiveIds = await api.getInactivePhotographerIds();
+
+        // Cache the full pool (not shuffled), excluding inactive photographers
+        const pool = (data || [])
+          .filter((p: any) => !inactiveIds.has(p.photographer_id))
+          .map(mapPhoto);
         inMemoryCache.featured = { data: pool, ts: now };
       } catch (e) {
         console.error("Failed to fetch featured photos:", e);
@@ -221,7 +246,7 @@ export const api = {
         const [catRes, eventRes, photogRes] = await Promise.all([
           supabase.from("categories").select("id, name"),
           supabase.from("events").select("id, name"),
-          supabase.from("users").select("id, name").eq("role", "photographer")
+          supabase.from("users").select("id, name").eq("role", "photographer").eq("is_active", true)
         ]);
 
         if (catRes.data) {
@@ -291,7 +316,11 @@ export const api = {
       console.error("Critical error in searchPhotos:", error);
       return [];
     }
-    return data ? data.map(mapPhoto) : [];
+
+    const inactiveIds = await api.getInactivePhotographerIds();
+    return (data || [])
+      .filter((p: any) => !inactiveIds.has(p.photographer_id))
+      .map(mapPhoto);
   },
 
   getAllPhotos: async (photographerId?: string, shuffle: boolean = false, onlyPublic: boolean = false): Promise<Photo[]> => {
@@ -319,6 +348,10 @@ export const api = {
       return [];
     }
     let resultData = data || [];
+    if (onlyPublic) {
+      const inactiveIds = await api.getInactivePhotographerIds();
+      resultData = resultData.filter((p: any) => !inactiveIds.has(p.photographer_id));
+    }
     if (shuffle) resultData = shuffleArray(resultData);
     return resultData.map(mapPhoto);
   },
@@ -342,7 +375,12 @@ export const api = {
       console.warn("Error fetching recent photos:", error);
       return [];
     }
-    const result = data ? data.map(mapPhoto) : [];
+
+    const inactiveIds = await api.getInactivePhotographerIds();
+    const result = (data || [])
+      .filter((p: any) => !inactiveIds.has(p.photographer_id))
+      .map(mapPhoto);
+
     if (limit === 8) {
       inMemoryCache.recent = { data: result, ts: now };
     }
@@ -364,7 +402,9 @@ export const api = {
       .eq("is_public", true)
       .limit(limit);
     if (error) throw error;
-    let resultData = data || [];
+    
+    const inactiveIds = await api.getInactivePhotographerIds();
+    let resultData = (data || []).filter((p: any) => !inactiveIds.has(p.photographer_id));
     if (shuffle) resultData = shuffleArray(resultData);
     return resultData.map(mapPhoto);
   },
@@ -592,6 +632,10 @@ export const api = {
     inMemoryCache.userCache[id] = { data: mappedUser, ts: Date.now() };
     inMemoryCache.allPhotographers = { data: null, ts: 0 };
     inMemoryCache.activePhotographers = { data: null, ts: 0 };
+    inMemoryCache.inactivePhotographers = { data: null, ts: 0 };
+    inMemoryCache.allEvents = { data: null, ts: 0 };
+    inMemoryCache.featured = { data: null, ts: 0 };
+    inMemoryCache.recent = { data: null, ts: 0 };
     return mappedUser;
   },
 
@@ -1178,6 +1222,8 @@ export const api = {
         error = fallbackRes.error;
       }
 
+      const inactiveIds = await api.getInactivePhotographerIds();
+
       if (error) {
         console.error("Error fetching all events:", error);
         inMemoryCache.allEvents = { data: inMemoryCache.allEvents.data || [], ts: now - CACHE_TTL + 15000 };
@@ -1185,6 +1231,7 @@ export const api = {
       }
 
       const validEvents = (data || []).filter((e: any) => {
+        if (e.photographer_id && inactiveIds.has(e.photographer_id)) return false;
         return !e.photographer || e.photographer.is_active !== false;
       });
 
@@ -1209,6 +1256,12 @@ export const api = {
       console.error("Error fetching event:", error);
       return null;
     }
+
+    if (data?.photographer_id) {
+      const inactiveIds = await api.getInactivePhotographerIds();
+      if (inactiveIds.has(data.photographer_id)) return null;
+    }
+
     return data as PhotoEvent;
   },
 
@@ -1235,7 +1288,9 @@ export const api = {
       return [];
     }
 
+    const inactiveIds = await api.getInactivePhotographerIds();
     const validEvents = (data || []).filter((e: any) => {
+      if (e.photographer_id && inactiveIds.has(e.photographer_id)) return false;
       return !e.photographer || (e.photographer.is_active !== false);
     });
 
