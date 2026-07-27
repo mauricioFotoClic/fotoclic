@@ -70,7 +70,6 @@ const PhotographerPage: React.FC<PhotographerPageProps> = ({ user: initialUser, 
         if (!u) return false;
         return Boolean(
             u.sports_policy_accepted_at ||
-            u.liability_waiver_accepted_at ||
             localStorage.getItem(`fotoclic_sports_policy_accepted_${u.id}`)
         );
     };
@@ -90,7 +89,6 @@ const PhotographerPage: React.FC<PhotographerPageProps> = ({ user: initialUser, 
             setCurrentUser(prev => ({
                 ...prev,
                 sports_policy_accepted_at: nowIso,
-                liability_waiver_accepted_at: prev.liability_waiver_accepted_at || nowIso,
             }));
             setIsSportsPolicyModalOpen(false);
             showToast('Termos de uso aceitos com sucesso!', 'success');
