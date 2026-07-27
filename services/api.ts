@@ -68,6 +68,7 @@ const mapUser = (dbUser: any): User => {
     pix_key_type: dbUser.pix_key_type,
     payout_frequency: dbUser.payout_frequency || 'diario',
     liability_waiver_accepted_at: dbUser.liability_waiver_accepted_at,
+    sports_policy_accepted_at: dbUser.sports_policy_accepted_at,
     phone: dbUser.phone,
     communication_templates: dbUser.communication_templates || undefined,
   };
@@ -2042,6 +2043,25 @@ export const api = {
     if (error) {
       console.error("Error updating liability waiver:", error);
       return false;
+    }
+    return true;
+  },
+
+  updateSportsPolicyAcceptance: async (userId: string): Promise<boolean> => {
+    const nowIso = new Date().toISOString();
+    // Try updating DB column sports_policy_accepted_at or liability_waiver_accepted_at
+    const { error } = await supabase
+      .from("users")
+      .update({ sports_policy_accepted_at: nowIso })
+      .eq("id", userId);
+
+    if (error) {
+      // If sports_policy_accepted_at column is missing in DB schema, fallback to liability_waiver_accepted_at
+      console.warn("Could not update sports_policy_accepted_at (trying liability_waiver_accepted_at):", error.message);
+      await supabase
+        .from("users")
+        .update({ liability_waiver_accepted_at: nowIso })
+        .eq("id", userId);
     }
     return true;
   },

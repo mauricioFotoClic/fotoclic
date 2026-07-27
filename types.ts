@@ -38,6 +38,7 @@ export interface User {
   pix_key_type?: string;
   payout_frequency?: 'diario' | 'semanal' | 'mensal';
   liability_waiver_accepted_at?: string;
+  sports_policy_accepted_at?: string;
   phone?: string;
   communication_templates?: {
     abandoned_cart?: {

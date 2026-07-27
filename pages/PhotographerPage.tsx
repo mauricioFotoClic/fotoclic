@@ -14,6 +14,7 @@ import PhotographerAbandonedCarts from '../components/photographer/PhotographerA
 import PhotographerDiscounts from '../components/photographer/PhotographerDiscounts';
 import CommunicationSettings from '../components/photographer/CommunicationSettings';
 import PhotographerBusinessCard from '../components/photographer/PhotographerBusinessCard';
+import SportsPolicyModal from '../components/photographer/SportsPolicyModal';
 
 type PhotographerView = 'dashboard' | 'photos' | 'sales' | 'payouts' | 'profile' | 'portfolio-preview' | 'coupons' | 'abandoned-carts' | 'discounts' | 'communications' | 'business-card';
 
@@ -61,6 +62,45 @@ const PhotographerPage: React.FC<PhotographerPageProps> = ({ user: initialUser, 
     const [abandonedCartsCount, setAbandonedCartsCount] = useState(0);
     const [isTransitioning, setIsTransitioning] = useState(false);
     const [visitedViews, setVisitedViews] = useState<PhotographerView[]>([getInitialView()]);
+
+    const [isSportsPolicyModalOpen, setIsSportsPolicyModalOpen] = useState(false);
+    const [isAcceptingPolicy, setIsAcceptingPolicy] = useState(false);
+
+    const isPolicyAccepted = (u: User) => {
+        if (!u) return false;
+        return Boolean(
+            u.sports_policy_accepted_at ||
+            u.liability_waiver_accepted_at ||
+            localStorage.getItem(`fotoclic_sports_policy_accepted_${u.id}`)
+        );
+    };
+
+    useEffect(() => {
+        if (currentUser && !isPolicyAccepted(currentUser)) {
+            setIsSportsPolicyModalOpen(true);
+        }
+    }, [currentUser]);
+
+    const handleAcceptPolicy = async () => {
+        try {
+            setIsAcceptingPolicy(true);
+            const nowIso = new Date().toISOString();
+            await api.updateSportsPolicyAcceptance(currentUser.id);
+            localStorage.setItem(`fotoclic_sports_policy_accepted_${currentUser.id}`, nowIso);
+            setCurrentUser(prev => ({
+                ...prev,
+                sports_policy_accepted_at: nowIso,
+                liability_waiver_accepted_at: prev.liability_waiver_accepted_at || nowIso,
+            }));
+            setIsSportsPolicyModalOpen(false);
+            showToast('Termos de uso aceitos com sucesso!', 'success');
+        } catch (err) {
+            console.error("Erro ao aceitar política esportiva:", err);
+            showToast('Erro ao registrar aceitação dos termos.', 'error');
+        } finally {
+            setIsAcceptingPolicy(false);
+        }
+    };
 
     useEffect(() => {
         if (isTransitioning) {
@@ -146,6 +186,12 @@ const PhotographerPage: React.FC<PhotographerPageProps> = ({ user: initialUser, 
     }, []);
 
     const handleSetView = (newView: PhotographerView) => {
+        if (!isPolicyAccepted(currentUser) && (newView === 'photos')) {
+            setIsSportsPolicyModalOpen(true);
+            showToast('Você precisa aceitar os Termos da FotoClic antes de criar eventos ou postar fotos.', 'info');
+            return;
+        }
+
         if (window.location.hash.replace('#', '') !== newView) {
             window.location.hash = newView;
         }
@@ -244,6 +290,11 @@ const PhotographerPage: React.FC<PhotographerPageProps> = ({ user: initialUser, 
                     </main>
                 </div>
             </div>
+            <SportsPolicyModal
+                isOpen={isSportsPolicyModalOpen}
+                onAccept={handleAcceptPolicy}
+                isSubmitting={isAcceptingPolicy}
+            />
         </div>
     );
 };
