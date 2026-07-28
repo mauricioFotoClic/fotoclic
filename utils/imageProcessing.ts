@@ -21,10 +21,60 @@ export interface FastProcessedImages {
 }
 
 /**
+ * Web Worker pool manager for off-main-thread image processing
+ */
+let workerInstance: Worker | null = null;
+let workerJobId = 0;
+const workerCallbacks = new Map<number, { resolve: (val: FastProcessedImages) => void; reject: (err: any) => void }>();
+
+const getWorker = (): Worker | null => {
+    if (typeof window === 'undefined' || typeof Worker === 'undefined') return null;
+    if (!workerInstance) {
+        try {
+            workerInstance = new Worker('/imageProcessor.worker.js');
+            workerInstance.onmessage = (e) => {
+                const { id, success, thumbBlob, previewBlob, width, height, error } = e.data;
+                const callback = workerCallbacks.get(id);
+                if (callback) {
+                    workerCallbacks.delete(id);
+                    if (success) {
+                        callback.resolve({ thumbBlob, previewBlob, width, height });
+                    } else {
+                        callback.reject(new Error(error || "Worker processing error"));
+                    }
+                }
+            };
+            workerInstance.onerror = (err) => {
+                console.warn("Web Worker runtime error, falling back to main thread:", err);
+            };
+        } catch (e) {
+            console.warn("Could not initialize Web Worker, falling back to main thread:", e);
+            workerInstance = null;
+        }
+    }
+    return workerInstance;
+};
+
+/**
  * Ultra-fast hardware accelerated image processor (GPU / Canvas native)
  * Preserves 2K resolution (2048px) with 85% WebP quality + crisp watermark.
  */
 export const processImageFast = async (file: File): Promise<FastProcessedImages> => {
+    const worker = getWorker();
+    if (worker) {
+        return new Promise<FastProcessedImages>((resolve, reject) => {
+            const id = ++workerJobId;
+            workerCallbacks.set(id, { resolve, reject });
+            worker.postMessage({ id, file, watermarkText: "FOTOCLIC   PROVA   " });
+        }).catch(err => {
+            console.warn("Worker execution failed, running main thread fallback:", err);
+            return processImageFastMainThread(file);
+        });
+    }
+    return processImageFastMainThread(file);
+};
+
+const processImageFastMainThread = async (file: File): Promise<FastProcessedImages> => {
     let source: ImageBitmap | HTMLImageElement;
     let width = 0;
     let height = 0;

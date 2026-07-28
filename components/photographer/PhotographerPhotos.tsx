@@ -426,7 +426,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                     const { data: prevUrlData } = api.supabase.storage.from('photos-preview').getPublicUrl(`${filePath}-preview.webp`);
                     const { data: thumbUrlData } = api.supabase.storage.from('photos-preview').getPublicUrl(`${filePath}-thumb.webp`);
 
-                    const newPhoto = await api.createPhoto({
+                    pendingBatchPhotos.push({
                         photographer_id: user.id,
                         category_id: selectedEvent.category_id,
                         title: title,
@@ -440,21 +440,13 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                         height: height,
                         tags: metadata.tags,
                         is_public: metadata.is_public,
-                        is_featured: false,
                         event_id: selectedEvent.id,
                         file_size_bytes: file.size,
                         sub_group: metadata.sub_group,
                         original_filename: file.name
                     });
 
-                    if (newPhoto) {
-                        if ((user as any).face_indexing_enabled !== false) {
-                            faceRecognitionService.indexPhoto(newPhoto.id, newPhoto.preview_url)
-                                .catch(err => console.warn("Face indexing failed:", err));
-                        }
-                        successCount++;
-                        setPhotos(prev => [newPhoto, ...prev]);
-                    }
+                    successCount++;
                 }
 
             } catch (err: any) {
@@ -473,8 +465,10 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
             }
         };
 
-        // Execution with concurrency limit (5 files simultaneously)
-        const CONCURRENCY = 5;
+        const pendingBatchPhotos: any[] = [];
+
+        // Execution with optimized concurrency limit (8 files simultaneously)
+        const CONCURRENCY = 8;
         const fileEntries = Array.from(files.entries());
         const executeTasks = async () => {
             const workers = [];
@@ -497,6 +491,27 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
 
         try {
             await executeTasks();
+
+            // Commit all photo records in 1 single SQL RPC transaction to minimize DB calls & costs
+            if (pendingBatchPhotos.length > 0) {
+                try {
+                    const createdBatch = await api.createPhotosBatch(pendingBatchPhotos);
+                    setPhotos(prev => [...createdBatch, ...prev]);
+
+                    // Trigger face indexing asynchronously without blocking UI
+                    if ((user as any).face_indexing_enabled !== false) {
+                        createdBatch.forEach(p => {
+                            if (p.id && p.preview_url) {
+                                faceRecognitionService.indexPhoto(p.id, p.preview_url)
+                                    .catch(err => console.warn("Face indexing failed:", err));
+                            }
+                        });
+                    }
+                } catch (batchErr: any) {
+                    console.error("Failed to commit photo batch to database:", batchErr);
+                    showToast("Erro ao registrar lote de fotos no banco de dados.", "error");
+                }
+            }
 
             if (failCount === 0) {
                 setIsBatchUploadModalOpen(false);
