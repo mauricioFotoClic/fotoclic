@@ -25,7 +25,21 @@ export interface FastProcessedImages {
  */
 let workerInstance: Worker | null = null;
 let workerJobId = 0;
-const workerCallbacks = new Map<number, { resolve: (val: FastProcessedImages) => void; reject: (err: any) => void }>();
+const workerCallbacks = new Map<number, { resolve: (val: FastProcessedImages) => void; reject: (err: any) => void; timer: any }>();
+
+const resetWorker = () => {
+    if (workerInstance) {
+        try {
+            workerInstance.terminate();
+        } catch (e) {}
+        workerInstance = null;
+    }
+    workerCallbacks.forEach((cb) => {
+        clearTimeout(cb.timer);
+        cb.reject(new Error("Worker reset due to timeout"));
+    });
+    workerCallbacks.clear();
+};
 
 const getWorker = (): Worker | null => {
     if (typeof window === 'undefined' || typeof Worker === 'undefined') return null;
@@ -36,6 +50,7 @@ const getWorker = (): Worker | null => {
                 const { id, success, thumbBlob, previewBlob, width, height, error } = e.data;
                 const callback = workerCallbacks.get(id);
                 if (callback) {
+                    clearTimeout(callback.timer);
                     workerCallbacks.delete(id);
                     if (success) {
                         callback.resolve({ thumbBlob, previewBlob, width, height });
@@ -45,7 +60,8 @@ const getWorker = (): Worker | null => {
                 }
             };
             workerInstance.onerror = (err) => {
-                console.warn("Web Worker runtime error, falling back to main thread:", err);
+                console.warn("Web Worker runtime error, resetting worker:", err);
+                resetWorker();
             };
         } catch (e) {
             console.warn("Could not initialize Web Worker, falling back to main thread:", e);
@@ -64,7 +80,18 @@ export const processImageFast = async (file: File): Promise<FastProcessedImages>
     if (worker) {
         return new Promise<FastProcessedImages>((resolve, reject) => {
             const id = ++workerJobId;
-            workerCallbacks.set(id, { resolve, reject });
+            const timer = setTimeout(() => {
+                console.warn(`Worker task ${id} timed out after 15s. Resetting worker pool...`);
+                const cb = workerCallbacks.get(id);
+                if (cb) {
+                    workerCallbacks.delete(id);
+                    resetWorker();
+                    // Fallback to main thread processing for this file
+                    processImageFastMainThread(file).then(resolve).catch(reject);
+                }
+            }, 15000);
+
+            workerCallbacks.set(id, { resolve, reject, timer });
             worker.postMessage({ id, file, watermarkText: "FOTOCLIC   PROVA   " });
         }).catch(err => {
             console.warn("Worker execution failed, running main thread fallback:", err);

@@ -449,9 +449,9 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                     pendingBatchPhotos.push(photoData);
                     successCount++;
 
-                    // Incremental Flush (Micro-batching): Commit every 30 photos to keep memory footprint low and persist progress
-                    if (pendingBatchPhotos.length >= 30) {
-                        await flushPendingBatch();
+                    // Trigger async flush every 25 photos if no flush is currently in flight
+                    if (pendingBatchPhotos.length >= 25) {
+                        flushPendingBatch();
                     }
                 }
 
@@ -472,11 +472,12 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
         };
 
         const pendingBatchPhotos: any[] = [];
+        let isFlushing = false;
 
         const flushPendingBatch = async () => {
-            if (pendingBatchPhotos.length === 0) return;
-            const batchToCommit = [...pendingBatchPhotos];
-            pendingBatchPhotos.length = 0; // Clear memory immediately
+            if (pendingBatchPhotos.length === 0 || isFlushing) return;
+            isFlushing = true;
+            const batchToCommit = pendingBatchPhotos.splice(0, pendingBatchPhotos.length);
 
             try {
                 const createdBatch = await api.createPhotosBatch(batchToCommit);
@@ -484,15 +485,19 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
 
                 // Trigger face indexing asynchronously without blocking UI
                 if ((user as any).face_indexing_enabled !== false) {
-                    createdBatch.forEach(p => {
-                        if (p.id && p.preview_url) {
-                            faceRecognitionService.indexPhoto(p.id, p.preview_url)
-                                .catch(err => console.warn("Face indexing failed:", err));
-                        }
-                    });
+                    setTimeout(() => {
+                        createdBatch.forEach(p => {
+                            if (p.id && p.preview_url) {
+                                faceRecognitionService.indexPhoto(p.id, p.preview_url)
+                                    .catch(err => console.warn("Face indexing failed:", err));
+                            }
+                        });
+                    }, 100);
                 }
             } catch (batchErr: any) {
                 console.error("Failed to commit micro-batch to database:", batchErr);
+            } finally {
+                isFlushing = false;
             }
         };
 
