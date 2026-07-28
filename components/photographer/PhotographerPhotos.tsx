@@ -426,7 +426,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                     const { data: prevUrlData } = api.supabase.storage.from('photos-preview').getPublicUrl(`${filePath}-preview.webp`);
                     const { data: thumbUrlData } = api.supabase.storage.from('photos-preview').getPublicUrl(`${filePath}-thumb.webp`);
 
-                    pendingBatchPhotos.push({
+                    const photoData = {
                         photographer_id: user.id,
                         category_id: selectedEvent.category_id,
                         title: title,
@@ -444,9 +444,15 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                         file_size_bytes: file.size,
                         sub_group: metadata.sub_group,
                         original_filename: file.name
-                    });
+                    };
 
+                    pendingBatchPhotos.push(photoData);
                     successCount++;
+
+                    // Incremental Flush (Micro-batching): Commit every 30 photos to keep memory footprint low and persist progress
+                    if (pendingBatchPhotos.length >= 30) {
+                        await flushPendingBatch();
+                    }
                 }
 
             } catch (err: any) {
@@ -467,8 +473,31 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
 
         const pendingBatchPhotos: any[] = [];
 
-        // Execution with optimized concurrency limit (8 files simultaneously)
-        const CONCURRENCY = 8;
+        const flushPendingBatch = async () => {
+            if (pendingBatchPhotos.length === 0) return;
+            const batchToCommit = [...pendingBatchPhotos];
+            pendingBatchPhotos.length = 0; // Clear memory immediately
+
+            try {
+                const createdBatch = await api.createPhotosBatch(batchToCommit);
+                setPhotos(prev => [...createdBatch, ...prev]);
+
+                // Trigger face indexing asynchronously without blocking UI
+                if ((user as any).face_indexing_enabled !== false) {
+                    createdBatch.forEach(p => {
+                        if (p.id && p.preview_url) {
+                            faceRecognitionService.indexPhoto(p.id, p.preview_url)
+                                .catch(err => console.warn("Face indexing failed:", err));
+                        }
+                    });
+                }
+            } catch (batchErr: any) {
+                console.error("Failed to commit micro-batch to database:", batchErr);
+            }
+        };
+
+        // Execution with optimized concurrency limit (6 files simultaneously for network stability)
+        const CONCURRENCY = 6;
         const fileEntries = Array.from(files.entries());
         const executeTasks = async () => {
             const workers = [];
@@ -492,26 +521,8 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
         try {
             await executeTasks();
 
-            // Commit all photo records in 1 single SQL RPC transaction to minimize DB calls & costs
-            if (pendingBatchPhotos.length > 0) {
-                try {
-                    const createdBatch = await api.createPhotosBatch(pendingBatchPhotos);
-                    setPhotos(prev => [...createdBatch, ...prev]);
-
-                    // Trigger face indexing asynchronously without blocking UI
-                    if ((user as any).face_indexing_enabled !== false) {
-                        createdBatch.forEach(p => {
-                            if (p.id && p.preview_url) {
-                                faceRecognitionService.indexPhoto(p.id, p.preview_url)
-                                    .catch(err => console.warn("Face indexing failed:", err));
-                            }
-                        });
-                    }
-                } catch (batchErr: any) {
-                    console.error("Failed to commit photo batch to database:", batchErr);
-                    showToast("Erro ao registrar lote de fotos no banco de dados.", "error");
-                }
-            }
+            // Final flush for remaining photos in the queue
+            await flushPendingBatch();
 
             if (failCount === 0) {
                 setIsBatchUploadModalOpen(false);
