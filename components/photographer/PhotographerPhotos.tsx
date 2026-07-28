@@ -414,27 +414,36 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                     const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`; 
                     const filePath = `${user.id}/${selectedEvent.id}/${fileName}`;
 
-                    // Helper with automatic 1-retry fallback for network hiccups
-                    const uploadToStorageWithRetry = async (bucket: string, path: string, body: Blob | File) => {
-                        const { error } = await api.supabase.storage.from(bucket).upload(path, body, { upsert: true });
+                    // Helper with automatic 1-retry fallback for network hiccups and explicit contentType header
+                    const uploadToStorageWithRetry = async (bucket: string, path: string, body: Blob | File, contentType?: string) => {
+                        const mimeType = contentType || body.type || (path.endsWith('.webp') ? 'image/webp' : 'image/jpeg');
+                        const options = { upsert: true, contentType: mimeType };
+                        
+                        const { error } = await api.supabase.storage.from(bucket).upload(path, body, options);
                         if (error) {
-                            console.warn(`Retry upload for ${path} due to error:`, error);
-                            const { error: retryErr } = await api.supabase.storage.from(bucket).upload(path, body, { upsert: true });
+                            console.warn(`Retry upload for ${path} due to error (${error.message})...`);
+                            const { error: retryErr } = await api.supabase.storage.from(bucket).upload(path, body, options);
                             if (retryErr) throw retryErr;
                         }
                     };
 
                     // Upload preview & thumb sequentially to keep network sockets clean and resilient
-                    await uploadToStorageWithRetry('photos-preview', `${filePath}-preview.webp`, previewBlob);
-                    await uploadToStorageWithRetry('photos-preview', `${filePath}-thumb.webp`, thumbBlob);
+                    await uploadToStorageWithRetry('photos-preview', `${filePath}-preview.webp`, previewBlob, 'image/webp');
+                    await uploadToStorageWithRetry('photos-preview', `${filePath}-thumb.webp`, thumbBlob, 'image/webp');
 
-                    // Upload original photo to private bucket
+                    // Determine clean extension & MIME for original file upload
+                    const origContentType = file.type || (fileExt === 'png' ? 'image/png' : fileExt === 'webp' ? 'image/webp' : 'image/jpeg');
+                    const cleanExt = (fileExt === 'heic' || fileExt === 'heif') ? 'jpg' : (fileExt || 'jpg');
+
+                    // Upload original photo to private bucket (non-blocking fallback for exotic format errors)
+                    let originalPath = `${filePath}-original.${cleanExt}`;
                     try {
                         if (hasAuthSession) {
-                            await uploadToStorageWithRetry('photos-original', `${filePath}-original.${fileExt}`, file);
+                            await uploadToStorageWithRetry('photos-original', originalPath, file, origContentType);
                         }
-                    } catch (e) {
-                        // Silently ignore private bucket upload restrictions for custom sessions
+                    } catch (origErr) {
+                        console.warn(`Could not upload original photo for ${file.name}, using preview reference:`, origErr);
+                        originalPath = `${filePath}-preview.webp`;
                     }
 
                     const { data: prevUrlData } = api.supabase.storage.from('photos-preview').getPublicUrl(`${filePath}-preview.webp`);
@@ -447,7 +456,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                         description: `ORIGINAL_FILENAME:${file.name}`,
                         price: metadata.price,
                         preview_url: prevUrlData.publicUrl,
-                        file_url: `${filePath}-original.${fileExt}`,
+                        file_url: originalPath,
                         thumb_url: thumbUrlData.publicUrl,
                         resolution: '4K',
                         width: width,
