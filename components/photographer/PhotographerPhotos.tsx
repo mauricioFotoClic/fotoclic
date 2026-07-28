@@ -414,7 +414,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                     const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`; 
                     const filePath = `${user.id}/${selectedEvent.id}/${fileName}`;
 
-                    // Helper with automatic 1-retry fallback for network hiccups and strict MIME type matching for Supabase Storage
+                    // Helper with automatic exponential backoff retry for network hiccups and Supabase Storage rate-limits
                     const uploadToStorageWithRetry = async (bucket: string, path: string, body: Blob | File, contentType?: string) => {
                         let mimeType = contentType;
                         if (!mimeType || mimeType === 'application/octet-stream') {
@@ -425,11 +425,25 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                         
                         const options = { upsert: true, contentType: mimeType };
                         
-                        const { error } = await api.supabase.storage.from(bucket).upload(path, body, options);
-                        if (error) {
-                            console.warn(`Retry upload for ${path} due to error (${error.message})...`);
-                            const { error: retryErr } = await api.supabase.storage.from(bucket).upload(path, body, options);
-                            if (retryErr) throw retryErr;
+                        let attempt = 0;
+                        while (attempt < 3) {
+                            try {
+                                const { error } = await api.supabase.storage.from(bucket).upload(path, body, options);
+                                if (!error) return; // Success!
+                                
+                                console.warn(`Storage upload retry ${attempt + 1}/3 for ${path}: ${error.message}`);
+                                attempt++;
+                                if (attempt < 3) {
+                                    // Exponential backoff delay (300ms, 800ms)
+                                    await new Promise(r => setTimeout(r, attempt * 400));
+                                } else {
+                                    throw error;
+                                }
+                            } catch (err: any) {
+                                attempt++;
+                                if (attempt >= 3) throw err;
+                                await new Promise(r => setTimeout(r, attempt * 400));
+                            }
                         }
                     };
 
@@ -510,7 +524,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
         };
 
         // Execution with chunked queue and active Garbage Collector memory dereferencing
-        const CONCURRENCY = 4; // Stable 4 parallel streams to prevent RAM & socket exhaustion
+        const CONCURRENCY = 2; // Controlled 2 parallel streams to comply with Supabase free/pro rate limits per second
         const executeTasks = async () => {
             const queue: Array<{ index: number; file: File } | null> = files.map((file, index) => ({ index, file }));
             const workers = [];
