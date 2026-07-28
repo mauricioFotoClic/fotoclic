@@ -416,14 +416,26 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
 
                     // Helper with automatic 1-retry fallback for network hiccups and explicit contentType header
                     const uploadToStorageWithRetry = async (bucket: string, path: string, body: Blob | File, contentType?: string) => {
-                        const mimeType = contentType || body.type || (path.endsWith('.webp') ? 'image/webp' : 'image/jpeg');
+                        // Normalize MIME type strictly to standard image types expected by Supabase Storage
+                        let mimeType = contentType || body.type || 'image/jpeg';
+                        if (path.endsWith('.webp')) mimeType = 'image/webp';
+                        else if (path.endsWith('.png') || mimeType.includes('png')) mimeType = 'image/png';
+                        else if (path.endsWith('.jpg') || path.endsWith('.jpeg') || mimeType.includes('jpeg')) mimeType = 'image/jpeg';
+                        
                         const options = { upsert: true, contentType: mimeType };
                         
-                        const { error } = await api.supabase.storage.from(bucket).upload(path, body, options);
-                        if (error) {
-                            console.warn(`Retry upload for ${path} due to error (${error.message})...`);
-                            const { error: retryErr } = await api.supabase.storage.from(bucket).upload(path, body, options);
-                            if (retryErr) throw retryErr;
+                        try {
+                            const { error } = await api.supabase.storage.from(bucket).upload(path, body, options);
+                            if (error) {
+                                console.warn(`Storage upload warning for ${path}: ${error.message}`);
+                                // 1 retry attempt for temporary network drops
+                                const { error: retryErr } = await api.supabase.storage.from(bucket).upload(path, body, options);
+                                if (retryErr) throw retryErr;
+                            }
+                        } catch (err: any) {
+                            // If it's a 400 Bad Request or bucket restriction error, log warning and let caller handle non-critical fallback
+                            console.warn(`Storage upload skipped/failed for ${path}:`, err?.message || err);
+                            throw err;
                         }
                     };
 
@@ -432,17 +444,18 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                     await uploadToStorageWithRetry('photos-preview', `${filePath}-thumb.webp`, thumbBlob, 'image/webp');
 
                     // Determine clean extension & MIME for original file upload
-                    const origContentType = file.type || (fileExt === 'png' ? 'image/png' : fileExt === 'webp' ? 'image/webp' : 'image/jpeg');
-                    const cleanExt = (fileExt === 'heic' || fileExt === 'heif') ? 'jpg' : (fileExt || 'jpg');
+                    const isPng = fileExt === 'png' || file.type === 'image/png';
+                    const origContentType = isPng ? 'image/png' : (fileExt === 'webp' ? 'image/webp' : 'image/jpeg');
+                    const cleanExt = isPng ? 'png' : ((fileExt === 'heic' || fileExt === 'heif') ? 'jpg' : (fileExt || 'jpg'));
 
-                    // Upload original photo to private bucket (non-blocking fallback for exotic format errors)
+                    // Upload original photo to private bucket (isolating exotic 400 format errors so batch NEVER freezes)
                     let originalPath = `${filePath}-original.${cleanExt}`;
                     try {
                         if (hasAuthSession) {
                             await uploadToStorageWithRetry('photos-original', originalPath, file, origContentType);
                         }
                     } catch (origErr) {
-                        console.warn(`Could not upload original photo for ${file.name}, using preview reference:`, origErr);
+                        console.warn(`Original photo upload bypassed for ${file.name} (Using preview fallback reference):`, origErr);
                         originalPath = `${filePath}-preview.webp`;
                     }
 
