@@ -299,15 +299,6 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
         uploadAbortRef.current = false;
         showToast(`Iniciando envio de ${files.length} arquivos...`, "info");
 
-        // Check authentication session once before loop to avoid thousands of repetitive auth API calls
-        let hasAuthSession = false;
-        try {
-            const { data: { user: authUser } } = await api.supabase.auth.getUser();
-            hasAuthSession = !!authUser;
-        } catch (e) {
-            hasAuthSession = true;
-        }
-
         const uploadSingleFile = async (file: File, index: number) => {
             if (uploadAbortRef.current) return;
             const isVideo = file.type.startsWith('video/') || !!file.name.match(/\.(mp4|mov|webm)$/i);
@@ -414,75 +405,55 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                     const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`; 
                     const filePath = `${user.id}/${selectedEvent.id}/${fileName}`;
 
-                    // Helper with automatic exponential backoff retry for network hiccups and Supabase Storage rate-limits
-                    const uploadToStorageWithRetry = async (bucket: string, path: string, body: Blob | File, contentType?: string) => {
-                        let mimeType = contentType;
-                        if (!mimeType || mimeType === 'application/octet-stream') {
-                            if (path.endsWith('.png')) mimeType = 'image/png';
-                            else if (path.endsWith('.webp')) mimeType = 'image/webp';
-                            else mimeType = 'image/jpeg';
-                        }
-                        
-                        const options = { upsert: true, contentType: mimeType };
-                        
-                        let attempt = 0;
-                        while (attempt < 3) {
-                            try {
-                                const { error } = await api.supabase.storage.from(bucket).upload(path, body, options);
-                                if (!error) return; // Success!
-                                
-                                console.warn(`Storage upload retry ${attempt + 1}/3 for ${path}: ${error.message}`);
-                                attempt++;
-                                if (attempt < 3) {
-                                    // Exponential backoff delay (300ms, 800ms)
-                                    await new Promise(r => setTimeout(r, attempt * 400));
-                                } else {
-                                    throw error;
-                                }
-                            } catch (err: any) {
-                                attempt++;
-                                if (attempt >= 3) throw err;
-                                await new Promise(r => setTimeout(r, attempt * 400));
-                            }
-                        }
-                    };
+                    const [prevRes, thumbRes] = await Promise.all([
+                        api.supabase.storage.from('photos-preview').upload(`${filePath}-preview.webp`, previewBlob, { upsert: true }),
+                        api.supabase.storage.from('photos-preview').upload(`${filePath}-thumb.webp`, thumbBlob, { upsert: true })
+                    ]);
 
-                    // Upload preview & thumb sequentially to keep network sockets clean and resilient
-                    await uploadToStorageWithRetry('photos-preview', `${filePath}-preview.webp`, previewBlob, 'image/webp');
-                    await uploadToStorageWithRetry('photos-preview', `${filePath}-thumb.webp`, thumbBlob, 'image/webp');
+                    if (prevRes.error) throw prevRes.error;
+                    if (thumbRes.error) throw thumbRes.error;
 
-                    // Set originalPath directly to preview.webp to guarantee zero 400 Bad Request errors and 3x faster batch upload speeds
-                    const originalPath = `${filePath}-preview.webp`;
+                    // Upload original photo to private bucket if authenticated session exists
+                    try {
+                        const { data: { user: authUser } } = await api.supabase.auth.getUser();
+                        if (authUser) {
+                            await api.supabase.storage.from('photos-original').upload(`${filePath}-original.${fileExt}`, file, { upsert: true });
+                        }
+                    } catch (e) {
+                        // Silently ignore private bucket upload restrictions for custom sessions
+                    }
 
                     const { data: prevUrlData } = api.supabase.storage.from('photos-preview').getPublicUrl(`${filePath}-preview.webp`);
                     const { data: thumbUrlData } = api.supabase.storage.from('photos-preview').getPublicUrl(`${filePath}-thumb.webp`);
 
-                    const photoData = {
+                    const newPhoto = await api.createPhoto({
                         photographer_id: user.id,
                         category_id: selectedEvent.category_id,
                         title: title,
                         description: `ORIGINAL_FILENAME:${file.name}`,
                         price: metadata.price,
                         preview_url: prevUrlData.publicUrl,
-                        file_url: originalPath,
+                        file_url: `${filePath}-original.${fileExt}`,
                         thumb_url: thumbUrlData.publicUrl,
                         resolution: '4K',
                         width: width,
                         height: height,
                         tags: metadata.tags,
                         is_public: metadata.is_public,
+                        is_featured: false,
                         event_id: selectedEvent.id,
                         file_size_bytes: file.size,
                         sub_group: metadata.sub_group,
                         original_filename: file.name
-                    };
+                    });
 
-                    pendingBatchPhotos.push(photoData);
-                    successCount++;
-
-                    // Trigger async flush every 50 photos to minimize database operations
-                    if (pendingBatchPhotos.length >= 50) {
-                        flushPendingBatch();
+                    if (newPhoto) {
+                        if ((user as any).face_indexing_enabled !== false) {
+                            faceRecognitionService.indexPhoto(newPhoto.id, newPhoto.preview_url)
+                                .catch(err => console.warn("Face indexing failed:", err));
+                        }
+                        successCount++;
+                        setPhotos(prev => [newPhoto, ...prev]);
                     }
                 }
 
@@ -493,52 +464,30 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                 failedFiles.push({ name: file.name, reason: errMsg });
             } finally {
                 processedCount++;
-                // Throttle progress updates to UI using requestAnimationFrame to protect React thread from freezing
-                if (onProgress && (processedCount % 5 === 0 || processedCount === files.length)) {
-                    const currentProgress = { 
-                        current: processedCount, 
-                        total: files.length, 
-                        successes: successCount, 
-                        failures: failCount 
-                    };
-                    requestAnimationFrame(() => onProgress(currentProgress));
-                }
+                if (onProgress) onProgress({ 
+                    current: processedCount, 
+                    total: files.length, 
+                    successes: successCount, 
+                    failures: failCount 
+                });
             }
         };
 
-        const pendingBatchPhotos: any[] = [];
-        let isFlushing = false;
-
-        const flushPendingBatch = async () => {
-            if (pendingBatchPhotos.length === 0 || isFlushing) return;
-            isFlushing = true;
-            const batchToCommit = pendingBatchPhotos.splice(0, pendingBatchPhotos.length);
-
-            try {
-                await api.createPhotosBatch(batchToCommit);
-            } catch (batchErr: any) {
-                console.error("Failed to commit micro-batch to database:", batchErr);
-            } finally {
-                isFlushing = false;
-            }
-        };
-
-        // Execution with chunked queue and active Garbage Collector memory dereferencing
-        const CONCURRENCY = 2; // Controlled 2 parallel streams to comply with Supabase free/pro rate limits per second
+        // Execution with concurrency limit (5 files simultaneously)
+        const CONCURRENCY = 5;
+        const fileEntries = Array.from(files.entries());
         const executeTasks = async () => {
-            const queue: Array<{ index: number; file: File } | null> = files.map((file, index) => ({ index, file }));
             const workers = [];
+            const queue = [...fileEntries];
             
             for (let i = 0; i < Math.min(CONCURRENCY, files.length); i++) {
                 workers.push((async () => {
                     while (queue.length > 0) {
                         if (uploadAbortRef.current) break;
                         const task = queue.shift();
-                        if (task && task.file) {
-                            const { index, file } = task;
+                        if (task) {
+                            const [index, file] = task;
                             await uploadSingleFile(file, index);
-                            // Explicit memory dereference to allow V8 Garbage Collection of large File handles
-                            (task as any).file = null;
                         }
                     }
                 })());
@@ -548,9 +497,6 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
 
         try {
             await executeTasks();
-
-            // Final flush for remaining photos in the queue
-            await flushPendingBatch();
 
             if (failCount === 0) {
                 setIsBatchUploadModalOpen(false);

@@ -558,50 +558,6 @@ export const api = {
     return photo;
   },
 
-  createPhotosBatch: async (photosData: any[]): Promise<Photo[]> => {
-    if (!photosData || photosData.length === 0) return [];
-
-    try {
-      // 1. Try high-performance RPC upload_photos_batch
-      const { data: rpcResult, error: rpcErr } = await supabase.rpc("upload_photos_batch", {
-        p_photos: photosData,
-      });
-
-      if (!rpcErr && rpcResult) {
-        const createdList = Array.isArray(rpcResult) ? rpcResult : [];
-        if (photosData[0]?.photographer_id) {
-          delete inMemoryCache.photographerPhotosCache[photosData[0].photographer_id];
-          inMemoryCache.recent = { data: null, ts: 0 };
-          inMemoryCache.featured = { data: null, ts: 0 };
-        }
-        return createdList.map(mapPhoto);
-      }
-
-      console.warn("RPC upload_photos_batch unavailable or failed, falling back to direct batch insert:", rpcErr?.message);
-    } catch (e) {
-      console.warn("RPC error fallback to direct insert:", e);
-    }
-
-    // 2. Fallback to direct bulk insert
-    const { data: inserted, error: insertErr } = await supabase
-      .from("photos")
-      .insert(photosData)
-      .select();
-
-    if (insertErr) {
-      console.error("Batch insert error:", insertErr);
-      throw insertErr;
-    }
-
-    if (photosData[0]?.photographer_id) {
-      delete inMemoryCache.photographerPhotosCache[photosData[0].photographer_id];
-      inMemoryCache.recent = { data: null, ts: 0 };
-      inMemoryCache.featured = { data: null, ts: 0 };
-    }
-
-    return (inserted || []).map(mapPhoto);
-  },
-
   updatePhoto: async (id: string, data: any): Promise<Photo | undefined> => {
     // Remove computed fields that are not columns in the database
     const { likes, liked_by_users, ...dbData } = data;

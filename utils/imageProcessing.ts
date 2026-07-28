@@ -21,66 +21,10 @@ export interface FastProcessedImages {
 }
 
 /**
- * Web Worker pool manager for off-main-thread image processing
- */
-let workerInstance: Worker | null = null;
-let workerJobId = 0;
-const workerCallbacks = new Map<number, { resolve: (val: FastProcessedImages) => void; reject: (err: any) => void; timer: any }>();
-
-const resetWorker = () => {
-    if (workerInstance) {
-        try {
-            workerInstance.terminate();
-        } catch (e) {}
-        workerInstance = null;
-    }
-    workerCallbacks.forEach((cb) => {
-        clearTimeout(cb.timer);
-        cb.reject(new Error("Worker reset due to timeout"));
-    });
-    workerCallbacks.clear();
-};
-
-const getWorker = (): Worker | null => {
-    if (typeof window === 'undefined' || typeof Worker === 'undefined') return null;
-    if (!workerInstance) {
-        try {
-            workerInstance = new Worker('/imageProcessor.worker.js');
-            workerInstance.onmessage = (e) => {
-                const { id, success, thumbBlob, previewBlob, width, height, error } = e.data;
-                const callback = workerCallbacks.get(id);
-                if (callback) {
-                    clearTimeout(callback.timer);
-                    workerCallbacks.delete(id);
-                    if (success) {
-                        callback.resolve({ thumbBlob, previewBlob, width, height });
-                    } else {
-                        callback.reject(new Error(error || "Worker processing error"));
-                    }
-                }
-            };
-            workerInstance.onerror = (err) => {
-                console.warn("Web Worker runtime error, resetting worker:", err);
-                resetWorker();
-            };
-        } catch (e) {
-            console.warn("Could not initialize Web Worker, falling back to main thread:", e);
-            workerInstance = null;
-        }
-    }
-    return workerInstance;
-};
-
-/**
  * Ultra-fast hardware accelerated image processor (GPU / Canvas native)
  * Preserves 2K resolution (2048px) with 85% WebP quality + crisp watermark.
- * Isolated per-file processing without global Worker memory leaks or queue timeouts.
  */
 export const processImageFast = async (file: File): Promise<FastProcessedImages> => {
-    return processImageFastMainThread(file);
-};
-
-const processImageFastMainThread = async (file: File): Promise<FastProcessedImages> => {
     let source: ImageBitmap | HTMLImageElement;
     let width = 0;
     let height = 0;
@@ -192,9 +136,6 @@ const drawToBlob = (
 
         canvas.toBlob(
             (blob) => {
-                // Free canvas memory buffer immediately
-                canvas.width = 0;
-                canvas.height = 0;
                 if (blob) resolve(blob);
                 else reject(new Error("Failed to convert canvas to blob"));
             },
