@@ -74,30 +74,9 @@ const getWorker = (): Worker | null => {
 /**
  * Ultra-fast hardware accelerated image processor (GPU / Canvas native)
  * Preserves 2K resolution (2048px) with 85% WebP quality + crisp watermark.
+ * Isolated per-file processing without global Worker memory leaks or queue timeouts.
  */
 export const processImageFast = async (file: File): Promise<FastProcessedImages> => {
-    const worker = getWorker();
-    if (worker) {
-        return new Promise<FastProcessedImages>((resolve, reject) => {
-            const id = ++workerJobId;
-            const timer = setTimeout(() => {
-                console.warn(`Worker task ${id} timed out after 15s. Resetting worker pool...`);
-                const cb = workerCallbacks.get(id);
-                if (cb) {
-                    workerCallbacks.delete(id);
-                    resetWorker();
-                    // Fallback to main thread processing for this file
-                    processImageFastMainThread(file).then(resolve).catch(reject);
-                }
-            }, 15000);
-
-            workerCallbacks.set(id, { resolve, reject, timer });
-            worker.postMessage({ id, file, watermarkText: "FOTOCLIC   PROVA   " });
-        }).catch(err => {
-            console.warn("Worker execution failed, running main thread fallback:", err);
-            return processImageFastMainThread(file);
-        });
-    }
     return processImageFastMainThread(file);
 };
 
@@ -213,6 +192,9 @@ const drawToBlob = (
 
         canvas.toBlob(
             (blob) => {
+                // Free canvas memory buffer immediately
+                canvas.width = 0;
+                canvas.height = 0;
                 if (blob) resolve(blob);
                 else reject(new Error("Failed to convert canvas to blob"));
             },
