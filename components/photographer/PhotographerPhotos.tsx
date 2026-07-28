@@ -414,28 +414,22 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                     const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`; 
                     const filePath = `${user.id}/${selectedEvent.id}/${fileName}`;
 
-                    // Helper with automatic 1-retry fallback for network hiccups and explicit contentType header
+                    // Helper with automatic 1-retry fallback for network hiccups and strict MIME type matching for Supabase Storage
                     const uploadToStorageWithRetry = async (bucket: string, path: string, body: Blob | File, contentType?: string) => {
-                        // Normalize MIME type strictly to standard image types expected by Supabase Storage
-                        let mimeType = contentType || body.type || 'image/jpeg';
-                        if (path.endsWith('.webp')) mimeType = 'image/webp';
-                        else if (path.endsWith('.png') || mimeType.includes('png')) mimeType = 'image/png';
-                        else if (path.endsWith('.jpg') || path.endsWith('.jpeg') || mimeType.includes('jpeg')) mimeType = 'image/jpeg';
+                        let mimeType = contentType;
+                        if (!mimeType || mimeType === 'application/octet-stream') {
+                            if (path.endsWith('.png')) mimeType = 'image/png';
+                            else if (path.endsWith('.webp')) mimeType = 'image/webp';
+                            else mimeType = 'image/jpeg';
+                        }
                         
                         const options = { upsert: true, contentType: mimeType };
                         
-                        try {
-                            const { error } = await api.supabase.storage.from(bucket).upload(path, body, options);
-                            if (error) {
-                                console.warn(`Storage upload warning for ${path}: ${error.message}`);
-                                // 1 retry attempt for temporary network drops
-                                const { error: retryErr } = await api.supabase.storage.from(bucket).upload(path, body, options);
-                                if (retryErr) throw retryErr;
-                            }
-                        } catch (err: any) {
-                            // If it's a 400 Bad Request or bucket restriction error, log warning and let caller handle non-critical fallback
-                            console.warn(`Storage upload skipped/failed for ${path}:`, err?.message || err);
-                            throw err;
+                        const { error } = await api.supabase.storage.from(bucket).upload(path, body, options);
+                        if (error) {
+                            console.warn(`Retry upload for ${path} due to error (${error.message})...`);
+                            const { error: retryErr } = await api.supabase.storage.from(bucket).upload(path, body, options);
+                            if (retryErr) throw retryErr;
                         }
                     };
 
@@ -444,19 +438,19 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                     await uploadToStorageWithRetry('photos-preview', `${filePath}-thumb.webp`, thumbBlob, 'image/webp');
 
                     // Determine clean extension & MIME for original file upload
-                    const isPng = fileExt === 'png' || file.type === 'image/png';
+                    const isPng = fileExt === 'png' || (file.type && file.type.includes('png'));
                     const origContentType = isPng ? 'image/png' : (fileExt === 'webp' ? 'image/webp' : 'image/jpeg');
                     const cleanExt = isPng ? 'png' : ((fileExt === 'heic' || fileExt === 'heif') ? 'jpg' : (fileExt || 'jpg'));
 
-                    // Upload original photo to private bucket (isolating exotic 400 format errors so batch NEVER freezes)
+                    // Upload original photo to private bucket (guaranteed non-blocking fallback for 400 Storage errors)
                     let originalPath = `${filePath}-original.${cleanExt}`;
-                    try {
-                        if (hasAuthSession) {
+                    if (hasAuthSession) {
+                        try {
                             await uploadToStorageWithRetry('photos-original', originalPath, file, origContentType);
+                        } catch (origErr: any) {
+                            console.warn(`Original storage upload bypassed for ${file.name} (Using preview reference due to 400 Bad Request / Storage rule):`, origErr?.message || origErr);
+                            originalPath = `${filePath}-preview.webp`;
                         }
-                    } catch (origErr) {
-                        console.warn(`Original photo upload bypassed for ${file.name} (Using preview fallback reference):`, origErr);
-                        originalPath = `${filePath}-preview.webp`;
                     }
 
                     const { data: prevUrlData } = api.supabase.storage.from('photos-preview').getPublicUrl(`${filePath}-preview.webp`);
