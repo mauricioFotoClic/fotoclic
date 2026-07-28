@@ -495,18 +495,15 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
 
             try {
                 const createdBatch = await api.createPhotosBatch(batchToCommit);
-                setPhotos(prev => [...createdBatch, ...prev]);
 
-                // Trigger face indexing asynchronously without blocking UI
+                // Trigger face indexing automatically in background queue (rate-limited, 0 CPU lag)
                 if ((user as any).face_indexing_enabled !== false) {
-                    setTimeout(() => {
-                        createdBatch.forEach(p => {
-                            if (p.id && p.preview_url) {
-                                faceRecognitionService.indexPhoto(p.id, p.preview_url)
-                                    .catch(err => console.warn("Face indexing failed:", err));
-                            }
-                        });
-                    }, 100);
+                    createdBatch.forEach(p => {
+                        if (p.id && p.preview_url) {
+                            faceRecognitionService.indexPhoto(p.id, p.preview_url)
+                                .catch(err => console.warn("Face indexing queue warn:", err));
+                        }
+                    });
                 }
             } catch (batchErr: any) {
                 console.error("Failed to commit micro-batch to database:", batchErr);
