@@ -521,21 +521,22 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
             }
         };
 
-        // Execution with optimized concurrency limit (6 files simultaneously for network stability)
-        const CONCURRENCY = 6;
-        const fileEntries = Array.from(files.entries());
+        // Execution with chunked queue and active Garbage Collector memory dereferencing
+        const CONCURRENCY = 4; // Stable 4 parallel streams to prevent RAM & socket exhaustion
         const executeTasks = async () => {
+            const queue: Array<{ index: number; file: File } | null> = files.map((file, index) => ({ index, file }));
             const workers = [];
-            const queue = [...fileEntries];
             
             for (let i = 0; i < Math.min(CONCURRENCY, files.length); i++) {
                 workers.push((async () => {
                     while (queue.length > 0) {
                         if (uploadAbortRef.current) break;
                         const task = queue.shift();
-                        if (task) {
-                            const [index, file] = task;
+                        if (task && task.file) {
+                            const { index, file } = task;
                             await uploadSingleFile(file, index);
+                            // Explicit memory dereference to allow V8 Garbage Collection of large File handles
+                            (task as any).file = null;
                         }
                     }
                 })());
