@@ -479,8 +479,8 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                     pendingBatchPhotos.push(photoData);
                     successCount++;
 
-                    // Trigger async flush every 25 photos if no flush is currently in flight
-                    if (pendingBatchPhotos.length >= 25) {
+                    // Trigger async flush every 50 photos to minimize database operations
+                    if (pendingBatchPhotos.length >= 50) {
                         flushPendingBatch();
                     }
                 }
@@ -492,12 +492,16 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                 failedFiles.push({ name: file.name, reason: errMsg });
             } finally {
                 processedCount++;
-                if (onProgress) onProgress({ 
-                    current: processedCount, 
-                    total: files.length, 
-                    successes: successCount, 
-                    failures: failCount 
-                });
+                // Throttle progress updates to UI using requestAnimationFrame to protect React thread from freezing
+                if (onProgress && (processedCount % 5 === 0 || processedCount === files.length)) {
+                    const currentProgress = { 
+                        current: processedCount, 
+                        total: files.length, 
+                        successes: successCount, 
+                        failures: failCount 
+                    };
+                    requestAnimationFrame(() => onProgress(currentProgress));
+                }
             }
         };
 
@@ -510,17 +514,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
             const batchToCommit = pendingBatchPhotos.splice(0, pendingBatchPhotos.length);
 
             try {
-                const createdBatch = await api.createPhotosBatch(batchToCommit);
-
-                // Trigger face indexing automatically in background queue (rate-limited, 0 CPU lag)
-                if ((user as any).face_indexing_enabled !== false) {
-                    createdBatch.forEach(p => {
-                        if (p.id && p.preview_url) {
-                            faceRecognitionService.indexPhoto(p.id, p.preview_url)
-                                .catch(err => console.warn("Face indexing queue warn:", err));
-                        }
-                    });
-                }
+                await api.createPhotosBatch(batchToCommit);
             } catch (batchErr: any) {
                 console.error("Failed to commit micro-batch to database:", batchErr);
             } finally {

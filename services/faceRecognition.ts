@@ -27,14 +27,18 @@ async function toJpegDataUrl(source: string): Promise<string> {
             canvas.height = height;
             const ctx = canvas.getContext('2d')!;
             ctx.drawImage(img, 0, 0, width, height);
-            resolve(canvas.toDataURL('image/jpeg', 0.85));
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+            // Free canvas memory buffer immediately
+            canvas.width = 0;
+            canvas.height = 0;
+            resolve(dataUrl);
         };
         img.onerror = () => reject(new Error('Failed to load image for conversion'));
         img.src = source;
     });
 }
 
-// Background FIFO Queue for Rate-Limited Automatic Face Indexing
+// Background FIFO Queue for Rate-Limited Automatic Face Indexing (capped at 50 to prevent RAM overflow)
 const indexingQueue: Array<{ photoId: string; imageUrl: string; resolve: (val: any) => void; reject: (err: any) => void }> = [];
 let isQueueProcessing = false;
 
@@ -67,7 +71,7 @@ const processIndexingQueue = async () => {
                 item.resolve({ facesIndexed: 0 });
             }
             // Small pause between items to let Garbage Collector release image memory
-            await new Promise(r => setTimeout(r, 150));
+            await new Promise(r => setTimeout(r, 100));
         }
     }
     isQueueProcessing = false;
