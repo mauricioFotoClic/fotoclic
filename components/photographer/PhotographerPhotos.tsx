@@ -299,6 +299,15 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
         uploadAbortRef.current = false;
         showToast(`Iniciando envio de ${files.length} arquivos...`, "info");
 
+        // Check authentication session once before loop to avoid thousands of repetitive auth API calls
+        let hasAuthSession = false;
+        try {
+            const { data: { user: authUser } } = await api.supabase.auth.getUser();
+            hasAuthSession = !!authUser;
+        } catch (e) {
+            hasAuthSession = true;
+        }
+
         const uploadSingleFile = async (file: File, index: number) => {
             if (uploadAbortRef.current) return;
             const isVideo = file.type.startsWith('video/') || !!file.name.match(/\.(mp4|mov|webm)$/i);
@@ -405,19 +414,24 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                     const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`; 
                     const filePath = `${user.id}/${selectedEvent.id}/${fileName}`;
 
-                    const [prevRes, thumbRes] = await Promise.all([
-                        api.supabase.storage.from('photos-preview').upload(`${filePath}-preview.webp`, previewBlob, { upsert: true }),
-                        api.supabase.storage.from('photos-preview').upload(`${filePath}-thumb.webp`, thumbBlob, { upsert: true })
-                    ]);
+                    // Helper with automatic 1-retry fallback for network hiccups
+                    const uploadToStorageWithRetry = async (bucket: string, path: string, body: Blob | File) => {
+                        const { error } = await api.supabase.storage.from(bucket).upload(path, body, { upsert: true });
+                        if (error) {
+                            console.warn(`Retry upload for ${path} due to error:`, error);
+                            const { error: retryErr } = await api.supabase.storage.from(bucket).upload(path, body, { upsert: true });
+                            if (retryErr) throw retryErr;
+                        }
+                    };
 
-                    if (prevRes.error) throw prevRes.error;
-                    if (thumbRes.error) throw thumbRes.error;
+                    // Upload preview & thumb sequentially to keep network sockets clean and resilient
+                    await uploadToStorageWithRetry('photos-preview', `${filePath}-preview.webp`, previewBlob);
+                    await uploadToStorageWithRetry('photos-preview', `${filePath}-thumb.webp`, thumbBlob);
 
-                    // Upload original photo to private bucket if authenticated session exists
+                    // Upload original photo to private bucket
                     try {
-                        const { data: { user: authUser } } = await api.supabase.auth.getUser();
-                        if (authUser) {
-                            await api.supabase.storage.from('photos-original').upload(`${filePath}-original.${fileExt}`, file, { upsert: true });
+                        if (hasAuthSession) {
+                            await uploadToStorageWithRetry('photos-original', `${filePath}-original.${fileExt}`, file);
                         }
                     } catch (e) {
                         // Silently ignore private bucket upload restrictions for custom sessions

@@ -22,13 +22,24 @@ if (!finalUrl || !finalKey) {
     console.error('Supabase URL e Key não encontradas. O cliente pode falhar.');
 }
 
+// Custom fetch wrapper with 25s connection timeout to prevent socket hangups from blocking the upload queue
+const fetchWithTimeout = (url: RequestInfo | URL, options?: RequestInit): Promise<Response> => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 25000);
+    const mergedOptions = {
+        ...options,
+        signal: options?.signal ? options.signal : controller.signal
+    };
+    return fetch(url, mergedOptions).finally(() => clearTimeout(timeoutId));
+};
+
 export const supabase = createClient(finalUrl, finalKey, {
     auth: {
         persistSession: true,
         autoRefreshToken: true,
     },
-    // Prevent throwing on network errors during client init
     global: {
+        fetch: fetchWithTimeout,
         headers: { 'x-application-name': 'fotoclic' }
     }
 });
