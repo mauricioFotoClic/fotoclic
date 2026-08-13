@@ -157,6 +157,18 @@ export const en: TranslationKeys = {
         volei: "Volleyball",
         outros: "Others",
     },
+    discover_page: {
+        title: "Discover",
+        subtitle: "Browse our full collection of high-resolution images.",
+        search_placeholder: "Search by title or tag...",
+        search_button: "Search",
+        previous: "Previous",
+        next: "Next",
+        page_count: "Page {{current}} of {{total}}",
+        no_photos: "No photos found",
+        no_photos_desc: "Try adjusting your search or filters.",
+        clear_filters: "Clear all filters",
+    },
     featured_photos_page: {
         title: "Featured Photos",
         subtitle: "Explore our gallery with the best photos from the community.",

@@ -1,9 +1,9 @@
-
 import React, { useEffect, useState, useMemo } from 'react';
 import { Photo, User, Category, Page } from '../types';
 import api from '../services/api';
 import PhotoCard from '../components/PhotoCard';
 import Spinner from '../components/Spinner';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface DiscoverPageProps {
   onNavigate: (page: Page) => void;
@@ -13,6 +13,7 @@ interface DiscoverPageProps {
 }
 
 const DiscoverPage: React.FC<DiscoverPageProps> = ({ onNavigate, initialSearch, onAddToCart, currentUser }) => {
+  const { t } = useLanguage();
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [photographers, setPhotographers] = useState<User[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -80,9 +81,6 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ onNavigate, initialSearch, 
   };
 
   const filteredPhotos = useMemo(() => {
-    // Como agora a busca é feita na API (em loadData disparado pelo searchTerm/selectedCategory),
-    // o filteredPhotos aqui serve para garantir que o estado local esteja síncrono ou para buscas secundárias rápidas.
-    // Mas a fonte da verdade de 'photos' já deve estar filtrada pela API no loadData acima.
     return photos;
   }, [photos]);
 
@@ -106,10 +104,10 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ onNavigate, initialSearch, 
 
         <div className="container relative z-10 mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-5xl md:text-7xl font-display font-bold mb-6 tracking-tight text-white drop-shadow-lg">
-            Descobrir
+            {t('discover_page.title')}
           </h1>
           <p className="text-lg md:text-xl text-neutral-300 max-w-2xl mx-auto mb-10 font-light">
-            Navegue por nossa coleção completa de imagens de alta resolução.
+            {t('discover_page.subtitle')}
           </p>
 
           <div className="relative max-w-2xl mx-auto">
@@ -120,7 +118,7 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ onNavigate, initialSearch, 
                   type="text"
                   name="search"
                   autoComplete="search"
-                  placeholder="Buscar por título ou tag..."
+                  placeholder={t('discover_page.search_placeholder')}
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyDown={handleKeyDown}
@@ -134,11 +132,11 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ onNavigate, initialSearch, 
                 </div>
                 <button
                   onClick={performSearch}
-                  aria-label="Buscar fotos"
-                  title="Buscar fotos"
+                  aria-label={t('discover_page.search_button')}
+                  title={t('discover_page.search_button')}
                   className="absolute right-3 px-6 py-2 bg-primary hover:bg-primary-dark text-white rounded-full text-sm font-bold transition-all shadow-lg"
                 >
-                  Pesquisar
+                  {t('discover_page.search_button')}
                 </button>
               </div>
             </div>
@@ -190,17 +188,17 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ onNavigate, initialSearch, 
                     disabled={currentPage === 1}
                     className="px-6 py-2 text-sm font-medium text-neutral-700 bg-white border border-neutral-300 rounded-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-neutral-50 transition-colors shadow-sm"
                   >
-                    Anterior
+                    {t('discover_page.previous')}
                   </button>
                   <span className="text-sm text-neutral-500 font-medium">
-                    Página {currentPage} de {totalPages}
+                    {t('discover_page.page_count', { current: currentPage, total: totalPages })}
                   </span>
                   <button
                     onClick={goToNextPage}
                     disabled={currentPage === totalPages}
                     className="px-6 py-2 text-sm font-medium text-neutral-700 bg-white border border-neutral-300 rounded-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-neutral-50 transition-colors shadow-sm"
                   >
-                    Próxima
+                    {t('discover_page.next')}
                   </button>
                 </div>
               )}
@@ -213,13 +211,13 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ onNavigate, initialSearch, 
                   <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                 </svg>
               </div>
-              <h3 className="text-lg font-medium text-neutral-900">Nenhuma foto encontrada</h3>
-              <p className="text-neutral-500 mt-2">Tente ajustar sua busca ou filtros.</p>
+              <h3 className="text-lg font-medium text-neutral-900">{t('discover_page.no_photos')}</h3>
+              <p className="text-neutral-500 mt-2">{t('discover_page.no_photos_desc')}</p>
               <button
                 onClick={() => { setInputValue(''); setSearchTerm(''); }}
                 className="mt-6 text-primary font-medium hover:underline"
               >
-                Limpar todos os filtros
+                {t('discover_page.clear_filters')}
               </button>
             </div>
           )}
@@ -230,5 +228,3 @@ const DiscoverPage: React.FC<DiscoverPageProps> = ({ onNavigate, initialSearch, 
 };
 
 export default DiscoverPage;
-
-
