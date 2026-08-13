@@ -94,9 +94,8 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({
     const handleTabChange = (tab: 'selfie' | 'upload') => {
         setActiveTab(tab);
         if (tab === 'selfie') {
-            if (!selectedImage || isCameraOpen) {
-                startCamera();
-            }
+            setSelectedImage(null);
+            startCamera();
         } else {
             stopCamera();
             if (fileInputRef.current) fileInputRef.current.click();
@@ -395,8 +394,12 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({
                                         {/* Change Photo Overlay button */}
                                         <button
                                             onClick={() => {
-                                                if (activeTab === 'selfie') startCamera();
-                                                else fileInputRef.current?.click();
+                                                if (activeTab === 'selfie') {
+                                                    setSelectedImage(null);
+                                                    startCamera();
+                                                } else {
+                                                    fileInputRef.current?.click();
+                                                }
                                             }}
                                             className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/70 hover:bg-black text-white text-xs font-semibold px-4 py-2.5 rounded-full backdrop-blur-md transition-all flex items-center gap-2 border border-white/20 z-10"
                                         >
