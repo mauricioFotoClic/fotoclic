@@ -2,6 +2,8 @@
 import React from 'react';
 import type { User } from '../../types';
 import { useToast } from '../../contexts/ToastContext';
+import { useLanguage } from '../../contexts/LanguageContext';
+import LanguageSelector from '../LanguageSelector';
 import Logo from '../Logo';
 
 type PhotographerView = 'dashboard' | 'photos' | 'sales' | 'payouts' | 'profile' | 'portfolio-preview' | 'coupons' | 'abandoned-carts' | 'discounts' | 'communications' | 'business-card';
@@ -63,7 +65,7 @@ const ImageIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" heigh
 const DollarSignIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>;
 const ChartIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>;
 const UserIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>;
-const EyeIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>;
+const EyeIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>;
 const TicketIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2-2H5a2 2 0 0 1-2-2V5z"></path><path d="M3 12h18"></path><path d="M12 3v18"></path></svg>;
 const LogOutIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>;
 const CartIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>;
@@ -72,6 +74,8 @@ const QrCodeIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" heig
 import { X } from 'lucide-react';
 
 const PhotographerSidebar: React.FC<PhotographerSidebarProps> = ({ user, activeView, setView, onLogout, isOpen, onClose, abandonedCartsCount }) => {
+    const { t } = useLanguage();
+
     return (
         <>
             {/* Mobile Overlay - Only visible when open on mobile */}
@@ -105,55 +109,53 @@ const PhotographerSidebar: React.FC<PhotographerSidebarProps> = ({ user, activeV
 
                 <div className="flex-1 overflow-y-auto custom-scrollbar">
                     {/* Profile Section */}
-                    <div className="flex flex-col items-center py-8">
-                        <div className="relative mb-4">
+                    <div className="flex flex-col items-center py-6 border-b border-neutral-100">
+                        <div className="relative mb-3">
                             <div className="relative p-1 bg-white rounded-full border border-neutral-100 shadow-sm">
                                 <img
                                     src={user.avatar_url}
                                     alt={user.name}
-                                    className="w-20 h-20 rounded-full object-cover"
+                                    className="w-16 h-16 rounded-full object-cover"
                                 />
                             </div>
-                            <div className={`absolute bottom-1 right-1 w-4 h-4 rounded-full border-2 border-white ${user.is_active ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                            <div className={`absolute bottom-1 right-1 w-3.5 h-3.5 rounded-full border-2 border-white ${user.is_active ? 'bg-green-500' : 'bg-red-500'}`}></div>
                         </div>
 
-                        <h3 className="text-lg font-display font-bold text-neutral-900 text-center px-4">
+                        <h3 className="text-sm font-display font-bold text-neutral-900 text-center px-4">
                             {user.name}
                         </h3>
 
-                        <div className="mt-2 bg-neutral-100 px-3 py-1 rounded-full">
-                            <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">
-                                Fotógrafo Pro
-                            </span>
+                        <div className="mt-2 flex items-center gap-2">
+                            <LanguageSelector variant="inline" />
                         </div>
                     </div>
 
                     {/* Navigation */}
                     <nav className="px-2 pb-4">
                         <SectionLabel label="Principal" />
-                        <NavLink label="Visão Geral" isActive={activeView === 'dashboard'} onClick={() => { setView('dashboard'); onClose(); }} icon={<HomeIcon />} />
-                        <NavLink label="Descontos Progressivos" isActive={activeView === 'discounts'} onClick={() => { setView('discounts'); onClose(); }} icon={<PercentIcon />} />
-                        <NavLink label="Meus Eventos" isActive={activeView === 'photos'} onClick={() => { setView('photos'); onClose(); }} icon={<ImageIcon />} />
+                        <NavLink label={t('photographer.sidebar_dashboard')} isActive={activeView === 'dashboard'} onClick={() => { setView('dashboard'); onClose(); }} icon={<HomeIcon />} />
+                        <NavLink label={t('photographer.sidebar_discounts')} isActive={activeView === 'discounts'} onClick={() => { setView('discounts'); onClose(); }} icon={<PercentIcon />} />
+                        <NavLink label={t('photographer.my_events')} isActive={activeView === 'photos'} onClick={() => { setView('photos'); onClose(); }} icon={<ImageIcon />} />
                         <NavLink label="Ver Meu Portfólio" isActive={activeView === 'portfolio-preview'} onClick={() => { setView('portfolio-preview'); onClose(); }} icon={<EyeIcon />} />
 
                         <SectionLabel label="Financeiro" />
-                        <NavLink label="Vendas Realizadas" isActive={activeView === 'sales'} onClick={() => { setView('sales'); onClose(); }} icon={<DollarSignIcon />} />
+                        <NavLink label={t('photographer.sidebar_sales')} isActive={activeView === 'sales'} onClick={() => { setView('sales'); onClose(); }} icon={<DollarSignIcon />} />
                         <NavLink
-                            label="Carrinhos Abandonados"
+                            label={t('photographer.sidebar_abandoned_carts')}
                             isActive={activeView === 'abandoned-carts'}
                             onClick={() => { setView('abandoned-carts'); onClose(); }}
                             icon={<CartIcon />}
                             badge={abandonedCartsCount && abandonedCartsCount > 0 ? abandonedCartsCount.toString() : undefined}
                         />
-                        <NavLink label="Central Financeira" isActive={activeView === 'payouts'} onClick={() => { setView('payouts'); onClose(); }} icon={<ChartIcon />} />
+                        <NavLink label={t('photographer.sidebar_payouts')} isActive={activeView === 'payouts'} onClick={() => { setView('payouts'); onClose(); }} icon={<ChartIcon />} />
 
                         <SectionLabel label="Marketing" />
-                        <NavLink label="Cupons" isActive={activeView === 'coupons'} onClick={() => { setView('coupons'); onClose(); }} icon={<TicketIcon />} />
-                        <NavLink label="Cartão Virtual" isActive={activeView === 'business-card'} onClick={() => { setView('business-card'); onClose(); }} icon={<QrCodeIcon />} />
-                        <NavLink label="Mensagens" isActive={activeView === 'communications'} onClick={() => { setView('communications'); onClose(); }} icon={<UserIcon />} />
+                        <NavLink label={t('photographer.sidebar_coupons')} isActive={activeView === 'coupons'} onClick={() => { setView('coupons'); onClose(); }} icon={<TicketIcon />} />
+                        <NavLink label={t('photographer.sidebar_business_card')} isActive={activeView === 'business-card'} onClick={() => { setView('business-card'); onClose(); }} icon={<QrCodeIcon />} />
+                        <NavLink label={t('photographer.sidebar_communications')} isActive={activeView === 'communications'} onClick={() => { setView('communications'); onClose(); }} icon={<UserIcon />} />
 
                         <SectionLabel label="Conta" />
-                        <NavLink label="Meu Perfil" isActive={activeView === 'profile'} onClick={() => { setView('profile'); onClose(); }} icon={<UserIcon />} />
+                        <NavLink label={t('photographer.sidebar_profile')} isActive={activeView === 'profile'} onClick={() => { setView('profile'); onClose(); }} icon={<UserIcon />} />
                     </nav>
                 </div>
 
@@ -164,7 +166,7 @@ const PhotographerSidebar: React.FC<PhotographerSidebarProps> = ({ user, activeV
                         className="flex items-center w-full px-4 py-3 text-sm font-medium text-neutral-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
                     >
                         <span className="mr-3"><LogOutIcon /></span>
-                        <span>Sair</span>
+                        <span>{t('nav.logout')}</span>
                     </button>
                 </div>
             </aside>

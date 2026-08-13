@@ -2,12 +2,16 @@ import React from 'react';
 import { Page } from '../types';
 import Logo from './Logo';
 import { shareContent } from '../utils/share';
+import { useLanguage } from '../contexts/LanguageContext';
+import LanguageSelector from './LanguageSelector';
 
 interface FooterProps {
     onNavigate: (page: Page) => void;
 }
 
 const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
+  const { t } = useLanguage();
+
   return (
     <footer className="bg-neutral-900 text-neutral-100">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -16,34 +20,37 @@ const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
              <a href="/" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'home' }); }} className="transition-transform hover:scale-105 active:scale-95 inline-block" aria-label="Ir para a página inicial">
               <Logo size={28} variant="white" />
             </a>
-            <p className="text-sm text-neutral-200">O principal marketplace de fotografia digital de alta qualidade.</p>
+            <p className="text-sm text-neutral-200">{t('footer.slogan')}</p>
+            <div className="pt-2">
+              <LanguageSelector variant="inline" />
+            </div>
           </div>
           <div>
             <h3 className="font-display font-bold text-lg mb-4">Explore</h3>
             <ul className="space-y-2">
-              <li><a href="/" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'home' }); }} className="text-sm text-neutral-200 hover:text-white transition-colors text-left block">Categorias</a></li>
-              <li><a href="/photographers" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'photographers' }); }} className="text-sm text-neutral-200 hover:text-white transition-colors text-left block">Fotógrafos</a></li>
-              <li><a href="/featured-photos" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'featured-photos' }); }} className="text-sm text-neutral-200 hover:text-white transition-colors text-left block">Fotos em Destaque</a></li>
+              <li><a href="/" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'home' }); }} className="text-sm text-neutral-200 hover:text-white transition-colors text-left block">{t('home.categories')}</a></li>
+              <li><a href="/photographers" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'photographers' }); }} className="text-sm text-neutral-200 hover:text-white transition-colors text-left block">{t('nav.find_photographers')}</a></li>
+              <li><a href="/featured-photos" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'featured-photos' }); }} className="text-sm text-neutral-200 hover:text-white transition-colors text-left block">{t('home.recent_photos')}</a></li>
             </ul>
           </div>
           <div>
-            <h3 className="font-display font-bold text-lg mb-4">Sobre</h3>
+            <h3 className="font-display font-bold text-lg mb-4">{t('nav.about')}</h3>
             <ul className="space-y-2">
-              <li><a href="/about" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'about' }); }} className="text-sm text-neutral-200 hover:text-white transition-colors text-left block">Sobre Nós</a></li>
-              <li><a href="/contact" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'contact' }); }} className="text-sm text-neutral-200 hover:text-white transition-colors text-left block">Contato</a></li>
-              <li><a href="/help-center" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'help-center' }); }} className="text-sm text-neutral-200 hover:text-white transition-colors text-left block">Central de Ajuda</a></li>
+              <li><a href="/about" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'about' }); }} className="text-sm text-neutral-200 hover:text-white transition-colors text-left block">{t('footer.about_us')}</a></li>
+              <li><a href="/contact" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'contact' }); }} className="text-sm text-neutral-200 hover:text-white transition-colors text-left block">{t('footer.contact')}</a></li>
+              <li><a href="/help-center" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'help-center' }); }} className="text-sm text-neutral-200 hover:text-white transition-colors text-left block">{t('footer.help_center')}</a></li>
             </ul>
           </div>
           <div>
             <h3 className="font-display font-bold text-lg mb-4">Legal</h3>
             <ul className="space-y-2">
-              <li><a href="/terms" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'terms' }); }} className="text-sm text-neutral-200 hover:text-white transition-colors text-left block">Termos de Serviço</a></li>
-              <li><a href="/privacy" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'privacy' }); }} className="text-sm text-neutral-200 hover:text-white transition-colors text-left block">Política de Privacidade</a></li>
+              <li><a href="/terms" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'terms' }); }} className="text-sm text-neutral-200 hover:text-white transition-colors text-left block">{t('footer.terms')}</a></li>
+              <li><a href="/privacy" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'privacy' }); }} className="text-sm text-neutral-200 hover:text-white transition-colors text-left block">{t('footer.privacy')}</a></li>
             </ul>
           </div>
         </div>
         <div className="mt-12 border-t border-gray-700 pt-8 flex flex-col sm:flex-row justify-between items-center gap-6">
-          <p className="text-sm text-neutral-400">&copy; {new Date().getFullYear()} FotoClic. Todos os direitos reservados.</p>
+          <p className="text-sm text-neutral-400">&copy; {new Date().getFullYear()} FotoClic. {t('footer.all_rights_reserved')}</p>
           <div className="flex items-center gap-4">
             <span className="text-sm text-neutral-400">Compartilhar site:</span>
             <button

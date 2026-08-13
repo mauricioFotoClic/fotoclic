@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Photo, User, Page, Coupon, BulkDiscountRule } from '../types';
 import api from '../services/api';
 import Spinner from '../components/Spinner';
+import { useLanguage } from '../contexts/LanguageContext';
 
 
 interface CheckoutPageProps {
@@ -20,6 +21,7 @@ interface CartGrouping {
 }
 
 const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, onPurchaseComplete, onNavigate }) => {
+    const { t, formatCurrency } = useLanguage();
     const [photos, setPhotos] = useState<Photo[]>([]);
     const [loading, setLoading] = useState(true);
 

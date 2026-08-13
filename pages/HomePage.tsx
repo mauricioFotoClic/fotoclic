@@ -9,6 +9,7 @@ import WatermarkedImage from '../components/WatermarkedImage';
 import SEO from '../components/SEO';
 import { getOptimizedImageUrl } from '../utils/imageOptimization';
 import { getAvatarFallbackUrl } from '../utils/stringUtils';
+import { useLanguage } from '../contexts/LanguageContext';
 
 // Helper to safely format event dates in local timezone without UTC shift or Invalid Date bugs
 const formatEventDate = (dateStr: string | null | undefined, options?: Intl.DateTimeFormatOptions): string => {
@@ -82,6 +83,7 @@ const CarouselBtn: React.FC<{ onClick: () => void; dir: 'prev' | 'next'; disable
 
 // ─── HomePage ─────────────────────────────────────────────────────────────────
 const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUser }) => {
+  const { t } = useLanguage();
   const [featuredPhotos, setFeaturedPhotos] = useState<Photo[]>([]);
   const [recentPhotos, setRecentPhotos] = useState<Photo[]>([]);
   const [recentEvents, setRecentEvents] = useState<PhotoEvent[]>([]);
@@ -227,7 +229,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
                 type="text"
                 name="search"
                 autoComplete="search"
-                placeholder="Pesquise por evento, esporte, fotógrafo..."
+                placeholder={t('home.search_placeholder')}
                 className="w-full pl-6 pr-14 py-4 text-neutral-800 bg-white border-0 rounded-full focus:ring-0 shadow-2xl text-lg"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}

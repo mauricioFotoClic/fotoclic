@@ -4,6 +4,7 @@ import { Photo, Page, Coupon, BulkDiscountRule, User } from '../types';
 import api from '../services/api';
 import Spinner from '../components/Spinner';
 import { useToast } from '../contexts/ToastContext';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface CartPageProps {
     currentUser: User | null;
@@ -27,6 +28,7 @@ interface CartGrouping {
 
 const CartPage: React.FC<CartPageProps> = ({ currentUser, cartItemIds, onRemoveItem, onRemoveMultipleItems, onCheckout, onNavigate }) => {
     const { showToast } = useToast();
+    const { t, formatCurrency } = useLanguage();
     const [cartPhotos, setCartPhotos] = useState<Photo[]>([]);
     const [loading, setLoading] = useState(true);
     const [groupedCart, setGroupedCart] = useState<CartGrouping[]>([]);
@@ -203,17 +205,17 @@ const CartPage: React.FC<CartPageProps> = ({ currentUser, cartItemIds, onRemoveI
             <div className="py-12 bg-neutral-100">
                 <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
                     <h1 className="text-4xl md:text-5xl font-display font-bold text-primary-dark">
-                        Seu Carrinho
+                        {t('cart.title')}
                     </h1>
                     <p className="mt-2 text-lg text-neutral-600">
-                        {cartPhotos.length === 0 ? "Seu carrinho está vazio." : `Você tem ${cartPhotos.length} item(ns) no carrinho.`}
+                        {cartPhotos.length === 0 ? t('cart.empty') : t('cart.item_count', { count: cartPhotos.length })}
                     </p>
                 </div>
             </div>
 
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
                 {loading ? (
-                    <Spinner size="lg" fullHeight={true} label="Carregando fotos do seu carrinho..." />
+                    <Spinner size="lg" fullHeight={true} label={t('common.loading')} />
                 ) : cartPhotos.length === 0 ? (
                     <div className="text-center py-16">
                         <div className="inline-block p-6 rounded-full bg-neutral-50 shadow-sm mb-6 border border-neutral-200">
@@ -223,13 +225,13 @@ const CartPage: React.FC<CartPageProps> = ({ currentUser, cartItemIds, onRemoveI
                                 <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
                             </svg>
                         </div>
-                        <h2 className="text-2xl font-display font-bold text-neutral-800 mb-4">Seu carrinho está vazio</h2>
-                        <p className="text-neutral-500 mb-6">Parece que você ainda não adicionou nenhuma foto.</p>
+                        <h2 className="text-2xl font-display font-bold text-neutral-800 mb-4">{t('cart.empty')}</h2>
+                        <p className="text-neutral-500 mb-6">{t('cart.empty_desc')}</p>
                         <button
                             onClick={() => onNavigate({ name: 'home' })}
                             className="px-8 py-3 bg-primary text-white rounded-full font-medium hover:bg-opacity-90 transition-all shadow-md hover:shadow-lg"
                         >
-                            Começar a Explorar
+                            {t('common.search')}
                         </button>
                     </div>
                 ) : (

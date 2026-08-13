@@ -1,6 +1,8 @@
 
 import React from 'react';
 import Logo from '../Logo';
+import { useLanguage } from '../../contexts/LanguageContext';
+import LanguageSelector from '../LanguageSelector';
 
 type AdminView = 'dashboard' | 'photos' | 'photographers' | 'customers' | 'categories' | 'sales' | 'payouts' | 'settings' | 'storage-requests' | 'rekognition' | 'abacate' | 'remarketing';
 
@@ -61,6 +63,8 @@ const ScanFaceIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" he
 const XIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>;
 
 const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeView, setView, notificationCounts, isOpen, onClose }) => {
+    const { t } = useLanguage();
+
     const nav = (view: AdminView) => {
         setView(view);
         onClose();
@@ -97,29 +101,32 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeView, setView, notifi
                     </button>
                 </div>
 
-                <div className="hidden md:block mb-6 px-2 transition-transform hover:scale-105 active:scale-95 cursor-pointer" onClick={() => nav('dashboard')}>
-                    <Logo size={24} useImage={true} />
+                <div className="hidden md:flex justify-between items-center mb-6 px-2">
+                    <div className="transition-transform hover:scale-105 active:scale-95 cursor-pointer" onClick={() => nav('dashboard')}>
+                        <Logo size={24} useImage={true} />
+                    </div>
+                    <LanguageSelector variant="compact" />
                 </div>
                 <nav className="space-y-2">
-                    <NavLink label="Dashboard" isActive={activeView === 'dashboard'} onClick={() => nav('dashboard')} icon={<HomeIcon />} />
-                    <NavLink label="Categorias" isActive={activeView === 'categories'} onClick={() => nav('categories')} icon={<TagIcon />} />
-                    <NavLink label="Fotógrafos" isActive={activeView === 'photographers'} onClick={() => nav('photographers')} icon={<UsersIcon />} notificationCount={notificationCounts?.photographers} />
-                    <NavLink label="Clientes" isActive={activeView === 'customers'} onClick={() => nav('customers')} icon={<UserGroupIcon />} />
-                    <NavLink label="Remarketing" isActive={activeView === 'remarketing'} onClick={() => nav('remarketing')} icon={<MegaphoneIcon />} />
-                    <NavLink label="Fotos" isActive={activeView === 'photos'} onClick={() => nav('photos')} icon={<ImageIcon />} />
-                    <NavLink label="Vendas" isActive={activeView === 'sales'} onClick={() => nav('sales')} icon={<DollarSignIcon />} />
+                    <NavLink label={t('admin.sidebar_dashboard')} isActive={activeView === 'dashboard'} onClick={() => nav('dashboard')} icon={<HomeIcon />} />
+                    <NavLink label={t('admin.sidebar_categories')} isActive={activeView === 'categories'} onClick={() => nav('categories')} icon={<TagIcon />} />
+                    <NavLink label={t('admin.sidebar_photographers')} isActive={activeView === 'photographers'} onClick={() => nav('photographers')} icon={<UsersIcon />} notificationCount={notificationCounts?.photographers} />
+                    <NavLink label={t('admin.sidebar_customers')} isActive={activeView === 'customers'} onClick={() => nav('customers')} icon={<UserGroupIcon />} />
+                    <NavLink label={t('admin.sidebar_remarketing')} isActive={activeView === 'remarketing'} onClick={() => nav('remarketing')} icon={<MegaphoneIcon />} />
+                    <NavLink label={t('admin.sidebar_photos')} isActive={activeView === 'photos'} onClick={() => nav('photos')} icon={<ImageIcon />} />
+                    <NavLink label={t('admin.sidebar_sales')} isActive={activeView === 'sales'} onClick={() => nav('sales')} icon={<DollarSignIcon />} />
                     <NavLink
-                        label="Pagamentos"
+                        label={t('admin.sidebar_payouts')}
                         isActive={activeView === 'payouts'}
                         onClick={() => nav('payouts')}
                         icon={<CreditCardIcon />}
                         notificationCount={notificationCounts?.payouts}
                     />
 
-                    <NavLink label="Abacate Pay" isActive={activeView === 'abacate'} onClick={() => nav('abacate')} icon={<CreditCardIcon />} />
-                    <NavLink label="Rekognition" isActive={activeView === 'rekognition'} onClick={() => nav('rekognition')} icon={<ScanFaceIcon />} />
+                    <NavLink label={t('admin.sidebar_abacate')} isActive={activeView === 'abacate'} onClick={() => nav('abacate')} icon={<CreditCardIcon />} />
+                    <NavLink label={t('admin.sidebar_rekognition')} isActive={activeView === 'rekognition'} onClick={() => nav('rekognition')} icon={<ScanFaceIcon />} />
                     <div className="pt-2 my-2 border-t"></div>
-                    <NavLink label="Configurações" isActive={activeView === 'settings'} onClick={() => nav('settings')} icon={<SettingsIcon />} />
+                    <NavLink label={t('admin.sidebar_settings')} isActive={activeView === 'settings'} onClick={() => nav('settings')} icon={<SettingsIcon />} />
                 </nav>
             </aside>
         </>

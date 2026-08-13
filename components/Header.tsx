@@ -2,6 +2,8 @@
 import React, { useState } from 'react';
 import { type User, UserRole, type Page } from '../types';
 import { useToast } from '../contexts/ToastContext';
+import { useLanguage } from '../contexts/LanguageContext';
+import LanguageSelector from './LanguageSelector';
 import Logo from './Logo';
 
 const CameraIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
@@ -30,6 +32,7 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigate, currentView, cartCount }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const { showToast } = useToast();
+    const { t } = useLanguage();
     const isAdminView = currentView === 'admin';
     const isPhotographerView = currentView === 'photographer';
     const isAuthPage = ['login', 'register', 'pending-approval'].includes(currentView);
@@ -38,10 +41,10 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigate, currentView
         if (!user) return;
         const url = `${window.location.origin}/portfolio/${user.slug || user.id}`;
         navigator.clipboard.writeText(url).then(() => {
-            showToast('Link do portfólio copiado!', 'success');
+            showToast(t('nav.portfolio_link_copied'), 'success');
         }).catch(err => {
             console.error('Erro ao copiar link', err);
-            showToast('Erro ao copiar link.', 'error');
+            showToast(t('common.error'), 'error');
         });
     };
 
@@ -53,57 +56,60 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigate, currentView
                         <a href="/" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'home' }); }} className="transition-transform hover:scale-105 active:scale-95 block" aria-label="Ir para a página inicial">
                             <Logo size={35} />
                         </a>
-
                     </div>
 
                     {!isAuthPage && (
                         <div className="flex items-center space-x-4">
                             {!(isAdminView || isPhotographerView) && (
                                 <nav className="hidden lg:flex items-center space-x-6">
-                                    <a href="/find-photos" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'find-photos' }); }} className={`text-sm font-medium transition-colors ${currentView === 'find-photos' ? 'text-primary' : 'text-neutral-800 hover:text-primary'}`}>Encontrar fotos</a>
-                                    <a href="/photographers" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'photographers' }); }} className={`text-sm font-medium transition-colors ${currentView === 'photographers' ? 'text-primary' : 'text-neutral-800 hover:text-primary'}`}>Encontrar Profissional</a>
+                                    <a href="/find-photos" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'find-photos' }); }} className={`text-sm font-medium transition-colors ${currentView === 'find-photos' ? 'text-primary' : 'text-neutral-800 hover:text-primary'}`}>{t('nav.find_photos')}</a>
+                                    <a href="/photographers" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'photographers' }); }} className={`text-sm font-medium transition-colors ${currentView === 'photographers' ? 'text-primary' : 'text-neutral-800 hover:text-primary'}`}>{t('nav.find_photographers')}</a>
                                 </nav>
                             )}
+
+                            {/* Language Selector Dropdown */}
+                            <LanguageSelector variant="dropdown" />
+
                             <div className="hidden sm:flex items-center space-x-2">
                                 {!user ? (
                                     <>
                                         <button onClick={() => onNavigate({ name: 'login' })} className="px-4 py-2 text-sm font-medium text-primary border border-primary rounded-full hover:bg-primary hover:text-white transition-colors">
-                                            Entrar
+                                            {t('nav.login')}
                                         </button>
                                         <button onClick={() => onNavigate({ name: 'register' })} className="px-4 py-2 text-sm font-medium text-white bg-primary rounded-full hover:bg-opacity-90 transition-colors">
-                                            Cadastrar
+                                            {t('nav.register')}
                                         </button>
                                     </>
                                 ) : (
                                     <>
                                         {user.role === UserRole.ADMIN && !isAdminView && (
                                             <button onClick={() => onNavigate({ name: 'admin' })} className="px-4 py-2 text-sm font-medium text-white bg-secondary rounded-full hover:bg-opacity-90 transition-colors">
-                                                Painel Admin
+                                                {t('nav.admin_panel')}
                                             </button>
                                         )}
                                         {user.role === UserRole.PHOTOGRAPHER && !isPhotographerView && (
                                             <button onClick={() => onNavigate({ name: 'photographer' })} className="px-4 py-2 text-sm font-medium text-white bg-neutral-900 rounded-full hover:bg-neutral-800 transition-colors">
-                                                Painel do Fotógrafo
+                                                {t('nav.photographer_panel')}
                                             </button>
                                         )}
                                         {user.role === UserRole.CUSTOMER && (
                                             <button onClick={() => onNavigate({ name: 'customer-dashboard' })} className="px-4 py-2 text-sm font-medium text-neutral-700 hover:text-primary transition-colors">
-                                                Minhas Compras
+                                                {t('nav.my_purchases')}
                                             </button>
                                         )}
                                         {isPhotographerView && (
                                             <button
                                                 onClick={handleCopyLink}
                                                 className="px-4 py-2 text-sm font-medium text-white bg-secondary hover:bg-secondary-light rounded-full shadow-sm transition-all flex items-center gap-2"
-                                                title="Copiar Link da Página Pública"
+                                                title={t('nav.copy_portfolio_link')}
                                             >
                                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
-                                                Copiar Link Público
+                                                {t('nav.copy_portfolio_link')}
                                             </button>
                                         )}
                                         <span className="text-sm font-medium border-l border-neutral-200 pl-2 ml-2">Olá, {user.name}</span>
                                         <button onClick={onLogout} className="ml-2 px-4 py-2 text-sm font-medium text-primary border border-primary rounded-full hover:bg-primary hover:text-white transition-colors">
-                                            Sair
+                                            {t('nav.logout')}
                                         </button>
                                     </>
                                 )}
@@ -136,10 +142,14 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigate, currentView
             </div>
             {isMenuOpen && !isAuthPage && (
                 <div className="lg:hidden bg-white py-4 px-4 space-y-2">
+                    <div className="pb-2 border-b border-neutral-100 flex justify-between items-center">
+                        <span className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">{t('footer.language')}</span>
+                        <LanguageSelector variant="inline" />
+                    </div>
                     {!(isAdminView || isPhotographerView) && (
                         <>
-                            <a href="/find-photos" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'find-photos' }); setIsMenuOpen(false); }} className="block text-sm font-medium text-neutral-800 hover:text-primary transition-colors w-full text-left py-2">Encontrar fotos</a>
-                            <a href="/photographers" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'photographers' }); setIsMenuOpen(false); }} className="block text-sm font-medium text-neutral-800 hover:text-primary transition-colors w-full text-left py-2">Encontrar Profissional</a>
+                            <a href="/find-photos" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'find-photos' }); setIsMenuOpen(false); }} className="block text-sm font-medium text-neutral-800 hover:text-primary transition-colors w-full text-left py-2">{t('nav.find_photos')}</a>
+                            <a href="/photographers" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'photographers' }); setIsMenuOpen(false); }} className="block text-sm font-medium text-neutral-800 hover:text-primary transition-colors w-full text-left py-2">{t('nav.find_photographers')}</a>
 
                             <div className="h-px bg-neutral-100 my-2"></div>
                         </>
@@ -147,17 +157,17 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigate, currentView
                     {!user ? (
                         <div className="flex items-center space-x-2 pt-2">
                             <button onClick={() => { onNavigate({ name: 'login' }); setIsMenuOpen(false); }} className="w-full text-center px-4 py-2 text-sm font-medium text-primary border border-primary rounded-full hover:bg-primary hover:text-white transition-colors">
-                                Entrar
+                                {t('nav.login')}
                             </button>
                             <button onClick={() => { onNavigate({ name: 'register' }); setIsMenuOpen(false); }} className="w-full text-center px-4 py-2 text-sm font-medium text-white bg-primary rounded-full hover:bg-opacity-90 transition-colors">
-                                Cadastrar
+                                {t('nav.register')}
                             </button>
                         </div>
                     ) : (
                         <>
                             {user.role === UserRole.CUSTOMER && (
                                 <button onClick={() => { onNavigate({ name: 'customer-dashboard' }); setIsMenuOpen(false); }} className="block w-full text-left text-sm font-medium text-neutral-800 hover:text-primary transition-colors py-2">
-                                    Minhas Compras
+                                    {t('nav.my_purchases')}
                                 </button>
                             )}
                             <div className="h-px bg-neutral-100 my-2"></div>
@@ -167,7 +177,7 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigate, currentView
                                     onClick={() => { onNavigate({ name: 'photographer' }); setIsMenuOpen(false); }}
                                     className="w-full text-center px-4 py-2 mb-2 text-sm font-medium text-white bg-neutral-900 hover:bg-neutral-800 rounded-full shadow-sm transition-all"
                                 >
-                                    Painel do Fotógrafo
+                                    {t('nav.photographer_panel')}
                                 </button>
                             )}
                             {isPhotographerView && (
@@ -176,19 +186,18 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigate, currentView
                                     className="w-full text-center px-4 py-2 mb-2 text-sm font-medium text-white bg-secondary hover:bg-secondary-light rounded-full shadow-sm transition-all flex items-center justify-center gap-2"
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
-                                    Copiar Link Público
+                                    {t('nav.copy_portfolio_link')}
                                 </button>
                             )}
                             <span className="block text-sm text-neutral-800 mb-2 font-medium">Olá, {user.name}</span>
                             <button onClick={() => { onLogout(); setIsMenuOpen(false); }} className="w-full text-center px-4 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-full hover:bg-red-100 transition-colors mt-2">
-                                Sair
+                                {t('nav.logout')}
                             </button>
                         </>
                     )}
                 </div>
-            )
-            }
-        </header >
+            )}
+        </header>
     );
 };
 

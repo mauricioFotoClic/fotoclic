@@ -15,6 +15,7 @@ import TopProgressBar from './components/TopProgressBar';
 // Contexts
 import { ToastProvider, useToast } from './contexts/ToastContext';
 import { ConfirmProvider, useConfirm } from './contexts/ConfirmContext';
+import { LanguageProvider } from './contexts/LanguageContext';
 
 // Lazy load wrapper to handle Vite chunk loading errors during new deployments
 const lazyWithRetry = (componentImport: () => Promise<{ default: React.ComponentType<any> }>) => {
@@ -740,11 +741,13 @@ const MainApp: React.FC = () => {
 
 const App: React.FC = () => {
     return (
-        <ToastProvider>
-            <ConfirmProvider>
-                <MainApp />
-            </ConfirmProvider>
-        </ToastProvider>
+        <LanguageProvider>
+            <ToastProvider>
+                <ConfirmProvider>
+                    <MainApp />
+                </ConfirmProvider>
+            </ToastProvider>
+        </LanguageProvider>
     );
 };
 
