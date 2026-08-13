@@ -586,6 +586,11 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
                 </div>
               ))}
             </div>
+          ) : recentPhotos.length === 0 ? (
+            <div className="text-center py-16 text-neutral-500 font-light border border-dashed border-neutral-200 rounded-2xl bg-white mb-10">
+              <Camera className="w-12 h-12 mx-auto mb-3 text-neutral-400" />
+              <p className="text-lg">Nenhuma foto recente encontrada no momento.</p>
+            </div>
           ) : (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">

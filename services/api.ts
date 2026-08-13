@@ -362,7 +362,7 @@ export const api = {
     if (limit === 8 && inMemoryCache.recent.data && (now - inMemoryCache.recent.ts < CACHE_TTL)) {
       return inMemoryCache.recent.data;
     }
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from("photos")
       .select(
         "id, photographer_id, category_id, title, preview_url, thumb_url, price, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags, sales_count",
@@ -371,9 +371,18 @@ export const api = {
       .eq("is_public", true)
       .order("created_at", { ascending: false })
       .limit(limit);
-    if (error) {
-      console.warn("Error fetching recent photos:", error);
-      return [];
+
+    if (error || !data || data.length === 0) {
+      const fallbackRes = await supabase
+        .from("photos")
+        .select(
+          "id, photographer_id, category_id, title, preview_url, thumb_url, price, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags, sales_count",
+        )
+        .eq("is_public", true)
+        .order("created_at", { ascending: false })
+        .limit(limit);
+
+      data = fallbackRes.data;
     }
 
     const inactiveIds = await api.getInactivePhotographerIds();
