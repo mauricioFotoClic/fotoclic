@@ -83,7 +83,7 @@ const CarouselBtn: React.FC<{ onClick: () => void; dir: 'prev' | 'next'; disable
 
 // ─── HomePage ─────────────────────────────────────────────────────────────────
 const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUser }) => {
-  const { t } = useLanguage();
+  const { t, tCategory, formatDate } = useLanguage();
   const [featuredPhotos, setFeaturedPhotos] = useState<Photo[]>([]);
   const [recentPhotos, setRecentPhotos] = useState<Photo[]>([]);
   const [recentEvents, setRecentEvents] = useState<PhotoEvent[]>([]);
@@ -469,7 +469,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
                     <div className="transform translate-y-1 group-hover:translate-y-0 transition-transform duration-500">
                       <span className="block w-6 h-0.5 bg-primary mb-2 transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500 delay-75" />
                       <h3 className="font-display font-bold text-white text-base md:text-lg tracking-wide drop-shadow-lg">
-                        {category.name}
+                        {tCategory(category.name)}
                       </h3>
                       <div className="h-0 group-hover:h-5 overflow-hidden transition-[height] duration-500 opacity-0 group-hover:opacity-100">
                         <span className="text-xs text-neutral-300 font-medium uppercase tracking-wider mt-1 block">{t('home.explore')}</span>
@@ -566,8 +566,8 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
       <section className="py-24 bg-neutral-50 relative">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col items-center justify-center mb-12 text-center">
-            <span className="text-primary font-bold text-xs uppercase tracking-widest mb-2">O que há de novo</span>
-            <h2 className="text-3xl md:text-4xl font-display font-bold text-neutral-900">Fotos Recentes</h2>
+            <span className="text-primary font-bold text-xs uppercase tracking-widest mb-2">{t('home.whats_new')}</span>
+            <h2 className="text-3xl md:text-4xl font-display font-bold text-neutral-900">{t('home.recent_photos_title')}</h2>
             <div className="w-20 h-1 bg-gradient-to-r from-primary to-neutral-900 rounded-full mt-4" />
           </div>
 
@@ -608,7 +608,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
                 >
                   <span className="w-0 h-0 rounded bg-primary absolute top-0 left-0 ease-out duration-500 transition-all group-hover:w-full group-hover:h-full -z-1" />
                   <span className="relative z-10 flex items-center gap-2 transition-colors duration-300 group-hover:text-white">
-                    Explorar Galeria Completa
+                    {t('home.explore_full_gallery')}
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
                     </svg>
@@ -624,8 +624,8 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
       <section className="py-24 bg-white relative">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col items-center justify-center mb-12 text-center">
-            <span className="text-primary font-bold text-xs uppercase tracking-widest mb-2">Acontecendo agora</span>
-            <h2 className="text-3xl md:text-4xl font-display font-bold text-neutral-900">Eventos Recentes</h2>
+            <span className="text-primary font-bold text-xs uppercase tracking-widest mb-2">{t('home.happening_now')}</span>
+            <h2 className="text-3xl md:text-4xl font-display font-bold text-neutral-900">{t('home.recent_events_title')}</h2>
             <div className="w-20 h-1 bg-gradient-to-r from-primary to-secondary rounded-full mt-4" />
           </div>
 
@@ -653,7 +653,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
                   .map(event => {
                   const category = categoriesMap[event.category_id];
                   const photographer = photographersMap[event.photographer_id] || event.photographer;
-                  const eventDate = formatEventDate(event.event_date, { day: '2-digit', month: 'short', year: 'numeric' }) || null;
+                  const eventDate = formatDate(event.event_date, { day: '2-digit', month: 'short', year: 'numeric' }) || null;
 
                   return (
                     <div
@@ -675,12 +675,12 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
                             <svg className="w-12 h-12 text-neutral-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
-                            <span className="text-xs text-neutral-400">Fotos em breve</span>
+                            <span className="text-xs text-neutral-400">{t('home.photos_coming_soon')}</span>
                           </div>
                         )}
                         {category && (
                           <span className="absolute top-2 left-2 bg-black/50 text-white text-xs font-medium px-2 py-0.5 rounded-full backdrop-blur-sm">
-                            {category.name}
+                            {tCategory(category.name)}
                           </span>
                         )}
                       </div>
@@ -728,7 +728,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
                 >
                   <span className="w-0 h-0 rounded bg-primary absolute top-0 left-0 ease-out duration-500 transition-all group-hover:w-full group-hover:h-full -z-1" />
                   <span className="relative z-10 flex items-center gap-2 transition-colors duration-300 group-hover:text-white">
-                    Ver todos os Eventos
+                    {t('home.view_all_events')}
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
                     </svg>
@@ -737,7 +737,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
               </div>
             </>
           ) : (
-            <p className="text-center text-neutral-400 py-12">Nenhum evento disponível no momento.</p>
+            <p className="text-center text-neutral-400 py-12">{t('home.no_events_available')}</p>
           )}
         </div>
       </section>
@@ -748,8 +748,8 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
           {/* Header */}
           <div className="flex items-end justify-between mb-10">
             <div>
-              <h2 className="text-3xl md:text-4xl font-display font-bold text-neutral-900">Talentos em Ascensão</h2>
-              <p className="text-neutral-500 mt-1 text-sm">Conheça os criadores que estão definindo tendências visuais.</p>
+              <h2 className="text-3xl md:text-4xl font-display font-bold text-neutral-900">{t('home.rising_talents')}</h2>
+              <p className="text-neutral-500 mt-1 text-sm">{t('home.rising_talents_sub')}</p>
             </div>
             <div className="flex items-center gap-2">
               <CarouselBtn onClick={photogsCarousel.prev} dir="prev" disabled={!photogsCarousel.canPrev} />
@@ -805,18 +805,18 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
                           <span className="text-neutral-900 text-base font-bold">
                             {p.approvalPercentage ? Math.round(p.approvalPercentage) : 100}%
                           </span>
-                          <span>Aprovações</span>
+                          <span>{t('home.approvals')}</span>
                         </div>
                         <div className="w-px h-8 bg-neutral-100" />
                         <div className="flex flex-col items-center">
                           <span className="text-neutral-900 text-base font-bold">
                             {p.avgRating ? p.avgRating.toFixed(1) : '5.0'}
                           </span>
-                          <span>Avaliação</span>
+                          <span>{t('home.rating')}</span>
                         </div>
                       </div>
                       <button className="w-full py-2.5 px-4 rounded-full border border-neutral-200 text-neutral-700 font-medium text-sm hover:border-primary hover:text-primary hover:bg-primary/5 transition-all duration-300 flex items-center justify-center gap-2 group-hover:shadow-md">
-                        Ver Portfólio
+                        {t('home.view_portfolio')}
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                         </svg>
@@ -836,7 +836,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
                 onClick={() => onNavigate({ name: 'photographers' })}
                 className="text-sm text-primary font-medium hover:underline flex items-center gap-1"
               >
-                Ver todos os fotógrafos
+                {t('home.view_all_photographers')}
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                 </svg>

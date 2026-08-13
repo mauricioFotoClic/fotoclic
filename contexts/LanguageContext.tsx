@@ -13,6 +13,7 @@ interface LanguageContextType {
     language: Language;
     setLanguage: (lang: Language) => void;
     t: (path: string, params?: Record<string, string | number>) => string;
+    tCategory: (categoryName: string) => string;
     formatCurrency: (amount: number) => string;
     formatDate: (dateStringOrObj: Date | string | number, options?: Intl.DateTimeFormatOptions) => string;
 }
@@ -97,8 +98,25 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
         }
     };
 
+    const tCategory = (categoryName: string): string => {
+        if (!categoryName) return '';
+        const key = categoryName
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9]/g, '_')
+            .replace(/_+/g, '_')
+            .replace(/^_+|_+$/g, '');
+
+        const translated = t(`categories.${key}`);
+        if (translated === `categories.${key}`) {
+            return categoryName;
+        }
+        return translated;
+    };
+
     return (
-        <LanguageContext.Provider value={{ language, setLanguage, t, formatCurrency, formatDate }}>
+        <LanguageContext.Provider value={{ language, setLanguage, t, tCategory, formatCurrency, formatDate }}>
             {children}
         </LanguageContext.Provider>
     );
