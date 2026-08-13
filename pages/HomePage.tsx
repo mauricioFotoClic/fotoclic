@@ -121,10 +121,21 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
       setLoadingFeatured(false);
     }).catch(() => setLoadingFeatured(false));
 
-    api.getRecentPhotos(8).then(r => {
-      setRecentPhotos(r);
+    api.getRecentPhotos(8).then(async r => {
+      if (r && r.length > 0) {
+        setRecentPhotos(r);
+      } else {
+        const allP = await api.getAllPhotos(undefined, false, false);
+        setRecentPhotos(allP.slice(0, 8));
+      }
       setLoadingRecent(false);
-    }).catch(() => setLoadingRecent(false));
+    }).catch(async () => {
+      try {
+        const allP = await api.getAllPhotos(undefined, false, false);
+        setRecentPhotos(allP.slice(0, 8));
+      } catch (e) {}
+      setLoadingRecent(false);
+    });
 
     api.getActivePhotographersPreview().then(pops => {
       setPhotographers(pops);

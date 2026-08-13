@@ -358,11 +358,15 @@ export const api = {
 
   getRecentPhotos: async (limit: number = 8): Promise<Photo[]> => {
     const now = Date.now();
-    // Cache only if limit is 8 (the default for home page)
-    if (limit === 8 && inMemoryCache.recent.data && (now - inMemoryCache.recent.ts < CACHE_TTL)) {
+    // Cache only if limit is 8 and cache has items
+    if (limit === 8 && inMemoryCache.recent.data && inMemoryCache.recent.data.length > 0 && (now - inMemoryCache.recent.ts < CACHE_TTL)) {
       return inMemoryCache.recent.data;
     }
-    let { data, error } = await supabase
+
+    const inactiveIds = await api.getInactivePhotographerIds();
+
+    // Tier 1: Approved + Public photos
+    let { data } = await supabase
       .from("photos")
       .select(
         "id, photographer_id, category_id, title, preview_url, thumb_url, price, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags, sales_count",
@@ -370,25 +374,38 @@ export const api = {
       .eq("moderation_status", "approved")
       .eq("is_public", true)
       .order("created_at", { ascending: false })
-      .limit(limit);
+      .limit(limit * 2);
 
-    if (error || !data || data.length === 0) {
-      const fallbackRes = await supabase
+    let filtered = (data || []).filter((p: any) => !inactiveIds.has(p.photographer_id));
+
+    // Tier 2: Any public photos
+    if (filtered.length === 0) {
+      const fallbackPublic = await supabase
         .from("photos")
         .select(
           "id, photographer_id, category_id, title, preview_url, thumb_url, price, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags, sales_count",
         )
         .eq("is_public", true)
         .order("created_at", { ascending: false })
-        .limit(limit);
+        .limit(limit * 2);
 
-      data = fallbackRes.data;
+      filtered = (fallbackPublic.data || []).filter((p: any) => !inactiveIds.has(p.photographer_id));
     }
 
-    const inactiveIds = await api.getInactivePhotographerIds();
-    const result = (data || [])
-      .filter((p: any) => !inactiveIds.has(p.photographer_id))
-      .map(mapPhoto);
+    // Tier 3: Absolute fallback - ANY photos from database ordered by created_at DESC
+    if (filtered.length === 0) {
+      const absoluteFallback = await supabase
+        .from("photos")
+        .select(
+          "id, photographer_id, category_id, title, preview_url, thumb_url, price, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags, sales_count",
+        )
+        .order("created_at", { ascending: false })
+        .limit(limit);
+
+      filtered = absoluteFallback.data || [];
+    }
+
+    const result = filtered.slice(0, limit).map(mapPhoto);
 
     if (limit === 8) {
       inMemoryCache.recent = { data: result, ts: now };
