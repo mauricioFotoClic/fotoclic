@@ -153,6 +153,7 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
+            setActiveTab('upload');
             const reader = new FileReader();
             reader.onload = (ev) => {
                 const dataUrl = ev.target?.result as string;
@@ -378,16 +379,18 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({
                                         </button>
                                     </div>
                                 ) : selectedImage ? (
-                                    <div className="relative w-full h-full group">
+                                    <div className="relative w-full h-full group flex items-center justify-center bg-neutral-950">
                                         <img
                                             src={selectedImage}
                                             alt="Selfie"
-                                            className="w-full h-full object-cover"
+                                            className={`w-full h-full ${activeTab === 'upload' ? 'object-contain' : 'object-cover'}`}
                                         />
-                                        {/* Dashed Overlay on preview */}
-                                        <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                                            <div className="w-[190px] h-[250px] border-2 border-dashed border-primary/80 rounded-[50%]"></div>
-                                        </div>
+                                        {/* Dashed Overlay on preview - Apenas no modo de Selfie */}
+                                        {activeTab === 'selfie' && (
+                                            <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                                                <div className="w-[190px] h-[250px] border-2 border-dashed border-primary/80 rounded-[50%]"></div>
+                                            </div>
+                                        )}
 
                                         {/* Change Photo Overlay button */}
                                         <button
@@ -395,7 +398,7 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({
                                                 if (activeTab === 'selfie') startCamera();
                                                 else fileInputRef.current?.click();
                                             }}
-                                            className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/70 hover:bg-black text-white text-xs font-semibold px-4 py-2.5 rounded-full backdrop-blur-md transition-all flex items-center gap-2 border border-white/20"
+                                            className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/70 hover:bg-black text-white text-xs font-semibold px-4 py-2.5 rounded-full backdrop-blur-md transition-all flex items-center gap-2 border border-white/20 z-10"
                                         >
                                             <RotateCcw size={14} />
                                             {t('face_search.retake_photo_button')}
