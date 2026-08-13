@@ -1,60 +1,61 @@
-
 import React, { useState } from 'react';
 import { Page } from '../types';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface HelpCenterPageProps {
     onNavigate: (page: Page) => void;
 }
 
 const HelpCenterPage: React.FC<HelpCenterPageProps> = ({ onNavigate }) => {
+    const { t } = useLanguage();
     const [searchTerm, setSearchTerm] = useState('');
     const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
     const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
     const categories = [
-        { id: 'general', title: 'Geral', icon: '🌍', desc: 'Visão geral da plataforma' },
-        { id: 'buying', title: 'Comprando', icon: '🛒', desc: 'Pagamentos e downloads' },
-        { id: 'selling', title: 'Vendendo', icon: '📸', desc: 'Para fotógrafos e criadores' },
-        { id: 'account', title: 'Minha Conta', icon: '👤', desc: 'Configurações e perfil' },
-        { id: 'licenses', title: 'Licenças', icon: '📄', desc: 'Direitos de uso e comercial' },
-        { id: 'technical', title: 'Suporte Técnico', icon: '⚙️', desc: 'Bugs e problemas' },
+        { id: 'general', title: t('help_center_page.cat_general'), icon: '🌍', desc: t('help_center_page.cat_general_desc') },
+        { id: 'buying', title: t('help_center_page.cat_buying'), icon: '🛒', desc: t('help_center_page.cat_buying_desc') },
+        { id: 'selling', title: t('help_center_page.cat_selling'), icon: '📸', desc: t('help_center_page.cat_selling_desc') },
+        { id: 'account', title: t('help_center_page.cat_account'), icon: '👤', desc: t('help_center_page.cat_account_desc') },
+        { id: 'licenses', title: t('help_center_page.cat_licenses'), icon: '📄', desc: t('help_center_page.cat_licenses_desc') },
+        { id: 'technical', title: t('help_center_page.cat_technical'), icon: '⚙️', desc: t('help_center_page.cat_technical_desc') },
     ];
 
     const faqs = [
         {
             category: 'buying',
-            question: "Como recebo as fotos após a compra?",
-            answer: "Após a confirmação do pagamento, você será redirecionado automaticamente para a página de download. Além disso, todas as suas compras ficam salvas em 'Minhas Compras' no menu do usuário, onde você pode baixá-las a qualquer momento em alta resolução."
+            question: t('help_center_page.q1'),
+            answer: t('help_center_page.a1')
         },
         {
             category: 'selling',
-            question: "Quanto custa para vender minhas fotos?",
-            answer: "É totalmente gratuito criar uma conta de fotógrafo. Cobramos apenas uma comissão sobre cada venda realizada para cobrir taxas de transação e manutenção da plataforma. Você fica com a maior parte do lucro!"
+            question: t('help_center_page.q2'),
+            answer: t('help_center_page.a2')
         },
         {
             category: 'licenses',
-            question: "Posso usar as fotos para fins comerciais?",
-            answer: "Sim! Todas as fotos vendidas no FotoClic possuem licença Royalty-Free, o que significa que você paga uma única vez e pode utilizá-las em projetos pessoais, comerciais, redes sociais e marketing, sem limite de tempo."
+            question: t('help_center_page.q3'),
+            answer: t('help_center_page.a3')
         },
         {
             category: 'general',
-            question: "O FotoClic emite nota fiscal?",
-            answer: "Sim. Para todas as transações, é gerado um recibo digital. Se você precisar de uma nota fiscal formal para empresa, entre em contato com nosso suporte após a compra com os dados da sua empresa."
+            question: t('help_center_page.q4'),
+            answer: t('help_center_page.a4')
         },
         {
             category: 'selling',
-            question: "Como funciona a moderação de fotos?",
-            answer: "Todas as fotos enviadas passam por uma análise técnica e de qualidade. Nossa equipe (e nossa IA) verifica resolução, foco, iluminação e se a imagem respeita nossos termos de uso. O prazo médio é de 24 a 48 horas."
+            question: t('help_center_page.q5'),
+            answer: t('help_center_page.a5')
         },
         {
             category: 'technical',
-            question: "Esqueci minha senha, o que faço?",
-            answer: "Na página de login, clique em 'Esqueci minha senha'. Enviaremos um link para o seu e-mail cadastrado para que você possa redefinir sua senha com segurança."
+            question: t('help_center_page.q6'),
+            answer: t('help_center_page.a6')
         },
         {
             category: 'account',
-            question: "Como altero minha foto de perfil?",
-            answer: "Acesse seu painel de usuário ou fotógrafo, vá em 'Meu Perfil' ou 'Configurações' e clique na sua foto atual para fazer o upload de uma nova imagem."
+            question: t('help_center_page.q7'),
+            answer: t('help_center_page.a7')
         }
     ];
 
@@ -68,7 +69,6 @@ const HelpCenterPage: React.FC<HelpCenterPageProps> = ({ onNavigate }) => {
         } else {
             setActiveCategory(id);
             setSearchTerm(''); // Clear search when selecting category
-            // Scroll to FAQ section
             setTimeout(() => {
                 document.getElementById('faq-section')?.scrollIntoView({ behavior: 'smooth' });
             }, 100);
@@ -76,12 +76,10 @@ const HelpCenterPage: React.FC<HelpCenterPageProps> = ({ onNavigate }) => {
     };
 
     const filteredFaqs = faqs.filter(faq => {
-        // Search overrides category filter
         if (searchTerm) {
             return faq.question.toLowerCase().includes(searchTerm.toLowerCase()) || 
                    faq.answer.toLowerCase().includes(searchTerm.toLowerCase());
         }
-        // Category filter
         if (activeCategory) {
             return faq.category === activeCategory;
         }
@@ -94,128 +92,140 @@ const HelpCenterPage: React.FC<HelpCenterPageProps> = ({ onNavigate }) => {
         <div className="bg-neutral-50 min-h-screen pb-20">
             {/* Hero Section */}
             <section className="bg-primary-dark text-white py-20 relative overflow-hidden">
-                {/* Abstract Background */}
                 <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/20 rounded-full blur-[120px] pointer-events-none transform translate-x-1/3 -translate-y-1/3"></div>
                 <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-secondary/10 rounded-full blur-[100px] pointer-events-none transform -translate-x-1/3 translate-y-1/3"></div>
 
-                <div className="container mx-auto px-4 text-center relative z-10">
-                    <h1 className="text-4xl md:text-5xl font-display font-bold mb-6">Central de Ajuda</h1>
-                    <p className="text-lg text-neutral-300 mb-8 max-w-2xl mx-auto">
-                        Como podemos te ajudar hoje? Encontre respostas rápidas para suas dúvidas.
+                <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
+                    <h1 className="text-4xl md:text-5xl font-display font-bold mb-4 animate-fade-in-up">
+                        {t('help_center_page.hero_title')}
+                    </h1>
+                    <p className="text-lg md:text-xl text-neutral-200 max-w-2xl mx-auto font-light mb-8 animate-fade-in-up delay-100">
+                        {t('help_center_page.hero_subtitle')}
                     </p>
-                    
-                    <div className="max-w-2xl mx-auto relative">
-                        <input 
-                            type="text" 
-                            placeholder="Busque por dúvida, palavra-chave ou tópico..." 
+
+                    {/* Search Bar */}
+                    <div className="max-w-2xl mx-auto relative animate-fade-in-up delay-200">
+                        <input
+                            type="text"
+                            placeholder={t('help_center_page.search_placeholder')}
                             value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full py-4 pl-12 pr-4 rounded-full text-neutral-800 focus:outline-none focus:ring-4 focus:ring-primary/30 shadow-lg transition-shadow"
+                            onChange={e => setSearchTerm(e.target.value)}
+                            className="w-full pl-6 pr-12 py-4 rounded-2xl text-neutral-800 bg-white border-0 shadow-2xl focus:ring-4 focus:ring-primary/30 text-base md:text-lg"
                         />
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-neutral-400 absolute left-4 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <circle cx="11" cy="11" r="8"></circle>
-                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                        </svg>
+                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+                            </svg>
+                        </span>
                     </div>
                 </div>
             </section>
 
-            <div className="container mx-auto px-4 sm:px-6 lg:px-8 -mt-10 relative z-20">
-                {/* Categories Grid */}
-                {!searchTerm && (
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-16">
-                        {categories.map((cat) => (
-                            <button 
-                                key={cat.id} 
+            {/* Categories Section */}
+            <section className="container mx-auto px-4 sm:px-6 lg:px-8 -mt-10 relative z-20">
+                <h2 className="text-sm font-bold text-neutral-400 uppercase tracking-widest text-center mb-6">{t('help_center_page.categories_title')}</h2>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+                    {categories.map((cat) => {
+                        const isActive = activeCategory === cat.id;
+                        return (
+                            <button
+                                key={cat.id}
                                 onClick={() => handleCategoryClick(cat.id)}
-                                className={`p-6 rounded-xl shadow-md transition-all cursor-pointer border group text-center hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
-                                    activeCategory === cat.id 
-                                    ? 'bg-white border-primary ring-2 ring-primary ring-opacity-50 shadow-lg scale-105 z-10' 
-                                    : 'bg-white border-neutral-100 hover:shadow-lg'
+                                className={`p-5 rounded-2xl border text-center transition-all duration-300 flex flex-col items-center justify-center ${
+                                    isActive
+                                        ? 'bg-primary text-white border-primary shadow-lg scale-105'
+                                        : 'bg-white text-neutral-800 border-neutral-200 hover:border-primary/50 hover:shadow-md hover:-translate-y-1'
                                 }`}
                             >
-                                <div className="text-3xl mb-3 group-hover:scale-110 transition-transform inline-block">{cat.icon}</div>
-                                <h3 className={`font-bold mb-1 ${activeCategory === cat.id ? 'text-primary' : 'text-neutral-900'}`}>{cat.title}</h3>
-                                <p className="text-xs text-neutral-500">{cat.desc}</p>
+                                <span className="text-3xl mb-2">{cat.icon}</span>
+                                <span className="font-bold text-sm leading-snug mb-1">{cat.title}</span>
+                                <span className={`text-[11px] leading-tight ${isActive ? 'text-white/80' : 'text-neutral-500'}`}>
+                                    {cat.desc}
+                                </span>
                             </button>
-                        ))}
-                    </div>
-                )}
+                        );
+                    })}
+                </div>
+            </section>
 
-                {/* FAQ Section */}
-                <div id="faq-section" className="max-w-3xl mx-auto scroll-mt-24">
-                    <div className="flex items-center justify-between mb-8">
-                        <h2 className="text-2xl font-display font-bold text-neutral-900">
-                            {searchTerm 
-                                ? 'Resultados da Busca' 
-                                : activeCategory 
-                                    ? `Perguntas sobre ${activeCategoryTitle}` 
-                                    : 'Perguntas Frequentes'}
-                        </h2>
-                        {activeCategory && !searchTerm && (
-                            <button 
-                                onClick={() => setActiveCategory(null)}
-                                className="text-sm text-primary hover:underline font-medium"
-                            >
-                                Ver todas
-                            </button>
-                        )}
-                    </div>
-
-                    {filteredFaqs.length > 0 ? (
-                        <div className="space-y-4">
-                            {filteredFaqs.map((faq, index) => (
-                                <div key={index} className="bg-white rounded-xl border border-neutral-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                                    <button 
-                                        onClick={() => toggleFaq(index)}
-                                        className="w-full flex items-center justify-between p-5 text-left focus:outline-none bg-white"
-                                    >
-                                        <span className="font-semibold text-neutral-800 text-lg pr-4">{faq.question}</span>
-                                        <span className={`transform transition-transform duration-300 text-primary flex-shrink-0 ${openFaqIndex === index ? 'rotate-180' : ''}`}>
-                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                            </svg>
-                                        </span>
-                                    </button>
-                                    <div 
-                                        className={`transition-all duration-300 ease-in-out overflow-hidden ${openFaqIndex === index ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}
-                                    >
-                                        <div className="p-5 pt-0 text-neutral-600 border-t border-neutral-100 bg-neutral-50/50 leading-relaxed">
-                                            {faq.answer}
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="text-center py-10 bg-white rounded-xl border border-dashed border-neutral-300">
-                            <p className="text-neutral-500 text-lg">Nenhum resultado encontrado para "{searchTerm}".</p>
-                            <button 
-                                onClick={() => setSearchTerm('')} 
-                                className="mt-4 text-primary hover:underline font-medium"
-                            >
-                                Limpar busca
-                            </button>
-                        </div>
+            {/* FAQ Accordion Section */}
+            <section id="faq-section" className="container mx-auto px-4 sm:px-6 lg:px-8 mt-16 max-w-4xl">
+                <div className="flex items-center justify-between mb-8 pb-4 border-b border-neutral-200">
+                    <h2 className="text-2xl md:text-3xl font-display font-bold text-neutral-900">
+                        {searchTerm ? `${t('help_center_page.faqs_title')} ("${searchTerm}")` : activeCategoryTitle ? `${t('help_center_page.faqs_title')}: ${activeCategoryTitle}` : t('help_center_page.faqs_all')}
+                    </h2>
+                    {(activeCategory || searchTerm) && (
+                        <button
+                            onClick={() => { setActiveCategory(null); setSearchTerm(''); }}
+                            className="text-xs font-bold text-primary hover:underline uppercase tracking-wider"
+                        >
+                            Ver Todas
+                        </button>
                     )}
                 </div>
 
-                {/* Footer CTA */}
-                <div className="mt-20 text-center bg-white p-10 rounded-2xl shadow-lg border border-neutral-100 max-w-4xl mx-auto">
-                    <h3 className="text-2xl font-bold text-neutral-900 mb-2">Ainda precisa de ajuda?</h3>
-                    <p className="text-neutral-600 mb-6">Nossa equipe de suporte está pronta para responder suas questões específicas.</p>
-                    <button 
+                {filteredFaqs.length > 0 ? (
+                    <div className="space-y-4">
+                        {filteredFaqs.map((faq, idx) => {
+                            const isOpen = openFaqIndex === idx;
+                            return (
+                                <div
+                                    key={idx}
+                                    className="bg-white rounded-2xl border border-neutral-200 overflow-hidden transition-all duration-200 hover:border-neutral-300 shadow-sm"
+                                >
+                                    <button
+                                        onClick={() => toggleFaq(idx)}
+                                        className="w-full p-6 text-left flex items-center justify-between focus:outline-none"
+                                    >
+                                        <span className="font-semibold text-neutral-900 text-base md:text-lg pr-4">
+                                            {faq.question}
+                                        </span>
+                                        <span className={`w-8 h-8 rounded-full flex items-center justify-center transition-transform duration-300 flex-shrink-0 ${
+                                            isOpen ? 'bg-primary text-white rotate-180' : 'bg-neutral-100 text-neutral-500'
+                                        }`}>
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                                            </svg>
+                                        </span>
+                                    </button>
+                                    {isOpen && (
+                                        <div className="px-6 pb-6 pt-2 text-neutral-600 text-sm md:text-base leading-relaxed border-t border-neutral-100 bg-neutral-50/50">
+                                            {faq.answer}
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                ) : (
+                    <div className="text-center py-12 bg-white rounded-2xl border border-neutral-200 p-8">
+                        <span className="text-4xl block mb-3">🔍</span>
+                        <p className="text-neutral-600 font-medium text-lg mb-2">{t('help_center_page.no_faqs')}</p>
+                        <button
+                            onClick={() => { setSearchTerm(''); setActiveCategory(null); }}
+                            className="mt-4 px-6 py-2 bg-primary text-white font-bold rounded-full text-sm hover:bg-primary-dark transition-colors"
+                        >
+                            Ver Todas as Dúvidas
+                        </button>
+                    </div>
+                )}
+
+                {/* Contact Banner */}
+                <div className="mt-16 bg-gradient-to-r from-primary to-primary-dark text-white rounded-3xl p-8 md:p-10 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl">
+                    <div>
+                        <h3 className="text-2xl font-display font-bold mb-2">{t('help_center_page.still_have_questions')}</h3>
+                        <p className="text-white/80 text-sm md:text-base">{t('help_center_page.still_have_questions_desc')}</p>
+                    </div>
+                    <button
                         onClick={() => onNavigate({ name: 'contact' })}
-                        className="px-8 py-3 bg-primary text-white rounded-full font-bold hover:bg-opacity-90 transition-colors shadow-md"
+                        className="bg-white text-primary-dark font-bold px-8 py-3.5 rounded-full hover:bg-neutral-100 transition-colors shadow-lg whitespace-nowrap text-sm"
                     >
-                        Entrar em Contato
+                        {t('help_center_page.contact_us')}
                     </button>
                 </div>
-            </div>
+            </section>
         </div>
     );
 };
 
 export default HelpCenterPage;
-
-

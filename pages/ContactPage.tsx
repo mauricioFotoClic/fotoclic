@@ -1,6 +1,6 @@
-
 import React from 'react';
 import { Page } from '../types';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface ContactPageProps {
     onNavigate: (page: Page) => void;
@@ -15,6 +15,8 @@ const ClockIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" heigh
 const MapPinIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>;
 
 const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
+    const { t } = useLanguage();
+
     return (
         <div className="bg-neutral-50 min-h-screen pb-20">
             {/* Header / Hero Section */}
@@ -24,10 +26,10 @@ const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
                 
                 <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
                     <h1 className="text-4xl md:text-6xl font-display font-bold mb-6 animate-fade-in-up">
-                        Fale Conosco
+                        {t('contact_page.title')}
                     </h1>
                     <p className="text-lg md:text-xl text-neutral-300 max-w-2xl mx-auto font-light animate-fade-in-up delay-100">
-                        Estamos prontos para ajudar você a encontrar a imagem perfeita ou a compartilhar sua arte com o mundo.
+                        {t('contact_page.subtitle')}
                     </p>
                 </div>
             </section>
@@ -41,9 +43,9 @@ const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
                         <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center text-primary mb-6 group-hover:scale-110 transition-transform duration-300">
                             <UserGroupIcon />
                         </div>
-                        <h2 className="text-2xl font-display font-bold text-neutral-900 mb-3">Suporte por E-mail</h2>
+                        <h2 className="text-2xl font-display font-bold text-neutral-900 mb-3">{t('contact_page.email_title')}</h2>
                         <p className="text-neutral-600 mb-6 leading-relaxed">
-                            Tem dúvidas sobre compras, downloads, seu portfólio de fotógrafo ou precisa de suporte técnico? Entre em contato conosco pelo e-mail.
+                            {t('contact_page.email_desc')}
                         </p>
                         <div className="space-y-4">
                             <a href="mailto:fvimagem@fvimagem.com" className="flex items-center p-4 rounded-xl bg-neutral-50 hover:bg-primary/5 border border-neutral-200 hover:border-primary/30 transition-all group/link">
@@ -51,7 +53,7 @@ const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
                                     <EnvelopeIcon />
                                 </div>
                                 <div>
-                                    <p className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Envie um e-mail</p>
+                                    <p className="text-xs font-bold text-neutral-400 uppercase tracking-wider">{t('contact_page.email_btn')}</p>
                                     <p className="font-semibold text-neutral-800">fvimagem@fvimagem.com</p>
                                 </div>
                             </a>
@@ -63,9 +65,9 @@ const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
                         <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-600 mb-6 group-hover:scale-110 transition-transform duration-300">
                             <WhatsAppIcon />
                         </div>
-                        <h2 className="text-2xl font-display font-bold text-neutral-900 mb-3">Atendimento via WhatsApp</h2>
+                        <h2 className="text-2xl font-display font-bold text-neutral-900 mb-3">{t('contact_page.whatsapp_title')}</h2>
                         <p className="text-neutral-600 mb-6 leading-relaxed">
-                            Prefere um contato mais ágil? Fale diretamente com a nossa equipe de suporte para tirar suas dúvidas de forma rápida.
+                            {t('contact_page.whatsapp_desc')}
                         </p>
                         <div className="space-y-4">
                             <a href="https://wa.me/5521992580137" target="_blank" rel="noopener noreferrer" className="flex items-center p-4 rounded-xl bg-neutral-50 hover:bg-emerald-50/50 border border-neutral-200 hover:border-emerald-300 transition-all group/link">
@@ -73,7 +75,7 @@ const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
                                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
                                 </div>
                                 <div>
-                                    <p className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Converse agora</p>
+                                    <p className="text-xs font-bold text-neutral-400 uppercase tracking-wider">{t('contact_page.whatsapp_btn')}</p>
                                     <p className="font-semibold text-neutral-800">+55 21 99258-0137</p>
                                 </div>
                             </a>
@@ -90,29 +92,29 @@ const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
                     <div className="bg-white p-6 rounded-xl border border-neutral-200 flex items-start space-x-4">
                         <div className="text-primary mt-1"><ClockIcon /></div>
                         <div>
-                            <h3 className="font-bold text-neutral-900 mb-1">Horário de Atendimento</h3>
-                            <p className="text-sm text-neutral-600">Segunda a Sexta</p>
-                            <p className="text-sm text-neutral-600 font-medium">09:00 às 18:00</p>
+                            <h3 className="font-bold text-neutral-900 mb-1">{t('contact_page.hours_title')}</h3>
+                            <p className="text-sm text-neutral-600">{t('contact_page.hours_days')}</p>
+                            <p className="text-sm text-neutral-600 font-medium">{t('contact_page.hours_time')}</p>
                         </div>
                     </div>
 
                     <div className="bg-white p-6 rounded-xl border border-neutral-200 flex items-start space-x-4">
                         <div className="text-primary mt-1"><MapPinIcon /></div>
                         <div>
-                            <h3 className="font-bold text-neutral-900 mb-1">Endereço Escritório</h3>
-                            <p className="text-sm text-neutral-600">Av. Lineu de Paula Machado</p>
-                            <p className="text-sm text-neutral-600">Rio de Janeiro - RJ, Brasil</p>
+                            <h3 className="font-bold text-neutral-900 mb-1">{t('contact_page.address_title')}</h3>
+                            <p className="text-sm text-neutral-600">{t('contact_page.address_line1')}</p>
+                            <p className="text-sm text-neutral-600">{t('contact_page.address_line2')}</p>
                         </div>
                     </div>
 
                     <div className="bg-gradient-to-br from-primary to-primary-dark p-6 rounded-xl text-white flex flex-col justify-center text-center">
-                        <h3 className="font-bold mb-2">FAQ</h3>
-                        <p className="text-sm text-white/80 mb-3">Dúvidas rápidas? Consulte nossa central de ajuda.</p>
+                        <h3 className="font-bold mb-2">{t('contact_page.faq_title')}</h3>
+                        <p className="text-sm text-white/80 mb-3">{t('contact_page.faq_desc')}</p>
                         <button 
                             onClick={() => onNavigate({ name: 'help-center' })}
                             className="text-xs font-bold bg-white/20 hover:bg-white/30 py-2 px-4 rounded-full transition-colors"
                         >
-                            Acessar Central de Ajuda
+                            {t('contact_page.faq_btn')}
                         </button>
                     </div>
 
@@ -123,5 +125,3 @@ const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
 };
 
 export default ContactPage;
-
-

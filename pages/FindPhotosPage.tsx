@@ -1,10 +1,10 @@
-
 import React, { useEffect, useState, useMemo } from 'react';
 import { PhotoEvent, User, Category, Page } from '../types';
 import api from '../services/api';
 import SEO from '../components/SEO';
 import WatermarkedImage from '../components/WatermarkedImage';
 import { includesNormalized, getAvatarFallbackUrl } from '../utils/stringUtils';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface FindPhotosPageProps {
   onNavigate: (page: Page) => void;
@@ -12,6 +12,7 @@ interface FindPhotosPageProps {
 }
 
 const FindPhotosPage: React.FC<FindPhotosPageProps> = ({ onNavigate, initialSearch }) => {
+  const { t, tCategory, formatDate } = useLanguage();
   const [events, setEvents] = useState<PhotoEvent[]>([]);
   const [photographers, setPhotographers] = useState<Record<string, User>>({});
   const [categories, setCategories] = useState<Record<string, Category>>({});
@@ -86,7 +87,7 @@ const FindPhotosPage: React.FC<FindPhotosPageProps> = ({ onNavigate, initialSear
         return includesNormalized(e.name, cleanSearch) ||
           (e.location && includesNormalized(e.location, cleanSearch)) ||
           (e.description && includesNormalized(e.description, cleanSearch)) ||
-          (category && includesNormalized(category.name, cleanSearch)) ||
+          (category && includesNormalized(tCategory(category.name), cleanSearch)) ||
           (photographer && includesNormalized(photographer.name, cleanSearch));
       });
     }
@@ -118,7 +119,7 @@ const FindPhotosPage: React.FC<FindPhotosPageProps> = ({ onNavigate, initialSear
     }
 
     return result;
-  }, [events, searchTerm, filterCategory, filterCity, filterDate, categories, photographers]);
+  }, [events, searchTerm, filterCategory, filterCity, filterDate, categories, photographers, tCategory]);
 
   const hasFilters = searchTerm || filterCategory || filterCity || filterDate;
 
@@ -132,8 +133,8 @@ const FindPhotosPage: React.FC<FindPhotosPageProps> = ({ onNavigate, initialSear
   return (
     <div className="bg-white min-h-screen">
       <SEO
-        title="Encontrar Fotos"
-        description="Encontre fotos do seu evento. Busque por nome, cidade ou categoria."
+        title={t('find_photos_page.title')}
+        description={t('find_photos_page.subtitle')}
         url="https://fotoclic.com.br/encontrar-fotos"
       />
 
@@ -141,10 +142,10 @@ const FindPhotosPage: React.FC<FindPhotosPageProps> = ({ onNavigate, initialSear
       <section className="bg-primary py-14">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-4xl md:text-5xl font-display font-bold text-white mb-3">
-            Encontre suas fotos
+            {t('find_photos_page.title')}
           </h1>
           <p className="text-primary-100 text-lg mb-8 opacity-90">
-            Procure pelo evento em que você participou
+            {t('find_photos_page.subtitle')}
           </p>
 
           {/* Search Bar */}
@@ -153,7 +154,7 @@ const FindPhotosPage: React.FC<FindPhotosPageProps> = ({ onNavigate, initialSear
               type="text"
               name="search"
               autoComplete="search"
-              placeholder="Procure pelo evento em que participou..."
+              placeholder={t('find_photos_page.search_placeholder')}
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               className="w-full pl-5 pr-14 py-4 rounded-xl text-neutral-800 text-base shadow-lg focus:outline-none focus:ring-2 focus:ring-white/50"
@@ -174,7 +175,11 @@ const FindPhotosPage: React.FC<FindPhotosPageProps> = ({ onNavigate, initialSear
           {/* Filters bar */}
           <div className="flex flex-wrap items-center gap-3 mb-6">
             <span className="text-sm font-medium text-neutral-500">
-              {loading ? 'Carregando...' : `${filteredEvents.length} evento${filteredEvents.length !== 1 ? 's' : ''}`}
+              {loading
+                ? t('common.loading')
+                : filteredEvents.length === 1
+                  ? t('find_photos_page.event_count_single')
+                  : t('find_photos_page.event_count_plural', { count: filteredEvents.length })}
             </span>
 
             <div className="flex flex-wrap gap-2 ml-auto">
@@ -184,10 +189,10 @@ const FindPhotosPage: React.FC<FindPhotosPageProps> = ({ onNavigate, initialSear
                 onChange={e => setFilterDate(e.target.value)}
                 className="text-sm border border-neutral-200 rounded-lg px-3 py-2 text-neutral-700 focus:outline-none focus:ring-1 focus:ring-primary bg-white"
               >
-                <option value="">Data: Todos</option>
-                <option value="month">Este mês</option>
-                <option value="recent">Últimos 30 dias</option>
-                <option value="year">Este ano</option>
+                <option value="">{t('find_photos_page.date_all')}</option>
+                <option value="month">{t('find_photos_page.date_month')}</option>
+                <option value="recent">{t('find_photos_page.date_recent')}</option>
+                <option value="year">{t('find_photos_page.date_year')}</option>
               </select>
 
               {/* City filter */}
@@ -197,7 +202,7 @@ const FindPhotosPage: React.FC<FindPhotosPageProps> = ({ onNavigate, initialSear
                   onChange={e => setFilterCity(e.target.value)}
                   className="text-sm border border-neutral-200 rounded-lg px-3 py-2 text-neutral-700 focus:outline-none focus:ring-1 focus:ring-primary bg-white"
                 >
-                  <option value="">Cidade: Todas</option>
+                  <option value="">{t('find_photos_page.city_all')}</option>
                   {cities.map(city => (
                     <option key={city} value={city}>{city}</option>
                   ))}
@@ -211,9 +216,9 @@ const FindPhotosPage: React.FC<FindPhotosPageProps> = ({ onNavigate, initialSear
                   onChange={e => setFilterCategory(e.target.value)}
                   className="text-sm border border-neutral-200 rounded-lg px-3 py-2 text-neutral-700 focus:outline-none focus:ring-1 focus:ring-primary bg-white"
                 >
-                  <option value="">Categoria: Todas</option>
+                  <option value="">{t('find_photos_page.category_all')}</option>
                   {activeCategories.map(cat => (
-                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    <option key={cat.id} value={cat.id}>{tCategory(cat.name)}</option>
                   ))}
                 </select>
               )}
@@ -223,7 +228,7 @@ const FindPhotosPage: React.FC<FindPhotosPageProps> = ({ onNavigate, initialSear
                   onClick={clearFilters}
                   className="text-sm text-primary hover:underline font-medium px-2"
                 >
-                  Limpar filtros
+                  {t('find_photos_page.clear_filters')}
                 </button>
               )}
             </div>
@@ -253,7 +258,7 @@ const FindPhotosPage: React.FC<FindPhotosPageProps> = ({ onNavigate, initialSear
                 const photographer = photographers[event.photographer_id];
                 const category = categories[event.category_id];
                 const eventDate = event.event_date
-                  ? new Date(event.event_date.replace(/-/g, '/')).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
+                  ? formatDate(event.event_date, { day: '2-digit', month: 'short', year: 'numeric' })
                   : null;
 
                 return (
@@ -277,12 +282,12 @@ const FindPhotosPage: React.FC<FindPhotosPageProps> = ({ onNavigate, initialSear
                           <svg className="w-14 h-14 text-neutral-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                           </svg>
-                          <span className="absolute bottom-3 text-xs text-neutral-400 font-medium">Fotos em breve</span>
+                          <span className="absolute bottom-3 text-xs text-neutral-400 font-medium">{t('find_photos_page.photos_coming_soon')}</span>
                         </div>
                       )}
                       {category && (
                         <span className="absolute top-2 left-2 bg-black/50 text-white text-xs font-medium px-2 py-0.5 rounded-full backdrop-blur-sm">
-                          {category.name}
+                          {tCategory(category.name)}
                         </span>
                       )}
                     </div>
@@ -330,11 +335,11 @@ const FindPhotosPage: React.FC<FindPhotosPageProps> = ({ onNavigate, initialSear
               <svg className="w-16 h-16 text-neutral-200 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
-              <p className="text-neutral-500 font-medium">Nenhum evento encontrado</p>
-              <p className="text-neutral-400 text-sm mt-1">Tente outros termos ou remova os filtros.</p>
+              <p className="text-neutral-500 font-medium">{t('find_photos_page.no_events')}</p>
+              <p className="text-neutral-400 text-sm mt-1">{t('find_photos_page.no_events_desc')}</p>
               {hasFilters && (
                 <button onClick={clearFilters} className="mt-4 text-primary font-medium hover:underline text-sm">
-                  Limpar filtros
+                  {t('find_photos_page.clear_filters')}
                 </button>
               )}
             </div>
@@ -346,5 +351,3 @@ const FindPhotosPage: React.FC<FindPhotosPageProps> = ({ onNavigate, initialSear
 };
 
 export default FindPhotosPage;
-
-

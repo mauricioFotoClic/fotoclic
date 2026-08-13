@@ -1,7 +1,9 @@
-
 import React from 'react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 const PrivacyPage: React.FC = () => {
+    const { t, formatDate } = useLanguage();
+
     return (
         <div className="bg-neutral-50 min-h-screen pb-12">
             {/* Header Section */}
@@ -12,13 +14,13 @@ const PrivacyPage: React.FC = () => {
                 <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
                     <div className="inline-flex items-center justify-center p-3 mb-6 bg-white/10 rounded-full backdrop-blur-sm border border-white/20">
                         <span className="text-2xl mr-2">🔒</span>
-                        <span className="text-sm font-bold uppercase tracking-widest text-neutral-200">Legal</span>
+                        <span className="text-sm font-bold uppercase tracking-widest text-neutral-200">{t('privacy_page.tag')}</span>
                     </div>
                     <h1 className="text-4xl md:text-5xl font-display font-bold mb-4">
-                        Política de Privacidade
+                        {t('privacy_page.title')}
                     </h1>
                     <p className="text-lg text-neutral-300">
-                        Última atualização: {new Date().toLocaleDateString('pt-BR')}
+                        {t('privacy_page.last_updated')} {formatDate(new Date())}
                     </p>
                 </div>
             </section>
@@ -27,79 +29,77 @@ const PrivacyPage: React.FC = () => {
             <section className="container mx-auto px-4 sm:px-6 lg:px-8 -mt-20 relative z-20">
                 <div className="bg-white rounded-2xl shadow-xl p-8 md:p-12 max-w-4xl mx-auto prose prose-lg prose-neutral prose-headings:font-display prose-headings:font-bold prose-headings:text-primary-dark prose-a:text-primary hover:prose-a:text-primary-dark">
                     
-                    <h2>1. Coleta de Informações</h2>
+                    <h2>{t('privacy_page.s1_title')}</h2>
                     <p>
-                        Coletamos informações pessoais de usuários e fotógrafos quando você:
+                        {t('privacy_page.s1_p1')}
                     </p>
                     <ul>
-                        <li>cria uma conta na plataforma,</li>
-                        <li>realiza uma compra,</li>
-                        <li>se inscreve em nossa newsletter,</li>
-                        <li>ou preenche qualquer formulário disponível no site.</li>
+                        <li>{t('privacy_page.s1_li1')}</li>
+                        <li>{t('privacy_page.s1_li2')}</li>
+                        <li>{t('privacy_page.s1_li3')}</li>
+                        <li>{t('privacy_page.s1_li4')}</li>
                     </ul>
                     <p>
-                        As informações coletadas podem incluir:
+                        {t('privacy_page.s1_p2')}
                     </p>
                     <ul>
-                        <li>Nome completo,</li>
-                        <li>Endereço de e-mail,</li>
-                        <li>Informações de pagamento (para fotógrafos que recebem valores),</li>
-                        <li>e outros dados necessários para o funcionamento do marketplace de fotografias.</li>
+                        <li>{t('privacy_page.s1_li5')}</li>
+                        <li>{t('privacy_page.s1_li6')}</li>
+                        <li>{t('privacy_page.s1_li7')}</li>
+                        <li>{t('privacy_page.s1_li8')}</li>
                     </ul>
                     <p>
-                        Não coletamos dados sensíveis sem necessidade e não vendemos suas informações a terceiros.
+                        {t('privacy_page.s1_p3')}
                     </p>
 
-                    <h2>2. Uso das Informações</h2>
+                    <h2>{t('privacy_page.s2_title')}</h2>
                     <p>
-                        Os dados fornecidos pelos usuários podem ser utilizados para:
+                        {t('privacy_page.s2_p1')}
                     </p>
                     <ul>
-                        <li>Personalizar sua experiência na plataforma,</li>
-                        <li>Melhorar nosso site e funcionalidades,</li>
-                        <li>Aprimorar o suporte ao cliente,</li>
-                        <li>Processar pagamentos e transações,</li>
-                        <li>Enviar comunicados importantes, atualizações e e-mails periódicos relacionados ao FotoClic.</li>
+                        <li>{t('privacy_page.s2_li1')}</li>
+                        <li>{t('privacy_page.s2_li2')}</li>
+                        <li>{t('privacy_page.s2_li3')}</li>
+                        <li>{t('privacy_page.s2_li4')}</li>
+                        <li>{t('privacy_page.s2_li5')}</li>
                     </ul>
                     <p>
-                        O FotoClic se compromete a utilizar suas informações de forma ética, transparente e alinhada às boas práticas de proteção de dados.
+                        {t('privacy_page.s2_p2')}
                     </p>
 
-                    <h2>3. Proteção das Informações</h2>
+                    <h2>{t('privacy_page.s3_title')}</h2>
                     <p>
-                        Adotamos uma série de medidas técnicas e administrativas de segurança para proteger seus dados pessoais contra acesso indevido, alteração, divulgação ou destruição.
-                        Entre as medidas utilizadas estão:
+                        {t('privacy_page.s3_p1')}
                     </p>
                     <ul>
-                        <li>Conexão segura (HTTPS),</li>
-                        <li>Criptografia de dados sensíveis,</li>
-                        <li>Controle de acesso,</li>
-                        <li>Monitoramento interno,</li>
-                        <li>Hospedagem em provedores confiáveis.</li>
+                        <li>{t('privacy_page.s3_li1')}</li>
+                        <li>{t('privacy_page.s3_li2')}</li>
+                        <li>{t('privacy_page.s3_li3')}</li>
+                        <li>{t('privacy_page.s3_li4')}</li>
+                        <li>{t('privacy_page.s3_li5')}</li>
                     </ul>
                     <p>
-                        Apesar de nossos esforços, nenhum sistema é totalmente imune, mas trabalhamos continuamente para manter seus dados o mais seguros possível.
+                        {t('privacy_page.s3_p2')}
                     </p>
 
-                    <h2>4. Uso de Cookies</h2>
+                    <h2>{t('privacy_page.s4_title')}</h2>
                     <p>
-                        Sim, o FotoClic utiliza cookies para melhorar sua experiência de navegação. Esses arquivos são armazenados no seu dispositivo através do navegador e permitem que nosso sistema:
+                        {t('privacy_page.s4_p1')}
                     </p>
                     <ul>
-                        <li>reconheça suas preferências,</li>
-                        <li>guarde informações importantes,</li>
-                        <li>melhore o desempenho do site,</li>
-                        <li>personalize conteúdos e funcionalidades.</li>
+                        <li>{t('privacy_page.s4_li1')}</li>
+                        <li>{t('privacy_page.s4_li2')}</li>
+                        <li>{t('privacy_page.s4_li3')}</li>
+                        <li>{t('privacy_page.s4_li4')}</li>
                     </ul>
                     <p>
-                        Você pode desativar os cookies nas configurações do seu navegador, porém isso pode impactar algumas funcionalidades da plataforma.
+                        {t('privacy_page.s4_p2')}
                     </p>
 
-                    <h2>5. Produtos Digitais e Reembolso</h2>
+                    <h2>{t('privacy_page.s5_title')}</h2>
                     <p>
-                        O FotoClic comercializa produtos digitais com liberação imediata após a confirmação do pagamento. Devido à natureza digital do produto e à possibilidade de download imediato, não haverá reembolso dos valores pagos após o download da imagem, salvo exceções expressamente previstas em lei ou falhas técnicas comprovadas no arquivo.
+                        {t('privacy_page.s5_p1')}
                     </p>
-
                 </div>
             </section>
         </div>
@@ -107,5 +107,3 @@ const PrivacyPage: React.FC = () => {
 };
 
 export default PrivacyPage;
-
-

@@ -1,7 +1,9 @@
-
 import React from 'react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 const TermsPage: React.FC = () => {
+    const { t, formatDate } = useLanguage();
+
     return (
         <div className="bg-neutral-50 min-h-screen pb-12">
             {/* Header Section */}
@@ -11,13 +13,13 @@ const TermsPage: React.FC = () => {
                 <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
                     <div className="inline-flex items-center justify-center p-3 mb-6 bg-white/10 rounded-full backdrop-blur-sm border border-white/20">
                         <span className="text-2xl mr-2">📄</span>
-                        <span className="text-sm font-bold uppercase tracking-widest text-neutral-200">Legal</span>
+                        <span className="text-sm font-bold uppercase tracking-widest text-neutral-200">{t('terms_page.tag')}</span>
                     </div>
                     <h1 className="text-4xl md:text-5xl font-display font-bold mb-4">
-                        Termos de Serviço
+                        {t('terms_page.title')}
                     </h1>
                     <p className="text-lg text-neutral-300">
-                        Última atualização: {new Date().toLocaleDateString('pt-BR')}
+                        {t('terms_page.last_updated')} {formatDate(new Date())}
                     </p>
                 </div>
             </section>
@@ -26,57 +28,55 @@ const TermsPage: React.FC = () => {
             <section className="container mx-auto px-4 sm:px-6 lg:px-8 -mt-20 relative z-20">
                 <div className="bg-white rounded-2xl shadow-xl p-8 md:p-12 max-w-4xl mx-auto prose prose-lg prose-neutral prose-headings:font-display prose-headings:font-bold prose-headings:text-primary-dark prose-a:text-primary hover:prose-a:text-primary-dark">
                     
-                    <h2>1. Aceitação dos Termos</h2>
+                    <h2>{t('terms_page.s1_title')}</h2>
                     <p>
-                        Ao acessar, navegar ou utilizar o FotoClic (“Serviço”), você declara estar ciente, compreender e concordar integralmente com estes Termos de Serviço. Caso não concorde com qualquer disposição aqui estabelecida, recomendamos que não utilize o Serviço.
+                        {t('terms_page.s1_p1')}
                     </p>
                     <p>
-                        O uso contínuo do FotoClic também implica na aceitação de quaisquer diretrizes, políticas ou regras adicionais publicadas na plataforma.
-                    </p>
-
-                    <h2>2. Descrição do Serviço</h2>
-                    <p>
-                        O FotoClic é um marketplace de fotografias digitais, cujo objetivo é conectar fotógrafos a compradores interessados em adquirir licenças de uso de suas imagens.
-                    </p>
-                    <p>
-                        O FotoClic não reivindica propriedade sobre as fotografias enviadas pelos fotógrafos. Todos os direitos autorais permanecem exclusivamente com os criadores das imagens.
-                        A plataforma atua como um intermediário, fornecendo recursos para exposição, licenciamento e compra de fotografias digitais.
+                        {t('terms_page.s1_p2')}
                     </p>
 
-                    <h2>3. Licenciamento de Uso</h2>
+                    <h2>{t('terms_page.s2_title')}</h2>
                     <p>
-                        Ao adquirir uma fotografia na plataforma, o comprador recebe uma licença de uso conforme os termos da modalidade selecionada no momento da compra.
-                        Essa licença é:
+                        {t('terms_page.s2_p1')}
+                    </p>
+                    <p>
+                        {t('terms_page.s2_p2')}
+                    </p>
+
+                    <h2>{t('terms_page.s3_title')}</h2>
+                    <p>
+                        {t('terms_page.s3_p1')}
                     </p>
                     <ul>
-                        <li><strong>Não exclusiva</strong></li>
-                        <li><strong>Intransferível</strong></li>
-                        <li><strong>Limitada</strong> ao uso permitido na descrição da licença escolhida</li>
+                        <li><strong>{t('terms_page.s3_li1')}</strong></li>
+                        <li><strong>{t('terms_page.s3_li2')}</strong></li>
+                        <li><strong>{t('terms_page.s3_li3')}</strong></li>
                     </ul>
                     <p>
-                        A propriedade intelectual e os direitos autorais permanecem integralmente com o fotógrafo que criou a imagem.
+                        {t('terms_page.s3_p2')}
                     </p>
 
-                    <h2>4. Conduta do Usuário</h2>
+                    <h2>{t('terms_page.s4_title')}</h2>
                     <p>
-                        Ao utilizar o FotoClic, você concorda em não praticar ações que violem a legislação vigente ou prejudiquem a segurança e o bom funcionamento do Serviço. Entre as condutas proibidas estão:
+                        {t('terms_page.s4_p1')}
                     </p>
                     <ul>
-                        <li>Enviar, publicar ou transmitir qualquer conteúdo ilegal, ofensivo, difamatório, ameaçador ou prejudicial.</li>
-                        <li>Tentar personificar terceiros, incluindo fotógrafos, compradores ou representantes da plataforma.</li>
-                        <li>Violar leis locais, estaduais, nacionais ou internacionais.</li>
-                        <li>Interferir no funcionamento da plataforma, tentar acessar áreas restritas ou realizar atividades que comprometam o sistema.</li>
+                        <li>{t('terms_page.s4_li1')}</li>
+                        <li>{t('terms_page.s4_li2')}</li>
+                        <li>{t('terms_page.s4_li3')}</li>
+                        <li>{t('terms_page.s4_li4')}</li>
                     </ul>
                     <p>
-                        O FotoClic reserva-se o direito de suspender ou encerrar contas que violem estes Termos ou que comprometam a integridade da comunidade.
+                        {t('terms_page.s4_p2')}
                     </p>
 
-                    <h2>5. Política de Reembolso e Produtos Digitais</h2>
+                    <h2>{t('terms_page.s5_title')}</h2>
                     <p>
-                        As fotografias comercializadas no FotoClic são produtos digitais com liberação imediata após a confirmação do pagamento. Ao concluir a compra e realizar o download da imagem, o usuário declara estar ciente de que o serviço foi integralmente prestado.
+                        {t('terms_page.s5_p1')}
                     </p>
                     <p>
-                        <strong>Não haverá reembolso</strong> após o download da imagem ter sido iniciado ou concluído, salvo em casos de defeitos técnicos insanáveis no arquivo digital ou outras exceções previstas na legislação de proteção ao consumidor.
+                        {t('terms_page.s5_p2')}
                     </p>
                 </div>
             </section>
@@ -85,5 +85,3 @@ const TermsPage: React.FC = () => {
 };
 
 export default TermsPage;
-
-

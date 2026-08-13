@@ -1,15 +1,16 @@
-
 import React, { useEffect, useState, useMemo } from 'react';
 import { User, Page } from '../types';
 import api from '../services/api';
 import SEO from '../components/SEO';
 import { includesNormalized, getAvatarFallbackUrl } from '../utils/stringUtils';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface PhotographersPageProps {
   onNavigate: (page: Page) => void;
 }
 
 const PhotographersPage: React.FC<PhotographersPageProps> = ({ onNavigate }) => {
+  const { t } = useLanguage();
   const [photographers, setPhotographers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchName, setSearchName] = useState('');
@@ -43,8 +44,8 @@ const PhotographersPage: React.FC<PhotographersPageProps> = ({ onNavigate }) => 
   return (
     <div className="bg-white min-h-screen">
       <SEO
-        title="Encontrar Profissional"
-        description="Encontre o fotógrafo perfeito para o seu evento. Busque por nome ou cidade."
+        title={t('nav.find_photographers')}
+        description={t('photographers_page.subtitle')}
         url="https://fotoclic.com.br/fotografos"
       />
 
@@ -52,10 +53,10 @@ const PhotographersPage: React.FC<PhotographersPageProps> = ({ onNavigate }) => 
       <section className="bg-primary py-14">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-4xl md:text-5xl font-display font-bold text-white mb-3">
-            Encontre o fotógrafo <strong>perfeito</strong> para seu evento
+            {t('photographers_page.title_1')}<strong>{t('photographers_page.title_bold')}</strong>{t('photographers_page.title_2')}
           </h1>
           <p className="text-white/80 text-lg mb-8">
-            Busque por nome, especialidade ou cidade
+            {t('photographers_page.subtitle')}
           </p>
 
           {/* Two search fields */}
@@ -63,7 +64,7 @@ const PhotographersPage: React.FC<PhotographersPageProps> = ({ onNavigate }) => 
             <div className="relative flex-1">
               <input
                 type="text"
-                placeholder="Buscar por nome do fotógrafo"
+                placeholder={t('photographers_page.search_name_placeholder')}
                 value={searchName}
                 onChange={e => setSearchName(e.target.value)}
                 className="w-full pl-5 pr-5 py-4 rounded-xl text-neutral-800 text-base shadow-lg focus:outline-none focus:ring-2 focus:ring-white/50"
@@ -78,7 +79,7 @@ const PhotographersPage: React.FC<PhotographersPageProps> = ({ onNavigate }) => 
               </span>
               <input
                 type="text"
-                placeholder="Buscar por cidade"
+                placeholder={t('photographers_page.search_city_placeholder')}
                 value={searchCity}
                 onChange={e => setSearchCity(e.target.value)}
                 className="w-full pl-11 pr-5 py-4 rounded-xl text-neutral-800 text-base shadow-lg focus:outline-none focus:ring-2 focus:ring-white/50"
@@ -88,7 +89,7 @@ const PhotographersPage: React.FC<PhotographersPageProps> = ({ onNavigate }) => 
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
               </svg>
-              Buscar
+              {t('photographers_page.search_button')}
             </button>
           </div>
         </div>
@@ -101,14 +102,18 @@ const PhotographersPage: React.FC<PhotographersPageProps> = ({ onNavigate }) => 
           {/* Count + clear */}
           <div className="flex items-center justify-between mb-6">
             <p className="text-sm text-neutral-500">
-              {loading ? 'Carregando...' : `${filteredPhotographers.length} fotógrafo${filteredPhotographers.length !== 1 ? 's' : ''} encontrado${filteredPhotographers.length !== 1 ? 's' : ''}`}
+              {loading
+                ? t('common.loading')
+                : filteredPhotographers.length === 1
+                  ? t('photographers_page.photographer_count_single')
+                  : t('photographers_page.photographer_count_plural', { count: filteredPhotographers.length })}
             </p>
             {hasFilters && (
               <button
                 onClick={() => { setSearchName(''); setSearchCity(''); }}
                 className="text-sm text-primary hover:underline font-medium"
               >
-                Limpar filtros
+                {t('photographers_page.clear_filters')}
               </button>
             )}
           </div>
@@ -154,7 +159,7 @@ const PhotographersPage: React.FC<PhotographersPageProps> = ({ onNavigate }) => 
                     <p className="text-sm text-neutral-600 line-clamp-2 mb-5">{p.bio}</p>
                   )}
                   <button className="mt-auto px-6 py-2 text-sm font-medium text-white bg-primary rounded-full hover:bg-opacity-90 transition-all w-full">
-                    Ver Portfólio
+                    {t('photographers_page.view_portfolio')}
                   </button>
                 </div>
               ))}
@@ -164,11 +169,11 @@ const PhotographersPage: React.FC<PhotographersPageProps> = ({ onNavigate }) => 
               <svg className="w-16 h-16 text-neutral-200 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
-              <p className="text-neutral-500 font-medium text-lg">Nenhum fotógrafo encontrado</p>
-              <p className="text-neutral-400 text-sm mt-1">Tente outro nome ou cidade.</p>
+              <p className="text-neutral-500 font-medium text-lg">{t('photographers_page.no_photographers')}</p>
+              <p className="text-neutral-400 text-sm mt-1">{t('photographers_page.no_photographers_desc')}</p>
               {hasFilters && (
                 <button onClick={() => { setSearchName(''); setSearchCity(''); }} className="mt-4 text-primary font-medium hover:underline">
-                  Limpar busca
+                  {t('photographers_page.clear_filters')}
                 </button>
               )}
             </div>
@@ -180,5 +185,3 @@ const PhotographersPage: React.FC<PhotographersPageProps> = ({ onNavigate }) => 
 };
 
 export default PhotographersPage;
-
-
