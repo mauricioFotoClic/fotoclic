@@ -779,9 +779,15 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
             className="flex gap-6 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-10 pt-5"
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
-            {loadingPhotogs
-              ? [1, 2, 3, 4].map(i => <PhotogSkeleton key={i} />)
-              : photographers.map((p, index) => (
+            {loadingPhotogs ? (
+              [1, 2, 3, 4].map(i => <PhotogSkeleton key={i} />)
+            ) : photographers.length === 0 ? (
+              <div className="w-full text-center py-12 text-neutral-500 font-light border border-dashed border-neutral-200 rounded-2xl bg-white">
+                <Camera className="w-12 h-12 mx-auto mb-3 text-neutral-400" />
+                <p className="text-base font-medium">Nenhum fotógrafo ativo no momento.</p>
+              </div>
+            ) : (
+              photographers.map((p, index) => (
                 <div
                   key={p.id}
                   className="group relative flex-none w-4/5 sm:w-1/2 lg:w-[calc(25%-18px)] rounded-2xl shadow-sm hover:shadow-xl transition-all duration-500 cursor-pointer transform hover:-translate-y-2 snap-start"
@@ -842,7 +848,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
                   </div>
                 </div>
               ))
-            }
+            )}
           </div>
 
           {/* Link to all photographers */}

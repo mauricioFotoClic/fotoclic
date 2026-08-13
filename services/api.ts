@@ -1109,20 +1109,47 @@ export const api = {
   },
   getPhotographers: async (): Promise<PhotographerWithStats[]> => {
     const now = Date.now();
-    if (inMemoryCache.allPhotographers.data && (now - inMemoryCache.allPhotographers.ts < CACHE_TTL)) {
+    if (inMemoryCache.allPhotographers.data && inMemoryCache.allPhotographers.data.length > 0 && (now - inMemoryCache.allPhotographers.ts < CACHE_TTL)) {
       return inMemoryCache.allPhotographers.data;
     }
 
     // 1. Get stats via RPC + reviews in parallel
-    const [{ data, error }, { data: reviewsData }] = await Promise.all([
-      supabase.rpc("get_photographers_with_stats"),
-      supabase.from("reviews").select("photographer_id, rating"),
-    ]);
+    let rpcData: any[] = [];
+    let reviewsData: any[] = [];
 
-    if (error) {
-      console.error("Error fetching photographer stats via RPC:", error);
-      // alert("Error RPC Photographers: " + JSON.stringify(error));
-      throw error;
+    try {
+      const [resRpc, resReviews] = await Promise.all([
+        supabase.rpc("get_photographers_with_stats"),
+        supabase.from("reviews").select("photographer_id, rating"),
+      ]);
+
+      if (!resRpc.error && resRpc.data) {
+        rpcData = resRpc.data;
+      }
+      if (resReviews.data) {
+        reviewsData = resReviews.data;
+      }
+    } catch (e) {
+      console.warn("RPC get_photographers_with_stats threw exception:", e);
+    }
+
+    // Fallback if RPC failed or returned no items
+    if (!rpcData || rpcData.length === 0) {
+      const { data: usersData } = await supabase
+        .from("users")
+        .select("*")
+        .eq("role", "photographer");
+
+      rpcData = (usersData || []).map((u: any) => ({
+        user_data: u,
+        photo_cnt: 0,
+        sales_cnt: 0,
+        comm_val: 0,
+        pending_cnt: 0,
+        approved_cnt: 0,
+        rejected_cnt: 0,
+        likes_cnt: 0,
+      }));
     }
 
     // 2. Build avgRating map from reviews
@@ -1137,7 +1164,7 @@ export const api = {
     const settings = await api.getCommissionSettings();
 
     // 4. Map result
-    const result = (data as any[]).map((row) => {
+    const result = rpcData.map((row) => {
       const user = mapUser(row.user_data);
 
       let effectiveRate = settings.defaultRate;
@@ -1151,14 +1178,14 @@ export const api = {
 
       return {
         ...user,
-        photoCount: Number(row.photo_cnt),
-        salesCount: Number(row.sales_cnt),
-        commissionValue: Number(row.comm_val),
-        pendingCount: Number(row.pending_cnt),
-        approvedCount: Number(row.approved_cnt),
-        rejectedCount: Number(row.rejected_cnt),
+        photoCount: Number(row.photo_cnt || 0),
+        salesCount: Number(row.sales_cnt || 0),
+        commissionValue: Number(row.comm_val || 0),
+        pendingCount: Number(row.pending_cnt || 0),
+        approvedCount: Number(row.approved_cnt || 0),
+        rejectedCount: Number(row.rejected_cnt || 0),
         commissionRate: effectiveRate,
-        likesCount: Number(row.likes_cnt),
+        likesCount: Number(row.likes_cnt || 0),
         avgRating,
         reviewCount,
         approvalPercentage: reviewCount > 0 ? (rm.sum / reviewCount / 5) * 100 : 0,
@@ -1210,13 +1237,38 @@ export const api = {
   },
   getActivePhotographersPreview: async (): Promise<PhotographerWithStats[]> => {
     const now = Date.now();
-    if (inMemoryCache.activePhotographers.data && (now - inMemoryCache.activePhotographers.ts < CACHE_TTL)) {
+    if (inMemoryCache.activePhotographers.data && inMemoryCache.activePhotographers.data.length > 0 && (now - inMemoryCache.activePhotographers.ts < CACHE_TTL)) {
       return inMemoryCache.activePhotographers.data;
     }
 
     try {
       const allPhotogs = await api.getPhotographers();
-      const result = allPhotogs.filter(p => p.is_active);
+      let result = allPhotogs.filter(p => p.is_active);
+
+      if (result.length === 0) {
+        const { data: fallbackUsers } = await supabase
+          .from("users")
+          .select("*")
+          .eq("role", "photographer")
+          .eq("is_active", true);
+
+        if (fallbackUsers && fallbackUsers.length > 0) {
+          result = fallbackUsers.map(u => ({
+            ...mapUser(u),
+            photoCount: 0,
+            salesCount: 0,
+            commissionValue: 0,
+            pendingCount: 0,
+            approvedCount: 0,
+            rejectedCount: 0,
+            commissionRate: 0.06,
+            likesCount: 0,
+            avgRating: 5.0,
+            reviewCount: 0,
+            approvalPercentage: 100,
+          }));
+        }
+      }
 
       inMemoryCache.activePhotographers = { data: result, ts: now };
       return result;
