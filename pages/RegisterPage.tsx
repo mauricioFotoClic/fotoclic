@@ -1,10 +1,8 @@
-
-
-
 import React, { useState } from 'react';
 import { Page, User, UserRole } from '../types';
 import api from '../services/api';
 import Logo from '../components/Logo';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface RegisterPageProps {
     onNavigate: (page: Page) => void;
@@ -29,6 +27,7 @@ const ddiList = [
 ];
 
 const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onLoginSuccess }) => {
+    const { t } = useLanguage();
     const [formData, setFormData] = useState({
         name: '',
         email: '',
@@ -76,12 +75,12 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onLoginSuccess 
         setError('');
 
         if (formData.password !== formData.confirmPassword) {
-            setError('As senhas não coincidem.');
+            setError(t('auth.passwords_dont_match'));
             return;
         }
 
         if (formData.password.length < 6) {
-            setError('A senha deve ter pelo menos 6 caracteres.');
+            setError(t('auth.password_min_length'));
             return;
         }
 
@@ -98,24 +97,22 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onLoginSuccess 
 
             if (response?.user) {
                 if (response.user.role === UserRole.PHOTOGRAPHER) {
-                    // Google Ads Conversion Event
                     if (typeof (window as any).gtag === 'function') {
                         (window as any).gtag('event', 'conversion', {
                             'send_to': 'AW-16960525575/NqzgCKeRoskcEleqtJc_',
                             'transport_type': 'beacon'
                         });
                     }
-                    // Fotógrafos não logam imediatamente, vão para a página de boas-vindas com status pendente
                     onNavigate({ name: 'welcome', role: 'pending-approval' });
                 } else {
                     onLoginSuccess(response.user, true);
                     onNavigate({ name: 'welcome', role: 'customer' });
                 }
             } else {
-                setError('Este e-mail já está cadastrado.');
+                setError(t('auth.email_exists_error'));
             }
         } catch (err) {
-            setError('Ocorreu um erro ao criar a conta. Tente novamente.');
+            setError(t('auth.generic_reg_error'));
         } finally {
             setLoading(false);
         }
@@ -126,12 +123,12 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onLoginSuccess 
             <div className="sm:mx-auto sm:w-full sm:max-w-md flex flex-col items-center">
                 <Logo size={48} className="mb-6" useImage={true} />
                 <h2 className="text-center text-3xl font-extrabold text-gray-900 font-display">
-                    Crie sua conta
+                    {t('auth.create_account_title')}
                 </h2>
                 <p className="mt-2 text-center text-sm text-gray-600">
-                    Já tem uma conta?{' '}
+                    {t('auth.already_have_account')}{' '}
                     <button onClick={() => onNavigate({ name: 'login' })} className="font-medium text-primary hover:text-primary-dark">
-                        Faça login
+                        {t('auth.do_login')}
                     </button>
                 </p>
             </div>
@@ -141,7 +138,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onLoginSuccess 
                     <form className="space-y-6" onSubmit={handleSubmit}>
                         <div>
                             <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                                Nome Completo
+                                {t('auth.name')}
                             </label>
                             <div className="mt-1">
                                 <input
@@ -159,7 +156,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onLoginSuccess 
 
                         <div>
                             <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                                Endereço de E-mail
+                                {t('auth.email_address')}
                             </label>
                             <div className="mt-1">
                                 <input
@@ -177,7 +174,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onLoginSuccess 
 
                         <div>
                             <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
-                                WhatsApp / Telefone
+                                {t('auth.whatsapp_phone')}
                             </label>
                             <div className="mt-1 flex gap-2">
                                 <select
@@ -209,7 +206,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onLoginSuccess 
 
                         <div>
                             <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                                Senha
+                                {t('auth.password')}
                             </label>
                             <div className="mt-1">
                                 <input
@@ -226,7 +223,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onLoginSuccess 
 
                         <div>
                             <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-                                Confirmar Senha
+                                {t('auth.confirm_password')}
                             </label>
                             <div className="mt-1">
                                 <input
@@ -251,7 +248,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onLoginSuccess 
                                 className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
                             />
                             <label htmlFor="isPhotographer" className="ml-2 block text-sm text-gray-900">
-                                Quero vender minhas fotos (Conta de Fotógrafo)
+                                {t('auth.want_to_sell_photos')} ({t('auth.photographer_account')})
                             </label>
                         </div>
 
@@ -267,7 +264,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onLoginSuccess 
                                 disabled={loading}
                                 className="w-full flex justify-center py-2 px-4 border border-transparent rounded-full shadow-sm text-sm font-medium text-white bg-primary hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-70 transition-colors"
                             >
-                                {loading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : 'Cadastrar'}
+                                {loading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : t('auth.register_button')}
                             </button>
                         </div>
                     </form>
@@ -278,4 +275,3 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onLoginSuccess 
 };
 
 export default RegisterPage;
-

@@ -3,6 +3,7 @@ import { User, UserRole, Page } from '../types';
 import { Eye, EyeOff } from 'lucide-react';
 import api from '../services/api';
 import Modal from './Modal';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface LoginModalProps {
     isOpen: boolean;
@@ -12,6 +13,7 @@ interface LoginModalProps {
 }
 
 const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess, onNavigate }) => {
+    const { t } = useLanguage();
     const [view, setView] = useState<'login' | 'forgot-password'>('login');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -19,11 +21,6 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess
     const [error, setError] = useState('');
     const [successMessage, setSuccessMessage] = useState('');
     const [loading, setLoading] = useState(false);
-
-    // Reset state when modal opens/closes or view changes
-    // (Actually this component unmounts on close, so state resets automatically.
-    //  But jumping between views needs manual clearing if desired.
-    //  For now, let's keep email populated when switching views as user convenience)
 
     const performLogin = async () => {
         setError('');
@@ -37,7 +34,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess
             }
         } catch (err: any) {
             console.error("Login failed:", err);
-            setError(err.message || 'Ocorreu um erro ao tentar entrar. Tente novamente.');
+            setError(err.message || t('auth.generic_error'));
         } finally {
             setLoading(false);
         }
@@ -48,20 +45,19 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess
         setSuccessMessage('');
 
         if (!email) {
-            setError('Por favor, digite seu e-mail.');
+            setError(t('auth.enter_email_error'));
             return;
         }
 
         setLoading(true);
-        console.log("Initiating Password Reset Secure Flow");
 
         try {
             const success = await api.requestPasswordReset(email);
             if (success) {
-                setSuccessMessage('E-mail de recuperação enviado! Verifique sua caixa de entrada.');
+                setSuccessMessage(t('auth.reset_link_sent'));
             }
         } catch (err: any) {
-            setError(err.message || 'Ocorreu um erro. Tente novamente mais tarde.');
+            setError(err.message || t('auth.generic_error'));
         } finally {
             setLoading(false);
         }
@@ -97,19 +93,19 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess
             <div className="p-8">
                 <div className="text-center mb-8">
                     <h2 className="text-3xl font-display font-bold text-gray-900 mb-2">
-                        {view === 'login' ? 'Bem-vindo de volta' : 'Recuperar Senha'}
+                        {view === 'login' ? t('auth.welcome_back') : t('auth.recover_password')}
                     </h2>
                     <p className="text-gray-500">
                         {view === 'login'
-                            ? 'Acesse sua conta para continuar'
-                            : 'Digite seu e-mail para receber um link de redefinição'}
+                            ? t('auth.access_your_account')
+                            : t('auth.enter_email_reset')}
                     </p>
                 </div>
 
                 <form className="space-y-5" onSubmit={handleSubmit}>
                     <div>
                         <label htmlFor="modal-email" className="block text-sm font-medium text-gray-700 mb-1 ml-1">
-                            E-mail
+                            {t('auth.email')}
                         </label>
                         <input
                             id="modal-email"
@@ -119,7 +115,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             onKeyDown={handleKeyDown}
-                            placeholder="seu@email.com"
+                            placeholder={t('auth.email_placeholder')}
                             className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none text-gray-900 placeholder-gray-400"
                         />
                     </div>
@@ -128,14 +124,14 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess
                         <div>
                             <div className="flex justify-between items-center mb-1 ml-1">
                                 <label htmlFor="modal-password" className="block text-sm font-medium text-gray-700">
-                                    Senha
+                                    {t('auth.password')}
                                 </label>
                                 <button
                                     type="button"
                                     onClick={() => { setView('forgot-password'); setError(''); }}
                                     className="text-xs font-medium text-primary hover:text-primary-dark transition-colors"
                                 >
-                                    Esqueceu a senha?
+                                    {t('auth.forgot_password')}
                                 </button>
                             </div>
 
@@ -185,7 +181,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess
                         {loading ? (
                             <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                         ) : (
-                            view === 'login' ? 'Entrar' : 'Enviar Link de Recuperação'
+                            view === 'login' ? t('auth.login_button') : t('auth.send_reset_link')
                         )}
                     </button>
 
@@ -195,27 +191,25 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess
                             onClick={() => { setView('login'); setError(''); setSuccessMessage(''); }}
                             className="w-full text-center text-sm font-medium text-gray-500 hover:text-gray-900 mt-2"
                         >
-                            Voltar para Login
+                            {t('auth.back_to_login')}
                         </button>
                     )}
                 </form>
 
                 <div className="mt-8 pt-6 border-t border-gray-100 text-center">
                     <p className="text-sm text-gray-600">
-                        Não tem uma conta?{' '}
+                        {t('auth.dont_have_account')}{' '}
                         <button
                             onClick={handleRegisterClick}
                             className="font-bold text-primary hover:text-primary-dark transition-colors"
                         >
-                            Cadastre-se grátis
+                            {t('auth.register_free')}
                         </button>
                     </p>
                 </div>
-            </div >
-        </Modal >
+            </div>
+        </Modal>
     );
 };
 
 export default LoginModal;
-
-

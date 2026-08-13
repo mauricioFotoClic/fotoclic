@@ -1,9 +1,8 @@
-
 import React, { useState } from 'react';
-import { Page, User, UserRole } from '../types';
+import { Page, User } from '../types';
 import api from '../services/api';
-import Spinner from '../components/Spinner';
 import Logo from '../components/Logo';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface LoginPageProps {
     onNavigate: (page: Page) => void;
@@ -11,8 +10,9 @@ interface LoginPageProps {
 }
 
 const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onLoginSuccess }) => {
+    const { t } = useLanguage();
     const [email, setEmail] = useState('');
-    const [password, setPassword] = useState(''); // In a real app, this would be used
+    const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
@@ -21,16 +21,14 @@ const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onLoginSuccess }) => 
         setLoading(true);
 
         try {
-            // Login with password check
             const user = await api.login(email, password);
             if (user) {
                 onLoginSuccess(user);
-                // Redirect handled by onLoginSuccess in App.tsx
             } else {
-                setError('E-mail não encontrado ou senha inválida.');
+                setError(t('auth.invalid_login_error'));
             }
         } catch (err) {
-            setError('Ocorreu um erro ao tentar entrar. Tente novamente.');
+            setError(t('auth.generic_error'));
         } finally {
             setLoading(false);
         }
@@ -43,23 +41,21 @@ const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onLoginSuccess }) => 
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter') {
-            e.preventDefault(); // Prevent double submit if form catches it too
+            e.preventDefault();
             performLogin();
         }
     };
 
     return (
-
         <div className="min-h-screen bg-neutral-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
             <div className="sm:mx-auto sm:w-full sm:max-w-md flex flex-col items-center">
                 <Logo size={48} className="mb-6" useImage={true} />
                 <h2 className="text-center text-3xl font-extrabold text-gray-900 font-display">
-                    Entrar na sua conta
+                    {t('auth.login_title')}
                 </h2>
                 <p className="mt-2 text-center text-sm text-gray-600">
-                    Ou{' '}
                     <button onClick={() => onNavigate({ name: 'register' })} className="font-medium text-primary hover:text-primary-dark">
-                        crie uma nova conta gratuitamente
+                        {t('auth.or_create_free_account')}
                     </button>
                 </p>
             </div>
@@ -69,7 +65,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onLoginSuccess }) => 
                     <form className="space-y-6" onSubmit={handleSubmit}>
                         <div>
                             <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                                Endereço de E-mail
+                                {t('auth.email_address')}
                             </label>
                             <div className="mt-1">
                                 <input
@@ -88,7 +84,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onLoginSuccess }) => 
 
                         <div>
                             <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                                Senha
+                                {t('auth.password')}
                             </label>
                             <div className="mt-1">
                                 <input
@@ -117,7 +113,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onLoginSuccess }) => 
                                 disabled={loading}
                                 className="w-full flex justify-center py-2 px-4 border border-transparent rounded-full shadow-sm text-sm font-medium text-white bg-primary hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-70 transition-colors"
                             >
-                                {loading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : 'Entrar'}
+                                {loading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : t('auth.login_button')}
                             </button>
                         </div>
                     </form>
@@ -128,5 +124,3 @@ const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onLoginSuccess }) => 
 };
 
 export default LoginPage;
-
-

@@ -3,8 +3,8 @@ import { Page, User, UserRole } from '../types';
 import { Eye, EyeOff } from 'lucide-react';
 import api from '../services/api';
 import Modal from './Modal';
-
 import LiabilityWaiverModal from './LiabilityWaiverModal';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface RegisterModalProps {
     isOpen: boolean;
@@ -32,6 +32,7 @@ const ddiList = [
 ];
 
 const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginSuccess, onNavigate, onShowToast }) => {
+    const { t } = useLanguage();
     const [formData, setFormData] = useState({
         name: '',
         email: '',
@@ -85,12 +86,12 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginS
         setError('');
 
         if (formData.password !== formData.confirmPassword) {
-            setError('As senhas não coincidem.');
+            setError(t('auth.passwords_dont_match'));
             return;
         }
 
         if (formData.password.length < 6) {
-            setError('A senha deve ter pelo menos 6 caracteres.');
+            setError(t('auth.password_min_length'));
             return;
         }
 
@@ -108,32 +109,26 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginS
             if (newUser && newUser.user) {
                 const user = newUser.user;
 
-                // Google Ads Conversion Event (disparado imediatamente após a criação do registro)
                 if (user.role === UserRole.PHOTOGRAPHER) {
                     if (typeof (window as any).gtag === 'function') {
                         (window as any).gtag('event', 'conversion', {
                             'send_to': 'AW-16960525575/NqzgCKeRoskcEleqtJc_',
                             'transport_type': 'beacon'
                         });
-                        console.log("Google Ads photographer registration conversion event sent from modal!");
                     }
                 }
 
-                // Check if session exists (email confirmed or not required)
                 if (!newUser.session) {
                     setLoading(false);
-                    // Show "Check Email" state instead of modal
-                    setError(''); // Clear errors
-                    setFormData(prev => ({ ...prev, name: '' })); // Reset form logic if needed, or just return early
+                    setError('');
+                    setFormData(prev => ({ ...prev, name: '' }));
 
-                    // Force a UI update to show success message
                     onShowToast(`Enviamos um link de confirmação para ${formData.email}. Verifique seu e-mail.`, 'success');
                     onClose();
-                    onNavigate({ name: 'login' }); // or just close
+                    onNavigate({ name: 'login' });
                     return;
                 }
 
-                // Se for fotógrafo, mostrar o termo de responsabilidade
                 if (user.role === UserRole.PHOTOGRAPHER) {
                     try {
                         const { emailService } = await import('../services/emailService');
@@ -147,7 +142,6 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginS
                     setPendingUser(user);
                     setShowLiabilityModal(true);
                 } else {
-                    // Cliente - Fluxo normal
                     try {
                         const { emailService } = await import('../services/emailService');
                         await emailService.sendWelcomeEmail(user.email, user.name, 'customer');
@@ -159,11 +153,11 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginS
                     onNavigate({ name: 'welcome', role: 'customer' });
                 }
             } else {
-                setError('Este e-mail já está cadastrado.');
+                setError(t('auth.email_exists_error'));
             }
         } catch (err: any) {
             console.error("Registration error:", err);
-            setError(err.message || 'Ocorreu um erro ao criar a conta. Tente novamente.');
+            setError(err.message || t('auth.generic_reg_error'));
         } finally {
             setLoading(false);
         }
@@ -178,7 +172,7 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginS
             if (success) {
                 onClose();
                 onLoginSuccess(pendingUser, true);
-                onNavigate({ name: 'welcome', role: 'photographer' }); // Ir para boas-vindas
+                onNavigate({ name: 'welcome', role: 'photographer' });
             } else {
                 alert("Erro ao salvar aceitação do termo. Tente novamente.");
             }
@@ -215,16 +209,16 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginS
         <Modal isOpen={isOpen} onClose={onClose} title="" size="md" noPadding>
             <div className="p-8">
                 <div className="text-center mb-6">
-                    <h2 className="text-3xl font-display font-bold text-gray-900 mb-2">Crie sua conta</h2>
+                    <h2 className="text-3xl font-display font-bold text-gray-900 mb-2">{t('auth.create_account_title')}</h2>
                     <p className="text-gray-500">
-                        Junte-se à nossa comunidade criativa
+                        {t('auth.join_creative_community')}
                     </p>
                 </div>
 
                 <form className="space-y-4" onSubmit={handleSubmit}>
                     <div>
                         <label htmlFor="reg-name" className="block text-sm font-medium text-gray-700 mb-1 ml-1">
-                            Nome Completo
+                            {t('auth.name')}
                         </label>
                         <input
                             id="reg-name"
@@ -233,14 +227,14 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginS
                             required
                             value={formData.name}
                             onChange={handleChange}
-                            placeholder="Seu nome"
+                            placeholder={t('auth.your_name')}
                             className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none text-gray-900 placeholder-gray-400"
                         />
                     </div>
 
                     <div>
                         <label htmlFor="reg-email" className="block text-sm font-medium text-gray-700 mb-1 ml-1">
-                            E-mail
+                            {t('auth.email')}
                         </label>
                         <input
                             id="reg-email"
@@ -249,14 +243,14 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginS
                             required
                             value={formData.email}
                             onChange={handleChange}
-                            placeholder="seu@email.com"
+                            placeholder={t('auth.email_placeholder')}
                             className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none text-gray-900 placeholder-gray-400"
                         />
                     </div>
 
                     <div>
                         <label htmlFor="reg-phone" className="block text-sm font-medium text-gray-700 mb-1 ml-1">
-                            WhatsApp / Telefone
+                            {t('auth.whatsapp_phone')}
                         </label>
                         <div className="flex gap-2">
                             <select
@@ -288,7 +282,7 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginS
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label htmlFor="reg-password" className="block text-sm font-medium text-gray-700 mb-1 ml-1">
-                                Senha
+                                {t('auth.password')}
                             </label>
 
                             <div className="relative">
@@ -313,7 +307,7 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginS
                         </div>
                         <div>
                             <label htmlFor="reg-confirm" className="block text-sm font-medium text-gray-700 mb-1 ml-1">
-                                Confirmar
+                                {t('auth.confirm')}
                             </label>
 
                             <div className="relative">
@@ -351,22 +345,20 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginS
                         </div>
                         <div className="ml-3 text-sm">
                             <label htmlFor="isPhotographer" className="font-medium text-gray-900 cursor-pointer">
-                                Quero vender minhas fotos
+                                {t('auth.want_to_sell_photos')}
                             </label>
-                            <p className="text-gray-500 text-xs">Conta de Fotógrafo</p>
+                            <p className="text-gray-500 text-xs">{t('auth.photographer_account')}</p>
                         </div>
                     </div>
 
-                    {
-                        error && (
-                            <div className="text-red-600 text-sm text-center bg-red-50 p-3 rounded-xl border border-red-100 flex items-center justify-center animate-pulse">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                                </svg>
-                                {error}
-                            </div>
-                        )
-                    }
+                    {error && (
+                        <div className="text-red-600 text-sm text-center bg-red-50 p-3 rounded-xl border border-red-100 flex items-center justify-center animate-pulse">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                            </svg>
+                            {error}
+                        </div>
+                    )}
 
                     <button
                         type="submit"
@@ -376,27 +368,25 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginS
                         {loading ? (
                             <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                         ) : (
-                            'Criar Conta'
+                            t('auth.create_account_button')
                         )}
                     </button>
-                </form >
+                </form>
 
                 <div className="mt-6 pt-6 border-t border-gray-100 text-center">
                     <p className="text-sm text-gray-600">
-                        Já tem uma conta?{' '}
+                        {t('auth.already_have_account')}{' '}
                         <button
                             onClick={handleLoginClick}
                             className="font-bold text-primary hover:text-primary-dark transition-colors"
                         >
-                            Faça login
+                            {t('auth.do_login')}
                         </button>
                     </p>
                 </div>
-            </div >
-        </Modal >
+            </div>
+        </Modal>
     );
 };
 
 export default RegisterModal;
-
-
