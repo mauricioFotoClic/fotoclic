@@ -125,13 +125,13 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
       if (r && r.length > 0) {
         setRecentPhotos(r);
       } else {
-        const allP = await api.getAllPhotos(undefined, false, false);
+        const allP = await api.getAllPhotos(undefined, false, true);
         setRecentPhotos(allP.slice(0, 8));
       }
       setLoadingRecent(false);
     }).catch(async () => {
       try {
-        const allP = await api.getAllPhotos(undefined, false, false);
+        const allP = await api.getAllPhotos(undefined, false, true);
         setRecentPhotos(allP.slice(0, 8));
       } catch (e) {}
       setLoadingRecent(false);

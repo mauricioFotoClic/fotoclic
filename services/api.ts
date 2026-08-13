@@ -163,11 +163,15 @@ export const api = {
     try {
       const { data } = await supabase
         .from("users")
-        .select("id")
-        .eq("role", "photographer")
-        .eq("is_active", false);
+        .select("id, is_active");
 
-      const set = new Set((data || []).map((u: any) => u.id));
+      const set = new Set<string>();
+      (data || []).forEach((u: any) => {
+        if (u.is_active === false) {
+          set.add(u.id);
+        }
+      });
+
       inMemoryCache.inactivePhotographers = { data: set, ts: now };
       return set;
     } catch (e) {
@@ -374,9 +378,9 @@ export const api = {
       .eq("moderation_status", "approved")
       .eq("is_public", true)
       .order("created_at", { ascending: false })
-      .limit(limit * 2);
+      .limit(limit * 5);
 
-    let filtered = (data || []).filter((p: any) => !inactiveIds.has(p.photographer_id));
+    let filtered = (data || []).filter((p: any) => p.photographer_id && !inactiveIds.has(p.photographer_id));
 
     // Tier 2: Any public photos
     if (filtered.length === 0) {
@@ -387,12 +391,12 @@ export const api = {
         )
         .eq("is_public", true)
         .order("created_at", { ascending: false })
-        .limit(limit * 2);
+        .limit(limit * 5);
 
-      filtered = (fallbackPublic.data || []).filter((p: any) => !inactiveIds.has(p.photographer_id));
+      filtered = (fallbackPublic.data || []).filter((p: any) => p.photographer_id && !inactiveIds.has(p.photographer_id));
     }
 
-    // Tier 3: Absolute fallback - ANY photos from database ordered by created_at DESC
+    // Tier 3: Fallback photos - strictly filtering out inactive photographers
     if (filtered.length === 0) {
       const absoluteFallback = await supabase
         .from("photos")
@@ -400,9 +404,9 @@ export const api = {
           "id, photographer_id, category_id, title, preview_url, thumb_url, price, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags, sales_count",
         )
         .order("created_at", { ascending: false })
-        .limit(limit);
+        .limit(limit * 5);
 
-      filtered = absoluteFallback.data || [];
+      filtered = (absoluteFallback.data || []).filter((p: any) => p.photographer_id && !inactiveIds.has(p.photographer_id));
     }
 
     const result = filtered.slice(0, limit).map(mapPhoto);
