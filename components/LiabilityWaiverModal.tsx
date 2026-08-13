@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import Modal from './Modal';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface LiabilityWaiverModalProps {
     isOpen: boolean;
@@ -9,11 +10,13 @@ interface LiabilityWaiverModalProps {
 }
 
 const LiabilityWaiverModal: React.FC<LiabilityWaiverModalProps> = ({ isOpen, photographerName, onAccept, loading = false }) => {
+    const { t } = useLanguage();
+
     return (
         <Modal
             isOpen={isOpen}
             onClose={() => { }}
-            title="Termo de Responsabilidade"
+            title={t('liability_waiver.title')}
             size="lg"
             closeOnOverlayClick={false}
             showCloseButton={false}
@@ -28,18 +31,18 @@ const LiabilityWaiverModal: React.FC<LiabilityWaiverModalProps> = ({ isOpen, pho
                 </div>
 
                 <h3 className="text-lg sm:text-xl font-bold text-center text-gray-900 mb-4 sm:mb-6">
-                    Cadastro Realizado com Sucesso!
+                    {t('liability_waiver.success_title')}
                 </h3>
 
                 <div className="bg-neutral-50 p-4 sm:p-6 rounded-lg border border-neutral-200 mb-6 sm:mb-8">
                     <p className="text-sm sm:text-base text-gray-700 leading-relaxed text-justify">
-                        Eu, <strong>{photographerName}</strong>, assumo total e irrestrita responsabilidade por todas as fotografias, imagens e conteúdos que vier a submeter, publicar ou disponibilizar nesta plataforma.
+                        {t('liability_waiver.p1_pre')}<strong>{photographerName}</strong>{t('liability_waiver.p1_pos')}
                     </p>
                     <p className="text-sm sm:text-base text-gray-700 leading-relaxed text-justify mt-3 sm:mt-4">
-                        Declaro estar ciente de que é minha obrigação garantir que possuo todos os direitos necessários, autorizações de uso de imagem e consentimentos de todas as pessoas retratadas, especialmente no caso de imagens sensíveis.
+                        {t('liability_waiver.p2')}
                     </p>
                     <p className="text-sm sm:text-base text-gray-700 leading-relaxed text-justify mt-3 sm:mt-4">
-                        Isento expressamente os proprietários, administradores e operadores deste sistema de qualquer responsabilidade civil, criminal ou administrativa decorrente da publicação indevida de material protegido por direitos autorais, de conteúdo impróprio (+18), ou de imagens divulgadas sem a devida autorização das partes envolvidas.
+                        {t('liability_waiver.p3')}
                     </p>
                 </div>
 
@@ -52,7 +55,7 @@ const LiabilityWaiverModal: React.FC<LiabilityWaiverModalProps> = ({ isOpen, pho
                         {loading ? (
                             <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
                         ) : null}
-                        Li, Compreendo e Aceito a Responsabilidade
+                        {t('liability_waiver.accept_button')}
                     </button>
                 </div>
             </div>
@@ -61,5 +64,3 @@ const LiabilityWaiverModal: React.FC<LiabilityWaiverModalProps> = ({ isOpen, pho
 };
 
 export default LiabilityWaiverModal;
-
-
