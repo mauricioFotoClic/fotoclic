@@ -217,10 +217,10 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
         <div className="absolute inset-0 bg-neutral-900/60 backdrop-blur-[2px]" />
         <div className="relative z-10 text-center p-4 max-w-4xl mx-auto animate-fade-in-up">
           <h1 className="text-4xl md:text-7xl font-display font-bold mb-6 leading-tight">
-            Encontre suas fotos. <br /> <span className="text-primary">Reviva</span> seus melhores momentos.
+            {t('home.hero_title_1')} <br /> <span className="text-primary">{t('home.hero_title_2')}</span>{t('home.hero_title_3')}
           </h1>
           <p className="text-lg md:text-xl mb-10 max-w-2xl mx-auto text-neutral-200 font-light">
-            Busque, encontre e compre as fotos dos eventos que você participou.
+            {t('home.hero_subtitle')}
           </p>
           <div className="relative w-full max-w-xl mx-auto group">
             <div className="absolute -inset-1 bg-gradient-to-r from-primary to-neutral-900 rounded-full blur opacity-25 group-hover:opacity-50 transition duration-1000" />
@@ -237,8 +237,8 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
               />
               <button
                 onClick={handleSearch}
-                aria-label="Buscar fotos"
-                title="Buscar fotos"
+                aria-label={t('common.search')}
+                title={t('common.search')}
                 className="absolute right-2 top-2 bottom-2 bg-primary w-12 rounded-full text-white flex items-center justify-center hover:bg-primary-dark transition-colors"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -257,8 +257,8 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
                   <UserIcon size={20} strokeWidth={2.5} />
                 </div>
                 <div>
-                  <p className="text-xs text-neutral-300 font-medium">Sou atleta, quero</p>
-                  <p className="text-sm font-bold">encontrar minhas fotos</p>
+                  <p className="text-xs text-neutral-300 font-medium">{t('home.i_am_athlete')}</p>
+                  <p className="text-sm font-bold">{t('home.find_my_photos')}</p>
                 </div>
               </button>
 
@@ -270,8 +270,8 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
                   <Camera size={20} strokeWidth={2.5} />
                 </div>
                 <div>
-                  <p className="text-xs text-neutral-300 font-medium">Sou fotógrafo, quero</p>
-                  <p className="text-sm font-bold">vender minhas fotos</p>
+                  <p className="text-xs text-neutral-300 font-medium">{t('home.i_am_photographer')}</p>
+                  <p className="text-sm font-bold">{t('home.sell_my_photos')}</p>
                 </div>
               </button>
           </div>
@@ -286,13 +286,13 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
             </div>
             <div className="text-left flex-1 min-w-0">
               <p className="text-[10px] md:text-xs font-bold text-primary uppercase tracking-wider mb-0.5">
-                Promoção de Lançamento
+                {t('home.launch_promo')}
               </p>
               <h3 className="text-sm md:text-base font-bold text-white leading-tight">
-                Garanta sua comissão de apenas <span className="text-primary font-black">6%</span>.
+                {t('home.guarantee_commission')}<span className="text-primary font-black">6%</span>.
               </h3>
               <p className="text-xs text-primary-light/95 hover:text-primary mt-1 flex items-center gap-1 font-medium">
-                Descubra como manter esse benefício.
+                {t('home.discover_benefit')}
                 <svg className="w-3.5 h-3.5 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                 </svg>
@@ -311,8 +311,8 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                </div>
                <div>
-                 <p className="font-bold text-[10px] sm:text-sm leading-tight">Fotos profissionais</p>
-                 <p className="hidden sm:block text-xs text-neutral-400">de alta qualidade</p>
+                 <p className="font-bold text-[10px] sm:text-sm leading-tight">{t('home.feature_pro_photos')}</p>
+                 <p className="hidden sm:block text-xs text-neutral-400">{t('home.feature_high_quality')}</p>
                </div>
             </div>
             <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-center sm:text-left justify-center">
@@ -320,8 +320,8 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>
                </div>
                <div>
-                 <p className="font-bold text-[10px] sm:text-sm leading-tight">Encontre-se nas fotos</p>
-                 <p className="hidden sm:block text-xs text-neutral-400">dos eventos</p>
+                 <p className="font-bold text-[10px] sm:text-sm leading-tight">{t('home.feature_find_yourself')}</p>
+                 <p className="hidden sm:block text-xs text-neutral-400">{t('home.feature_events')}</p>
                </div>
             </div>
             <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-center sm:text-left justify-center">
@@ -329,8 +329,8 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
                </div>
                <div>
-                 <p className="font-bold text-[10px] sm:text-sm leading-tight">Compra segura e entrega</p>
-                 <p className="hidden sm:block text-xs text-neutral-400">imediata</p>
+                 <p className="font-bold text-[10px] sm:text-sm leading-tight">{t('home.feature_secure_checkout')}</p>
+                 <p className="hidden sm:block text-xs text-neutral-400">{t('home.feature_instant')}</p>
                </div>
             </div>
           </div>
@@ -378,13 +378,13 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
               {/* Text content */}
               <div className="flex-1 min-w-0">
                 <h2 className="text-lg sm:text-2xl lg:text-3xl font-display font-black text-neutral-900 leading-tight mb-1 sm:mb-2">
-                  GANHE ATÉ <span className="text-primary bg-primary/10 px-1.5 sm:px-2 py-0.5 rounded-lg whitespace-nowrap">20% OFF!</span>
+                  {t('home.discount_banner_title')} <span className="text-primary bg-primary/10 px-1.5 sm:px-2 py-0.5 rounded-lg whitespace-nowrap">{t('home.discount_banner_off')}</span>
                 </h2>
                 <p className="text-neutral-600 font-semibold text-[11px] sm:text-sm lg:text-base leading-snug">
-                  Os descontos são aplicados automaticamente no carrinho.
+                  {t('home.discount_banner_subtitle')}
                 </p>
                 <p className="text-neutral-400 text-[9px] sm:text-xs mt-0.5 leading-tight font-medium">
-                  (Válido para compras de múltiplos arquivos de fotos • Descontos e quantidades mínimas de fotos variam por fotógrafo)
+                  {t('home.discount_banner_note')}
                 </p>
               </div>
             </div>
@@ -394,27 +394,27 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
               
               {/* Card 5% */}
               <div className="bg-white border border-blue-100 rounded-xl sm:rounded-2xl p-2.5 sm:p-5 text-center flex flex-col justify-center items-center w-full lg:w-40 hover:-translate-y-1 hover:shadow-md transition-all duration-300">
-                <span className="text-neutral-500 font-bold text-[9px] sm:text-xs uppercase tracking-wider mb-0.5">Ganhe</span>
+                <span className="text-neutral-500 font-bold text-[9px] sm:text-xs uppercase tracking-wider mb-0.5">{t('home.win')}</span>
                 <span className="text-xl sm:text-3xl font-black text-primary mb-0.5">5%</span>
-                <span className="text-neutral-400 text-[8px] sm:text-[11px] leading-tight font-medium">Na compra de<br/><strong className="text-neutral-700 font-bold">2 fotos</strong></span>
+                <span className="text-neutral-400 text-[8px] sm:text-[11px] leading-tight font-medium">{t('home.on_purchase_of')}<br/><strong className="text-neutral-700 font-bold">2 {t('home.photos_qty')}</strong></span>
               </div>
 
               {/* Card 10% */}
               <div className="bg-blue-50/50 border border-blue-100 rounded-xl sm:rounded-2xl p-2.5 sm:p-5 text-center flex flex-col justify-center items-center w-full lg:w-40 hover:-translate-y-1 hover:shadow-md transition-all duration-300">
-                <span className="text-primary-dark font-bold text-[9px] sm:text-xs uppercase tracking-wider mb-0.5">Ganhe</span>
+                <span className="text-primary-dark font-bold text-[9px] sm:text-xs uppercase tracking-wider mb-0.5">{t('home.win')}</span>
                 <span className="text-xl sm:text-3xl font-black text-primary mb-0.5">10%</span>
-                <span className="text-neutral-500 text-[8px] sm:text-[11px] leading-tight font-medium">Na compra de<br/><strong className="text-neutral-700 font-bold">5 fotos</strong></span>
+                <span className="text-neutral-500 text-[8px] sm:text-[11px] leading-tight font-medium">{t('home.on_purchase_of')}<br/><strong className="text-neutral-700 font-bold">5 {t('home.photos_qty')}</strong></span>
               </div>
 
               {/* Card 20% - Highlighted */}
               <div className="relative bg-gradient-to-br from-primary to-primary-dark text-white rounded-xl sm:rounded-2xl p-2.5 sm:p-5 text-center flex flex-col justify-center items-center w-full lg:w-40 shadow-lg shadow-primary/20 hover:-translate-y-1 hover:shadow-xl transition-all duration-300 border border-primary-dark overflow-hidden group">
                 {/* Visual badge top right */}
                 <div className="absolute top-0 right-0 bg-amber-400 text-neutral-900 text-[7px] sm:text-[9px] font-black px-1.5 sm:px-2 py-0.5 rounded-bl-lg uppercase tracking-wide">
-                  Melhor
+                  {t('home.best_deal')}
                 </div>
-                <span className="text-blue-100 font-bold text-[9px] sm:text-xs uppercase tracking-wider mb-0.5">Ganhe</span>
+                <span className="text-blue-100 font-bold text-[9px] sm:text-xs uppercase tracking-wider mb-0.5">{t('home.win')}</span>
                 <span className="text-xl sm:text-4xl font-black mb-0.5 drop-shadow-md">20%</span>
-                <span className="text-blue-50 text-[8px] sm:text-[11px] leading-tight font-medium">Na compra de<br/><strong className="font-bold text-white">10 fotos</strong></span>
+                <span className="text-blue-50 text-[8px] sm:text-[11px] leading-tight font-medium">{t('home.on_purchase_of')}<br/><strong className="font-bold text-white">10 {t('home.photos_qty')}</strong></span>
               </div>
 
             </div>
@@ -433,8 +433,8 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
           {/* Header */}
           <div className="flex items-end justify-between mb-10">
             <div>
-              <span className="text-primary font-bold text-xs uppercase tracking-widest mb-1 block">Navegue por Temas</span>
-              <h2 className="text-3xl md:text-4xl font-display font-bold text-neutral-900">Categorias</h2>
+              <span className="text-primary font-bold text-xs uppercase tracking-widest mb-1 block">{t('home.browse_by_topics')}</span>
+              <h2 className="text-3xl md:text-4xl font-display font-bold text-neutral-900">{t('home.categories')}</h2>
             </div>
             <div className="flex items-center gap-2">
               <CarouselBtn onClick={catsCarousel.prev} dir="prev" disabled={!catsCarousel.canPrev} />
@@ -472,7 +472,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
                         {category.name}
                       </h3>
                       <div className="h-0 group-hover:h-5 overflow-hidden transition-[height] duration-500 opacity-0 group-hover:opacity-100">
-                        <span className="text-xs text-neutral-300 font-medium uppercase tracking-wider mt-1 block">Explorar</span>
+                        <span className="text-xs text-neutral-300 font-medium uppercase tracking-wider mt-1 block">{t('home.explore')}</span>
                       </div>
                     </div>
                   </div>
@@ -488,20 +488,20 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
         <div className="container mx-auto px-4">
           <div className="bg-neutral-900 rounded-3xl overflow-hidden flex flex-col md:flex-row items-center">
             <div className="p-8 md:p-12 flex-1">
-              <span className="text-primary font-bold text-xs uppercase tracking-widest mb-2 block">Para Fotógrafos</span>
+              <span className="text-primary font-bold text-xs uppercase tracking-widest mb-2 block">{t('home.for_photographers')}</span>
               <h2 className="text-3xl md:text-4xl font-display font-bold text-white mb-4">
-                Mostre seu talento.<br />
-                <span className="text-primary">Venda suas fotos.</span>
+                {t('home.photographer_banner_title_1')}<br />
+                <span className="text-primary">{t('home.photographer_banner_title_2')}</span>
               </h2>
               <p className="text-neutral-400 mb-8 max-w-md">
-                Publique suas fotos dos eventos, alcance milhares de atletas e transforme seu trabalho em renda de forma simples e rápida.
+                {t('home.photographer_banner_desc')}
               </p>
               <button 
                 onClick={() => onNavigate({ name: 'register' })}
                 className="bg-primary hover:bg-primary-dark text-white font-bold py-4 px-8 rounded-full transition-all flex items-center gap-2"
               >
                 <Camera size={20} />
-                Quero vender minhas fotos
+                {t('home.photographer_banner_btn')}
               </button>
             </div>
             <div className="flex-1 h-64 md:h-full min-h-[300px] w-full">
@@ -524,16 +524,16 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-4">
             <div className="max-w-2xl">
-              <h2 className="text-4xl md:text-5xl font-display font-bold text-white mb-4">Fotos em Destaque</h2>
+              <h2 className="text-4xl md:text-5xl font-display font-bold text-white mb-4">{t('home.featured_photos_title')}</h2>
               <p className="text-neutral-400 text-lg font-light">
-                Uma seleção das imagens mais impressionantes da nossa comunidade.
+                {t('home.featured_photos_subtitle')}
               </p>
             </div>
             <button
               onClick={() => onNavigate({ name: 'featured-photos' })}
               className="group flex items-center text-white font-medium hover:text-primary transition-colors px-6 py-3 rounded-full border border-neutral-700 hover:border-primary whitespace-nowrap"
             >
-              Ver coleção completa
+              {t('home.view_full_collection')}
               <svg className="w-5 h-5 ml-2 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
               </svg>
@@ -548,8 +548,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
           ) : featuredPhotos.length === 0 ? (
             <div className="text-center py-16 text-neutral-400 font-light border border-dashed border-neutral-800 rounded-2xl bg-neutral-900/50">
               <Camera className="w-12 h-12 mx-auto mb-3 text-neutral-600" />
-              <p className="text-lg">Nenhuma foto em destaque no momento.</p>
-              <p className="text-sm text-neutral-500 mt-1">Ative o switch "Destaque na Home" de um evento no painel Admin para exibir suas fotos aqui.</p>
+              <p className="text-lg">{t('home.no_featured_photos')}</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-4 md:grid-rows-2 gap-4 h-auto md:h-[600px]">
