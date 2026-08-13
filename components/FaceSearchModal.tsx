@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { X, Upload, Search, Camera, RotateCcw, Calendar, MapPin, Check, Store } from 'lucide-react';
+import { X, Upload, Search, Camera, RotateCcw, Calendar, MapPin, Check, Store, Trophy } from 'lucide-react';
 import { faceRecognitionService } from '../services/faceRecognition';
 import api from '../services/api';
 import { Photo, PhotoEvent, User } from '../types';
@@ -25,10 +25,10 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({
     onNavigate,
     onAddToCart,
     onShowToast,
-    eventId,
-    eventName
+    eventId: initialEventId,
+    eventName: initialEventName
 }) => {
-    const { t, tCategory, formatDate } = useLanguage();
+    const { t, formatDate } = useLanguage();
 
     const [activeTab, setActiveTab] = useState<'selfie' | 'upload'>('selfie');
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -36,6 +36,7 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({
     
     const [selectedDate, setSelectedDate] = useState<string>('');
     const [selectedCity, setSelectedCity] = useState<string>('');
+    const [selectedEventId, setSelectedEventId] = useState<string>(initialEventId || '');
 
     const [events, setEvents] = useState<PhotoEvent[]>([]);
     const [photographersMap, setPhotographersMap] = useState<Record<string, User>>({});
@@ -62,12 +63,13 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({
             setResults([]);
             setHasSearched(false);
             setIsProcessing(false);
+            if (initialEventId) setSelectedEventId(initialEventId);
 
-            // Load events to extract cities & dates
+            // Load events to extract cities, dates & events (filters out inactive/deleted photographers automatically)
             api.getAllPublicEvents().then(allEvents => {
                 setEvents(allEvents);
                 
-                // Map photographer users from events
+                // Map photographer users from active events
                 const pMap: Record<string, User> = {};
                 allEvents.forEach(e => {
                     if (e.photographer_id && (e as any).photographer) {
@@ -88,7 +90,7 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({
         } else {
             stopCamera();
         }
-    }, [isOpen]);
+    }, [isOpen, initialEventId]);
 
     // Handle tab change
     const handleTabChange = (tab: 'selfie' | 'upload') => {
@@ -166,7 +168,7 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({
         }
     };
 
-    // Extract unique cities from events
+    // Extract unique cities from active events
     const availableCities = useMemo(() => {
         const set = new Set<string>();
         events.forEach(e => {
@@ -179,17 +181,30 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({
         return Array.from(set).sort();
     }, [events]);
 
-    // Extract unique dates from events
+    // Extract unique dates from active events
     const availableDates = useMemo(() => {
         const map = new Map<string, string>(); // raw -> formatted
         events.forEach(e => {
             if (e.event_date) {
-                const formatted = formatDate(e.event_date, { day: '2-digit', month: 'short' });
+                const formatted = formatDate(e.event_date, { day: '2-digit', month: 'short', year: 'numeric' });
                 map.set(e.event_date, formatted);
             }
         });
         return Array.from(map.entries()).sort((a, b) => b[0].localeCompare(a[0]));
     }, [events, formatDate]);
+
+    // Extract events filtered by selected city/date
+    const availableEventsFiltered = useMemo(() => {
+        return events.filter(e => {
+            if (selectedCity && e.location) {
+                if (!includesNormalized(e.location, selectedCity)) return false;
+            }
+            if (selectedDate && e.event_date) {
+                if (e.event_date !== selectedDate) return false;
+            }
+            return true;
+        });
+    }, [events, selectedCity, selectedDate]);
 
     // Handle face search
     const handleSearch = async () => {
@@ -207,8 +222,9 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({
 
             let photos: Photo[] = [];
 
-            // 1. Rekognition search
-            const matches = await faceRecognitionService.searchByImage(selectedImage, eventId);
+            // 1. Rekognition search (if specific event is selected, constrain search)
+            const targetEventId = selectedEventId || initialEventId;
+            const matches = await faceRecognitionService.searchByImage(selectedImage, targetEventId);
 
             if (matches.length > 0) {
                 const matchedIds = matches.map(m => m.id);
@@ -216,19 +232,23 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({
             } else {
                 // Fallback visual similarity
                 photos = await api.searchImageContext(selectedImage);
-                if (eventId) {
-                    photos = photos.filter(p => p.event_id === eventId);
+                if (targetEventId) {
+                    photos = photos.filter(p => p.event_id === targetEventId);
                 }
             }
 
-            // 2. Filter by City & Date if selected
-            if (selectedCity || selectedDate) {
+            // 2. Filter by City, Date & Specific Event if selected
+            if (selectedCity || selectedDate || selectedEventId) {
                 const eventMap = new Map<string, PhotoEvent>();
                 events.forEach(ev => eventMap.set(ev.id, ev));
 
                 photos = photos.filter(p => {
                     const ev = eventMap.get(p.event_id);
                     if (!ev) return true; // Keep if event data not loaded
+
+                    if (selectedEventId && p.event_id !== selectedEventId) {
+                        return false;
+                    }
 
                     if (selectedCity && ev.location) {
                         if (!includesNormalized(ev.location, selectedCity)) {
@@ -438,41 +458,68 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({
                                 </span>
                             </label>
 
-                            {/* Filter Selectors (Date & City) */}
-                            <div className="grid grid-cols-2 gap-3">
-                                {/* Date Selector */}
-                                <div className="relative">
-                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">
-                                        <Calendar size={16} />
-                                    </span>
-                                    <select
-                                        value={selectedDate}
-                                        onChange={(e) => setSelectedDate(e.target.value)}
-                                        className="w-full bg-neutral-900 border border-neutral-800 rounded-2xl pl-10 pr-4 py-3 text-xs sm:text-sm text-white focus:outline-none focus:border-primary transition-all appearance-none cursor-pointer"
-                                    >
-                                        <option value="">{t('face_search.all_dates')}</option>
-                                        {availableDates.map(([raw, formatted]) => (
-                                            <option key={raw} value={raw}>
-                                                {formatted}
-                                            </option>
-                                        ))}
-                                    </select>
+                            {/* Filter Selectors (City, Date & Event Name) */}
+                            <div className="space-y-3">
+                                <div className="grid grid-cols-2 gap-3">
+                                    {/* City Selector */}
+                                    <div className="relative">
+                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">
+                                            <MapPin size={16} />
+                                        </span>
+                                        <select
+                                            value={selectedCity}
+                                            onChange={(e) => {
+                                                setSelectedCity(e.target.value);
+                                                setSelectedEventId('');
+                                            }}
+                                            className="w-full bg-neutral-900 border border-neutral-800 rounded-2xl pl-10 pr-4 py-3 text-xs sm:text-sm text-white focus:outline-none focus:border-primary transition-all appearance-none cursor-pointer"
+                                        >
+                                            <option value="">{t('face_search.all_cities')}</option>
+                                            {availableCities.map(city => (
+                                                <option key={city} value={city}>
+                                                    {city}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    {/* Date Selector */}
+                                    <div className="relative">
+                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">
+                                            <Calendar size={16} />
+                                        </span>
+                                        <select
+                                            value={selectedDate}
+                                            onChange={(e) => {
+                                                setSelectedDate(e.target.value);
+                                                setSelectedEventId('');
+                                            }}
+                                            className="w-full bg-neutral-900 border border-neutral-800 rounded-2xl pl-10 pr-4 py-3 text-xs sm:text-sm text-white focus:outline-none focus:border-primary transition-all appearance-none cursor-pointer"
+                                        >
+                                            <option value="">{t('face_search.all_dates')}</option>
+                                            {availableDates.map(([raw, formatted]) => (
+                                                <option key={raw} value={raw}>
+                                                    {formatted}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
                                 </div>
 
-                                {/* City Selector */}
+                                {/* Event Name Selector */}
                                 <div className="relative">
                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">
-                                        <MapPin size={16} />
+                                        <Trophy size={16} />
                                     </span>
                                     <select
-                                        value={selectedCity}
-                                        onChange={(e) => setSelectedCity(e.target.value)}
-                                        className="w-full bg-neutral-900 border border-neutral-800 rounded-2xl pl-10 pr-4 py-3 text-xs sm:text-sm text-white focus:outline-none focus:border-primary transition-all appearance-none cursor-pointer"
+                                        value={selectedEventId}
+                                        onChange={(e) => setSelectedEventId(e.target.value)}
+                                        className="w-full bg-neutral-900 border border-neutral-800 rounded-2xl pl-10 pr-4 py-3 text-xs sm:text-sm text-white focus:outline-none focus:border-primary transition-all appearance-none cursor-pointer truncate"
                                     >
-                                        <option value="">{t('face_search.all_cities')}</option>
-                                        {availableCities.map(city => (
-                                            <option key={city} value={city}>
-                                                {city}
+                                        <option value="">{t('face_search.all_events')}</option>
+                                        {availableEventsFiltered.map(ev => (
+                                            <option key={ev.id} value={ev.id}>
+                                                {ev.name} {ev.location ? `(${ev.location.split(',').pop()?.trim()})` : ''}
                                             </option>
                                         ))}
                                     </select>
@@ -508,7 +555,10 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({
                                 <div>
                                     <span className="text-xs text-neutral-400 block">{t('face_search.photos_found', { count: results.length })}</span>
                                     {selectedCity && (
-                                        <span className="text-xs text-primary font-semibold">📍 {selectedCity}</span>
+                                        <span className="text-xs text-primary font-semibold mr-2">📍 {selectedCity}</span>
+                                    )}
+                                    {selectedEventId && (
+                                        <span className="text-xs text-[#FACC15] font-semibold">🏆 Evento selecionado</span>
                                     )}
                                 </div>
                                 <button
