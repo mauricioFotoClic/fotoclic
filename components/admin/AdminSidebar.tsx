@@ -105,7 +105,6 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeView, setView, notifi
                     <div className="transition-transform hover:scale-105 active:scale-95 cursor-pointer" onClick={() => nav('dashboard')}>
                         <Logo size={24} useImage={true} />
                     </div>
-                    <LanguageSelector variant="compact" />
                 </div>
                 <nav className="space-y-2">
                     <NavLink label={t('admin.sidebar_dashboard')} isActive={activeView === 'dashboard'} onClick={() => nav('dashboard')} icon={<HomeIcon />} />

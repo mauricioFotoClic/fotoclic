@@ -67,8 +67,8 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigate, currentView
                                 </nav>
                             )}
 
-                            {/* Language Selector Dropdown */}
-                            <LanguageSelector variant="dropdown" />
+                            {/* Language Selector Dropdown (Hidden on Admin panel) */}
+                            {!isAdminView && <LanguageSelector variant="dropdown" />}
 
                             <div className="hidden sm:flex items-center space-x-2">
                                 {!user ? (

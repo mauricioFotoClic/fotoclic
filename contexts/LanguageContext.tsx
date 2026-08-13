@@ -44,7 +44,9 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
 
     const t = (path: string, params?: Record<string, string | number>): string => {
         const keys = path.split('.');
-        let currentDict: any = translations[language];
+        const isAdmin = path.startsWith('admin.') || (typeof window !== 'undefined' && (window.location.hash.includes('admin') || window.location.pathname.includes('/admin')));
+        const effectiveLang = isAdmin ? 'pt' : language;
+        let currentDict: any = translations[effectiveLang];
         let fallbackDict: any = translations['pt'];
 
         for (const key of keys) {
@@ -73,7 +75,8 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
     };
 
     const formatCurrency = (amount: number): string => {
-        const locale = language === 'pt' ? 'pt-BR' : 'en-US';
+        const isAdmin = typeof window !== 'undefined' && (window.location.hash.includes('admin') || window.location.pathname.includes('/admin'));
+        const locale = (isAdmin || language === 'pt') ? 'pt-BR' : 'en-US';
         return new Intl.NumberFormat(locale, {
             style: 'currency',
             currency: 'BRL',
@@ -86,7 +89,8 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
             const dateObj = typeof dateInput === 'object' ? dateInput : new Date(dateInput);
             if (isNaN(dateObj.getTime())) return String(dateInput);
 
-            const locale = language === 'pt' ? 'pt-BR' : 'en-US';
+            const isAdmin = typeof window !== 'undefined' && (window.location.hash.includes('admin') || window.location.pathname.includes('/admin'));
+            const locale = (isAdmin || language === 'pt') ? 'pt-BR' : 'en-US';
             const defaultOptions: Intl.DateTimeFormatOptions = options || {
                 day: '2-digit',
                 month: 'short',
