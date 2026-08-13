@@ -1,12 +1,13 @@
-
-import React, { useState, useRef, useEffect } from 'react';
-import { X, Upload, Search, Camera, Info, ChevronDown, User, Sun, Maximize2, Scan } from 'lucide-react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { X, Upload, Search, Camera, RotateCcw, Calendar, MapPin, Check, Store } from 'lucide-react';
 import { faceRecognitionService } from '../services/faceRecognition';
 import api from '../services/api';
-import { Photo } from '../types';
+import { Photo, PhotoEvent, User } from '../types';
 import Spinner from './Spinner';
 import { getOptimizedImageUrl } from '../utils/imageOptimization';
 import WatermarkedImage from './WatermarkedImage';
+import { useLanguage } from '../contexts/LanguageContext';
+import { includesNormalized, getAvatarFallbackUrl } from '../utils/stringUtils';
 
 interface FaceSearchModalProps {
     isOpen: boolean;
@@ -18,22 +19,88 @@ interface FaceSearchModalProps {
     eventName?: string;
 }
 
-const FaceSearchModal: React.FC<FaceSearchModalProps> = ({ isOpen, onClose, onNavigate, onAddToCart, onShowToast, eventId, eventName }) => {
+const FaceSearchModal: React.FC<FaceSearchModalProps> = ({
+    isOpen,
+    onClose,
+    onNavigate,
+    onAddToCart,
+    onShowToast,
+    eventId,
+    eventName
+}) => {
+    const { t, tCategory, formatDate } = useLanguage();
+
+    const [activeTab, setActiveTab] = useState<'selfie' | 'upload'>('selfie');
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
+    const [saveForFuture, setSaveForFuture] = useState<boolean>(true);
+    
+    const [selectedDate, setSelectedDate] = useState<string>('');
+    const [selectedCity, setSelectedCity] = useState<string>('');
+
+    const [events, setEvents] = useState<PhotoEvent[]>([]);
+    const [photographersMap, setPhotographersMap] = useState<Record<string, User>>({});
+    
     const [isProcessing, setIsProcessing] = useState(false);
     const [results, setResults] = useState<Photo[]>([]);
     const [hasSearched, setHasSearched] = useState(false);
-    const [showTips, setShowTips] = useState(false);
-    const fileInputRef = useRef<HTMLInputElement>(null);
-    const cameraInputRef = useRef<HTMLInputElement>(null);
 
-    const [isCameraOpen, setIsCameraOpen] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
     const streamRef = useRef<MediaStream | null>(null);
+    const [isCameraOpen, setIsCameraOpen] = useState(false);
 
-    const isMobileDevice = () => {
-        if (typeof window === 'undefined' || typeof navigator === 'undefined') return false;
-        return /Mobi|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    // Load saved selfie from localStorage on mount/open
+    useEffect(() => {
+        if (isOpen) {
+            const savedSelfie = localStorage.getItem('fotoclic_saved_selfie');
+            if (savedSelfie) {
+                setSelectedImage(savedSelfie);
+            } else {
+                setSelectedImage(null);
+            }
+
+            setResults([]);
+            setHasSearched(false);
+            setIsProcessing(false);
+
+            // Load events to extract cities & dates
+            api.getAllPublicEvents().then(allEvents => {
+                setEvents(allEvents);
+                
+                // Map photographer users from events
+                const pMap: Record<string, User> = {};
+                allEvents.forEach(e => {
+                    if (e.photographer_id && (e as any).photographer) {
+                        pMap[e.photographer_id] = {
+                            id: e.photographer_id,
+                            name: (e as any).photographer.name || 'Fotógrafo',
+                            avatar_url: (e as any).photographer.avatar_url || '',
+                            slug: (e as any).photographer.slug || e.photographer_id
+                        } as User;
+                    }
+                });
+                setPhotographersMap(pMap);
+            }).catch(console.error);
+
+            if (activeTab === 'selfie' && !savedSelfie) {
+                startCamera();
+            }
+        } else {
+            stopCamera();
+        }
+    }, [isOpen]);
+
+    // Handle tab change
+    const handleTabChange = (tab: 'selfie' | 'upload') => {
+        setActiveTab(tab);
+        if (tab === 'selfie') {
+            if (!selectedImage || isCameraOpen) {
+                startCamera();
+            }
+        } else {
+            stopCamera();
+            if (fileInputRef.current) fileInputRef.current.click();
+        }
     };
 
     const stopCamera = () => {
@@ -46,6 +113,7 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({ isOpen, onClose, onNa
 
     const startCamera = async () => {
         try {
+            stopCamera();
             setIsCameraOpen(true);
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }
@@ -56,446 +124,483 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({ isOpen, onClose, onNa
             }
         } catch (err) {
             console.error("Error accessing camera:", err);
-            onShowToast("Não foi possível acessar a webcam. Por favor, verifique as permissões de câmera do navegador ou utilize a opção 'Enviar Foto'.", 'error');
+            onShowToast("Não foi possível acessar a webcam. Por favor, verifique as permissões de câmera ou envie um arquivo de foto.", 'error');
             setIsCameraOpen(false);
+            setActiveTab('upload');
         }
     };
 
     const capturePhoto = () => {
         if (videoRef.current) {
             const canvas = document.createElement('canvas');
-            canvas.width = videoRef.current.videoWidth;
-            canvas.height = videoRef.current.videoHeight;
+            canvas.width = videoRef.current.videoWidth || 640;
+            canvas.height = videoRef.current.videoHeight || 480;
             const ctx = canvas.getContext('2d');
             if (ctx) {
-                // Real orientation (no flip or scale translate)
                 ctx.drawImage(videoRef.current, 0, 0);
-
                 const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
                 setSelectedImage(dataUrl);
-                setResults([]);
-                setHasSearched(false);
+
+                if (saveForFuture) {
+                    localStorage.setItem('fotoclic_saved_selfie', dataUrl);
+                }
+
                 stopCamera();
             }
         }
     };
-
-    useEffect(() => {
-        if (isOpen) {
-            setSelectedImage(null);
-            setResults([]);
-            setHasSearched(false);
-            setShowTips(false);
-            setIsProcessing(false);
-            
-            // Reset input values so onChange triggers even if the user selects the same file
-            if (fileInputRef.current) fileInputRef.current.value = '';
-            if (cameraInputRef.current) cameraInputRef.current.value = '';
-        } else {
-            stopCamera();
-        }
-    }, [isOpen]);
-
-    useEffect(() => {
-        return () => {
-            if (streamRef.current) {
-                streamRef.current.getTracks().forEach(track => track.stop());
-            }
-        };
-    }, []);
-
-    if (!isOpen) return null;
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
             const reader = new FileReader();
             reader.onload = (ev) => {
-                setSelectedImage(ev.target?.result as string);
-                setResults([]);
-                setHasSearched(false);
+                const dataUrl = ev.target?.result as string;
+                setSelectedImage(dataUrl);
+                if (saveForFuture) {
+                    localStorage.setItem('fotoclic_saved_selfie', dataUrl);
+                }
+                stopCamera();
             };
             reader.readAsDataURL(file);
         }
     };
 
+    // Extract unique cities from events
+    const availableCities = useMemo(() => {
+        const set = new Set<string>();
+        events.forEach(e => {
+            if (e.location) {
+                const parts = e.location.split(',');
+                const city = parts[parts.length - 1].trim();
+                if (city) set.add(city);
+            }
+        });
+        return Array.from(set).sort();
+    }, [events]);
+
+    // Extract unique dates from events
+    const availableDates = useMemo(() => {
+        const map = new Map<string, string>(); // raw -> formatted
+        events.forEach(e => {
+            if (e.event_date) {
+                const formatted = formatDate(e.event_date, { day: '2-digit', month: 'short' });
+                map.set(e.event_date, formatted);
+            }
+        });
+        return Array.from(map.entries()).sort((a, b) => b[0].localeCompare(a[0]));
+    }, [events, formatDate]);
+
+    // Handle face search
     const handleSearch = async () => {
-        if (!selectedImage) return;
+        if (!selectedImage) {
+            onShowToast("Tire uma selfie ou envie uma foto para realizar a busca.", 'info');
+            return;
+        }
 
         setIsProcessing(true);
         setHasSearched(false);
         const startTime = performance.now();
 
         try {
-            // Unblock UI to let spinner render
             await new Promise(resolve => setTimeout(resolve, 50));
 
             let photos: Photo[] = [];
-            let isHybridFallback = false;
 
-            // 1. Busca via Amazon Rekognition (server-side)
+            // 1. Rekognition search
             const matches = await faceRecognitionService.searchByImage(selectedImage, eventId);
-            console.log(`Rekognition matched ${matches.length} photos.`);
 
             if (matches.length > 0) {
                 const matchedIds = matches.map(m => m.id);
                 photos = await api.getPhotosByIds(matchedIds);
             } else {
-                // FALLBACK: sem rosto detectado pelo Rekognition, usa similaridade visual (IA)
-                console.warn("Nenhum rosto encontrado pelo Rekognition. Iniciando fallback de Similaridade Visual...");
-                isHybridFallback = true;
+                // Fallback visual similarity
                 photos = await api.searchImageContext(selectedImage);
                 if (eventId) {
                     photos = photos.filter(p => p.event_id === eventId);
                 }
             }
 
+            // 2. Filter by City & Date if selected
+            if (selectedCity || selectedDate) {
+                const eventMap = new Map<string, PhotoEvent>();
+                events.forEach(ev => eventMap.set(ev.id, ev));
+
+                photos = photos.filter(p => {
+                    const ev = eventMap.get(p.event_id);
+                    if (!ev) return true; // Keep if event data not loaded
+
+                    if (selectedCity && ev.location) {
+                        if (!includesNormalized(ev.location, selectedCity)) {
+                            return false;
+                        }
+                    }
+
+                    if (selectedDate && ev.event_date) {
+                        if (ev.event_date !== selectedDate) {
+                            return false;
+                        }
+                    }
+
+                    return true;
+                });
+            }
+
             const endTime = performance.now();
             const duration = ((endTime - startTime) / 1000).toFixed(1);
 
             setResults(photos);
-
-            if (photos.length > 0) {
-                if (isHybridFallback) {
-                    onShowToast(`${photos.length} fotos contextuais encontradas em ${duration}s!`, 'success');
-                } else {
-                    onShowToast(`${photos.length} fotos encontradas em ${duration}s!`, 'success');
-                }
-            } else {
-                onShowToast(`Nenhuma foto correspondente encontrada (${duration}s).`, 'info');
-            }
-
             setHasSearched(true);
 
+            if (photos.length > 0) {
+                onShowToast(t('face_search.photos_found', { count: photos.length }) + ` (${duration}s)`, 'success');
+            } else {
+                onShowToast(t('face_search.no_results_title') + ` (${duration}s)`, 'info');
+            }
+
         } catch (error) {
-            console.error("Erro na busca facial:", error);
-            onShowToast("Ocorreu um erro ao processar a busca.", 'error');
+            console.error("Erro na busca por selfie:", error);
+            onShowToast("Ocorreu um erro ao processar a busca facial.", 'error');
         } finally {
             setIsProcessing(false);
         }
     };
 
-    return (
-        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/80 backdrop-blur-sm sm:p-4 animate-in fade-in duration-200">
-            <div className="bg-white w-full h-full md:h-auto md:max-h-[90vh] md:max-w-5xl md:rounded-3xl overflow-hidden flex flex-col shadow-2xl relative">
+    // Group results by photographer
+    const groupedResults = useMemo(() => {
+        const groups: Record<string, { photographer: User | null; photos: Photo[] }> = {};
 
-                {/* Mobile Header / Desktop Header */}
-                <div className="flex-none p-4 md:p-6 border-b border-neutral-100 flex justify-between items-center bg-white/90 backdrop-blur-md sticky top-0 z-20">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-primary-dark flex items-center justify-center text-white shadow-primary/20 shadow-lg">
-                            <Camera size={24} strokeWidth={2.5} />
-                        </div>
-                        <div>
-                            <h2 className="text-xl md:text-2xl font-display font-bold text-neutral-900 tracking-tight">Reconhecimento Facial</h2>
-                            <p className="text-xs md:text-sm text-neutral-500 font-medium">
-                                {eventName ? `Buscando em: ${eventName}` : 'Encontre você nas fotos'}
-                            </p>
-                        </div>
+        results.forEach(photo => {
+            const pId = photo.photographer_id || 'unknown';
+            if (!groups[pId]) {
+                const pUser = photographersMap[pId] || null;
+                groups[pId] = { photographer: pUser, photos: [] };
+            }
+            groups[pId].photos.push(photo);
+        });
+
+        return Object.values(groups);
+    }, [results, photographersMap]);
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-3 sm:p-4 animate-in fade-in duration-200">
+            <div className="bg-[#18181B] text-white w-full max-w-xl rounded-3xl overflow-hidden shadow-2xl border border-neutral-800 flex flex-col relative max-h-[92vh]">
+
+                {/* Header */}
+                <div className="p-5 pb-3 flex justify-between items-start border-b border-neutral-800/60 bg-[#18181B]">
+                    <div>
+                        <span className="text-xs font-bold uppercase tracking-widest text-[#FACC15] block mb-1">
+                            {t('face_search.title')}
+                        </span>
+                        <h2 className="text-xl sm:text-2xl font-display font-bold text-white leading-snug">
+                            {t('face_search.subtitle')}
+                        </h2>
                     </div>
                     <button
                         onClick={onClose}
-                        className="p-3 bg-neutral-100 h hover:bg-neutral-200 rounded-full transition-all text-neutral-600 active:scale-95"
+                        className="p-2 bg-neutral-800 hover:bg-neutral-700 rounded-full transition-all text-neutral-300 active:scale-95"
                     >
-                        <X size={20} strokeWidth={2.5} />
+                        <X size={20} />
                     </button>
                 </div>
 
-                {/* Main Content Area - Scrollable */}
-                <div className="flex-1 overflow-y-auto bg-neutral-50/50 relative">
-                    <div className="min-h-full p-4 md:p-8 flex flex-col pb-24">
+                {/* Body Content */}
+                <div className="flex-1 overflow-y-auto p-5 space-y-5">
 
-                        {/* State 1: Results Display (When searched) */}
-                        {hasSearched && (
-                            <div className="animate-in slide-in-from-bottom-5 fade-in duration-500">
-                                {/* Compact Search Header */}
-                                <div className="flex items-center justify-between mb-6 bg-white p-4 rounded-2xl shadow-sm border border-neutral-100">
-                                    <div className="flex items-center gap-4">
-                                        <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-                                            <div className="w-16 h-16 rounded-xl overflow-hidden border-2 border-white shadow-md ring-2 ring-primary/20">
-                                                <img src={selectedImage!} alt="Sua selfie" className="w-full h-full object-cover" />
-                                            </div>
-                                            <div className="absolute inset-0 bg-black/30 flex items-center justify-center rounded-xl opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <Upload size={16} className="text-white" />
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <h3 className="font-bold text-neutral-900 text-lg">
-                                                {results.length > 0 ? `${results.length} fotos encontradas` : "Nenhuma imagem"}
-                                            </h3>
-                                            <button
-                                                onClick={() => fileInputRef.current?.click()}
-                                                className="text-primary text-sm font-medium hover:underline"
-                                            >
-                                                Tentar outra foto
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Results Grid */}
-                                {results.length > 0 ? (
-                                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
-                                        {results.map(photo => (
-                                            <div key={photo.id} className="group relative bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 ring-1 ring-neutral-100">
-                                                <div className="aspect-[2/3] overflow-hidden bg-neutral-200">
-                                                    <WatermarkedImage
-                                                        src={getOptimizedImageUrl(photo.thumb_url || photo.preview_url, 400, 75)}
-                                                        alt={photo.title}
-                                                        loading="lazy"
-                                                        className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
-                                                        containWithBlur={true}
-                                                    />
-                                                </div>
-                                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
-                                                    <p className="text-white font-medium text-sm mb-2 line-clamp-1">{photo.title}</p>
-                                                    <button
-                                                        onClick={() => {
-                                                            onClose();
-                                                            onNavigate({ name: 'photo-detail', id: photo.id });
-                                                        }}
-                                                        className="w-full bg-white/20 backdrop-blur-md border border-white/30 text-white font-semibold py-2.5 rounded-xl hover:bg-white hover:text-black transition-all text-sm"
-                                                    >
-                                                        Ver Detalhes
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div className="flex flex-col items-center justify-center py-20 text-center">
-                                        <div className="w-20 h-20 bg-neutral-100 rounded-full flex items-center justify-center mb-4">
-                                            <Search size={32} className="text-neutral-400" />
-                                        </div>
-                                        <h3 className="text-lg font-bold text-neutral-900 mb-2">Sem resultados</h3>
-                                        <p className="text-neutral-500 max-w-xs mx-auto">Não encontramos fotos com esse rosto. Tente uma selfie com melhor iluminação.</p>
-                                    </div>
-                                )}
+                    {/* Mode 1: Search View (Form & Camera) */}
+                    {!hasSearched && (
+                        <>
+                            {/* Toggle Tabs: Enviar foto | Tirar selfie */}
+                            <div className="grid grid-cols-2 gap-2 bg-neutral-900/80 p-1.5 rounded-2xl border border-neutral-800">
+                                <button
+                                    onClick={() => handleTabChange('upload')}
+                                    className={`py-2.5 px-4 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${
+                                        activeTab === 'upload' && !isCameraOpen
+                                            ? 'bg-neutral-800 text-white shadow-md border border-neutral-700'
+                                            : 'text-neutral-400 hover:text-white'
+                                    }`}
+                                >
+                                    <Upload size={16} />
+                                    {t('face_search.upload_photo')}
+                                </button>
+                                <button
+                                    onClick={() => handleTabChange('selfie')}
+                                    className={`py-2.5 px-4 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${
+                                        activeTab === 'selfie' || isCameraOpen
+                                            ? 'bg-[#FACC15] text-black shadow-md font-extrabold'
+                                            : 'text-neutral-400 hover:text-white'
+                                    }`}
+                                >
+                                    <Camera size={16} />
+                                    {t('face_search.take_selfie')}
+                                </button>
                             </div>
-                        )}
 
-                        {/* State 2: Initial Upload (Not searched yet) */}
-                        {!hasSearched && (
-                            <div className="flex-1 flex flex-col items-center justify-center max-w-lg mx-auto w-full animate-in zoom-in-95 duration-300">
-                                <div className="w-full bg-white rounded-3xl p-6 md:p-10 shadow-xl border border-neutral-100 text-center relative overflow-hidden">
-                                    <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-primary to-neutral-900"></div>
+                            {/* Hidden file input */}
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={handleFileChange}
+                            />
 
-                                    <div className="mb-8">
-                                        <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6 relative">
-                                            <div className="absolute inset-0 bg-primary/20 rounded-full animate-ping opacity-20"></div>
-                                            <Camera size={40} className="text-primary" />
-                                        </div>
-                                        <h3 className="text-2xl font-bold text-neutral-900 mb-3">Tire ou envie uma selfie</h3>
-                                        <p className="text-neutral-500 leading-relaxed mb-6">
-                                            Usamos inteligência artificial para encontrar todas as fotos onde você aparece.
-                                            <br className="hidden md:block" /> Sua privacidade é protegida.
-                                        </p>
-
-                                        {/* Expandable Tips */}
-                                        <div className="max-w-md mx-auto">
-                                            <button
-                                                onClick={() => setShowTips(!showTips)}
-                                                className={`flex items-center justify-between w-full p-4 rounded-2xl border transition-all duration-300 ${
-                                                    showTips 
-                                                    ? 'bg-primary-dark border-primary-dark text-white shadow-lg shadow-primary' 
-                                                    : 'bg-primary/10 border-primary/20 text-primary-dark hover:bg-primary/10'
-                                                }`}
-                                            >
-                                                <div className="flex items-center gap-3">
-                                                    <Info size={20} />
-                                                    <span className="font-bold text-sm">Dicas para uma busca perfeita</span>
-                                                </div>
-                                                <ChevronDown size={20} className={`transition-transform duration-500 ${showTips ? 'rotate-180' : ''}`} />
-                                            </button>
-
-                                            {showTips && (
-                                                <div className="mt-2 text-left bg-white rounded-2xl border border-neutral-100 shadow-xl p-5 animate-in slide-in-from-top-4 duration-500">
-                                                    <div className="grid grid-cols-1 gap-4">
-                                                        <div className="flex items-start gap-3">
-                                                            <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center text-green-600 shrink-0">
-                                                                <User size={18} />
-                                                            </div>
-                                                            <div>
-                                                                <p className="text-sm font-bold text-neutral-800">Fique de frente</p>
-                                                                <p className="text-xs text-neutral-500">Fotos de perfil ou rosto muito inclinado dificultam a precisão.</p>
-                                                            </div>
-                                                        </div>
-
-                                                        <div className="flex items-start gap-3">
-                                                            <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600 shrink-0">
-                                                                <Sun size={18} />
-                                                            </div>
-                                                            <div>
-                                                                <p className="text-sm font-bold text-neutral-800">Iluminação é a chave</p>
-                                                                <p className="text-xs text-neutral-500">Evite sombras fortes no rosto ou luz forte vindo de trás.</p>
-                                                            </div>
-                                                        </div>
-
-                                                        <div className="flex items-start gap-3">
-                                                            <div className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center text-red-600 shrink-0">
-                                                                <Maximize2 size={18} />
-                                                            </div>
-                                                            <div>
-                                                                <p className="text-sm font-bold text-neutral-800">Distância média</p>
-                                                                <p className="text-xs text-neutral-500">Não tire a foto de muito perto. Mantenha o celular a um braço de distância.</p>
-                                                            </div>
-                                                        </div>
-
-                                                        <div className="flex items-start gap-3">
-                                                            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary-dark shrink-0">
-                                                                <Scan size={18} />
-                                                            </div>
-                                                            <div>
-                                                                <p className="text-sm font-bold text-neutral-800">Rosto limpo</p>
-                                                                <p className="text-xs text-neutral-500">Evite óculos de sol, bonés exagerados ou máscaras.</p>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-
-
-                                    {isCameraOpen ? (
-                                        <div className="mb-6 flex flex-col items-center">
-                                            <div className="relative w-full max-w-md aspect-video bg-neutral-950 rounded-2xl overflow-hidden shadow-inner border-2 border-neutral-200">
-                                                <video
-                                                    ref={videoRef}
-                                                    autoPlay
-                                                    playsInline
-                                                    muted
-                                                    className="w-full h-full object-cover transform -scale-x-100 bg-neutral-900"
-                                                />
-                                                <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full text-white text-xs font-semibold flex items-center gap-1.5 animate-pulse">
-                                                    <span className="w-2 h-2 rounded-full bg-red-500"></span>
-                                                    Ao Vivo
-                                                </div>
-                                            </div>
-                                            <div className="flex gap-3 mt-4 w-full max-w-md">
-                                                <button
-                                                    type="button"
-                                                    onClick={stopCamera}
-                                                    className="flex-1 py-3 px-4 rounded-xl border border-neutral-200 text-neutral-700 font-semibold hover:bg-neutral-50 transition-all active:scale-95 text-sm"
-                                                >
-                                                    Cancelar
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={capturePhoto}
-                                                    className="flex-1 py-3 px-4 rounded-xl bg-primary text-white font-semibold hover:bg-primary-dark shadow-md hover:shadow-primary/20 transition-all active:scale-95 text-sm flex items-center justify-center gap-2"
-                                                >
-                                                    <Camera size={18} />
-                                                    Capturar Foto
-                                                </button>
+                            {/* Capture Frame Container */}
+                            <div className="relative rounded-3xl overflow-hidden bg-neutral-950 border border-neutral-800 aspect-[4/5] max-h-[340px] flex items-center justify-center mx-auto w-full group shadow-inner">
+                                {isCameraOpen ? (
+                                    <div className="relative w-full h-full flex items-center justify-center">
+                                        <video
+                                            ref={videoRef}
+                                            autoPlay
+                                            playsInline
+                                            muted
+                                            className="w-full h-full object-cover transform -scale-x-100"
+                                        />
+                                        {/* Dashed Oval Face Overlay */}
+                                        <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center p-6">
+                                            <div className="w-[190px] h-[250px] sm:w-[220px] sm:h-[280px] border-2 border-dashed border-white/80 rounded-[50%] shadow-[0_0_0_9999px_rgba(0,0,0,0.45)] relative flex items-center justify-center">
+                                                <div className="w-full h-[1px] bg-yellow-400/70 absolute top-1/3"></div>
+                                                <span className="text-xs text-white/90 font-medium bg-black/60 px-3 py-1 rounded-full backdrop-blur-sm text-center max-w-[80%]">
+                                                    {t('face_search.frame_face_instruction')}
+                                                </span>
                                             </div>
                                         </div>
-                                    ) : (
-                                        <div className="grid grid-cols-2 gap-3 md:gap-4 mb-6">
-                                            <div
-                                                onClick={() => {
-                                                    if (isMobileDevice()) {
-                                                        cameraInputRef.current?.click();
-                                                    } else {
-                                                        startCamera();
-                                                    }
-                                                }}
-                                                className="border-2 border-dashed border-neutral-200 hover:border-primary hover:bg-primary/10 rounded-2xl p-4 md:p-6 cursor-pointer transition-all duration-300 group flex flex-col items-center justify-center text-center h-36 md:h-48"
-                                            >
-                                                <div className="w-12 h-12 md:w-14 md:h-14 bg-primary/20 rounded-full flex items-center justify-center mb-2 md:mb-3 group-hover:scale-110 transition-transform text-primary-dark">
-                                                    <Camera className="w-6 h-6 md:w-7 md:h-7" />
-                                                </div>
-                                                <span className="font-semibold text-neutral-800 text-sm">Tirar Selfie</span>
-                                                <span className="text-xs text-neutral-400 mt-1 hidden md:block">Usar Câmera</span>
-                                            </div>
 
-                                            <div
-                                                onClick={() => fileInputRef.current?.click()}
-                                                className="border-2 border-dashed border-neutral-200 hover:border-primary-dark hover:bg-primary/10 rounded-2xl p-4 md:p-6 cursor-pointer transition-all duration-300 group flex flex-col items-center justify-center text-center h-36 md:h-48"
-                                            >
-                                                {selectedImage ? (
-                                                    <div className="relative w-full h-full rounded-xl overflow-hidden">
-                                                        <img src={selectedImage} alt="Preview" className="w-full h-full object-cover" />
-                                                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                                            <Upload className="text-white" />
-                                                        </div>
-                                                    </div>
-                                                ) : (
-                                                    <>
-                                                        <div className="w-12 h-12 md:w-14 md:h-14 bg-primary/20 rounded-full flex items-center justify-center mb-2 md:mb-3 group-hover:scale-110 transition-transform text-primary-dark">
-                                                            <Upload className="w-6 h-6 md:w-7 md:h-7" />
-                                                        </div>
-                                                        <span className="font-semibold text-neutral-800 text-sm">Enviar Foto</span>
-                                                        <span className="text-xs text-neutral-400 mt-1 hidden md:block">Da Galeria</span>
-                                                    </>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    <div className="mt-2">
+                                        {/* Capture Button */}
                                         <button
-                                            onClick={handleSearch}
-                                            disabled={!selectedImage || isProcessing}
-                                            className="w-full py-4 rounded-xl bg-gradient-to-r from-primary to-primary-dark text-white font-bold text-lg shadow-lg hover:shadow-primary/40 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-95 flex items-center justify-center gap-3 relative overflow-hidden"
+                                            onClick={capturePhoto}
+                                            className="absolute bottom-4 bg-[#FACC15] hover:bg-yellow-400 text-black font-extrabold px-6 py-3 rounded-full shadow-2xl transition-all flex items-center gap-2 text-sm active:scale-95 z-10"
                                         >
-                                            {/* Standard Spinner inside button */}
-                                            {isProcessing ? (
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                                    <span>Processando...</span>
-                                                </div>
-                                            ) : (
-                                                <>
-                                                    <Search size={22} />
-                                                    <span>Encontrar Minhas Fotos</span>
-                                                </>
-                                            )}
+                                            <Camera size={18} />
+                                            {t('face_search.take_photo_button')}
                                         </button>
                                     </div>
-                                </div>
+                                ) : selectedImage ? (
+                                    <div className="relative w-full h-full group">
+                                        <img
+                                            src={selectedImage}
+                                            alt="Selfie"
+                                            className="w-full h-full object-cover"
+                                        />
+                                        {/* Dashed Overlay on preview */}
+                                        <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                                            <div className="w-[190px] h-[250px] border-2 border-dashed border-white/60 rounded-[50%]"></div>
+                                        </div>
 
-                                {/* Full Modal Spinner Overlay */}
-                                {isProcessing && (
-                                    <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center animate-in fade-in duration-200">
-                                        <div className="w-16 h-16 border-4 border-primary/10 border-t-primary rounded-full animate-spin mb-4 shadow-lg"></div>
-                                        <p className="text-lg font-semibold text-neutral-800 animate-pulse">Buscando você...</p>
-                                        <p className="text-sm text-neutral-500">Isso leva apenas alguns segundos</p>
+                                        {/* Change Photo Overlay button */}
+                                        <button
+                                            onClick={() => {
+                                                if (activeTab === 'selfie') startCamera();
+                                                else fileInputRef.current?.click();
+                                            }}
+                                            className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/70 hover:bg-black text-white text-xs font-semibold px-4 py-2.5 rounded-full backdrop-blur-md transition-all flex items-center gap-2 border border-white/20"
+                                        >
+                                            <RotateCcw size={14} />
+                                            {t('face_search.retake_photo_button')}
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center p-8 text-center cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+                                        <div className="w-16 h-16 rounded-full bg-neutral-900 flex items-center justify-center text-neutral-500 mb-3 border border-neutral-800">
+                                            <Upload size={28} />
+                                        </div>
+                                        <p className="text-sm font-semibold text-neutral-300 mb-1">{t('face_search.upload_photo')}</p>
+                                        <p className="text-xs text-neutral-500">Clique para selecionar uma foto da sua galeria</p>
                                     </div>
                                 )}
+                            </div>
 
-                                <div className="mt-6 text-center">
-                                    <p className="text-xs text-neutral-400 flex items-center justify-center gap-1">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                                        Sua foto é apagada logo após a busca
-                                    </p>
+                            {/* Checkbox: Save photo for future searches */}
+                            <label className="flex items-center gap-3 p-3 bg-neutral-900/60 rounded-2xl border border-neutral-800/80 cursor-pointer hover:bg-neutral-900 transition-colors">
+                                <input
+                                    type="checkbox"
+                                    checked={saveForFuture}
+                                    onChange={(e) => {
+                                        setSaveForFuture(e.target.checked);
+                                        if (!e.target.checked) {
+                                            localStorage.removeItem('fotoclic_saved_selfie');
+                                        } else if (selectedImage) {
+                                            localStorage.setItem('fotoclic_saved_selfie', selectedImage);
+                                        }
+                                    }}
+                                    className="w-5 h-5 rounded border-neutral-700 text-[#FACC15] focus:ring-[#FACC15] bg-neutral-800 cursor-pointer"
+                                />
+                                <span className="text-xs sm:text-sm font-medium text-neutral-300">
+                                    {t('face_search.save_photo_future')}
+                                </span>
+                            </label>
+
+                            {/* Filter Selectors (Date & City) */}
+                            <div className="grid grid-cols-2 gap-3">
+                                {/* Date Selector */}
+                                <div className="relative">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">
+                                        <Calendar size={16} />
+                                    </span>
+                                    <select
+                                        value={selectedDate}
+                                        onChange={(e) => setSelectedDate(e.target.value)}
+                                        className="w-full bg-neutral-900 border border-neutral-800 rounded-2xl pl-10 pr-4 py-3 text-xs sm:text-sm text-white focus:outline-none focus:border-[#FACC15] transition-all appearance-none cursor-pointer"
+                                    >
+                                        <option value="">{t('face_search.all_dates')}</option>
+                                        {availableDates.map(([raw, formatted]) => (
+                                            <option key={raw} value={raw}>
+                                                {formatted}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* City Selector */}
+                                <div className="relative">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">
+                                        <MapPin size={16} />
+                                    </span>
+                                    <select
+                                        value={selectedCity}
+                                        onChange={(e) => setSelectedCity(e.target.value)}
+                                        className="w-full bg-neutral-900 border border-neutral-800 rounded-2xl pl-10 pr-4 py-3 text-xs sm:text-sm text-white focus:outline-none focus:border-[#FACC15] transition-all appearance-none cursor-pointer"
+                                    >
+                                        <option value="">{t('face_search.all_cities')}</option>
+                                        {availableCities.map(city => (
+                                            <option key={city} value={city}>
+                                                {city}
+                                            </option>
+                                        ))}
+                                    </select>
                                 </div>
                             </div>
-                        )}
-                    </div>
+
+                            {/* Submit Button CTA */}
+                            <button
+                                onClick={handleSearch}
+                                disabled={isProcessing || !selectedImage}
+                                className="w-full bg-[#FACC15] hover:bg-yellow-400 text-black font-extrabold py-4 px-6 rounded-2xl shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed text-base flex items-center justify-center gap-2 active:scale-98"
+                            >
+                                {isProcessing ? (
+                                    <>
+                                        <Spinner size="sm" />
+                                        <span>Procurando fotos por IA...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Search size={20} strokeWidth={2.5} />
+                                        <span>{t('face_search.search_my_photos')}</span>
+                                    </>
+                                )}
+                            </button>
+                        </>
+                    )}
+
+                    {/* Mode 2: Results Display (Grouped by Photographer) */}
+                    {hasSearched && (
+                        <div className="space-y-6">
+                            {/* Top Bar with New Search Button */}
+                            <div className="flex items-center justify-between pb-3 border-b border-neutral-800">
+                                <div>
+                                    <span className="text-xs text-neutral-400 block">{t('face_search.photos_found', { count: results.length })}</span>
+                                    {selectedCity && (
+                                        <span className="text-xs text-[#FACC15] font-semibold">📍 {selectedCity}</span>
+                                    )}
+                                </div>
+                                <button
+                                    onClick={() => { setHasSearched(false); }}
+                                    className="bg-[#FACC15] text-black font-bold px-4 py-2 rounded-xl text-xs hover:bg-yellow-400 transition-all flex items-center gap-1.5 shadow-md"
+                                >
+                                    <RotateCcw size={14} />
+                                    {t('face_search.new_search')}
+                                </button>
+                            </div>
+
+                            {results.length > 0 ? (
+                                <div className="space-y-8">
+                                    {groupedResults.map(({ photographer, photos }) => {
+                                        const pName = photographer?.name || 'Fotógrafo FotoClic';
+                                        const pSlug = photographer?.slug || photographer?.id;
+
+                                        return (
+                                            <div key={photographer?.id || 'unknown'} className="bg-neutral-900/60 rounded-3xl p-4 border border-neutral-800/80 space-y-4">
+                                                {/* Photographer Header Card */}
+                                                <div className="flex items-center justify-between bg-neutral-900 p-3 rounded-2xl border border-neutral-800">
+                                                    <div className="flex items-center gap-3">
+                                                        <img
+                                                            src={photographer?.avatar_url || getAvatarFallbackUrl(pName, 40)}
+                                                            alt={pName}
+                                                            className="w-10 h-10 rounded-full object-cover border border-neutral-700"
+                                                            onError={(e) => { e.currentTarget.src = getAvatarFallbackUrl(pName, 40); }}
+                                                        />
+                                                        <div>
+                                                            <p className="text-xs text-neutral-400 uppercase font-semibold tracking-wider">{t('face_search.photographer_label')}</p>
+                                                            <h4 className="text-sm font-bold text-white truncate max-w-[180px] sm:max-w-xs">{pName}</h4>
+                                                        </div>
+                                                    </div>
+
+                                                    {pSlug && (
+                                                        <button
+                                                            onClick={() => {
+                                                                onClose();
+                                                                onNavigate({ name: 'photographer-portfolio', photographerId: pSlug });
+                                                            }}
+                                                            className="bg-neutral-800 hover:bg-neutral-700 text-neutral-200 px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all"
+                                                        >
+                                                            <Store size={14} />
+                                                            <span>{t('face_search.visit_store')}</span>
+                                                            <span className="bg-[#FACC15] text-black text-[10px] font-extrabold px-1.5 py-0.5 rounded-full ml-1">
+                                                                {photos.length}
+                                                            </span>
+                                                        </button>
+                                                    )}
+                                                </div>
+
+                                                {/* Photos Grid */}
+                                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                                    {photos.map(photo => (
+                                                        <div
+                                                            key={photo.id}
+                                                            className="group relative bg-neutral-950 rounded-2xl overflow-hidden border border-neutral-800 hover:border-[#FACC15] transition-all cursor-pointer aspect-[3/4]"
+                                                            onClick={() => {
+                                                                onClose();
+                                                                onNavigate({ name: 'photo-detail', id: photo.id });
+                                                            }}
+                                                        >
+                                                            <WatermarkedImage
+                                                                src={getOptimizedImageUrl(photo.thumb_url || photo.preview_url, 400, 75)}
+                                                                alt={photo.title}
+                                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                                                containWithBlur={true}
+                                                            />
+                                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center p-2">
+                                                                <span className="text-xs font-bold text-black bg-[#FACC15] px-3 py-1.5 rounded-full shadow-lg">
+                                                                    Ver Foto
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            ) : (
+                                <div className="text-center py-12 px-4 space-y-3">
+                                    <div className="w-16 h-16 bg-neutral-900 rounded-full flex items-center justify-center mx-auto text-neutral-500 border border-neutral-800">
+                                        <Search size={28} />
+                                    </div>
+                                    <h3 className="text-base font-bold text-white">{t('face_search.no_results_title')}</h3>
+                                    <p className="text-xs text-neutral-400 max-w-sm mx-auto leading-relaxed">
+                                        {t('face_search.no_results_desc')}
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                 </div>
-
-
-
-                <input
-                    type="file"
-                    ref={fileInputRef}
-                    className="hidden"
-                    accept="image/*"
-                    onChange={handleFileChange}
-                />
-                <input
-                    type="file"
-                    ref={cameraInputRef}
-                    className="hidden"
-                    accept="image/*"
-                    capture="user"
-                    onChange={handleFileChange}
-                />
             </div>
         </div>
     );
 };
 
 export default FaceSearchModal;
-
-

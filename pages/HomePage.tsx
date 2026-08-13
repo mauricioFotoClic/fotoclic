@@ -263,15 +263,15 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
               </button>
 
               <button 
-                onClick={() => onNavigate({ name: 'register' })}
-                className="w-full sm:w-auto flex items-center gap-3 px-6 py-3 bg-black/40 backdrop-blur-md border border-white/20 rounded-2xl hover:bg-black/60 transition-all text-left"
+                onClick={() => onNavigate({ name: 'face-search' })}
+                className="w-full sm:w-auto flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-[#FACC15] to-amber-500 text-black rounded-2xl hover:brightness-110 transition-all text-left shadow-lg hover:shadow-yellow-500/20 font-bold"
               >
-                <div className="p-2 bg-primary/20 rounded-lg text-primary">
+                <div className="p-2 bg-black/10 rounded-lg text-black">
                   <Camera size={20} strokeWidth={2.5} />
                 </div>
                 <div>
-                  <p className="text-xs text-neutral-300 font-medium">{t('home.i_am_photographer')}</p>
-                  <p className="text-sm font-bold">{t('home.sell_my_photos')}</p>
+                  <p className="text-xs text-black/80 font-extrabold uppercase tracking-wider">{t('face_search.title')}</p>
+                  <p className="text-sm font-black">{t('face_search.take_selfie')}</p>
                 </div>
               </button>
           </div>
