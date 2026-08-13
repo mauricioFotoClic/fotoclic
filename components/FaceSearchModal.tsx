@@ -291,7 +291,7 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({
                 {/* Header */}
                 <div className="p-5 pb-3 flex justify-between items-start border-b border-neutral-800/60 bg-[#18181B]">
                     <div>
-                        <span className="text-xs font-bold uppercase tracking-widest text-[#FACC15] block mb-1">
+                        <span className="text-xs font-extrabold uppercase tracking-widest text-primary block mb-1">
                             {t('face_search.title')}
                         </span>
                         <h2 className="text-xl sm:text-2xl font-display font-bold text-white leading-snug">
@@ -329,7 +329,7 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({
                                     onClick={() => handleTabChange('selfie')}
                                     className={`py-2.5 px-4 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${
                                         activeTab === 'selfie' || isCameraOpen
-                                            ? 'bg-[#FACC15] text-black shadow-md font-extrabold'
+                                            ? 'bg-primary text-white shadow-md font-extrabold'
                                             : 'text-neutral-400 hover:text-white'
                                     }`}
                                 >
@@ -360,8 +360,8 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({
                                         />
                                         {/* Dashed Oval Face Overlay */}
                                         <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center p-6">
-                                            <div className="w-[190px] h-[250px] sm:w-[220px] sm:h-[280px] border-2 border-dashed border-white/80 rounded-[50%] shadow-[0_0_0_9999px_rgba(0,0,0,0.45)] relative flex items-center justify-center">
-                                                <div className="w-full h-[1px] bg-yellow-400/70 absolute top-1/3"></div>
+                                            <div className="w-[190px] h-[250px] sm:w-[220px] sm:h-[280px] border-2 border-dashed border-primary/90 rounded-[50%] shadow-[0_0_0_9999px_rgba(0,0,0,0.45)] relative flex items-center justify-center">
+                                                <div className="w-full h-[1px] bg-primary/70 absolute top-1/3"></div>
                                                 <span className="text-xs text-white/90 font-medium bg-black/60 px-3 py-1 rounded-full backdrop-blur-sm text-center max-w-[80%]">
                                                     {t('face_search.frame_face_instruction')}
                                                 </span>
@@ -371,7 +371,7 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({
                                         {/* Capture Button */}
                                         <button
                                             onClick={capturePhoto}
-                                            className="absolute bottom-4 bg-[#FACC15] hover:bg-yellow-400 text-black font-extrabold px-6 py-3 rounded-full shadow-2xl transition-all flex items-center gap-2 text-sm active:scale-95 z-10"
+                                            className="absolute bottom-4 bg-primary hover:bg-primary-dark text-white font-extrabold px-6 py-3 rounded-full shadow-2xl transition-all flex items-center gap-2 text-sm active:scale-95 z-10"
                                         >
                                             <Camera size={18} />
                                             {t('face_search.take_photo_button')}
@@ -386,7 +386,7 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({
                                         />
                                         {/* Dashed Overlay on preview */}
                                         <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                                            <div className="w-[190px] h-[250px] border-2 border-dashed border-white/60 rounded-[50%]"></div>
+                                            <div className="w-[190px] h-[250px] border-2 border-dashed border-primary/80 rounded-[50%]"></div>
                                         </div>
 
                                         {/* Change Photo Overlay button */}
@@ -425,7 +425,7 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({
                                             localStorage.setItem('fotoclic_saved_selfie', selectedImage);
                                         }
                                     }}
-                                    className="w-5 h-5 rounded border-neutral-700 text-[#FACC15] focus:ring-[#FACC15] bg-neutral-800 cursor-pointer"
+                                    className="w-5 h-5 rounded border-neutral-700 text-primary focus:ring-primary bg-neutral-800 cursor-pointer"
                                 />
                                 <span className="text-xs sm:text-sm font-medium text-neutral-300">
                                     {t('face_search.save_photo_future')}
@@ -442,7 +442,7 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({
                                     <select
                                         value={selectedDate}
                                         onChange={(e) => setSelectedDate(e.target.value)}
-                                        className="w-full bg-neutral-900 border border-neutral-800 rounded-2xl pl-10 pr-4 py-3 text-xs sm:text-sm text-white focus:outline-none focus:border-[#FACC15] transition-all appearance-none cursor-pointer"
+                                        className="w-full bg-neutral-900 border border-neutral-800 rounded-2xl pl-10 pr-4 py-3 text-xs sm:text-sm text-white focus:outline-none focus:border-primary transition-all appearance-none cursor-pointer"
                                     >
                                         <option value="">{t('face_search.all_dates')}</option>
                                         {availableDates.map(([raw, formatted]) => (
@@ -461,7 +461,7 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({
                                     <select
                                         value={selectedCity}
                                         onChange={(e) => setSelectedCity(e.target.value)}
-                                        className="w-full bg-neutral-900 border border-neutral-800 rounded-2xl pl-10 pr-4 py-3 text-xs sm:text-sm text-white focus:outline-none focus:border-[#FACC15] transition-all appearance-none cursor-pointer"
+                                        className="w-full bg-neutral-900 border border-neutral-800 rounded-2xl pl-10 pr-4 py-3 text-xs sm:text-sm text-white focus:outline-none focus:border-primary transition-all appearance-none cursor-pointer"
                                     >
                                         <option value="">{t('face_search.all_cities')}</option>
                                         {availableCities.map(city => (
@@ -477,7 +477,7 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({
                             <button
                                 onClick={handleSearch}
                                 disabled={isProcessing || !selectedImage}
-                                className="w-full bg-[#FACC15] hover:bg-yellow-400 text-black font-extrabold py-4 px-6 rounded-2xl shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed text-base flex items-center justify-center gap-2 active:scale-98"
+                                className="w-full bg-primary hover:bg-primary-dark text-white font-extrabold py-4 px-6 rounded-2xl shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed text-base flex items-center justify-center gap-2 active:scale-98"
                             >
                                 {isProcessing ? (
                                     <>
@@ -502,12 +502,12 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({
                                 <div>
                                     <span className="text-xs text-neutral-400 block">{t('face_search.photos_found', { count: results.length })}</span>
                                     {selectedCity && (
-                                        <span className="text-xs text-[#FACC15] font-semibold">📍 {selectedCity}</span>
+                                        <span className="text-xs text-primary font-semibold">📍 {selectedCity}</span>
                                     )}
                                 </div>
                                 <button
                                     onClick={() => { setHasSearched(false); }}
-                                    className="bg-[#FACC15] text-black font-bold px-4 py-2 rounded-xl text-xs hover:bg-yellow-400 transition-all flex items-center gap-1.5 shadow-md"
+                                    className="bg-primary hover:bg-primary-dark text-white font-bold px-4 py-2 rounded-xl text-xs transition-all flex items-center gap-1.5 shadow-md"
                                 >
                                     <RotateCcw size={14} />
                                     {t('face_search.new_search')}
@@ -547,7 +547,7 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({
                                                         >
                                                             <Store size={14} />
                                                             <span>{t('face_search.visit_store')}</span>
-                                                            <span className="bg-[#FACC15] text-black text-[10px] font-extrabold px-1.5 py-0.5 rounded-full ml-1">
+                                                            <span className="bg-primary text-white text-[10px] font-extrabold px-1.5 py-0.5 rounded-full ml-1">
                                                                 {photos.length}
                                                             </span>
                                                         </button>
@@ -559,7 +559,7 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({
                                                     {photos.map(photo => (
                                                         <div
                                                             key={photo.id}
-                                                            className="group relative bg-neutral-950 rounded-2xl overflow-hidden border border-neutral-800 hover:border-[#FACC15] transition-all cursor-pointer aspect-[3/4]"
+                                                            className="group relative bg-neutral-950 rounded-2xl overflow-hidden border border-neutral-800 hover:border-primary transition-all cursor-pointer aspect-[3/4]"
                                                             onClick={() => {
                                                                 onClose();
                                                                 onNavigate({ name: 'photo-detail', id: photo.id });
@@ -572,7 +572,7 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({
                                                                 containWithBlur={true}
                                                             />
                                                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center p-2">
-                                                                <span className="text-xs font-bold text-black bg-[#FACC15] px-3 py-1.5 rounded-full shadow-lg">
+                                                                <span className="text-xs font-bold text-white bg-primary px-3 py-1.5 rounded-full shadow-lg">
                                                                     Ver Foto
                                                                 </span>
                                                             </div>
