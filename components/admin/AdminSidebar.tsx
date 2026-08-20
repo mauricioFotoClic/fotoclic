@@ -4,7 +4,7 @@ import Logo from '../Logo';
 import { useLanguage } from '../../contexts/LanguageContext';
 import LanguageSelector from '../LanguageSelector';
 
-type AdminView = 'dashboard' | 'photos' | 'photographers' | 'customers' | 'categories' | 'sales' | 'payouts' | 'settings' | 'storage-requests' | 'rekognition' | 'abacate' | 'remarketing';
+type AdminView = 'dashboard' | 'photos' | 'photographers' | 'customers' | 'categories' | 'sales' | 'payouts' | 'settings' | 'storage-requests' | 'rekognition' | 'abacate' | 'appmax' | 'remarketing';
 
 interface AdminSidebarProps {
     activeView: AdminView;
@@ -122,6 +122,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeView, setView, notifi
                         notificationCount={notificationCounts?.payouts}
                     />
 
+                    <NavLink label="Appmax Gateway" isActive={activeView === 'appmax'} onClick={() => nav('appmax')} icon={<CreditCardIcon />} />
                     <NavLink label={t('admin.sidebar_abacate')} isActive={activeView === 'abacate'} onClick={() => nav('abacate')} icon={<CreditCardIcon />} />
                     <NavLink label={t('admin.sidebar_rekognition')} isActive={activeView === 'rekognition'} onClick={() => nav('rekognition')} icon={<ScanFaceIcon />} />
                     <div className="pt-2 my-2 border-t"></div>

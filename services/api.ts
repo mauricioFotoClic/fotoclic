@@ -3142,6 +3142,87 @@ export const api = {
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || 'Erro ao processar estorno.');
     return result;
+  },
+
+  // --- APPMAX PAYMENTS & RECIPIENTS ---
+  createAppmaxCheckout: async (payload: {
+    photoIds: string[];
+    couponCode?: string;
+    paymentMethod?: 'pix' | 'credit_card';
+    cardData?: {
+      card_token?: string;
+      installments?: number;
+      cvv?: string;
+    };
+    customer: {
+      name: string;
+      email: string;
+      cpf?: string;
+      phone?: string;
+    };
+  }): Promise<{
+    success: boolean;
+    orderId: string | number;
+    paymentMethod: 'pix' | 'credit_card';
+    total: number;
+    pix_code?: string;
+    qr_code_image?: string;
+    expiration_date?: string;
+    status?: string;
+    payment?: any;
+    error?: string;
+  }> => {
+    const headers = await api.getAuthHeaders();
+    const response = await fetch('/api/appmax-checkout', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload)
+    });
+
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.error || 'Erro ao processar checkout Appmax.');
+    }
+    return result;
+  },
+
+  getAppmaxStats: async (): Promise<any> => {
+    const headers = await api.getAuthHeaders();
+    const response = await fetch(`/api/appmax-stats?t=${Date.now()}`, {
+      headers
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Erro ao obter dados da Appmax.');
+    return result;
+  },
+
+  syncAppmaxRecipient: async (recipientData: {
+    document?: string;
+    bank_code?: string;
+    bank_agency?: string;
+    bank_account?: string;
+    bank_account_digit?: string;
+    pix_key?: string;
+  }): Promise<any> => {
+    const headers = await api.getAuthHeaders();
+    const response = await fetch('/api/appmax-recipient', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(recipientData)
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Erro ao sincronizar recebedor Appmax.');
+    return result;
+  },
+
+  getAppmaxRecipientStatus: async (): Promise<{ recipient_id: string | null; status: string; is_ready_for_split: boolean }> => {
+    const headers = await api.getAuthHeaders();
+    const response = await fetch(`/api/appmax-recipient?t=${Date.now()}`, {
+      headers
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Erro ao consultar recebedor Appmax.');
+    return result;
   }
 };
 
