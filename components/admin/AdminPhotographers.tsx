@@ -83,7 +83,7 @@ const AdminPhotographers: React.FC<AdminPhotographersProps> = ({ onNavigate, onI
     const fetchPhotographers = useCallback(async () => {
         try {
             const [data, allReports] = await Promise.all([
-                api.getPhotographers(),
+                api.getPhotographers(true),
                 api.getAllReports(),
             ]);
             setPhotographers(data);

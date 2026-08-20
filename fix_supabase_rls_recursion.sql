@@ -199,7 +199,7 @@ BEGIN
         WHERE s.status != 'refunded'
         GROUP BY s.photographer_id
     ) s_stats ON u.id = s_stats.photographer_id
-    WHERE u.role = 'photographer' AND u.is_active = true;
+    WHERE u.role = 'photographer';
 END;
 $$;
 

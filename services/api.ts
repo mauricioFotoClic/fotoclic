@@ -1088,9 +1088,9 @@ export const api = {
     if (error) throw error;
     return true;
   },
-  getPhotographers: async (): Promise<PhotographerWithStats[]> => {
+  getPhotographers: async (forceRefresh = false): Promise<PhotographerWithStats[]> => {
     const now = Date.now();
-    if (inMemoryCache.allPhotographers.data && inMemoryCache.allPhotographers.data.length > 0 && (now - inMemoryCache.allPhotographers.ts < CACHE_TTL)) {
+    if (!forceRefresh && inMemoryCache.allPhotographers.data && inMemoryCache.allPhotographers.data.length > 0 && (now - inMemoryCache.allPhotographers.ts < CACHE_TTL)) {
       return inMemoryCache.allPhotographers.data;
     }
 
