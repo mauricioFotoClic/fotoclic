@@ -18,48 +18,42 @@ export function ResetPasswordPage({ token, onNavigate }: ResetPasswordPageProps)
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     useEffect(() => {
-        // Check for session instead of token
-        const checkSession = async () => {
+        const hash = window.location.hash;
+        const search = window.location.search;
+        const hasRecoveryToken = hash.includes('type=recovery') || hash.includes('access_token') || search.includes('code');
+
+        let isRecoveryFlow = hasRecoveryToken;
+
+        // Listen specifically for auth state changes with PASSWORD_RECOVERY
+        const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'PASSWORD_RECOVERY') {
+                isRecoveryFlow = true;
+                setStatus('valid');
+            } else if (session && isRecoveryFlow) {
+                setStatus('valid');
+            }
+        });
+
+        // Initial check
+        const checkRecoveryStatus = async () => {
+            if (hasRecoveryToken) {
+                setStatus('valid');
+                return;
+            }
+
             const { data: { session } } = await supabase.auth.getSession();
-            if (session) {
+            if (session && isRecoveryFlow) {
                 setStatus('valid');
             } else {
-                // Wait a bit for auto-signin if redirect just happened
-                setTimeout(async () => {
-                    const { data: { session: retrySession } } = await supabase.auth.getSession();
-                    if (retrySession) {
-                        setStatus('valid');
-                    } else {
-                        // If no session, check if we have a hash access_token (implicit flow) or code (pkce)
-                        // Supabase client usually handles this. If it failed, show error.
-                        // But for now, let's assume if there's no session, the link is invalid/expired
-                        // UNLESS we are in the middle of processing.
-                        const hash = window.location.hash;
-                        const search = window.location.search;
-                        if (hash.includes('access_token') || search.includes('code')) {
-                            setStatus('validating');
-                            // The auth listener in main.tsx or App.tsx should handle this?? 
-                            // Let's add a listener here just in case.
-                            const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-                                if (event === 'PASSWORD_RECOVERY' || session) {
-                                    setStatus('valid');
-                                }
-                            });
-                            return () => subscription.unsubscribe();
-                        } else {
-                            setStatus('invalid');
-                        }
-                    }
-                }, 1000);
+                // If not explicitly in recovery flow, mark as invalid link
+                setStatus('invalid');
+                setErrorDetails('Link de recuperação inválido ou expirado. Por favor, solicite um novo link.');
             }
         };
-        checkSession();
 
-        // Listen for auth changes
-        const { data: autListener } = supabase.auth.onAuthStateChange((event, session) => {
-            if (session) setStatus('valid');
-        });
-        return () => autListener.subscription.unsubscribe();
+        checkRecoveryStatus();
+
+        return () => authListener.subscription.unsubscribe();
     }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {

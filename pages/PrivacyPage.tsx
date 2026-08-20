@@ -100,6 +100,14 @@ const PrivacyPage: React.FC = () => {
                     <p>
                         {t('privacy_page.s5_p1')}
                     </p>
+
+                    <h2>{t('privacy_page.s6_title')}</h2>
+                    <p>
+                        {t('privacy_page.s6_p1')}
+                    </p>
+                    <p>
+                        {t('privacy_page.s6_p2')}
+                    </p>
                 </div>
             </section>
         </div>

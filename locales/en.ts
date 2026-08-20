@@ -428,6 +428,9 @@ export const en: TranslationKeys = {
         s4_p2: "You may disable cookies in your browser settings, though doing so may impact certain platform features.",
         s5_title: "5. Digital Products and Refunds",
         s5_p1: "FotoClic sells digital products with immediate delivery upon payment confirmation. Due to the digital nature of the product and immediate download capability, no refunds will be issued after downloading the image, except where required by law or in cases of proven technical file defects.",
+        s6_title: "6. Biometric Data Processing & Facial Search (Privacy)",
+        s6_p1: "To help you find your sports photos, FotoClic provides an optional facial search feature. When using this tool, a temporary selfie is processed by secure facial recognition (AWS Rekognition) strictly to generate numerical facial similarity vectors and match them with public sporting event photos.",
+        s6_p2: "FotoClic does not sell or use your biometric vectors for any purpose other than locating event photos. You have full control to save or discard your selfie at any time.",
     },
     cart: {
         title: "Your Cart",

@@ -29,23 +29,23 @@ const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             <h3 className="font-display font-bold text-lg mb-4">Explore</h3>
             <ul className="space-y-2">
               <li><a href="/" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'home' }); }} className="text-sm text-neutral-200 hover:text-white transition-colors text-left block">{t('home.categories')}</a></li>
-              <li><a href="/photographers" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'photographers' }); }} className="text-sm text-neutral-200 hover:text-white transition-colors text-left block">{t('nav.find_photographers')}</a></li>
-              <li><a href="/featured-photos" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'featured-photos' }); }} className="text-sm text-neutral-200 hover:text-white transition-colors text-left block">{t('home.recent_photos')}</a></li>
+              <li><a href="/fotografos" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'photographers' }); }} className="text-sm text-neutral-200 hover:text-white transition-colors text-left block">{t('nav.find_photographers')}</a></li>
+              <li><a href="/fotos-destaque" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'featured-photos' }); }} className="text-sm text-neutral-200 hover:text-white transition-colors text-left block">{t('home.recent_photos')}</a></li>
             </ul>
           </div>
           <div>
             <h3 className="font-display font-bold text-lg mb-4">{t('nav.about')}</h3>
             <ul className="space-y-2">
-              <li><a href="/about" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'about' }); }} className="text-sm text-neutral-200 hover:text-white transition-colors text-left block">{t('footer.about_us')}</a></li>
-              <li><a href="/contact" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'contact' }); }} className="text-sm text-neutral-200 hover:text-white transition-colors text-left block">{t('footer.contact')}</a></li>
-              <li><a href="/help-center" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'help-center' }); }} className="text-sm text-neutral-200 hover:text-white transition-colors text-left block">{t('footer.help_center')}</a></li>
+              <li><a href="/sobre" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'about' }); }} className="text-sm text-neutral-200 hover:text-white transition-colors text-left block">{t('footer.about_us')}</a></li>
+              <li><a href="/contato" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'contact' }); }} className="text-sm text-neutral-200 hover:text-white transition-colors text-left block">{t('footer.contact')}</a></li>
+              <li><a href="/ajuda" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'help-center' }); }} className="text-sm text-neutral-200 hover:text-white transition-colors text-left block">{t('footer.help_center')}</a></li>
             </ul>
           </div>
           <div>
             <h3 className="font-display font-bold text-lg mb-4">Legal</h3>
             <ul className="space-y-2">
-              <li><a href="/terms" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'terms' }); }} className="text-sm text-neutral-200 hover:text-white transition-colors text-left block">{t('footer.terms')}</a></li>
-              <li><a href="/privacy" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'privacy' }); }} className="text-sm text-neutral-200 hover:text-white transition-colors text-left block">{t('footer.privacy')}</a></li>
+              <li><a href="/termos" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'terms' }); }} className="text-sm text-neutral-200 hover:text-white transition-colors text-left block">{t('footer.terms')}</a></li>
+              <li><a href="/privacidade" onClick={(e) => { e.preventDefault(); onNavigate({ name: 'privacy' }); }} className="text-sm text-neutral-200 hover:text-white transition-colors text-left block">{t('footer.privacy')}</a></li>
             </ul>
           </div>
         </div>

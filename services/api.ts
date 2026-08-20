@@ -370,8 +370,7 @@ export const api = {
 
     const inactiveIds = await api.getInactivePhotographerIds();
 
-    // Tier 1: Approved + Public photos
-    let { data } = await supabase
+    const { data } = await supabase
       .from("photos")
       .select(
         "id, photographer_id, category_id, title, preview_url, thumb_url, price, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags, sales_count",
@@ -379,37 +378,9 @@ export const api = {
       .eq("moderation_status", "approved")
       .eq("is_public", true)
       .order("created_at", { ascending: false })
-      .limit(limit * 5);
+      .limit(limit * 3);
 
-    let filtered = (data || []).filter((p: any) => p.photographer_id && !inactiveIds.has(p.photographer_id));
-
-    // Tier 2: Any public photos
-    if (filtered.length === 0) {
-      const fallbackPublic = await supabase
-        .from("photos")
-        .select(
-          "id, photographer_id, category_id, title, preview_url, thumb_url, price, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags, sales_count",
-        )
-        .eq("is_public", true)
-        .order("created_at", { ascending: false })
-        .limit(limit * 5);
-
-      filtered = (fallbackPublic.data || []).filter((p: any) => p.photographer_id && !inactiveIds.has(p.photographer_id));
-    }
-
-    // Tier 3: Fallback photos - strictly filtering out inactive photographers
-    if (filtered.length === 0) {
-      const absoluteFallback = await supabase
-        .from("photos")
-        .select(
-          "id, photographer_id, category_id, title, preview_url, thumb_url, price, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags, sales_count",
-        )
-        .order("created_at", { ascending: false })
-        .limit(limit * 5);
-
-      filtered = (absoluteFallback.data || []).filter((p: any) => p.photographer_id && !inactiveIds.has(p.photographer_id));
-    }
-
+    const filtered = (data || []).filter((p: any) => p.photographer_id && !inactiveIds.has(p.photographer_id));
     const result = filtered.slice(0, limit).map(mapPhoto);
 
     if (limit === 8) {
@@ -440,14 +411,19 @@ export const api = {
     return resultData.map(mapPhoto);
   },
 
-  getPhotoById: async (id: string): Promise<Photo | undefined> => {
-    const { data, error } = await supabase
+  getPhotoById: async (id: string, onlyApproved: boolean = false): Promise<Photo | undefined> => {
+    let query = supabase
       .from("photos")
       .select(
-        "id, photographer_id, category_id, title, description, preview_url, file_url, thumb_url, price, resolution, width, height, tags, is_public, created_at, moderation_status, rejection_reason, is_featured, likes_count, quality_analysis, is_face_indexed, event_id, sales_count, media_type, video_uid, video_duration, file_size_bytes, photo_likes(user_id)",
+        "id, photographer_id, category_id, title, description, preview_url, thumb_url, price, resolution, width, height, tags, is_public, created_at, moderation_status, rejection_reason, is_featured, likes_count, quality_analysis, is_face_indexed, event_id, sales_count, media_type, video_uid, video_duration, file_size_bytes, photo_likes(user_id)",
       )
-      .eq("id", id)
-      .single();
+      .eq("id", id);
+
+    if (onlyApproved) {
+      query = query.eq("moderation_status", "approved").eq("is_public", true);
+    }
+
+    const { data, error } = await query.single();
     if (error) {
       if (error.code === "PGRST116") return undefined; // Not found is not an error here
       throw error;
@@ -477,8 +453,6 @@ export const api = {
       return cached.data;
     }
 
-    // Otimização: Sem loop 'while'. Fetch de até 150 fotos recentes. 
-    // Evita crash de browser por payload massivo.
     const limit = 150;
     const { data, error } = await supabase
       .from("photos")
@@ -498,13 +472,19 @@ export const api = {
     return result;
   },
 
-  getPhotosByEventId: async (eventId: string, limit: number = 1000): Promise<Photo[]> => {
-    const { data, error } = await supabase
+  getPhotosByEventId: async (eventId: string, limit: number = 1000, onlyApproved: boolean = true): Promise<Photo[]> => {
+    let query = supabase
       .from("photos")
       .select(
         "id, photographer_id, category_id, title, description, preview_url, thumb_url, price, resolution, width, height, tags, is_public, created_at, moderation_status, rejection_reason, is_featured, likes_count, quality_analysis, is_face_indexed, event_id, sales_count, media_type, video_uid, video_duration, file_size_bytes, photo_likes(user_id)"
       )
-      .eq("event_id", eventId)
+      .eq("event_id", eventId);
+
+    if (onlyApproved) {
+      query = query.eq("moderation_status", "approved").eq("is_public", true);
+    }
+
+    const { data, error } = await query
       .order("created_at", { ascending: false })
       .limit(limit);
 
@@ -1535,13 +1515,43 @@ export const api = {
     try {
       const { data: event } = await supabase.from("events").select("photographer_id").eq("id", id).single();
 
-      // 1. Delete all photos linked to this event first (prevents FK constraint failure)
-      const { error: photosErr } = await supabase.from("photos").delete().eq("event_id", id);
-      if (photosErr) {
-        console.error("Error deleting photos associated with event:", photosErr);
+      // 1. Fetch all photo IDs in this event
+      const { data: eventPhotos } = await supabase
+        .from("photos")
+        .select("id")
+        .eq("event_id", id);
+
+      const photoIds = (eventPhotos || []).map((p: any) => p.id);
+
+      if (photoIds.length > 0) {
+        // 2. Check which photos have been purchased in sales
+        const { data: salesData } = await supabase
+          .from("sales")
+          .select("photo_id")
+          .in("photo_id", photoIds);
+
+        const purchasedPhotoIds = new Set((salesData || []).map((s: any) => s.photo_id));
+        const soldIds = photoIds.filter(pid => purchasedPhotoIds.has(pid));
+        const unsoldIds = photoIds.filter(pid => !purchasedPhotoIds.has(pid));
+
+        // 3. Unlink sold photos so buyers preserve their download access
+        if (soldIds.length > 0) {
+          await supabase
+            .from("photos")
+            .update({ event_id: null, is_public: false })
+            .in("id", soldIds);
+        }
+
+        // 4. Delete unsold photos
+        if (unsoldIds.length > 0) {
+          await supabase
+            .from("photos")
+            .delete()
+            .in("id", unsoldIds);
+        }
       }
 
-      // 2. Delete the event row from events table
+      // 5. Delete the event row from events table
       const { error } = await supabase.from("events").delete().eq("id", id);
 
       if (error) {
@@ -1549,7 +1559,7 @@ export const api = {
         return false;
       }
 
-      // 3. Clear in-memory caches
+      // 6. Clear in-memory caches
       if (event && event.photographer_id) {
         delete inMemoryCache.photographerEventsCache[event.photographer_id];
         delete inMemoryCache.photographerPhotosCache[event.photographer_id];
@@ -2046,7 +2056,8 @@ export const api = {
 
     // Check if user is active
     if (userProfile.role === "photographer" && !userProfile.is_active) {
-      throw new Error("Sua conta de fotógrafo ainda não está ativa.");
+      await supabase.auth.signOut();
+      throw new Error("Sua conta de fotógrafo está em análise e aguarda aprovação pelo administrador.");
     }
 
     return mapUser(userProfile);
@@ -2162,11 +2173,12 @@ export const api = {
     // NOTE: password is managed by Supabase Auth (signUp above).
     // Do NOT insert password into the public users table — the column does not exist.
     const { password: _pw, ...dataWithoutPassword } = data as any;
+    const isPhotographer = data.role === UserRole.PHOTOGRAPHER || data.role === 'photographer';
     const userData: any = {
       id: authData.user.id, // CRITICAL: Sync IDs
       ...dataWithoutPassword,
       name: formatNameAsTitleCase(data.name),
-      is_active: true,
+      is_active: !isPhotographer, // Photographers require manual admin approval before activation
     };
 
     const { data: newUser, error } = await supabase

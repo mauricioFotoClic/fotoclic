@@ -426,6 +426,9 @@ export const pt = {
         s4_p2: "Você pode desativar os cookies nas configurações do seu navegador, porém isso pode impactar algumas funcionalidades da plataforma.",
         s5_title: "5. Produtos Digitais e Reembolso",
         s5_p1: "O FotoClic comercializa produtos digitais com liberação imediata após a confirmação do pagamento. Devido à natureza digital do produto e à possibilidade de download imediato, não haverá reembolso dos valores pagos após o download da imagem, salvo exceções expressamente previstas em lei ou falhas técnicas comprovadas no arquivo.",
+        s6_title: "6. Tratamento de Dados Biométricos e Busca Facial (LGPD)",
+        s6_p1: "Para facilitar a localização de suas fotos esportivas, o FotoClic oferece a funcionalidade opcional de busca facial. Ao utilizar essa ferramenta, uma selfie temporária é processada pelo serviço de reconhecimento facial seguro (AWS Rekognition) estritamente para extração de vetores numéricos de similaridade facial e comparação com as fotos públicas dos eventos esportivos.",
+        s6_p2: "O FotoClic não comercializa e não utiliza seus vetores biométricos para nenhuma outra finalidade além da localização de fotos no evento. Você tem total controle para salvar ou descartar sua selfie a qualquer momento, bem como solicitar a exclusão de dados através do nosso suporte.",
     },
     cart: {
         title: "Seu Carrinho",

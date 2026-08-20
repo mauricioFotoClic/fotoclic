@@ -542,7 +542,7 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
             if (!hasPhotosInState && expectedCount > 0) {
                 setLoadingEventIds(prev => ({ ...prev, [id]: true }));
                 try {
-                    const eventPhotos = await api.getPhotosByEventId(id, 2000);
+                    const eventPhotos = await api.getPhotosByEventId(id, 2000, false);
                     setPhotos(prev => {
                         const existingIds = new Set(prev.map(p => p.id));
                         const newPhotos = eventPhotos.filter(p => !existingIds.has(p.id));

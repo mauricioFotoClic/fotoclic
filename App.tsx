@@ -231,13 +231,13 @@ const MainApp: React.FC = () => {
         if (pathname === '/admin') return { name: 'admin' };
         if (pathname === '/area-fotografo') return { name: 'photographer' };
         if (pathname === '/minhas-compras') return { name: 'customer-dashboard' };
-        if (pathname === '/sobre') return { name: 'about' };
-        if (pathname === '/contato') return { name: 'contact' };
-        if (pathname === '/ajuda') return { name: 'help-center' };
-        if (pathname === '/termos') return { name: 'terms' };
-        if (pathname === '/privacidade') return { name: 'privacy' };
-        if (pathname === '/fotos-destaque') return { name: 'featured-photos' };
-        if (pathname === '/fotografos') return { name: 'photographers' }; // Wait, is the page name 'photographers'? Let's keep it consistent.
+        if (pathname === '/sobre' || pathname === '/about') return { name: 'about' };
+        if (pathname === '/contato' || pathname === '/contact') return { name: 'contact' };
+        if (pathname === '/ajuda' || pathname === '/help' || pathname === '/help-center') return { name: 'help-center' };
+        if (pathname === '/termos' || pathname === '/terms') return { name: 'terms' };
+        if (pathname === '/privacidade' || pathname === '/privacy') return { name: 'privacy' };
+        if (pathname === '/fotos-destaque' || pathname === '/featured-photos') return { name: 'featured-photos' };
+        if (pathname === '/fotografos' || pathname === '/photographers') return { name: 'photographers' };
         if (pathname === '/404') return { name: 'not-found' };
         if (pathname === '/encontrar-fotos') {
             const q = searchParams.get('q');

@@ -32,7 +32,7 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({
 
     const [activeTab, setActiveTab] = useState<'selfie' | 'upload'>('selfie');
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
-    const [saveForFuture, setSaveForFuture] = useState<boolean>(true);
+    const [saveForFuture, setSaveForFuture] = useState<boolean>(false);
     
     const [selectedDate, setSelectedDate] = useState<string>('');
     const [selectedCity, setSelectedCity] = useState<string>('');
@@ -439,24 +439,29 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({
                             </div>
 
                             {/* Checkbox: Save photo for future searches */}
-                            <label className="flex items-center gap-3 p-3 bg-neutral-900/60 rounded-2xl border border-neutral-800/80 cursor-pointer hover:bg-neutral-900 transition-colors">
-                                <input
-                                    type="checkbox"
-                                    checked={saveForFuture}
-                                    onChange={(e) => {
-                                        setSaveForFuture(e.target.checked);
-                                        if (!e.target.checked) {
-                                            localStorage.removeItem('fotoclic_saved_selfie');
-                                        } else if (selectedImage) {
-                                            localStorage.setItem('fotoclic_saved_selfie', selectedImage);
-                                        }
-                                    }}
-                                    className="w-5 h-5 rounded border-neutral-700 text-primary focus:ring-primary bg-neutral-800 cursor-pointer"
-                                />
-                                <span className="text-xs sm:text-sm font-medium text-neutral-300">
-                                    {t('face_search.save_photo_future')}
-                                </span>
-                            </label>
+                            <div className="space-y-1.5">
+                                <label className="flex items-center gap-3 p-3 bg-neutral-900/60 rounded-2xl border border-neutral-800/80 cursor-pointer hover:bg-neutral-900 transition-colors">
+                                    <input
+                                        type="checkbox"
+                                        checked={saveForFuture}
+                                        onChange={(e) => {
+                                            setSaveForFuture(e.target.checked);
+                                            if (!e.target.checked) {
+                                                localStorage.removeItem('fotoclic_saved_selfie');
+                                            } else if (selectedImage) {
+                                                localStorage.setItem('fotoclic_saved_selfie', selectedImage);
+                                            }
+                                        }}
+                                        className="w-5 h-5 rounded border-neutral-700 text-primary focus:ring-primary bg-neutral-800 cursor-pointer"
+                                    />
+                                    <span className="text-xs sm:text-sm font-medium text-neutral-300">
+                                        {t('face_search.save_photo_future')}
+                                    </span>
+                                </label>
+                                <p className="text-[11px] text-neutral-500 px-2 leading-relaxed">
+                                    🔒 Seus dados biométricos faciais são processados exclusivamente para localizar suas fotos esportivas e você pode remover a selfie salva a qualquer momento.
+                                </p>
+                            </div>
 
                             {/* Filter Selectors (City, Date & Event Name) */}
                             <div className="space-y-3">
