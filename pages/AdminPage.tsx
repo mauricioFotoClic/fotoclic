@@ -32,16 +32,6 @@ const KeepAliveView = React.memo(
             }
         }, [active, hasMounted]);
 
-        // Background pre-mount staggered by index
-        useEffect(() => {
-            if (!hasMounted && !active) {
-                const timer = setTimeout(() => {
-                    setHasMounted(true);
-                }, 500 + (index * 400));
-                return () => clearTimeout(timer);
-            }
-        }, [hasMounted, active, index]);
-
         if (!hasMounted) return null;
 
         return (

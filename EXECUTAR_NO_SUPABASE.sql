@@ -202,8 +202,14 @@ BEGIN
 END;
 $$;
 
-GRANT EXECUTE ON FUNCTION public.get_photographers_with_stats() TO anon, authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.is_admin() TO anon, authenticated, service_role;
+-- 9. ÍNDICES DE ALTA PERFORMANCE (Elimina Statement Timeouts e Erros 500)
+CREATE INDEX IF NOT EXISTS idx_events_photographer_id ON public.events (photographer_id);
+CREATE INDEX IF NOT EXISTS idx_events_event_date ON public.events (event_date DESC);
+CREATE INDEX IF NOT EXISTS idx_photos_photog_appr ON public.photos (photographer_id) WHERE moderation_status = 'approved' AND is_public = true;
+CREATE INDEX IF NOT EXISTS idx_sales_photog_stat ON public.sales (photographer_id) WHERE status != 'refunded';
+CREATE INDEX IF NOT EXISTS idx_users_role ON public.users (role);
+CREATE INDEX IF NOT EXISTS idx_sales_buyer ON public.sales (buyer_id);
+CREATE INDEX IF NOT EXISTS idx_photos_event_id ON public.photos (event_id);
 
--- 9. Notificar recarregamento de schema
+-- 10. Notificar recarregamento de schema
 NOTIFY pgrst, 'reload schema';
