@@ -16,15 +16,60 @@ function emptyStats() {
 }
 
 export default async function handler(req, res) {
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    const origin = req.headers.origin;
+    const allowedOrigins = [
+        'https://www.fotoclic.com.br',
+        'https://fotoclic.com.br',
+        'http://localhost:5173',
+        'http://localhost:3000'
+    ];
+    if (origin && (allowedOrigins.includes(origin) || origin.endsWith('.vercel.app'))) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    } else {
+        res.setHeader('Access-Control-Allow-Origin', 'https://www.fotoclic.com.br');
+    }
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,DELETE,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+
+    if (req.method === 'OPTIONS') return res.status(200).end();
+
     // Evitar cache para dados financeiros
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
 
-    const supabase = createClient(
-        process.env.VITE_SUPABASE_URL,
-        process.env.SUPABASE_SERVICE_ROLE_KEY
-    );
+    const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+        return res.status(500).json({ error: 'Configuração do banco ausente.' });
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // --- Autenticação Obrigatória de Administrador ---
+    const authHeader = req.headers.authorization || '';
+    const userJwt = authHeader.replace('Bearer ', '').trim();
+
+    if (!userJwt) {
+        return res.status(401).json({ error: 'Não autorizado. Token de autenticação ausente.' });
+    }
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser(userJwt);
+    if (authError || !user) {
+        return res.status(401).json({ error: 'Token inválido ou expirado.' });
+    }
+
+    const { data: userProfile } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', user.id)
+        .maybeSingle();
+
+    if (userProfile?.role !== 'admin' && user.user_metadata?.role !== 'admin') {
+        return res.status(403).json({ error: 'Acesso negado. Apenas administradores podem acessar a central financeira.' });
+    }
 
     if (req.method === 'POST') {
         try {

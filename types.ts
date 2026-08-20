@@ -150,7 +150,7 @@ export interface AbandonedCart {
   userPhone?: string;
   items: CartItem[];
   date: string;
-  status: 'pending' | 'recovered' | 'contacted';
+  status: 'pending' | 'recovered' | 'contacted' | 'converted' | 'lost';
 }
 
 export interface PurchasedPhoto extends Photo {

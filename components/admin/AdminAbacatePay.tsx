@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import Spinner from '../Spinner';
 import { useToast } from '../../contexts/ToastContext';
+import api from '../../services/api';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -274,9 +275,7 @@ const AdminAbacatePay: React.FC = () => {
     const fetchData = useCallback(async (isInitial = false) => {
         try {
             if (isInitial) setLoading(true);
-            const res = await fetch(`/api/abacate-stats?t=${Date.now()}`);
-            if (!res.ok) throw new Error('Resposta inválida do servidor');
-            const data = await res.json();
+            const data = await api.getAbacateStats();
             setAllBillings(data.billings || []);
             setWithdrawals(data.withdrawals || []);
             if (data.stats) setStats(data.stats);
@@ -302,19 +301,12 @@ const AdminAbacatePay: React.FC = () => {
         setAddWithdrawLoading(true);
         try {
             const amountCents = Math.round(amt * 100);
-            const res = await fetch('/api/abacate-stats', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    amount: amountCents,
-                    note: withdrawNote,
-                    external_id: withdrawTxId || undefined,
-                    withdraw_date: withdrawDate || undefined
-                })
+            await api.createAbacateWithdrawal({
+                amount: amountCents,
+                note: withdrawNote,
+                external_id: withdrawTxId || undefined,
+                withdraw_date: withdrawDate || undefined
             });
-
-            const json = await res.json();
-            if (!res.ok) throw new Error(json.error || 'Erro ao registrar saque');
 
             showToast('Saque registrado com sucesso!', 'success');
             setShowAddWithdrawModal(false);
@@ -333,12 +325,7 @@ const AdminAbacatePay: React.FC = () => {
     const handleDeleteWithdrawal = async (id: string) => {
         if (!window.confirm('Tem certeza que deseja excluir este registro de saque?')) return;
         try {
-            const res = await fetch(`/api/abacate-stats?id=${id}`, {
-                method: 'DELETE'
-            });
-            const json = await res.json();
-            if (!res.ok) throw new Error(json.error || 'Erro ao excluir saque');
-
+            await api.deleteAbacateWithdrawal(id);
             showToast('Registro de saque excluído com sucesso.', 'success');
             fetchData(false);
         } catch (err: any) {
@@ -378,14 +365,7 @@ const AdminAbacatePay: React.FC = () => {
             // Ajuste necessário
             const adjustment = realCents - estimatedCents;
 
-            const res = await fetch('/api/abacate-stats', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ adjustment })
-            });
-
-            const json = await res.json();
-            if (!res.ok) throw new Error(json.error || 'Erro ao salvar ajuste');
+            await api.adjustAbacateBalance(adjustment);
 
             showToast('Saldo do gateway ajustado com sucesso!', 'success');
             setShowAdjustmentModal(false);
@@ -483,13 +463,7 @@ const AdminAbacatePay: React.FC = () => {
         if (!refundTarget) return;
         setRefundLoading(true);
         try {
-            const res = await fetch('/api/abacate-refund', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: refundTarget.id, billing_id: refundTarget.billing_id }),
-            });
-            const json = await res.json();
-            if (!res.ok) throw new Error(json.error || 'Erro ao processar estorno');
+            const json = await api.refundAbacateBilling(refundTarget.id, refundTarget.billing_id);
 
             // Optimistic update
             setAllBillings(prev =>

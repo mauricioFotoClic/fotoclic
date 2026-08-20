@@ -6,8 +6,7 @@ import Spinner from '../Spinner';
 import Modal from '../Modal';
 import PhotoForm from './PhotoForm';
 import QualityAnalysisModal from './QualityAnalysisModal';
-import { getOptimizedImageUrl } from '../../utils/imageOptimization';
-import { includesNormalized } from '../../utils/stringUtils';
+import { includesNormalized, escapeHtml } from '../../utils/stringUtils';
 
 interface AdminPhotosProps {
     context: any;
@@ -995,17 +994,18 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
                     const photographer = photographers.find(p => p.id === photoToReject.photographer_id);
                     const template = emailTemplates.photoRejected;
 
-                    if (!photographer || !template) return <p>Erro ao carregar dados do modelo.</p>;
+                    const safePhotographerName = escapeHtml(photographer.name);
+                    const safePhotoTitle = escapeHtml(photoToReject.title);
 
                     const subject = template.subject
-                        .replace('{{nome_fotografo}}', photographer.name)
-                        .replace('{{titulo_foto}}', photoToReject.title);
+                        .replace('{{nome_fotografo}}', safePhotographerName)
+                        .replace('{{titulo_foto}}', safePhotoTitle);
 
-                    const bodyPreview = template.body
-                        .replace('{{nome_fotografo}}', photographer.name)
-                        .replace('{{titulo_foto}}', photoToReject.title)
+                    const bodyPreview = escapeHtml(template.body)
+                        .replace(/\{\{nome_fotografo\}\}/g, safePhotographerName)
+                        .replace(/\{\{titulo_foto\}\}/g, safePhotoTitle)
                         .replace(/\n/g, '<br />')
-                        .replace('{{motivo_rejeicao}}', `<strong class="text-red-600 bg-red-100 px-1 rounded">[MOTIVO A SER PREENCHIDO ABAIXO]</strong>`);
+                        .replace(/\{\{motivo_rejeicao\}\}/g, `<strong class="text-red-600 bg-red-100 px-1 rounded">[MOTIVO A SER PREENCHIDO ABAIXO]</strong>`);
 
                     return (
                         <div>

@@ -1,7 +1,9 @@
 
+import { createClient } from '@supabase/supabase-js';
+
 export default async function handler(request, response) {
     // Add CORS headers
-    response.setHeader('Access-Control-Allow-Credentials', true);
+    response.setHeader('Access-Control-Allow-Credentials', 'true');
     const origin = request.headers.origin;
     const allowedOrigins = [
         'https://www.fotoclic.com.br',
@@ -14,7 +16,8 @@ export default async function handler(request, response) {
     } else {
         response.setHeader('Access-Control-Allow-Origin', 'https://www.fotoclic.com.br');
     }
-    response.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+    response.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
+    response.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
 
     if (request.method === 'OPTIONS') {
         return response.status(200).end();
@@ -22,6 +25,28 @@ export default async function handler(request, response) {
 
     if (request.method !== 'POST') {
         return response.status(405).json({ error: 'Method not allowed' });
+    }
+
+    // --- Autenticação Obrigatória ---
+    const authHeader = request.headers.authorization || '';
+    const userJwt = authHeader.replace('Bearer ', '').trim();
+
+    if (!userJwt) {
+        return response.status(401).json({ error: 'Não autorizado. Autenticação obrigatória para envio de e-mails.' });
+    }
+
+    const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+        return response.status(500).json({ error: 'Server configuration error' });
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    const { data: { user }, error: authError } = await supabase.auth.getUser(userJwt);
+
+    if (authError || !user) {
+        return response.status(401).json({ error: 'Token de autenticação inválido ou expirado.' });
     }
 
     const { to, subject, html } = request.body;

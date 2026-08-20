@@ -540,37 +540,6 @@ const MainApp: React.FC = () => {
         handleNavigate({ name: 'customer-dashboard' });
     };
 
-    const { confirm } = useConfirm();
-
-    const handleBuyPhoto = async (photoId: string) => {
-        if (!currentUser) {
-            showToast("Por favor, faça login para comprar.", "info");
-            handleNavigate({ name: 'login' });
-            return;
-        }
-
-        const isConfirmed = await confirm({
-            title: "Simular Compra",
-            message: "Simular compra desta foto?",
-            confirmText: "Simular",
-            variant: 'primary'
-        });
-
-        if (!isConfirmed) return;
-
-        const success = await api.purchasePhoto(photoId, currentUser.id);
-        if (success) {
-            showToast("Compra realizada com sucesso!", "success");
-            setSelectedPhotoId(null);
-            setCartItems(cartItems.filter(id => id !== photoId));
-            if (currentPage.name === 'photo-detail' && currentPage.id === photoId) {
-                handleNavigate({ name: 'photo-detail', id: photoId });
-            }
-        } else {
-            showToast("Erro ao processar compra.", "error");
-        }
-    };
-
     const renderPage = () => {
         switch (currentPage.name) {
             case 'home':

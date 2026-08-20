@@ -160,58 +160,6 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
 
 
 
-    const handleSuccess = async () => {
-        try {
-            // Process all purchases in parallel via our API (Supabase)
-            // Calculate discount ratio correctly handling floating point precision
-            const promises = photos.map(p => {
-                let discountedPrice = p.price;
-
-                // 1. Aplica desconto de cupom (se o fotógrafo for o mesmo do cupom)
-                if (appliedCoupon && p.photographer_id === appliedCoupon.photographer_id) {
-                    discountedPrice -= (p.price * (appliedCoupon.discount_percent / 100));
-                }
-
-                // 2. Aplica desconto por volume do fotógrafo
-                const group = groupedCart.find(g => g.photographerId === p.photographer_id);
-                const isEligible = !group?.eligiblePhotoIds || group.eligiblePhotoIds.includes(p.id);
-                if (group && group.appliedBulkRule && isEligible) {
-                    discountedPrice -= (p.price * (group.appliedBulkRule.discountPercent / 100));
-                }
-
-                const finalPrice = Math.max(0, discountedPrice);
-                return api.purchasePhoto(p.id, currentUser?.id, finalPrice);
-            });
-            const results = await Promise.all(promises);
-
-            // Validate if all purchases were successful
-            const failures = results.filter(r => !r.success);
-            if (failures.length > 0) {
-                throw new Error(failures[0].error || "Falha ao registrar a compra no banco de dados.");
-            }
-
-            // Send Confirmation Email
-            if (currentUser && currentUser.email) {
-                import('../services/emailService').then(({ emailService }) => {
-                    emailService.sendPurchaseConfirmation(
-                        currentUser.email,
-                        currentUser.name || 'Cliente',
-                        total,
-                        photos.length
-                    ).catch(err => console.error("Failed to send confirmation email:", err));
-                });
-            }
-
-            localStorage.removeItem('appliedCoupon');
-            onPurchaseComplete();
-
-        } catch (error) {
-            console.error("Purchase recording failed", error);
-            const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
-            alert(`Houve um erro ao salvar a compra no banco: ${errorMessage}. Por favor, entre em contato com o suporte.`);
-        }
-    };
-
     return (
         <div className="bg-neutral-50 min-h-screen py-12">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl">

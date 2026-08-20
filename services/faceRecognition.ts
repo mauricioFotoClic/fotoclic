@@ -34,6 +34,15 @@ async function toJpegDataUrl(source: string): Promise<string> {
     });
 }
 
+async function getRekognitionHeaders(): Promise<Record<string, string>> {
+    const { data: { session } } = await supabase.auth.getSession();
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+    }
+    return headers;
+}
+
 export const faceRecognitionService = {
     // Compatibility stubs — no local models needed with Rekognition
     async loadEssentialModels() { return true; },
@@ -42,10 +51,11 @@ export const faceRecognitionService = {
     async indexPhoto(photoId: string, imageUrl: string): Promise<{ facesIndexed: number }> {
         // Convert WebP → JPEG in browser before sending to server
         const jpegBase64 = await toJpegDataUrl(imageUrl);
+        const headers = await getRekognitionHeaders();
 
         const response = await fetch(`${API_BASE}/api/rekognition`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers,
             body: JSON.stringify({ action: 'indexFaces', photoId, imageBase64: jpegBase64 }),
         });
 
@@ -91,17 +101,19 @@ export const faceRecognitionService = {
     },
 
     async deleteFaces(faceIds: string[]): Promise<void> {
+        const headers = await getRekognitionHeaders();
         await fetch(`${API_BASE}/api/rekognition`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers,
             body: JSON.stringify({ action: 'deleteFaces', faceIds }),
         });
     },
 
     async createCollection(): Promise<void> {
+        const headers = await getRekognitionHeaders();
         const response = await fetch(`${API_BASE}/api/rekognition`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers,
             body: JSON.stringify({ action: 'createCollection' }),
         });
         const data = await response.json();

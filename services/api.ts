@@ -136,6 +136,7 @@ const inMemoryCache: {
   featured: { data: Photo[] | null, ts: number },
   recent: { data: Photo[] | null, ts: number },
   activePhotographers: { data: PhotographerWithStats[] | null, ts: number },
+  inactivePhotographers: { data: Set<string> | null, ts: number },
   allPhotographers: { data: PhotographerWithStats[] | null, ts: number },
   allEvents: { data: PhotoEvent[] | null, ts: number },
   userCache: Record<string, { data: User, ts: number }>,
@@ -1300,7 +1301,7 @@ export const api = {
           .order("event_date", { ascending: false })
           .limit(200);
 
-        data = fallbackRes.data;
+        data = fallbackRes.data as any;
         error = fallbackRes.error;
       }
 
@@ -2226,69 +2227,15 @@ export const api = {
   },
 
   purchasePhoto: async (
-    photoId: string,
-    userId: string = "guest-id",
-    paidPrice?: number,
+    _photoId: string,
+    _userId: string = "guest-id",
+    _paidPrice?: number,
   ): Promise<{ success: boolean; error?: string }> => {
-    try {
-      // 1. Get Photo Details
-      const photo = await api.getPhotoById(photoId);
-      if (!photo) return { success: false, error: "Foto não encontrada" };
-
-      // 2. Get Commission Settings
-      const settings = await api.getCommissionSettings();
-      const isVideo = photo.media_type === 'video';
-      let rate;
-
-      if (isVideo) {
-        rate = settings.defaultVideoRate ?? 0.10;
-      } else {
-        rate = settings.defaultRate;
-        // Check for custom rate for this photographer
-        if (
-          settings.customRates &&
-          settings.customRates[photo.photographer_id] !== undefined
-        ) {
-          rate = settings.customRates[photo.photographer_id];
-        }
-      }
-
-      // 3. Determine Final Price (Net vs Gross)
-      // If paidPrice is provided (from Checkout), use it. Otherwise fallback to list price.
-      const finalPrice = paidPrice !== undefined ? paidPrice : photo.price;
-
-      const commissionValue = finalPrice * rate;
-
-      // 4. Record Sale
-      const { error } = await supabase.from("sales").insert({
-        photo_id: photoId,
-        buyer_id: userId,
-        price: finalPrice, // Record the ACTUAL paid amount
-        commission: commissionValue, // Calculate commission on the ACTUAL amount
-        photographer_id: photo.photographer_id,
-        commission_rate: rate,
-        sale_date: new Date(),
-      });
-
-      if (error) {
-        console.error("Erro ao registrar venda:", error);
-        return {
-          success: false,
-          error:
-            error.message ||
-            error.details ||
-            "Erro no banco de dados (Supabase)",
-        };
-      }
-
-      return { success: true };
-    } catch (e: any) {
-      console.error("Compra falhou", e);
-      return {
-        success: false,
-        error: e.message || "Erro inesperado na aplicação",
-      };
-    }
+    console.warn("api.purchasePhoto está desativada por motivos de segurança.");
+    return {
+      success: false,
+      error: "Compras diretas no cliente estão desativadas. O pagamento deve ser concluído via PIX ou Cartão no checkout oficial."
+    };
   },
   checkIfPurchased: async (
     userId: string,
@@ -3051,14 +2998,27 @@ export const api = {
   },
 
 
-  async createAbacateCheckout(items: any[], customer: any, metadata?: any) {
+  async getAuthHeaders(): Promise<Record<string, string>> {
+    const { data: { session } } = await supabase.auth.getSession();
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (session?.access_token) {
+      headers['Authorization'] = `Bearer ${session.access_token}`;
+    }
+    return headers;
+  },
+
+  async createAbacateCheckout(items: any[], customer: any, metadata?: any, couponCode?: string) {
+    const headers = await this.getAuthHeaders();
     const response = await fetch(`${API_URL}/abacate-checkout`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ items, customer, metadata }),
+      headers,
+      body: JSON.stringify({ items, customer, metadata, couponCode }),
     });
     const data = await response.json();
-    if (!response.ok) { const detailStr = data.details ? JSON.stringify(data.details) : ''; throw new Error((data.error + ' ' + detailStr).trim() || 'Failed to create Abacate Pay checkout'); }
+    if (!response.ok) {
+      const detailStr = data.details ? (typeof data.details === 'string' ? data.details : JSON.stringify(data.details)) : '';
+      throw new Error((data.error + ' ' + detailStr).trim() || 'Falha ao iniciar checkout no Abacate Pay');
+    }
     return data;
   },
 
@@ -3104,11 +3064,10 @@ export const api = {
   },
 
   sendEmail: async (to: string | string[], subject: string, html: string): Promise<any> => {
+    const headers = await api.getAuthHeaders();
     const response = await fetch('/api/send-email', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify({ to, subject, html }),
     });
     const result = await response.json();
@@ -3116,6 +3075,62 @@ export const api = {
     return result;
   },
 
+  getAbacateStats: async (): Promise<any> => {
+    const headers = await api.getAuthHeaders();
+    const response = await fetch(`/api/abacate-stats?t=${Date.now()}`, {
+      headers
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Erro ao obter dados do gateway.');
+    return result;
+  },
+
+  createAbacateWithdrawal: async (payload: { amount: number; note?: string; external_id?: string; withdraw_date?: string }): Promise<any> => {
+    const headers = await api.getAuthHeaders();
+    const response = await fetch('/api/abacate-stats', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload)
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Erro ao registrar saque.');
+    return result;
+  },
+
+  deleteAbacateWithdrawal: async (id: string): Promise<any> => {
+    const headers = await api.getAuthHeaders();
+    const response = await fetch(`/api/abacate-stats?id=${id}`, {
+      method: 'DELETE',
+      headers
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Erro ao excluir saque.');
+    return result;
+  },
+
+  adjustAbacateBalance: async (adjustment: number): Promise<any> => {
+    const headers = await api.getAuthHeaders();
+    const response = await fetch('/api/abacate-stats', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ adjustment })
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Erro ao ajustar saldo.');
+    return result;
+  },
+
+  refundAbacateBilling: async (id: string, billing_id?: string): Promise<any> => {
+    const headers = await api.getAuthHeaders();
+    const response = await fetch('/api/abacate-refund', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ id, billing_id })
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Erro ao processar estorno.');
+    return result;
+  }
 };
 
 export default api;

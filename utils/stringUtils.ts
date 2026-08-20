@@ -22,6 +22,19 @@ export const includesNormalized = (target?: string | null, search?: string | nul
 };
 
 /**
+ * Escapes HTML characters to prevent XSS attacks in rendered templates.
+ */
+export const escapeHtml = (str: string): string => {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+};
+
+/**
  * Retorna a URL do avatar provisório usando o serviço ui-avatars.com com a cor primária (laranja) do FotoClic.
  */
 export const getAvatarFallbackUrl = (name: string, size: number = 128): string => {

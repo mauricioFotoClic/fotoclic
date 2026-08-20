@@ -51,12 +51,45 @@ export default async function handler(req, res) {
             },
         });
 
-        const COLLECTION_ID = process.env.AWS_REKOGNITION_COLLECTION_ID || 'fotoclic-faces';
+        const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-        const supabase = createClient(
-            process.env.VITE_SUPABASE_URL,
-            process.env.SUPABASE_SERVICE_ROLE_KEY
-        );
+        if (!supabaseUrl || !supabaseKey) {
+            return res.status(500).json({ error: 'Configuração do Supabase ausente.' });
+        }
+
+        const supabase = createClient(supabaseUrl, supabaseKey);
+
+        // Ações restritas exigem autenticação
+        if (action === 'indexFaces' || action === 'deleteFaces' || action === 'createCollection') {
+            const authHeader = req.headers.authorization || '';
+            const userJwt = authHeader.replace('Bearer ', '').trim();
+
+            if (!userJwt) {
+                return res.status(401).json({ error: 'Não autorizado. Autenticação obrigatória.' });
+            }
+
+            const { data: { user }, error: authError } = await supabase.auth.getUser(userJwt);
+            if (authError || !user) {
+                return res.status(401).json({ error: 'Token de autenticação inválido ou expirado.' });
+            }
+
+            const { data: profile } = await supabase
+                .from('users')
+                .select('role')
+                .eq('id', user.id)
+                .maybeSingle();
+
+            const isPhotographerOrAdmin = profile?.role === 'photographer' || profile?.role === 'admin' || user.user_metadata?.role === 'photographer' || user.user_metadata?.role === 'admin';
+
+            if (!isPhotographerOrAdmin) {
+                return res.status(403).json({ error: 'Acesso negado. Apenas fotógrafos e administradores podem executar esta ação.' });
+            }
+
+            if (action === 'createCollection' && profile?.role !== 'admin' && user.user_metadata?.role !== 'admin') {
+                return res.status(403).json({ error: 'Acesso negado. Apenas administradores podem gerenciar coleções.' });
+            }
+        }
 
         if (action === 'indexFaces')      return await handleIndexFaces(req, res, rekognition, COLLECTION_ID, supabase, IndexFacesCommand);
         if (action === 'searchFaces')     return await handleSearchFaces(req, res, rekognition, COLLECTION_ID, SearchFacesByImageCommand);
