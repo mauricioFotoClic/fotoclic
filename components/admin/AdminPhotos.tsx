@@ -7,6 +7,7 @@ import Modal from '../Modal';
 import PhotoForm from './PhotoForm';
 import QualityAnalysisModal from './QualityAnalysisModal';
 import { includesNormalized, escapeHtml } from '../../utils/stringUtils';
+import { getOptimizedImageUrl } from '../../utils/imageOptimization';
 
 interface AdminPhotosProps {
     context: any;
