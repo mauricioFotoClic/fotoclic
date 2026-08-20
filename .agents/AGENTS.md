@@ -1,4 +1,4 @@
 # Regras do Projeto - FotoClic
 
-## 📌 Lembretes Importantes
-- **[CRITICAL REMINDER]** Na próxima interação, lembre o usuário de resolver o problema do Cron automático de saques do Abacate Pay (Vercel Cron Job e validação do `CRON_SECRET` no `payout-worker.js`).
+## 📌 Gateway de Pagamento
+- O gateway de pagamento ativo e principal é a **Appmax** (API v4, split de pagamentos e checkout transparente). O Abacate Pay foi descontinuado do projeto.
