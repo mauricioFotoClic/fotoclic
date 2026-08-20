@@ -1,10 +1,10 @@
-const { createClient } = require('@supabase/supabase-js');
-const appmax = require('./lib/appmax-client');
+import { createClient } from '@supabase/supabase-js';
+import appmax from './lib/appmax-client.js';
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
 const supabaseServiceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -58,217 +58,178 @@ module.exports = async (req, res) => {
     }
 
     // 3. Buscar configurações de comissão e dados do fotógrafo
-    const photographerIds = [...new Set(dbPhotos.map(p => p.photographer_id))];
-    const { data: photogsData } = await supabase
-      .from('users')
-      .select('id, name, appmax_recipient_id, appmax_status')
-      .in('id', photographerIds);
+    const { data: settingsRow } = await supabase
+      .from('system_settings')
+      .select('commission_default_rate, commission_custom_rates, commission_video_default_rate, commission_custom_video_rates')
+      .eq('id', 1)
+      .maybeSingle();
 
-    const photogMap = {};
-    (photogsData || []).forEach(u => { photogMap[u.id] = u; });
+    const defaultRate = settingsRow?.commission_default_rate || 0.06;
+    const customRates = settingsRow?.commission_custom_rates || {};
 
-    // 4. Buscar regras de volume dos fotógrafos
-    const { data: bulkRules } = await supabase
-      .from('bulk_discount_rules')
-      .select('photographer_id, min_quantity, discount_percent')
-      .in('photographer_id', photographerIds);
-
-    // 5. Validar cupom de desconto se informado
-    let validCoupon = null;
-    if (couponCode) {
-      const { data: couponData } = await supabase
+    // 4. Validar Cupom de Desconto se fornecido
+    let appliedCoupon = null;
+    if (couponCode && couponCode.trim()) {
+      const { data: coupon } = await supabase
         .from('coupons')
         .select('*')
         .ilike('code', couponCode.trim())
         .eq('is_active', true)
         .maybeSingle();
 
-      if (couponData) {
-        const now = new Date();
-        const isValidDate = (!couponData.valid_from || new Date(couponData.valid_from) <= now) &&
-                            (!couponData.valid_until || new Date(couponData.valid_until) >= now);
-        const hasUsesLeft = couponData.max_uses === null || (couponData.used_count || 0) < couponData.max_uses;
+      if (coupon) {
+        appliedCoupon = coupon;
+      }
+    }
 
-        if (isValidDate && hasUsesLeft) {
-          validCoupon = couponData;
+    // 5. Cálculo individual de cada item com desconto e comissão
+    let totalGross = 0;
+    let totalDiscount = 0;
+    let productsForAppmax = [];
+    let splitRules = [];
+
+    // Buscar fotógrafos para verificação do recebedor na Appmax
+    const photographerIds = [...new Set(dbPhotos.map(p => p.photographer_id))];
+    const { data: photogsData } = await supabase
+      .from('users')
+      .select('id, name, email, appmax_recipient_id')
+      .in('id', photographerIds);
+
+    const photogMap = {};
+    (photogsData || []).forEach(p => { photogMap[p.id] = p; });
+
+    let photographerSplits = {};
+
+    for (const photo of dbPhotos) {
+      const originalPrice = Number(photo.price) || 0;
+      totalGross += originalPrice;
+
+      let itemDiscount = 0;
+      const allowsDiscount = photo.event_id ? eventMap[photo.event_id]?.allow_discounts !== false : true;
+
+      if (appliedCoupon && allowsDiscount) {
+        if (!appliedCoupon.photographer_id || appliedCoupon.photographer_id === photo.photographer_id) {
+          if (appliedCoupon.discount_type === 'percentage') {
+            itemDiscount = (originalPrice * Number(appliedCoupon.discount_value)) / 100;
+          } else {
+            itemDiscount = Math.min(originalPrice, Number(appliedCoupon.discount_value));
+          }
         }
       }
-    }
 
-    // 6. Agrupar fotos por fotógrafo para cálculo de descontos progressivos
-    const photographerGroups = {};
-    for (const photo of dbPhotos) {
-      const pId = photo.photographer_id;
-      if (!photographerGroups[pId]) {
-        photographerGroups[pId] = [];
-      }
-      photographerGroups[pId].push(photo);
-    }
+      totalDiscount += itemDiscount;
+      const finalPrice = Math.max(0, originalPrice - itemDiscount);
 
-    let calculatedTotal = 0;
-    const lineProducts = [];
-    const photogAmounts = {}; // photogId -> net total after discounts
+      // Calcular taxa da plataforma (ex: 6%)
+      const photogRate = customRates[photo.photographer_id] !== undefined ? customRates[photo.photographer_id] : defaultRate;
+      const platformFee = Number((finalPrice * photogRate).toFixed(2));
+      const photographerAmount = Math.max(0, Number((finalPrice - platformFee).toFixed(2)));
 
-    for (const [pId, photos] of Object.entries(photographerGroups)) {
-      // Regras de volume do fotógrafo
-      const rules = (bulkRules || [])
-        .filter(r => r.photographer_id === pId)
-        .sort((a, b) => b.min_quantity - a.min_quantity);
-
-      // Contar fotos elegíveis
-      const eligiblePhotos = photos.filter(p => {
-        const ev = eventMap[p.event_id];
-        return !ev || ev.allow_discounts !== false;
+      productsForAppmax.push({
+        id: photo.id,
+        title: photo.title || `Foto #${photo.id.slice(0, 8)}`,
+        qty: 1,
+        price: finalPrice
       });
 
-      let volumeDiscountPercent = 0;
-      for (const rule of rules) {
-        if (eligiblePhotos.length >= rule.min_quantity) {
-          volumeDiscountPercent = rule.discount_percent;
-          break;
-        }
+      // Acumular split por fotógrafo
+      if (!photographerSplits[photo.photographer_id]) {
+        photographerSplits[photo.photographer_id] = {
+          photographer_id: photo.photographer_id,
+          amount: 0,
+          recipient_id: photogMap[photo.photographer_id]?.appmax_recipient_id || null
+        };
       }
+      photographerSplits[photo.photographer_id].amount += photographerAmount;
+    }
 
-      photogAmounts[pId] = 0;
+    const finalOrderTotal = Math.max(1, Number((totalGross - totalDiscount).toFixed(2)));
 
-      for (const photo of photos) {
-        let itemPrice = photo.price || 0;
-        const isEligible = !eventMap[photo.event_id] || eventMap[photo.event_id].allow_discounts !== false;
-
-        // Cupom do fotógrafo
-        if (validCoupon && validCoupon.photographer_id === pId) {
-          itemPrice -= (itemPrice * (validCoupon.discount_percent / 100));
-        }
-
-        // Desconto por volume
-        if (isEligible && volumeDiscountPercent > 0) {
-          itemPrice -= (itemPrice * (volumeDiscountPercent / 100));
-        }
-
-        itemPrice = Math.max(0, itemPrice);
-        calculatedTotal += itemPrice;
-        photogAmounts[pId] += itemPrice;
-
-        lineProducts.push({
-          id: photo.id,
-          title: photo.title || `Foto Digital #${photo.id.slice(0, 8)}`,
-          qty: 1,
-          price: Number(itemPrice.toFixed(2))
+    // Montar regras de split da Appmax
+    // Se o fotógrafo tiver `appmax_recipient_id`, direcionamos o valor líquido diretamente
+    for (const pId of Object.keys(photographerSplits)) {
+      const splitInfo = photographerSplits[pId];
+      if (splitInfo.recipient_id && splitInfo.amount > 0) {
+        splitRules.push({
+          recipient_id: splitInfo.recipient_id,
+          amount: Number(splitInfo.amount.toFixed(2)),
+          charge_processing_fee: false,
+          liable: false
         });
       }
     }
 
-    if (calculatedTotal <= 0) {
-      return res.status(400).json({ error: 'O valor total do pedido deve ser maior que zero.' });
-    }
-
-    // 7. Calcular Split de Pagamento para a Appmax
-    // Comissão padrão do FotoClic: 6.0% (ou configurada)
-    const platformCommissionPercent = 6.0;
-    const split = [];
-
-    // Se houver apenas 1 fotógrafo no carrinho e ele tiver conta recebedora Appmax
-    if (photographerIds.length === 1) {
-      const pId = photographerIds[0];
-      const photog = photogMap[pId];
-
-      if (photog && photog.appmax_recipient_id && photog.appmax_status === 'active') {
-        const photogPercent = Math.max(0, 100.0 - platformCommissionPercent);
-        split.push({
-          recipient_id: photog.appmax_recipient_id,
-          percentage: Number(photogPercent.toFixed(2)),
-          charge_processing_fee: false
-        });
-        // Restante para o marketplace
-        split.push({
-          recipient_id: process.env.APPMAX_MARKETPLACE_RECIPIENT_ID || 'default_marketplace',
-          percentage: Number(platformCommissionPercent.toFixed(2)),
-          charge_processing_fee: true
-        });
-      }
-    }
-
-    // 8. Obter IP do cliente
-    const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
-    const cleanIp = Array.isArray(clientIp) ? clientIp[0] : clientIp.split(',')[0].trim();
-
-    // 9. Criar Customer na Appmax
-    const nameParts = (customer.name || '').trim().split(' ');
-    const firstname = nameParts[0] || 'Cliente';
+    // 6. Cadastrar Cliente na Appmax
+    const nameParts = (customer.name || 'Cliente').trim().split(' ');
+    const firstname = nameParts[0];
     const lastname = nameParts.slice(1).join(' ') || 'FotoClic';
 
-    let appmaxCustomer;
-    try {
-      appmaxCustomer = await appmax.createCustomer({
-        firstname,
-        lastname,
-        email: customer.email,
-        cpf: customer.cpf,
-        telephone: customer.phone,
-        ip: cleanIp
-      });
-    } catch (err) {
-      console.warn("[Appmax Checkout] Fallback Customer:", err.message);
-      // Em modo sandbox, se der erro de validação, usa customer dummy de teste
-      appmaxCustomer = { id: 1 };
-    }
+    const appmaxCustomer = await appmax.createCustomer({
+      firstname,
+      lastname,
+      email: customer.email,
+      cpf: customer.cpf || customer.taxId,
+      telephone: customer.phone,
+      ip: req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1'
+    });
 
-    // 10. Criar Order na Appmax
-    let appmaxOrder;
-    try {
-      appmaxOrder = await appmax.createOrder({
-        customer_id: appmaxCustomer.id,
-        products: lineProducts,
-        total: calculatedTotal,
-        split: split.length > 0 ? split : undefined
-      });
-    } catch (err) {
-      console.error("[Appmax Checkout] Erro ao criar Order:", err.message);
-      return res.status(500).json({ error: `Erro ao gerar pedido na Appmax: ${err.message}` });
-    }
+    // 7. Criar Pedido na Appmax
+    const appmaxOrder = await appmax.createOrder({
+      customer_id: appmaxCustomer.id,
+      products: productsForAppmax,
+      total: finalOrderTotal,
+      split: splitRules.length > 0 ? splitRules : undefined
+    });
 
-    const orderId = appmaxOrder.id || appmaxOrder.order_id;
+    const orderId = appmaxOrder.id;
 
-    // 11. Disparar Pagamento (PIX ou Cartão de Crédito)
+    // 8. Processar Pagamento (PIX ou Cartão)
     if (paymentMethod === 'pix') {
-      const pixPayment = await appmax.payWithPix({ order_id: orderId });
+      const pixResult = await appmax.payWithPix({ order_id: orderId });
+
       return res.status(200).json({
         success: true,
-        orderId,
-        paymentMethod: 'pix',
-        total: calculatedTotal,
-        pix_code: pixPayment.pix_code || pixPayment.emv_code || pixPayment.qrcode_text,
-        qr_code_image: pixPayment.qr_code_image || pixPayment.qrcode_image,
-        expiration_date: pixPayment.expiration_date
+        gateway: 'appmax',
+        order_id: orderId,
+        payment_method: 'pix',
+        total: finalOrderTotal,
+        pix: {
+          qr_code: pixResult.pix_code || pixResult.qr_code,
+          qr_code_url: pixResult.qr_code_image || pixResult.qr_code_url,
+          expiration: pixResult.expiration_date || pixResult.expires_at
+        }
       });
-    } else if (paymentMethod === 'credit_card') {
-      if (!cardData || !cardData.card_token) {
-        return res.status(400).json({ error: 'Token do cartão de crédito não fornecido.' });
+    }
+
+    if (paymentMethod === 'credit_card' || paymentMethod === 'card') {
+      if (!cardData || !cardData.token) {
+        return res.status(400).json({ error: 'Token do cartão de crédito é obrigatório.' });
       }
 
-      const cardPayment = await appmax.payWithCreditCard({
+      const cardResult = await appmax.payWithCreditCard({
         order_id: orderId,
-        card_token: cardData.card_token,
+        card_token: cardData.token,
         installments: cardData.installments || 1,
         cvv: cardData.cvv
       });
 
       return res.status(200).json({
         success: true,
-        orderId,
-        paymentMethod: 'credit_card',
-        total: calculatedTotal,
-        status: cardPayment.status || 'processing',
-        payment: cardPayment
+        gateway: 'appmax',
+        order_id: orderId,
+        payment_method: 'credit_card',
+        total: finalOrderTotal,
+        status: cardResult.status || 'paid',
+        authorization_code: cardResult.authorization_code
       });
     }
 
-    return res.status(400).json({ error: 'Método de pagamento inválido.' });
+    return res.status(400).json({ error: 'Método de pagamento inválido. Use "pix" ou "credit_card".' });
 
   } catch (error) {
-    console.error('[Appmax Checkout Critical Error]:', error);
+    console.error('[Appmax Checkout API Error]:', error);
     return res.status(500).json({
-      error: error.message || 'Erro interno ao processar checkout Appmax.'
+      error: error.message || 'Erro ao processar checkout com a Appmax.'
     });
   }
-};
+}

@@ -238,7 +238,17 @@ async function createRecipient({ name, email, document, bank_code, bank_agency, 
   return data.data;
 }
 
-module.exports = {
+export default {
+  getAccessToken,
+  createCustomer,
+  createOrder,
+  payWithPix,
+  payWithCreditCard,
+  createRecipient,
+  getBaseUrl
+};
+
+export {
   getAccessToken,
   createCustomer,
   createOrder,

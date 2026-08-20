@@ -1,9 +1,9 @@
-const { createClient } = require('@supabase/supabase-js');
+import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
 const supabaseServiceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -63,85 +63,69 @@ module.exports = async (req, res) => {
         }
       }
 
-      // Processar produtos comprados (fotos)
+      // Registrar vendas para cada produto do pedido
       const products = orderData.products || orderData.items || [];
-      const salesToInsert = [];
-      const photoIds = [];
+      const paymentMethod = orderData.payment_method || body.payment_method || 'pix';
+      const installments = Number(orderData.installments || 1);
 
-      for (const prod of products) {
-        const photoId = prod.id || prod.sku;
-        if (!photoId) continue;
+      if (Array.isArray(products) && products.length > 0) {
+        for (const item of products) {
+          const photoId = item.id || item.sku || item.product_id;
+          const price = Number(item.price) || 0;
+          const commission = Number((price * 0.06).toFixed(2));
 
-        photoIds.push(photoId);
+          let photographerId = null;
+          if (photoId) {
+            const { data: photoData } = await supabase
+              .from('photos')
+              .select('photographer_id')
+              .eq('id', photoId)
+              .maybeSingle();
 
-        // Buscar fotógrafo da foto
-        const { data: photoData } = await supabase
-          .from('photos')
-          .select('id, photographer_id, price')
-          .eq('id', photoId)
-          .maybeSingle();
+            if (photoData) {
+              photographerId = photoData.photographer_id;
+            }
+          }
 
-        if (photoData) {
-          const itemPrice = Number(prod.price) || photoData.price || 0;
-          const commissionRate = 0.06; // 6% taxa da plataforma FotoClic
-          const commission = Number((itemPrice * commissionRate).toFixed(2));
-
-          salesToInsert.push({
-            photo_id: photoData.id,
-            photographer_id: photoData.photographer_id,
+          await supabase.from('sales').insert({
+            photo_id: photoId,
+            photographer_id: photographerId,
             buyer_id: buyerId,
-            price: itemPrice,
+            price: price,
             commission: commission,
-            status: 'completed',
-            appmax_order_id: orderId,
+            payment_method: paymentMethod,
+            installments: installments,
             gateway: 'appmax',
-            payment_method: (orderData.payment_method || 'pix').toLowerCase(),
+            appmax_order_id: orderId,
+            status: 'completed',
             sale_date: new Date().toISOString()
           });
         }
       }
 
-      if (salesToInsert.length > 0) {
-        const { error: insertError } = await supabase
-          .from('sales')
-          .insert(salesToInsert);
-
-        if (insertError) {
-          console.error('[Appmax Webhook] Erro ao inserir vendas:', insertError);
-          return res.status(500).json({ error: 'Falha ao salvar vendas no banco' });
-        }
-
-        // Incrementar contador de vendas das fotos
-        for (const pid of photoIds) {
-          await supabase.rpc('increment_photo_sales', { photo_id: pid }).catch(() => {
-            // Se a RPC não existir, atualiza diretamente
-            supabase.from('photos').update({ sales_count: 1 }).eq('id', pid);
-          });
-        }
-
-        console.log(`[Appmax Webhook] ${salesToInsert.length} fotos liberadas com sucesso para o pedido ${orderId}`);
-      }
-
-      return res.status(200).json({ received: true, processed: true });
+      return res.status(200).json({
+        success: true,
+        message: `Pedido ${orderId} aprovado e processado com sucesso.`
+      });
     }
 
-    // 2. Tratar estornos
-    if (eventType.includes('refunded')) {
-      const { error: refundError } = await supabase
+    // 2. Tratar cancelamento ou estorno
+    if (eventType.includes('refund') || eventType.includes('cancel')) {
+      const newStatus = eventType.includes('refund') ? 'refunded' : 'cancelled';
+
+      await supabase
         .from('sales')
-        .update({ status: 'refunded' })
+        .update({ status: newStatus })
         .eq('appmax_order_id', orderId);
 
-      if (refundError) {
-        console.error('[Appmax Webhook] Erro ao estornar pedido:', refundError);
-      }
-      return res.status(200).json({ received: true, refunded: true });
+      console.log(`[Appmax Webhook] Pedido ${orderId} atualizado para ${newStatus}.`);
+      return res.status(200).json({ success: true, status: newStatus });
     }
 
-    return res.status(200).json({ received: true, unhandledEvent: eventType });
+    return res.status(200).json({ received: true, event: eventType });
 
   } catch (error) {
-    console.error('[Appmax Webhook Critical Error]:', error);
-    return res.status(500).json({ error: error.message });
+    console.error('[Appmax Webhook API Error]:', error);
+    return res.status(500).json({ error: error.message || 'Erro ao processar webhook da Appmax.' });
   }
-};
+}
