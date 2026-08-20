@@ -1,4 +1,4 @@
-// Appmax API v4 Helper Client for Serverless Functions
+// Appmax API Helper Client for Serverless Functions
 // Supports OAuth2 JWT token caching with automatic renewal and direct API Key usage.
 
 let cachedToken = null;
@@ -10,8 +10,8 @@ function getEnvironment() {
 
 function getBaseUrl() {
   return getEnvironment() === 'production'
-    ? 'https://api.appmax.com.br/api/v4'
-    : 'https://sandbox.appmax.com.br/api/v4';
+    ? 'https://api.appmax.com.br/v1'
+    : 'https://api.sandboxappmax.com.br/v1';
 }
 
 function getAuthUrl() {
@@ -24,7 +24,6 @@ function getAuthUrl() {
  * Retorna o token de acesso válido para a Appmax
  */
 async function getAccessToken() {
-  // Se houver uma API Key direta configurada, usa diretamente
   if (process.env.APPMAX_API_KEY) {
     return process.env.APPMAX_API_KEY;
   }
@@ -33,8 +32,7 @@ async function getAccessToken() {
   const clientSecret = process.env.APPMAX_CLIENT_SECRET;
 
   if (!clientId || !clientSecret) {
-    // Fallback para sandbox token genérico de desenvolvimento se não fornecido
-    console.warn("[Appmax Client] Credenciais APPMAX_CLIENT_ID / APPMAX_CLIENT_SECRET não configuradas. Verifique suas variáveis de ambiente.");
+    console.warn("[Appmax Client] Credenciais APPMAX_CLIENT_ID / APPMAX_CLIENT_SECRET não configuradas.");
     return process.env.APPMAX_API_KEY || 'demo_sandbox_token';
   }
 
@@ -58,13 +56,20 @@ async function getAccessToken() {
       body: params.toString()
     });
 
-    const data = await response.json();
+    const raw = await response.text();
+    let data;
+    try {
+      data = JSON.parse(raw);
+    } catch {
+      throw new Error(`Resposta de autenticação inválida da Appmax: ${raw.slice(0, 200)}`);
+    }
+
     if (!response.ok || !data.access_token) {
-      throw new Error(`Falha ao obter token OAuth2 da Appmax: ${data.message || response.statusText}`);
+      throw new Error(`Falha ao obter token OAuth2 da Appmax: ${data.message || data.error_description || response.statusText}`);
     }
 
     cachedToken = data.access_token;
-    // Expira em 55 minutos (token dura 60 min)
+    // Expira em 55 minutos (token dura 60 min ou conforme retornado)
     tokenExpiresAt = now + (data.expires_in ? (data.expires_in - 300) * 1000 : 55 * 60 * 1000);
     return cachedToken;
   } catch (err) {
@@ -74,17 +79,54 @@ async function getAccessToken() {
 }
 
 /**
+ * Auxiliar para fazer requisições seguras à API da Appmax
+ */
+async function apiRequest(endpoint, payload) {
+  const token = await getAccessToken();
+  const baseUrl = getBaseUrl();
+  const url = `${baseUrl}${endpoint}`;
+
+  const headers = {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`
+  };
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(payload)
+  });
+
+  const rawText = await response.text();
+  let data;
+  try {
+    data = JSON.parse(rawText);
+  } catch {
+    data = { error: rawText || `Erro HTTP ${response.status} da Appmax` };
+  }
+
+  if (!response.ok || data.success === false) {
+    const errorMsg = data.message || data.text || data.error || `Erro na comunicação com a Appmax (Status ${response.status})`;
+    
+    // Tratamento especial para erro de Merchant não vinculado na Sandbox
+    if (response.status === 404 && errorMsg.includes('Merchant not found')) {
+      throw new Error('A aplicação na Appmax precisa estar vinculada à sua loja na Sandbox (ou utilize a Chave de API direta APPMAX_API_KEY no painel).');
+    }
+    
+    throw new Error(errorMsg);
+  }
+
+  return data.data || data;
+}
+
+/**
  * Cria ou atualiza um cliente (Customer) na Appmax
  */
 async function createCustomer({ firstname, lastname, email, cpf, telephone, ip }) {
-  const token = await getAccessToken();
-  const baseUrl = getBaseUrl();
-
   const cleanCpf = (cpf || '').replace(/\D/g, '');
   const cleanPhone = (telephone || '').replace(/\D/g, '');
 
   const payload = {
-    access_token: token,
     firstname: firstname || 'Cliente',
     lastname: lastname || 'FotoClic',
     email: (email || '').trim().toLowerCase(),
@@ -93,30 +135,14 @@ async function createCustomer({ firstname, lastname, email, cpf, telephone, ip }
     ip: ip || '127.0.0.1'
   };
 
-  const response = await fetch(`${baseUrl}/customers`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-
-  const data = await response.json();
-  if (!response.ok || !data.success) {
-    console.error("[Appmax Customer Error]", data);
-    throw new Error(data.text || data.message || "Erro ao registrar cliente na Appmax");
-  }
-
-  return data.data; // { id: customer_id, ... }
+  return await apiRequest('/customers', payload);
 }
 
 /**
  * Cria um pedido (Order) com Split de Pagamentos na Appmax
  */
 async function createOrder({ customer_id, products, total, split }) {
-  const token = await getAccessToken();
-  const baseUrl = getBaseUrl();
-
   const payload = {
-    access_token: token,
     customer_id,
     products: products.map(p => ({
       id: p.id,
@@ -127,60 +153,29 @@ async function createOrder({ customer_id, products, total, split }) {
     total: Number(total.toFixed(2))
   };
 
-  // Se houver regras de split configuradas, inclui no payload
   if (split && Array.isArray(split) && split.length > 0) {
     payload.split = split;
   }
 
-  const response = await fetch(`${baseUrl}/orders`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-
-  const data = await response.json();
-  if (!response.ok || !data.success) {
-    console.error("[Appmax Order Error]", data);
-    throw new Error(data.text || data.message || "Erro ao criar pedido na Appmax");
-  }
-
-  return data.data; // { id: order_id, ... }
+  return await apiRequest('/orders', payload);
 }
 
 /**
  * Processa pagamento via PIX
  */
 async function payWithPix({ order_id }) {
-  const token = await getAccessToken();
-  const baseUrl = getBaseUrl();
+  const payload = {
+    order_id
+  };
 
-  const response = await fetch(`${baseUrl}/payments/pix`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      access_token: token,
-      order_id
-    })
-  });
-
-  const data = await response.json();
-  if (!response.ok || !data.success) {
-    console.error("[Appmax PIX Payment Error]", data);
-    throw new Error(data.text || data.message || "Erro ao processar pagamento PIX na Appmax");
-  }
-
-  return data.data; // { pix_code, qr_code_image, expiration_date, ... }
+  return await apiRequest('/payments/pix', payload);
 }
 
 /**
  * Processa pagamento via Cartão de Crédito
  */
 async function payWithCreditCard({ order_id, card_token, installments, cvv }) {
-  const token = await getAccessToken();
-  const baseUrl = getBaseUrl();
-
   const payload = {
-    access_token: token,
     order_id,
     payment: {
       card_token,
@@ -189,30 +184,14 @@ async function payWithCreditCard({ order_id, card_token, installments, cvv }) {
     }
   };
 
-  const response = await fetch(`${baseUrl}/payments/credit-card`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-
-  const data = await response.json();
-  if (!response.ok || !data.success) {
-    console.error("[Appmax Card Payment Error]", data);
-    throw new Error(data.text || data.message || "Erro ao processar pagamento por Cartão na Appmax");
-  }
-
-  return data.data; // { status, authorization_code, ... }
+  return await apiRequest('/payments/credit-card', payload);
 }
 
 /**
  * Registra ou atualiza um recebedor (fotógrafo) para o Split na Appmax
  */
 async function createRecipient({ name, email, document, bank_code, bank_agency, bank_account, bank_account_digit, pix_key }) {
-  const token = await getAccessToken();
-  const baseUrl = getBaseUrl();
-
   const payload = {
-    access_token: token,
     name,
     email,
     document: (document || '').replace(/\D/g, ''),
@@ -223,19 +202,7 @@ async function createRecipient({ name, email, document, bank_code, bank_agency, 
     pix_key
   };
 
-  const response = await fetch(`${baseUrl}/recipients`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-
-  const data = await response.json();
-  if (!response.ok || !data.success) {
-    console.error("[Appmax Recipient Error]", data);
-    throw new Error(data.text || data.message || "Erro ao registrar recebedor na Appmax");
-  }
-
-  return data.data;
+  return await apiRequest('/recipients', payload);
 }
 
 export default {
@@ -257,3 +224,4 @@ export {
   createRecipient,
   getBaseUrl
 };
+

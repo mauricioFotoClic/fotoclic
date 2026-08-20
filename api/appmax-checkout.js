@@ -1,9 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import appmax from './lib/appmax-client.js';
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-const supabaseServiceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -18,6 +15,13 @@ export default async function handler(req, res) {
   }
 
   try {
+    const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+    const supabaseServiceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseServiceRole) {
+      return res.status(500).json({ error: 'Configuração do Supabase ausente nas variáveis de ambiente.' });
+    }
+
     const supabase = createClient(supabaseUrl, supabaseServiceRole);
 
     const {
@@ -202,13 +206,14 @@ export default async function handler(req, res) {
     }
 
     if (paymentMethod === 'credit_card' || paymentMethod === 'card') {
-      if (!cardData || !cardData.token) {
+      const cardToken = cardData?.token || cardData?.card_token;
+      if (!cardToken) {
         return res.status(400).json({ error: 'Token do cartão de crédito é obrigatório.' });
       }
 
       const cardResult = await appmax.payWithCreditCard({
         order_id: orderId,
-        card_token: cardData.token,
+        card_token: cardToken,
         installments: cardData.installments || 1,
         cvv: cardData.cvv
       });
