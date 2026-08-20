@@ -49,7 +49,7 @@ const AdminRekognitionStats: React.FC = () => {
         setLoading(true);
         setError(null);
         try {
-            const res = await fetch(`${API_BASE}/api/rekognition-stats`);
+            const res = await fetch(`${API_BASE}/api/rekognition?action=stats`);
             if (!res.ok) throw new Error(await res.text());
             setData(await res.json());
         } catch (e: any) {

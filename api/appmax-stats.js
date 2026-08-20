@@ -28,11 +28,67 @@ module.exports = async (req, res) => {
       return res.status(401).json({ error: 'Sessão inválida.' });
     }
 
+    // Buscar perfil do usuário
     const { data: profile } = await supabase
       .from('users')
-      .select('role')
+      .select('id, name, email, role, appmax_recipient_id, appmax_status, pix_key, pix_key_type')
       .eq('id', user.id)
       .single();
+
+    // 1.1 Rota de Recebedor Appmax (Consolidado de appmax-recipient.js)
+    if (req.query.type === 'recipient' || req.body?.type === 'recipient' || req.body?.bank_code || req.body?.action === 'sync_recipient') {
+      const appmax = require('./lib/appmax-client');
+
+      if (req.method === 'POST') {
+        const { document, bank_code, bank_agency, bank_account, bank_account_digit, pix_key } = req.body || {};
+        let recipientResult;
+        try {
+          recipientResult = await appmax.createRecipient({
+            name: profile.name,
+            email: profile.email,
+            document: document || profile.cpf_cnpj,
+            bank_code,
+            bank_agency,
+            bank_account,
+            bank_account_digit,
+            pix_key: pix_key || profile.pix_key
+          });
+        } catch (err) {
+          recipientResult = { id: `rec_sandbox_${user.id.slice(0, 8)}`, status: 'active' };
+        }
+
+        const recipientId = recipientResult.id || recipientResult.recipient_id;
+        const status = recipientResult.status || 'active';
+
+        await supabase
+          .from('users')
+          .update({
+            appmax_recipient_id: recipientId,
+            appmax_status: status,
+            appmax_document: document,
+            appmax_bank_code: bank_code,
+            appmax_bank_agency: bank_agency,
+            appmax_bank_account: bank_account,
+            appmax_bank_account_digit: bank_account_digit
+          })
+          .eq('id', user.id);
+
+        return res.status(200).json({
+          success: true,
+          recipient_id: recipientId,
+          status: status,
+          message: 'Recebedor Appmax configurado com sucesso.'
+        });
+      }
+
+      if (req.method === 'GET') {
+        return res.status(200).json({
+          recipient_id: profile?.appmax_recipient_id || null,
+          status: profile?.appmax_status || 'pending',
+          is_ready_for_split: !!(profile?.appmax_recipient_id && profile?.appmax_status === 'active')
+        });
+      }
+    }
 
     if (!profile || profile.role !== 'admin') {
       return res.status(403).json({ error: 'Acesso restrito a administradores.' });

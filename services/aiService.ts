@@ -11,12 +11,12 @@ export const aiService = {
      */
     async generateDescription(prompt: string): Promise<string> {
         try {
-            const response = await fetch('/api/generate-description', {
+            const response = await fetch('/api/rekognition', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ prompt }),
+                body: JSON.stringify({ action: 'generate-description', prompt }),
             });
 
             if (!response.ok) {

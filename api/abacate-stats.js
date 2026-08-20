@@ -73,8 +73,13 @@ export default async function handler(req, res) {
 
     if (req.method === 'POST') {
         try {
-            const { amount, note, external_id, withdraw_date, adjustment } = req.body;
+            const { amount, note, external_id, withdraw_date, adjustment, id, billing_id, action } = req.body || {};
             
+            // Tratar estorno de cobrança (Consolidado de abacate-refund.js)
+            if (action === 'refund' || req.query.action === 'refund' || (id && billing_id)) {
+                return await handleAbacateRefund(req, res, supabase, id, billing_id);
+            }
+
             // Tratar ajuste manual do saldo
             if (adjustment !== undefined) {
                 const { data: settings, error: readError } = await supabase
@@ -450,5 +455,81 @@ export default async function handler(req, res) {
     } catch (error) {
         console.error('[AbacateStats] Erro:', error);
         return res.status(500).json({ error: 'Erro ao buscar estatísticas da Abacate Pay.' });
+    }
+}
+
+async function handleAbacateRefund(req, res, supabase, id, billing_id) {
+    const apiKey = process.env.ABACATEPAY_API_KEY;
+    if (!id) return res.status(400).json({ error: 'Campo "id" é obrigatório para estorno.' });
+
+    try {
+        const { data: billing, error: fetchError } = await supabase
+            .from('abacate_pay_billings')
+            .select('id, billing_id, status, amount')
+            .eq('id', id)
+            .single();
+
+        if (fetchError || !billing) {
+            return res.status(404).json({ error: 'Cobrança não encontrada.' });
+        }
+
+        if (billing.status !== 'PAID') {
+            return res.status(400).json({ error: 'Apenas cobranças com status PAID podem ser estornadas.' });
+        }
+
+        const targetBillingId = billing_id || billing.billing_id;
+        let apiRefundFailed = false;
+        let apiRefundError = null;
+
+        if (apiKey && targetBillingId) {
+            try {
+                const abacateRes = await fetch(`https://api.abacatepay.com/v1/billing/${targetBillingId}/refund`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Content-Type': 'application/json',
+                    },
+                });
+
+                if (!abacateRes.ok) {
+                    const abacateResV2 = await fetch(`https://api.abacatepay.com/v2/billing/${targetBillingId}/refund`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${apiKey}`,
+                            'Content-Type': 'application/json',
+                        },
+                    });
+
+                    if (!abacateResV2.ok) {
+                        apiRefundFailed = true;
+                        apiRefundError = `Erro da API Abacate Pay (${abacateResV2.status})`;
+                    }
+                }
+            } catch (apiErr) {
+                apiRefundFailed = true;
+                apiRefundError = apiErr.message || String(apiErr);
+            }
+        }
+
+        await supabase
+            .from('abacate_pay_billings')
+            .update({ status: 'REFUNDED' })
+            .eq('id', id);
+
+        if (targetBillingId) {
+            await supabase
+                .from('sales')
+                .update({ status: 'refunded' })
+                .eq('billing_id', targetBillingId);
+        }
+
+        return res.status(200).json({
+            success: true,
+            apiRefundFailed,
+            apiRefundError
+        });
+    } catch (error) {
+        console.error('[AbacateRefund Handler Error]:', error);
+        return res.status(500).json({ error: error.message || 'Erro ao processar estorno.' });
     }
 }

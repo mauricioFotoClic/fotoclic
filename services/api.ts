@@ -3134,10 +3134,10 @@ export const api = {
 
   refundAbacateBilling: async (id: string, billing_id?: string): Promise<any> => {
     const headers = await api.getAuthHeaders();
-    const response = await fetch('/api/abacate-refund', {
+    const response = await fetch('/api/abacate-stats', {
       method: 'POST',
       headers,
-      body: JSON.stringify({ id, billing_id })
+      body: JSON.stringify({ action: 'refund', id, billing_id })
     });
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || 'Erro ao processar estorno.');
@@ -3205,7 +3205,7 @@ export const api = {
     pix_key?: string;
   }): Promise<any> => {
     const headers = await api.getAuthHeaders();
-    const response = await fetch('/api/appmax-recipient', {
+    const response = await fetch('/api/appmax-stats?type=recipient', {
       method: 'POST',
       headers,
       body: JSON.stringify(recipientData)
@@ -3217,7 +3217,7 @@ export const api = {
 
   getAppmaxRecipientStatus: async (): Promise<{ recipient_id: string | null; status: string; is_ready_for_split: boolean }> => {
     const headers = await api.getAuthHeaders();
-    const response = await fetch(`/api/appmax-recipient?t=${Date.now()}`, {
+    const response = await fetch(`/api/appmax-stats?type=recipient&t=${Date.now()}`, {
       headers
     });
     const result = await response.json();

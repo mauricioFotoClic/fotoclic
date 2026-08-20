@@ -33,7 +33,7 @@ const CheckoutSuccessPage: React.FC<CheckoutSuccessPageProps> = ({ currentUser, 
                 const session = await api.getSession();
                 if (session?.access_token) {
                     // Executamos sem await para não bloquear o carregamento da tela
-                    fetch('/api/sync-purchases', {
+                    fetch('/api/get-download-url?action=sync-purchases', {
                         method: 'POST',
                         headers: {
                             'Authorization': `Bearer ${session.access_token}`

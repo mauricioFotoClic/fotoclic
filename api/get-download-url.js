@@ -38,7 +38,12 @@ export default async function handler(req, res) {
     }
 
     try {
-        const { photoId } = req.body;
+        const { photoId, action } = req.body || {};
+
+        // Rota para sincronização de compras pendentes (Consolidado de sync-purchases.js)
+        if (action === 'sync-purchases' || req.query.action === 'sync-purchases' || !photoId) {
+            return await handleSyncPurchases(req, res, userJwt, supabaseUrl, serviceKey);
+        }
 
         // Validar UUID
         const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -167,5 +172,91 @@ export default async function handler(req, res) {
     } catch (error) {
         console.error('[DownloadURL] Erro interno:', error);
         return res.status(500).json({ error: 'Erro interno ao processar a solicitação.' });
+    }
+}
+
+async function handleSyncPurchases(req, res, userJwt, supabaseUrl, serviceKey) {
+    try {
+        const supabase = createClient(supabaseUrl, serviceKey);
+        const { data: { user }, error: authError } = await supabase.auth.getUser(userJwt);
+        if (authError || !user) return res.status(401).json({ error: 'Sessão inválida.' });
+
+        const apiKey = process.env.ABACATEPAY_API_KEY;
+        const { data: pendingBillings } = await supabase
+            .from('abacate_pay_billings')
+            .select('*')
+            .eq('status', 'PENDING')
+            .or(`metadata->>userId.eq.${user.id},customer_email.eq.${user.email}`);
+
+        if (pendingBillings && pendingBillings.length > 0 && apiKey) {
+            try {
+                const apiRes = await fetch('https://api.abacatepay.com/v2/checkouts/list', {
+                    headers: { 'Authorization': `Bearer ${apiKey}` }
+                });
+                const apiData = await apiRes.json();
+                if (apiData.success && apiData.data) {
+                    for (const pending of pendingBillings) {
+                        const remote = apiData.data.find(r => r.id === pending.billing_id);
+                        if (remote && remote.status === 'PAID') {
+                            await supabase
+                                .from('abacate_pay_billings')
+                                .update({
+                                    status: 'PAID',
+                                    payment_method: remote.payment?.method || 'PIX',
+                                    updated_at: new Date().toISOString()
+                                })
+                                .eq('billing_id', pending.billing_id);
+                        }
+                    }
+                }
+            } catch (apiErr) {
+                console.error('[Sync] Erro na consulta Abacate:', apiErr);
+            }
+        }
+
+        const { data: billings } = await supabase
+            .from('abacate_pay_billings')
+            .select('*')
+            .eq('status', 'PAID')
+            .or(`metadata->>userId.eq.${user.id},customer_email.eq.${user.email}`);
+
+        if (!billings || billings.length === 0) {
+            return res.status(200).json({ message: 'Tudo sincronizado.', count: 0 });
+        }
+
+        const { data: existingSales } = await supabase
+            .from('sales')
+            .select('billing_id')
+            .eq('buyer_id', user.id);
+
+        const saleBillingIds = new Set((existingSales || []).map(s => s.billing_id));
+        const orphans = billings.filter(b => !saleBillingIds.has(b.billing_id));
+
+        for (const billing of orphans) {
+            const metadata = billing.metadata || {};
+            const cartIds = metadata.cartIds || [];
+            if (cartIds.length > 0) {
+                const { data: photos } = await supabase.from('photos').select('*').in('id', cartIds);
+                if (photos && photos.length > 0) {
+                    for (const photo of photos) {
+                        await supabase.from('sales').insert({
+                            photo_id: photo.id,
+                            buyer_id: user.id,
+                            price: photo.price,
+                            commission: Number((photo.price * 0.06).toFixed(2)),
+                            photographer_id: photo.photographer_id,
+                            billing_id: billing.billing_id,
+                            status: 'completed',
+                            sale_date: billing.updated_at || new Date().toISOString()
+                        });
+                    }
+                }
+            }
+        }
+
+        return res.status(200).json({ message: 'Sincronização concluída.', count: orphans.length });
+    } catch (err) {
+        console.error('[SyncPurchases Error]:', err);
+        return res.status(500).json({ error: err.message });
     }
 }

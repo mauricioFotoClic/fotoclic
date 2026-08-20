@@ -32,7 +32,7 @@ const CustomerDashboardPage: React.FC<CustomerDashboardPageProps> = ({ onNavigat
                 // Tenta sincronizar compras pendentes (caso o webhook tenha falhado)
                 const session = await api.getSession();
                 if (session?.access_token) {
-                    await fetch('/api/sync-purchases', {
+                    await fetch('/api/get-download-url?action=sync-purchases', {
                         method: 'POST',
                         headers: {
                             'Authorization': `Bearer ${session.access_token}`

@@ -5,11 +5,16 @@ export const config = {
 };
 
 export default async function handler(req, res) {
+    // 1. GET requests return Rekognition stats and costs (consolidated from rekognition-stats.js)
+    if (req.method === 'GET' || req.query.action === 'stats' || req.body?.action === 'stats') {
+        return await handleRekognitionStats(req, res);
+    }
+
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    const { action } = req.body;
+    const { action } = req.body || {};
 
     // Healthcheck: runs before any AWS import so we can diagnose loading issues
     if (action === 'healthcheck') {
@@ -95,6 +100,7 @@ export default async function handler(req, res) {
         if (action === 'searchFaces')     return await handleSearchFaces(req, res, rekognition, COLLECTION_ID, SearchFacesByImageCommand);
         if (action === 'deleteFaces')     return await handleDeleteFaces(req, res, rekognition, COLLECTION_ID, DeleteFacesCommand);
         if (action === 'createCollection') return await handleCreateCollection(req, res, rekognition, COLLECTION_ID, CreateCollectionCommand);
+        if (action === 'generate-description') return await handleGenerateDescription(req, res);
 
         return res.status(400).json({ error: 'Invalid action' });
 
@@ -181,5 +187,94 @@ async function handleCreateCollection(req, res, rekognition, COLLECTION_ID, Crea
             return res.json({ success: true, message: `Collection '${COLLECTION_ID}' already exists.` });
         }
         throw err;
+    }
+}
+
+async function handleRekognitionStats(req, res) {
+    try {
+        const { RekognitionClient, DescribeCollectionCommand } = await import('@aws-sdk/client-rekognition');
+        const COLLECTION_ID = process.env.AWS_REKOGNITION_COLLECTION_ID || 'fotoclic-faces';
+        const region = process.env.AWS_REGION || 'us-east-1';
+        const credentials = {
+            accessKeyId:     process.env.AWS_ACCESS_KEY_ID,
+            secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+        };
+
+        const rekognition = new RekognitionClient({ region, credentials });
+        const supabase = createClient(
+            process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL,
+            process.env.SUPABASE_SERVICE_ROLE_KEY
+        );
+
+        let collectionInfo = { faceCount: 0, faceModelVersion: '-' };
+        try {
+            const desc = await rekognition.send(new DescribeCollectionCommand({ CollectionId: COLLECTION_ID }));
+            collectionInfo = {
+                faceCount: desc.FaceCount ?? 0,
+                faceModelVersion: desc.FaceModelVersion ?? '-',
+            };
+        } catch (e) {
+            console.warn('DescribeCollection failed:', e.message);
+        }
+
+        const [{ count: totalPhotos }, { count: indexedPhotos }, { count: totalEncodings }] = await Promise.all([
+            supabase.from('photos').select('*', { count: 'exact', head: true }),
+            supabase.from('photos').select('*', { count: 'exact', head: true }).eq('is_face_indexed', true),
+            supabase.from('face_encodings').select('*', { count: 'exact', head: true }).eq('model_version', 'rekognition-v1'),
+        ]);
+
+        const storageCostPerMonth = collectionInfo.faceCount * 0.00001;
+        const estimatedIndexCost  = (indexedPhotos ?? 0) * 0.001;
+        const estimatedTotalCost  = storageCostPerMonth + estimatedIndexCost;
+
+        return res.json({
+            collection: {
+                id: COLLECTION_ID,
+                faceCount: collectionInfo.faceCount,
+                faceModelVersion: collectionInfo.faceModelVersion,
+            },
+            database: {
+                totalPhotos: totalPhotos ?? 0,
+                indexedPhotos: indexedPhotos ?? 0,
+                totalEncodings: totalEncodings ?? 0,
+            },
+            cost: {
+                storageCostPerMonth: parseFloat(storageCostPerMonth.toFixed(4)),
+                estimatedIndexCost: parseFloat(estimatedIndexCost.toFixed(4)),
+                estimatedTotalCost: parseFloat(estimatedTotalCost.toFixed(4)),
+                realCostThisMonth: null,
+            },
+            pricing: {
+                storagePerFacePerMonth: 0.00001,
+                indexFacesPerImage: 0.001,
+                searchPerCall: 0.001,
+                freeTierMonthly: 5000,
+                currency: 'USD',
+            },
+        });
+    } catch (error) {
+        console.error('[rekognition-stats-handler]', error);
+        return res.status(500).json({ error: error.message });
+    }
+}
+
+async function handleGenerateDescription(req, res) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+        return res.status(500).json({ error: 'Configuração GEMINI_API_KEY ausente.' });
+    }
+    try {
+        const { GoogleGenerativeAI } = await import('@google/generative-ai');
+        const { prompt } = req.body || {};
+        if (!prompt) return res.status(400).json({ error: 'Prompt é obrigatório.' });
+
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        return res.status(200).json({ text: response.text() });
+    } catch (error) {
+        console.error('[GenerateDescription]', error);
+        return res.status(500).json({ error: 'Falha ao gerar descrição com IA.', details: error.message });
     }
 }
