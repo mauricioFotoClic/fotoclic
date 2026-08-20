@@ -3200,11 +3200,30 @@ export const api = {
       body: JSON.stringify(payload)
     });
 
-    const result = await response.json();
-    if (!response.ok) {
-      throw new Error(result.error || 'Erro ao processar checkout Appmax.');
+    const contentType = response.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      const errorText = await response.text().catch(() => '');
+      console.error('[Appmax Checkout] Resposta inesperada do servidor (não JSON):', errorText);
+      throw new Error(`Não foi possível comunicar com o gateway de pagamento (Status HTTP ${response.status}). Verifique se as funções de backend e as credenciais da Appmax estão configuradas.`);
     }
-    return result;
+
+    const result = await response.json();
+    if (!response.ok || !result.success) {
+      throw new Error(result.error || result.message || 'Erro ao processar checkout Appmax.');
+    }
+
+    return {
+      success: result.success ?? true,
+      orderId: result.order_id ?? result.orderId,
+      paymentMethod: result.payment_method ?? payload.paymentMethod ?? 'pix',
+      total: result.total,
+      pix_code: result.pix?.qr_code ?? result.pix_code,
+      qr_code_image: result.pix?.qr_code_url ?? result.qr_code_image,
+      expiration_date: result.pix?.expiration ?? result.expiration_date,
+      status: result.status,
+      payment: result.payment,
+      error: result.error
+    };
   },
 
   getAppmaxStats: async (): Promise<any> => {

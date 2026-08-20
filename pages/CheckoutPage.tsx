@@ -275,8 +275,8 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
                                             <ShieldCheck className="text-emerald-500" size={20} />
                                             Checkout Transparente Seguro
                                         </h2>
-                                        <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-400">
-                                            Appmax API v4
+                                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                                            Pagamento Protegido
                                         </span>
                                     </div>
 
