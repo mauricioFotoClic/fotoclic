@@ -97,12 +97,6 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onLoginSuccess 
 
             if (response?.user) {
                 if (response.user.role === UserRole.PHOTOGRAPHER) {
-                    if (typeof (window as any).gtag === 'function') {
-                        (window as any).gtag('event', 'conversion', {
-                            'send_to': 'AW-16960525575/NqzgCKeRoskcEleqtJc_',
-                            'transport_type': 'beacon'
-                        });
-                    }
                     onNavigate({ name: 'welcome', role: 'pending-approval' });
                 } else {
                     onLoginSuccess(response.user, true);

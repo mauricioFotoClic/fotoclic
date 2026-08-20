@@ -109,15 +109,6 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginS
             if (newUser && newUser.user) {
                 const user = newUser.user;
 
-                if (user.role === UserRole.PHOTOGRAPHER) {
-                    if (typeof (window as any).gtag === 'function') {
-                        (window as any).gtag('event', 'conversion', {
-                            'send_to': 'AW-16960525575/NqzgCKeRoskcEleqtJc_',
-                            'transport_type': 'beacon'
-                        });
-                    }
-                }
-
                 if (!newUser.session) {
                     setLoading(false);
                     setError('');

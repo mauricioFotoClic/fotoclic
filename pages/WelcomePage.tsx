@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Page, PageRoute } from '../types';
 import Logo from '../components/Logo';
 import { ArrowRight, CheckCircle2 } from 'lucide-react';
+import { trackPhotographerRegistration } from '../utils/tracking';
 
 interface WelcomePageProps {
     onNavigate: (page: Page) => void;
@@ -46,13 +47,10 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onNavigate, role = 'customer'
             });
         }
 
-        // Dispara a conversão específica do Google Ads somente se for cadastro de fotógrafo
-        if (win.gtag && (roleRef.current === 'photographer' || roleRef.current === 'pending-approval')) {
-            win.gtag('event', 'conversion', {
-                'send_to': 'AW-16960525575/NqzgCKeRoskcEleqtJc_',
-                'transport_type': 'beacon'
-            });
-            console.log("Google Ads conversion event sent for photographer!");
+        // Dispara a conversão específica do Google Ads ("Cadastro de fotógrafo concluído")
+        // SOMENTE se for um novo fotógrafo cadastrado, com trava de disparo único
+        if (roleRef.current === 'photographer' || roleRef.current === 'pending-approval') {
+            trackPhotographerRegistration();
         }
 
         const interval = setInterval(() => {
