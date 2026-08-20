@@ -1,15 +1,27 @@
 import { createClient } from '@supabase/supabase-js';
+import crypto from 'crypto';
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
 const supabaseServiceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
+  }
+
+  // Health check e Validação da Appmax (compatível com GET e POST de validação)
+  if (req.method === 'GET' || req.query?.health || req.body?.health) {
+    const externalId = crypto.randomUUID ? crypto.randomUUID() : 'fotoclic-' + Date.now();
+    return res.status(200).json({
+      status: 'healthy',
+      platform: 'FotoClic',
+      external_id: externalId,
+      timestamp: new Date().toISOString()
+    });
   }
 
   if (req.method !== 'POST') {
@@ -28,8 +40,14 @@ export default async function handler(req, res) {
     const orderId = String(orderData.id || orderData.order_id || body.order_id || '');
 
     if (!orderId) {
-      console.warn('[Appmax Webhook] Pedido sem ID no payload.');
-      return res.status(200).json({ received: true, note: 'No order ID' });
+      const externalId = crypto.randomUUID ? crypto.randomUUID() : 'fotoclic-' + Date.now();
+      console.warn('[Appmax Webhook] Pedido sem ID no payload (validação / ping).');
+      return res.status(200).json({
+        received: true,
+        status: 'healthy',
+        external_id: externalId,
+        note: 'Webhook active'
+      });
     }
 
     // 1. Tratar aprovação de pedido
