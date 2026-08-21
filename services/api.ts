@@ -2865,12 +2865,78 @@ export const api = {
     return true;
   },
   getAdminStats: async (): Promise<any> => {
-    const { data, error } = await supabase.rpc("get_admin_stats");
-    if (error) {
+    try {
+      const { data: rpcData } = await supabase.rpc("get_admin_stats").catch(() => ({ data: null }));
+      
+      const [salesRes, photogsRes, categoriesRes, photosRes] = await Promise.all([
+        supabase.from("sales").select("price, photographer_id, status"),
+        supabase.from("users").select("id, name, avatar_url, location").eq("role", "photographer").eq("is_active", true),
+        supabase.from("categories").select("id, name"),
+        supabase.from("photos").select("id, category_id, is_face_indexed, moderation_status")
+      ]);
+
+      const validSales = (salesRes.data || []).filter((s: any) => s.status !== 'refunded');
+      const totalRevenue = rpcData?.total_revenue !== undefined 
+        ? Number(rpcData.total_revenue) 
+        : validSales.reduce((sum: number, s: any) => sum + Number(s.price || 0), 0);
+      
+      const salesCount = rpcData?.total_sales !== undefined 
+        ? Number(rpcData.total_sales) 
+        : validSales.length;
+
+      const activePhotographersCount = rpcData?.total_photographers !== undefined 
+        ? Number(rpcData.total_photographers) 
+        : (photogsRes.data || []).length;
+
+      const notIndexedPhotosCount = (photosRes.data || []).filter((p: any) => p.is_face_indexed === false).length;
+
+      const photogRevenueMap: Record<string, number> = {};
+      validSales.forEach((s: any) => {
+        if (s.photographer_id) {
+          photogRevenueMap[s.photographer_id] = (photogRevenueMap[s.photographer_id] || 0) + Number(s.price || 0);
+        }
+      });
+
+      const topPhotographers = (photogsRes.data || [])
+        .map((p: any) => ({
+          id: p.id,
+          name: p.name || "Fotógrafo",
+          avatar_url: p.avatar_url,
+          location: p.location || "Brasil",
+          totalrevenue: photogRevenueMap[p.id] || 0
+        }))
+        .sort((a, b) => b.totalrevenue - a.totalrevenue)
+        .slice(0, 5);
+
+      const catCountMap: Record<string, number> = {};
+      (photosRes.data || []).forEach((p: any) => {
+        if (p.category_id && p.moderation_status === 'approved') {
+          catCountMap[p.category_id] = (catCountMap[p.category_id] || 0) + 1;
+        }
+      });
+
+      const categoryPhotoCount = (categoriesRes.data || [])
+        .map((c: any) => ({
+          id: c.id,
+          name: c.name,
+          count: catCountMap[c.id] || 0
+        }))
+        .sort((a, b) => b.count - a.count);
+
+      return {
+        totalRevenue,
+        salesCount,
+        activePhotographersCount,
+        notIndexedPhotosCount,
+        topPhotographers,
+        categoryPhotoCount,
+        totalPhotos: rpcData?.total_photos || (photosRes.data || []).length,
+        totalCustomers: rpcData?.total_customers || 0
+      };
+    } catch (error) {
       console.error("Error fetching admin stats:", error);
       throw error;
     }
-    return data;
   },
   getSales: async (): Promise<Sale[]> => {
     // Select sales and join with the buyer (users table) and photos table
