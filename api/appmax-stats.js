@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import appmax from './lib/appmax-client.js';
+import appmax from '../lib/appmax-client.js';
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
 const supabaseServiceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;

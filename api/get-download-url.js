@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
-import appmax from './lib/appmax-client.js';
-import { sendSaleNotifications } from './lib/sale-notifications.js';
+import appmax from '../lib/appmax-client.js';
+import { sendSaleNotifications } from '../lib/sale-notifications.js';
 
 export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Credentials', true);
