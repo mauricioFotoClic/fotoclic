@@ -183,6 +183,33 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
         }
     };
 
+    // Polling automático de confirmação do pagamento PIX
+    useEffect(() => {
+        if (!pixData || !currentUser) return;
+
+        let isMounted = true;
+        const intervalId = setInterval(async () => {
+            try {
+                const purchases = await api.getPurchasesByUserId(currentUser.id);
+                const isPaid = photos.some(p => purchases.some(item => item.photo.id === p.id));
+                if (isPaid && isMounted) {
+                    clearInterval(intervalId);
+                    localStorage.removeItem('appliedCoupon');
+                    localStorage.removeItem('cartItems');
+                    onPurchaseComplete();
+                    onNavigate({ name: 'checkout-success' });
+                }
+            } catch (err) {
+                console.warn("[Checkout] Verificando confirmação do PIX...", err);
+            }
+        }, 3000);
+
+        return () => {
+            isMounted = false;
+            clearInterval(intervalId);
+        };
+    }, [pixData, currentUser, photos, onPurchaseComplete, onNavigate]);
+
     // Checkout Submit
     const handleCheckoutSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
