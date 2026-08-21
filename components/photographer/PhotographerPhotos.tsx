@@ -112,6 +112,9 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
     const [isIndexConfirmModalOpen, setIsIndexConfirmModalOpen] = useState(false);
     const [photoToIndex, setPhotoToIndex] = useState<Photo | null>(null);
 
+    // Photo Preview Modal State
+    const [previewPhoto, setPreviewPhoto] = useState<Photo | null>(null);
+
     // Bulk Indexing
     const [isBulkIndexing, setIsBulkIndexing] = useState(false);
     const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0, successes: 0, failures: 0 });
@@ -578,6 +581,25 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
     const goToPreviousPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => { setSearchTerm(e.target.value); setCurrentPage(1); };
     const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => { setFilterStatus(e.target.value); setCurrentPage(1); };
+
+    useEffect(() => {
+        if (!previewPhoto) return;
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                setPreviewPhoto(null);
+            } else if (e.key === 'ArrowLeft') {
+                const currIdx = filteredPhotos.findIndex(p => p.id === previewPhoto.id);
+                if (currIdx > 0) setPreviewPhoto(filteredPhotos[currIdx - 1]);
+                else if (filteredPhotos.length > 0) setPreviewPhoto(filteredPhotos[filteredPhotos.length - 1]);
+            } else if (e.key === 'ArrowRight') {
+                const currIdx = filteredPhotos.findIndex(p => p.id === previewPhoto.id);
+                if (currIdx < filteredPhotos.length - 1) setPreviewPhoto(filteredPhotos[currIdx + 1]);
+                else if (filteredPhotos.length > 0) setPreviewPhoto(filteredPhotos[0]);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [previewPhoto, filteredPhotos]);
 
     // --- SELECTION & BULK DELETE HANDLERS ---
     const handleToggleSelectPhoto = (id: string) => {
@@ -1222,22 +1244,40 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                                                     />
                                                 </td>
                                                 <td className="p-2">
-                                                <div className="relative w-16 h-12">
-                                                    <img
-                                                        src={getOptimizedImageUrl(photo.thumb_url || photo.preview_url, 150, 70)}
-                                                        alt={photo.title}
-                                                        loading="lazy"
-                                                        decoding="async"
-                                                        className="w-16 h-12 object-cover rounded-md border border-neutral-200"
-                                                    />
-                                                    {photo.media_type === 'video' && (
-                                                        <span className="absolute bottom-1 right-1 bg-black/75 text-white text-[9px] px-1 rounded flex items-center gap-0.5 z-10">
-                                                            ▶ {photo.video_duration ? `${photo.video_duration}s` : 'Víd'}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </td>
-                                            <td className="p-4 text-sm font-medium text-neutral-800">{photo.title}</td>
+                                                    <div 
+                                                        className="relative w-16 h-12 group overflow-hidden rounded-md border border-neutral-200 shadow-sm cursor-pointer transition-transform hover:scale-105"
+                                                        onClick={() => setPreviewPhoto(photo)}
+                                                        title="Clique para ver o preview da imagem"
+                                                    >
+                                                        <img
+                                                            src={getOptimizedImageUrl(photo.thumb_url || photo.preview_url, 150, 70)}
+                                                            alt={photo.title}
+                                                            loading="lazy"
+                                                            decoding="async"
+                                                            className="w-16 h-12 object-cover transition-opacity group-hover:opacity-85"
+                                                        />
+                                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                                <circle cx="11" cy="11" r="8"></circle>
+                                                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                                                <line x1="11" y1="8" x2="11" y2="14"></line>
+                                                                <line x1="8" y1="11" x2="14" y2="11"></line>
+                                                            </svg>
+                                                        </div>
+                                                        {photo.media_type === 'video' && (
+                                                            <span className="absolute bottom-1 right-1 bg-black/75 text-white text-[9px] px-1 rounded flex items-center gap-0.5 z-10">
+                                                                ▶ {photo.video_duration ? `${photo.video_duration}s` : 'Víd'}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td 
+                                                    className="p-4 text-sm font-medium text-neutral-800 hover:text-primary cursor-pointer transition-colors"
+                                                    onClick={() => setPreviewPhoto(photo)}
+                                                    title="Clique para ver o preview da imagem"
+                                                >
+                                                    {photo.title}
+                                                </td>
                                             <td className="p-4 text-sm text-neutral-500">{getCategoryName(photo.category_id)}</td>
                                             <td className="p-4 text-sm text-neutral-500">
                                                 {photo.sub_group ? (
@@ -1640,7 +1680,174 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                 </Modal>
             )}
 
+            {/* Modal Confirmar Indexação em Lote */}
             <Modal isOpen={isBulkStartConfirmOpen} onClose={() => setIsBulkStartConfirmOpen(false)} title="Confirmar Indexação"><div className="p-4"><p>Deseja indexar todas as fotos pendentes?</p><div className="flex justify-end mt-4"><button onClick={() => setIsBulkStartConfirmOpen(false)} className="mr-2 border px-4 rounded">Cancelar</button><button onClick={confirmBulkIndex} className="bg-primary-dark text-white px-4 rounded">Confirmar</button></div></div></Modal>
+
+            {/* Photo Preview Modal com Animação */}
+            {previewPhoto && (
+                <div 
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-3 sm:p-6 animate-in fade-in duration-200"
+                    onClick={() => setPreviewPhoto(null)}
+                >
+                    <div 
+                        className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl overflow-hidden border border-neutral-100 flex flex-col max-h-[92vh] animate-in zoom-in-95 duration-200 relative"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Header */}
+                        <div className="flex items-center justify-between p-4 px-6 bg-white border-b border-neutral-100 flex-shrink-0">
+                            <div className="flex items-center gap-3 overflow-hidden pr-4">
+                                <div className="p-2 bg-primary/10 rounded-xl text-primary flex-shrink-0">
+                                    <ImageIcon />
+                                </div>
+                                <div className="truncate">
+                                    <h3 className="text-lg font-display font-bold text-primary-dark truncate">
+                                        {previewPhoto.title}
+                                    </h3>
+                                    <p className="text-xs text-neutral-500 flex items-center gap-2 mt-0.5">
+                                        <span>{selectedEvent?.name}</span>
+                                        <span>•</span>
+                                        <span className="font-semibold text-neutral-700">{getCategoryName(previewPhoto.category_id)}</span>
+                                        {previewPhoto.sub_group && (
+                                            <>
+                                                <span>•</span>
+                                                <span className="bg-primary/10 text-primary-dark px-2 py-0.5 rounded-full text-[10px] font-bold">
+                                                    📁 {previewPhoto.sub_group}
+                                                </span>
+                                            </>
+                                        )}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                                <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${previewPhoto.is_public ? 'bg-green-100 text-green-800' : 'bg-neutral-200 text-neutral-600'}`}>
+                                    {previewPhoto.is_public ? 'Pública' : 'Privada'}
+                                </span>
+                                {getStatusChip(previewPhoto.moderation_status, previewPhoto.rejection_reason)}
+                                
+                                <button
+                                    onClick={() => setPreviewPhoto(null)}
+                                    className="p-2 ml-2 rounded-full hover:bg-neutral-100 text-neutral-400 hover:text-neutral-700 transition-colors"
+                                    title="Fechar (Esc)"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Main Preview Area */}
+                        <div className="relative flex-grow flex items-center justify-center bg-neutral-950 p-2 sm:p-6 overflow-hidden min-h-[320px] max-h-[65vh]">
+                            {/* Previous Button */}
+                            {filteredPhotos.length > 1 && (
+                                <button
+                                    onClick={() => {
+                                        const currIdx = filteredPhotos.findIndex(p => p.id === previewPhoto.id);
+                                        const prevIdx = currIdx > 0 ? currIdx - 1 : filteredPhotos.length - 1;
+                                        setPreviewPhoto(filteredPhotos[prevIdx]);
+                                    }}
+                                    className="absolute left-4 top-1/2 -translate-y-1/2 p-3 bg-black/60 hover:bg-black/85 text-white rounded-full transition-all transform hover:scale-110 shadow-lg z-20 backdrop-blur-sm"
+                                    title="Foto anterior (←)"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <polyline points="15 18 9 12 15 6"></polyline>
+                                    </svg>
+                                </button>
+                            )}
+
+                            {/* Media (Image or Video) */}
+                            {previewPhoto.media_type === 'video' ? (
+                                <video
+                                    src={previewPhoto.preview_url || previewPhoto.file_url}
+                                    controls
+                                    autoPlay
+                                    className="max-h-full max-w-full object-contain rounded-lg shadow-2xl"
+                                />
+                            ) : (
+                                <img
+                                    src={previewPhoto.preview_url || previewPhoto.thumb_url}
+                                    alt={previewPhoto.title}
+                                    className="max-h-full max-w-full object-contain rounded-lg shadow-2xl transition-all"
+                                />
+                            )}
+
+                            {/* Next Button */}
+                            {filteredPhotos.length > 1 && (
+                                <button
+                                    onClick={() => {
+                                        const currIdx = filteredPhotos.findIndex(p => p.id === previewPhoto.id);
+                                        const nextIdx = currIdx < filteredPhotos.length - 1 ? currIdx + 1 : 0;
+                                        setPreviewPhoto(filteredPhotos[nextIdx]);
+                                    }}
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 p-3 bg-black/60 hover:bg-black/85 text-white rounded-full transition-all transform hover:scale-110 shadow-lg z-20 backdrop-blur-sm"
+                                    title="Próxima foto (→)"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <polyline points="9 18 15 12 9 6"></polyline>
+                                    </svg>
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Footer / Details & Actions Bar */}
+                        <div className="p-4 px-6 bg-white border-t border-neutral-100 flex flex-wrap items-center justify-between gap-4 flex-shrink-0">
+                            <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-sm">
+                                <div>
+                                    <span className="text-neutral-400 text-xs block">Preço</span>
+                                    <span className="font-bold text-green-600 text-base">
+                                        {previewPhoto.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                    </span>
+                                </div>
+                                <div className="h-8 w-px bg-neutral-200"></div>
+                                <div>
+                                    <span className="text-neutral-400 text-xs block">Vendas</span>
+                                    <span className="font-bold text-neutral-800 text-base">
+                                        {previewPhoto.sales_count || 0}
+                                    </span>
+                                </div>
+                                <div className="h-8 w-px bg-neutral-200"></div>
+                                <div>
+                                    <span className="text-neutral-400 text-xs block">Posição</span>
+                                    <span className="font-medium text-neutral-600 text-xs">
+                                        {filteredPhotos.findIndex(p => p.id === previewPhoto.id) + 1} de {filteredPhotos.length} fotos
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                                <a
+                                    href={previewPhoto.preview_url || previewPhoto.thumb_url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="px-4 py-2 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5"
+                                    title="Abrir imagem em nova aba"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                        <polyline points="15 3 21 3 21 9"></polyline>
+                                        <line x1="10" y1="14" x2="21" y2="3"></line>
+                                    </svg>
+                                    Ver Alta Resolução
+                                </a>
+                                <button
+                                    onClick={() => {
+                                        const toEdit = previewPhoto;
+                                        setPreviewPhoto(null);
+                                        setEditingPhoto(toEdit);
+                                        setIsModalOpen(true);
+                                    }}
+                                    className="px-4 py-2 bg-primary hover:bg-primary-dark text-white text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 shadow-sm hover:shadow"
+                                >
+                                    <EditIcon />
+                                    Editar Detalhes
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* showToast && <Toast ... /> removed */}
         </div>
