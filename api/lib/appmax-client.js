@@ -168,23 +168,32 @@ async function createCustomer({ firstname, first_name, lastname, last_name, emai
 async function createOrder({ customer_id, products, total, split }) {
   const customerId = typeof customer_id === 'object' ? (customer_id?.id || customer_id?.customer_id) : customer_id;
   
+  // A Appmax espera todos os valores monetários em centavos (ex: R$ 15,00 = 1500)
+  const toCents = (val) => Math.round((Number(val) || 0) * 100);
+
   const payload = {
     customer_id: Number(customerId) || customerId,
-    products: products.map((p, idx) => ({
-      id: p.id || (idx + 1),
-      sku: String(p.id || idx + 1),
-      name: p.name || p.title || `Foto #${p.id || idx + 1}`,
-      title: p.title || p.name || `Foto #${p.id || idx + 1}`,
-      quantity: Number(p.quantity || p.qty || 1),
-      qty: Number(p.qty || p.quantity || 1),
-      unit_value: Number(Number(p.unit_value || p.price || 0).toFixed(2)),
-      price: Number(Number(p.price || p.unit_value || 0).toFixed(2))
-    })),
-    total: Number(total.toFixed(2))
+    products: products.map((p, idx) => {
+      const centsValue = toCents(p.unit_value !== undefined ? p.unit_value : p.price);
+      return {
+        id: p.id || (idx + 1),
+        sku: String(p.id || idx + 1),
+        name: p.name || p.title || `Foto #${p.id || idx + 1}`,
+        title: p.title || p.name || `Foto #${p.id || idx + 1}`,
+        quantity: Number(p.quantity || p.qty || 1),
+        qty: Number(p.qty || p.quantity || 1),
+        unit_value: centsValue,
+        price: centsValue
+      };
+    }),
+    total: toCents(total)
   };
 
   if (split && Array.isArray(split) && split.length > 0) {
-    payload.split = split;
+    payload.split = split.map(s => ({
+      ...s,
+      amount: toCents(s.amount)
+    }));
   }
 
   const result = await apiRequest('/orders', payload);
