@@ -189,7 +189,17 @@ export default async function handler(req, res) {
 
     // 8. Processar Pagamento (PIX ou Cartão)
     if (paymentMethod === 'pix') {
-      const pixResult = await appmax.payWithPix({ order_id: orderId });
+      const pixResult = await appmax.payWithPix({
+        order_id: orderId,
+        cpf: customer.cpf || customer.taxId
+      });
+
+      const pixData = pixResult?.payment?.pix || pixResult?.payment || pixResult?.payment_data?.pix || pixResult?.pix || pixResult?.data || pixResult;
+      const pixCode = pixData?.pix_emv || pixData?.pix_code || pixData?.qr_code;
+      let qrCodeImage = pixData?.pix_qrcode || pixData?.qr_code_image || pixData?.qr_code_url;
+      if (qrCodeImage && !qrCodeImage.startsWith('http') && !qrCodeImage.startsWith('data:')) {
+        qrCodeImage = `data:image/png;base64,${qrCodeImage}`;
+      }
 
       return res.status(200).json({
         success: true,
@@ -198,9 +208,9 @@ export default async function handler(req, res) {
         payment_method: 'pix',
         total: finalOrderTotal,
         pix: {
-          qr_code: pixResult.pix_code || pixResult.qr_code,
-          qr_code_url: pixResult.qr_code_image || pixResult.qr_code_url,
-          expiration: pixResult.expiration_date || pixResult.expires_at
+          qr_code: pixCode,
+          qr_code_url: qrCodeImage,
+          expiration: pixData?.pix_expiration_date || pixData?.expiration_date || pixData?.expires_at
         }
       });
     }
@@ -215,7 +225,8 @@ export default async function handler(req, res) {
         order_id: orderId,
         card_token: cardToken,
         installments: cardData.installments || 1,
-        cvv: cardData.cvv
+        cvv: cardData.cvv,
+        cpf: customer.cpf || customer.taxId
       });
 
       return res.status(200).json({

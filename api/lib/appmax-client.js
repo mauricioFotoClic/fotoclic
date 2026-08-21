@@ -106,7 +106,25 @@ async function apiRequest(endpoint, payload) {
   }
 
   if (!response.ok || data.success === false) {
-    const errorMsg = data.message || data.text || data.error || `Erro na comunicação com a Appmax (Status ${response.status})`;
+    let errorMsg = data.message || data.text || data.error;
+
+    if (data.errors) {
+      if (typeof data.errors === 'string') {
+        errorMsg = data.errors;
+      } else if (data.errors.message) {
+        if (typeof data.errors.message === 'object') {
+          errorMsg = Object.values(data.errors.message).flat().join(' ');
+        } else {
+          errorMsg = data.errors.message;
+        }
+      } else if (typeof data.errors === 'object') {
+        errorMsg = Object.values(data.errors).flat().join(' ');
+      }
+    }
+
+    if (!errorMsg) {
+      errorMsg = `Erro na comunicação com a Appmax (Status ${response.status})`;
+    }
     
     // Tratamento especial para erro de Merchant não vinculado na Sandbox
     if (response.status === 404 && errorMsg.includes('Merchant not found')) {
@@ -122,33 +140,45 @@ async function apiRequest(endpoint, payload) {
 /**
  * Cria ou atualiza um cliente (Customer) na Appmax
  */
-async function createCustomer({ firstname, lastname, email, cpf, telephone, ip }) {
+async function createCustomer({ firstname, first_name, lastname, last_name, email, cpf, telephone, phone, ip }) {
   const cleanCpf = (cpf || '').replace(/\D/g, '');
-  const cleanPhone = (telephone || '').replace(/\D/g, '');
+  const cleanPhone = (phone || telephone || '').replace(/\D/g, '');
+  const fName = (first_name || firstname || 'Cliente').trim();
+  const lName = (last_name || lastname || 'FotoClic').trim();
 
   const payload = {
-    firstname: firstname || 'Cliente',
-    lastname: lastname || 'FotoClic',
+    first_name: fName,
+    last_name: lName,
+    firstname: fName,
+    lastname: lName,
     email: (email || '').trim().toLowerCase(),
     cpf: cleanCpf || '00000000000',
+    phone: cleanPhone || '11999999999',
     telephone: cleanPhone || '11999999999',
     ip: ip || '127.0.0.1'
   };
 
-  return await apiRequest('/customers', payload);
+  const result = await apiRequest('/customers', payload);
+  return result?.customer || result;
 }
 
 /**
  * Cria um pedido (Order) com Split de Pagamentos na Appmax
  */
 async function createOrder({ customer_id, products, total, split }) {
+  const customerId = typeof customer_id === 'object' ? (customer_id?.id || customer_id?.customer_id) : customer_id;
+  
   const payload = {
-    customer_id,
-    products: products.map(p => ({
-      id: p.id,
-      title: p.title,
-      qty: p.qty || 1,
-      price: Number(p.price.toFixed(2))
+    customer_id: Number(customerId) || customerId,
+    products: products.map((p, idx) => ({
+      id: p.id || (idx + 1),
+      sku: String(p.id || idx + 1),
+      name: p.name || p.title || `Foto #${p.id || idx + 1}`,
+      title: p.title || p.name || `Foto #${p.id || idx + 1}`,
+      quantity: Number(p.quantity || p.qty || 1),
+      qty: Number(p.qty || p.quantity || 1),
+      unit_value: Number(Number(p.unit_value || p.price || 0).toFixed(2)),
+      price: Number(Number(p.price || p.unit_value || 0).toFixed(2))
     })),
     total: Number(total.toFixed(2))
   };
@@ -157,30 +187,46 @@ async function createOrder({ customer_id, products, total, split }) {
     payload.split = split;
   }
 
-  return await apiRequest('/orders', payload);
+  const result = await apiRequest('/orders', payload);
+  return result?.order || result;
 }
 
 /**
- * Processa pagamento via PIX
+ * Processa pagamento via PIX na Appmax
  */
-async function payWithPix({ order_id }) {
+async function payWithPix({ order_id, cpf, document_number }) {
+  const orderId = typeof order_id === 'object' ? (order_id?.id || order_id?.order_id) : order_id;
+  const cleanCpf = (cpf || document_number || '').replace(/\D/g, '');
+
   const payload = {
-    order_id
+    order_id: Number(orderId) || orderId,
+    payment_data: {
+      pix: {
+        document_number: cleanCpf || undefined
+      }
+    }
   };
 
   return await apiRequest('/payments/pix', payload);
 }
 
 /**
- * Processa pagamento via Cartão de Crédito
+ * Processa pagamento via Cartão de Crédito na Appmax
  */
-async function payWithCreditCard({ order_id, card_token, installments, cvv }) {
+async function payWithCreditCard({ order_id, card_token, installments, cvv, cpf, document_number }) {
+  const orderId = typeof order_id === 'object' ? (order_id?.id || order_id?.order_id) : order_id;
+  const cleanCpf = (cpf || document_number || '').replace(/\D/g, '');
+
   const payload = {
-    order_id,
-    payment: {
-      card_token,
-      installments: Number(installments) || 1,
-      cvv: cvv || '123'
+    order_id: Number(orderId) || orderId,
+    payment_data: {
+      card: {
+        card_token: card_token,
+        token: card_token,
+        installments: Number(installments) || 1,
+        cvv: cvv || '123',
+        document_number: cleanCpf || undefined
+      }
     }
   };
 
