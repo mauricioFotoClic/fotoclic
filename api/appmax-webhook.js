@@ -44,19 +44,13 @@ export default async function handler(req, res) {
     const orderData = body.data || body.order || body;
     const orderId = String(orderData.id || orderData.order_id || body.order_id || '');
 
-    if (!orderId) {
+    // Health Check / Validação de instalação do aplicativo Appmax
+    if (body.app_id || !orderId) {
       const externalId = crypto.randomUUID ? crypto.randomUUID() : 'fotoclic-' + Date.now();
-      console.warn('[Appmax Webhook] Health Check / Ping recebido da Appmax.');
+      console.warn('[Appmax Webhook] Health Check / Ping de validação da Appmax recebido com sucesso.');
       return res.status(200).json({
-        received: true,
-        status: 'healthy',
         external_id: externalId,
-        alias: 'FotoClic',
-        data: {
-          external_id: externalId,
-          alias: 'FotoClic'
-        },
-        note: 'Webhook active'
+        alias: 'FotoClic'
       });
     }
 

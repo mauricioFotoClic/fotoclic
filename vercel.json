@@ -51,6 +51,10 @@
   ],
   "rewrites": [
     {
+      "source": "/api/appmax-health",
+      "destination": "/api/appmax-webhook"
+    },
+    {
       "source": "/api/:match*",
       "destination": "/api/:match*"
     },
