@@ -41,6 +41,11 @@ export default async function handler(req, res) {
     try {
         const { photoId, action } = req.body || {};
 
+        // Rota para buscar compras do usuário autenticado com fotos e fotógrafos
+        if (action === 'get-purchases' || req.query.action === 'get-purchases') {
+            return await handleGetPurchases(req, res, userJwt, supabaseUrl, serviceKey);
+        }
+
         // Rota para sincronização de compras pendentes (Consolidado de sync-purchases.js)
         if (action === 'sync-purchases' || req.query.action === 'sync-purchases' || !photoId) {
             return await handleSyncPurchases(req, res, userJwt, supabaseUrl, serviceKey);
@@ -281,6 +286,106 @@ async function handleSyncPurchases(req, res, userJwt, supabaseUrl, serviceKey) {
         return res.status(200).json({ message: 'Sincronização concluída.', count: orphans.length });
     } catch (err) {
         console.error('[SyncPurchases Error]:', err);
+        return res.status(500).json({ error: err.message });
+    }
+}
+
+async function handleGetPurchases(req, res, userJwt, supabaseUrl, serviceKey) {
+    try {
+        const supabase = createClient(supabaseUrl, serviceKey);
+        const { data: { user }, error: authError } = await supabase.auth.getUser(userJwt);
+        if (authError || !user) return res.status(401).json({ error: 'Sessão inválida.' });
+
+        // 1. Tentar sincronizar pedidos pendentes em tempo real
+        try {
+            const { data: pendingBillings } = await supabase
+                .from('abacate_pay_billings')
+                .select('*')
+                .eq('status', 'PENDING')
+                .or(`metadata->>userId.eq.${user.id},customer_email.eq.${user.email}`);
+
+            if (pendingBillings && pendingBillings.length > 0) {
+                const token = await appmax.getAccessToken().catch(() => null);
+                const baseUrl = appmax.getBaseUrl ? appmax.getBaseUrl() : 'https://api.appmax.com.br/v1';
+
+                for (const pending of pendingBillings) {
+                    if (token && pending.billing_id) {
+                        try {
+                            const resOrder = await fetch(`${baseUrl}/orders/${pending.billing_id}`, {
+                                headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
+                            });
+                            const orderJson = await resOrder.json().catch(() => ({}));
+                            const order = orderJson?.data?.order;
+                            const statusStr = String(order?.status || '').toLowerCase();
+
+                            if (statusStr === 'aprovado' || statusStr === 'paid' || statusStr === 'pago' || statusStr === 'approved') {
+                                await supabase
+                                    .from('abacate_pay_billings')
+                                    .update({
+                                        status: 'PAID',
+                                        payment_method: orderJson?.data?.payment?.method || 'PIX',
+                                        updated_at: new Date().toISOString()
+                                    })
+                                    .eq('billing_id', pending.billing_id);
+
+                                const cartIds = pending.items || pending.metadata?.photoIds || [];
+                                const { data: photos } = await supabase.from('photos').select('*').in('id', cartIds);
+                                if (photos && photos.length > 0) {
+                                    for (const photo of photos) {
+                                        await supabase.from('sales').insert({
+                                            photo_id: photo.id,
+                                            buyer_id: user.id,
+                                            buyer_name: pending.customer_name || user.user_metadata?.name || 'Cliente',
+                                            price: photo.price,
+                                            commission: Number((photo.price * 0.06).toFixed(2)),
+                                            commission_rate: 0.06,
+                                            photographer_id: photo.photographer_id,
+                                            billing_id: pending.billing_id,
+                                            status: 'completed',
+                                            sale_date: new Date().toISOString()
+                                        });
+                                    }
+                                }
+                            }
+                        } catch (errOne) {
+                            console.warn(`[GetPurchases Sync] Falha ao checar pedido Appmax ${pending.billing_id}:`, errOne.message);
+                        }
+                    }
+                }
+            }
+        } catch (syncErr) {
+            console.warn('[GetPurchases Sync] Erro não bloqueante ao sincronizar:', syncErr);
+        }
+
+        // 2. Buscar vendas associadas a este comprador
+        const { data: sales, error: sErr } = await supabase
+            .from('sales')
+            .select('*, photo:photos(*, photographer:users!photos_photographer_id_fkey(name))')
+            .eq('buyer_id', user.id)
+            .neq('status', 'refunded')
+            .order('sale_date', { ascending: false });
+
+        if (sErr) {
+            console.error('[GetPurchases Error]:', sErr);
+            return res.status(500).json({ error: sErr.message });
+        }
+
+        const purchases = (sales || [])
+            .map(sale => {
+                if (!sale.photo) return null;
+                return {
+                    ...sale.photo,
+                    purchase_date: sale.sale_date,
+                    sale_id: sale.id,
+                    paid_price: Number(sale.price),
+                    photographer_name: sale.photo.photographer?.name || 'Fotógrafo',
+                };
+            })
+            .filter(Boolean);
+
+        return res.status(200).json({ purchases });
+    } catch (err) {
+        console.error('[GetPurchases Exception]:', err);
         return res.status(500).json({ error: err.message });
     }
 }

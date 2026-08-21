@@ -2288,7 +2288,35 @@ export const api = {
     return !!data;
   },
   getPurchasesByUserId: async (userId: string): Promise<PurchasedPhoto[]> => {
-    // Join sales with photos and photographers
+    try {
+      const session = await supabase.auth.getSession();
+      const jwt = session.data.session?.access_token;
+      if (jwt) {
+        const res = await fetch('/api/get-download-url?action=get-purchases', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${jwt}`,
+          },
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (Array.isArray(json.purchases)) {
+            return json.purchases.map(mapPhoto).map((p: any, idx: number) => ({
+              ...p,
+              purchase_date: json.purchases[idx].purchase_date,
+              sale_id: json.purchases[idx].sale_id,
+              paid_price: json.purchases[idx].paid_price,
+              photographer_name: json.purchases[idx].photographer_name || "Fotógrafo",
+            })) as PurchasedPhoto[];
+          }
+        }
+      }
+    } catch (apiErr) {
+      console.warn("[getPurchasesByUserId] Falha na API serverless, tentando Supabase direto:", apiErr);
+    }
+
+    // Join sales with photos and photographers (Direct Supabase Fallback)
     const { data, error } = await supabase
       .from("sales")
       .select("*, photo:photos(*, photographer:users!photos_photographer_id_fkey(name))")
