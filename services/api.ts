@@ -2199,7 +2199,7 @@ export const api = {
       id: authData.user.id, // CRITICAL: Sync IDs
       ...dataWithoutPassword,
       name: formatNameAsTitleCase(data.name),
-      is_active: !isPhotographer, // Photographers require manual admin approval before activation
+      is_active: true,
     };
 
     const { data: newUser, error } = await supabase

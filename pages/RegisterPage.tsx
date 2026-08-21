@@ -96,10 +96,10 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onLoginSuccess 
             });
 
             if (response?.user) {
+                onLoginSuccess(response.user, true);
                 if (response.user.role === UserRole.PHOTOGRAPHER) {
-                    onNavigate({ name: 'welcome', role: 'pending-approval' });
+                    onNavigate({ name: 'welcome', role: 'photographer' });
                 } else {
-                    onLoginSuccess(response.user, true);
                     onNavigate({ name: 'welcome', role: 'customer' });
                 }
             } else {
