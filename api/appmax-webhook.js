@@ -79,10 +79,10 @@ export default async function handler(req, res) {
     // A Appmax envia o evento em `event` ou `status` (ex: order_approved, order_paid, order_refunded, order_canceled, Pix Pago, etc.)
     const eventType = (body.event || body.type || body.status || '').toLowerCase();
     const orderData = body.data || body.order || body;
-    const orderId = String(orderData.id || orderData.order_id || body.order_id || '');
+    const orderId = String(orderData.id || orderData.order_id || body.order_id || body.id || '');
 
-    // Health Check / Validação de instalação do aplicativo Appmax
-    if (body.app_id || !orderId) {
+    // Health Check / Validação de instalação do aplicativo Appmax (apenas se NÃO houver ID de pedido)
+    if (!orderId && (body.app_id || body.health || req.query?.health)) {
       const externalId = crypto.randomUUID ? crypto.randomUUID() : 'fotoclic-' + Date.now();
       console.warn('[Appmax Webhook] Health Check / Ping de validação da Appmax recebido com sucesso.');
       return res.status(200).json({
@@ -91,13 +91,23 @@ export default async function handler(req, res) {
       });
     }
 
+    if (!orderId) {
+      console.warn('[Appmax Webhook] Payload recebido sem orderId identificável:', JSON.stringify(body));
+      return res.status(200).json({ received: true, note: 'No orderId' });
+    }
+
     // 1. Tratar aprovação/pagamento de pedido (compatível com EN e PT-BR)
+    const orderStatusStr = String(orderData.status || body.status || '').toLowerCase();
     const isPaid = eventType.includes('approved') || 
                    eventType.includes('paid') || 
                    eventType.includes('pago') || 
                    eventType.includes('aprovado') || 
                    eventType.includes('autorizado') || 
-                   eventType.includes('authorized');
+                   eventType.includes('authorized') ||
+                   orderStatusStr === 'aprovado' ||
+                   orderStatusStr === 'paid' ||
+                   orderStatusStr === 'pago' ||
+                   orderStatusStr === 'approved';
 
     if (isPaid) {
       // 1. Checar se a venda já foi registrada ou se o pedido já foi processado (Idempotência Estrita)

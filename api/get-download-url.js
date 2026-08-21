@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import appmax from './lib/appmax-client.js';
 
 export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Credentials', true);
@@ -181,36 +182,44 @@ async function handleSyncPurchases(req, res, userJwt, supabaseUrl, serviceKey) {
         const { data: { user }, error: authError } = await supabase.auth.getUser(userJwt);
         if (authError || !user) return res.status(401).json({ error: 'Sessão inválida.' });
 
-        const apiKey = process.env.ABACATEPAY_API_KEY;
         const { data: pendingBillings } = await supabase
             .from('abacate_pay_billings')
             .select('*')
             .eq('status', 'PENDING')
             .or(`metadata->>userId.eq.${user.id},customer_email.eq.${user.email}`);
 
-        if (pendingBillings && pendingBillings.length > 0 && apiKey) {
+        if (pendingBillings && pendingBillings.length > 0) {
             try {
-                const apiRes = await fetch('https://api.abacatepay.com/v2/checkouts/list', {
-                    headers: { 'Authorization': `Bearer ${apiKey}` }
-                });
-                const apiData = await apiRes.json();
-                if (apiData.success && apiData.data) {
-                    for (const pending of pendingBillings) {
-                        const remote = apiData.data.find(r => r.id === pending.billing_id);
-                        if (remote && remote.status === 'PAID') {
-                            await supabase
-                                .from('abacate_pay_billings')
-                                .update({
-                                    status: 'PAID',
-                                    payment_method: remote.payment?.method || 'PIX',
-                                    updated_at: new Date().toISOString()
-                                })
-                                .eq('billing_id', pending.billing_id);
+                const token = await appmax.getAccessToken().catch(() => null);
+                const baseUrl = appmax.getBaseUrl ? appmax.getBaseUrl() : 'https://api.appmax.com.br/v1';
+
+                for (const pending of pendingBillings) {
+                    if (token && pending.billing_id) {
+                        try {
+                            const resOrder = await fetch(`${baseUrl}/orders/${pending.billing_id}`, {
+                                headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
+                            });
+                            const orderJson = await resOrder.json().catch(() => ({}));
+                            const order = orderJson?.data?.order;
+                            const statusStr = String(order?.status || '').toLowerCase();
+
+                            if (statusStr === 'aprovado' || statusStr === 'paid' || statusStr === 'pago' || statusStr === 'approved') {
+                                await supabase
+                                    .from('abacate_pay_billings')
+                                    .update({
+                                        status: 'PAID',
+                                        payment_method: orderJson?.data?.payment?.method || 'PIX',
+                                        updated_at: new Date().toISOString()
+                                    })
+                                    .eq('billing_id', pending.billing_id);
+                            }
+                        } catch (errOne) {
+                            console.warn(`[Sync] Falha ao checar pedido Appmax ${pending.billing_id}:`, errOne.message);
                         }
                     }
                 }
             } catch (apiErr) {
-                console.error('[Sync] Erro na consulta Abacate:', apiErr);
+                console.error('[Sync] Erro na consulta Appmax:', apiErr);
             }
         }
 
@@ -232,6 +241,16 @@ async function handleSyncPurchases(req, res, userJwt, supabaseUrl, serviceKey) {
         const saleBillingIds = new Set((existingSales || []).map(s => s.billing_id));
         const orphans = billings.filter(b => !saleBillingIds.has(b.billing_id));
 
+        // Buscar taxas de comissão
+        const { data: settingsRow } = await supabase
+            .from('system_settings')
+            .select('*')
+            .eq('id', 1)
+            .maybeSingle();
+
+        const defaultRate = settingsRow?.commission_default_rate || 0.06;
+        const customRates = settingsRow?.commission_custom_rates || {};
+
         for (const billing of orphans) {
             const metadata = billing.metadata || {};
             const cartIds = metadata.cartIds || metadata.photoIds || billing.items || [];
@@ -239,12 +258,16 @@ async function handleSyncPurchases(req, res, userJwt, supabaseUrl, serviceKey) {
                 const { data: photos } = await supabase.from('photos').select('*').in('id', cartIds);
                 if (photos && photos.length > 0) {
                     for (const photo of photos) {
+                        const commRate = customRates[photo.photographer_id] !== undefined ? customRates[photo.photographer_id] : defaultRate;
+                        const commVal = Number((photo.price * commRate).toFixed(2));
+
                         await supabase.from('sales').insert({
                             photo_id: photo.id,
                             buyer_id: user.id,
                             buyer_name: billing.customer_name || user.user_metadata?.name || 'Cliente',
                             price: photo.price,
-                            commission: Number((photo.price * 0.06).toFixed(2)),
+                            commission: commVal,
+                            commission_rate: commRate,
                             photographer_id: photo.photographer_id,
                             billing_id: billing.billing_id,
                             status: 'completed',
