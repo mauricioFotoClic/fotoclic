@@ -54,8 +54,15 @@ export default async function handler(req, res) {
       });
     }
 
-    // 1. Tratar aprovação de pedido
-    if (eventType.includes('approved') || eventType.includes('paid')) {
+    // 1. Tratar aprovação/pagamento de pedido (compatível com EN e PT-BR)
+    const isPaid = eventType.includes('approved') || 
+                   eventType.includes('paid') || 
+                   eventType.includes('pago') || 
+                   eventType.includes('aprovado') || 
+                   eventType.includes('autorizado') || 
+                   eventType.includes('authorized');
+
+    if (isPaid) {
       // Checar se a venda já foi registrada (Idempotência)
       const { data: existingSales } = await supabase
         .from('sales')
@@ -132,8 +139,14 @@ export default async function handler(req, res) {
     }
 
     // 2. Tratar cancelamento ou estorno
-    if (eventType.includes('refund') || eventType.includes('cancel')) {
-      const newStatus = eventType.includes('refund') ? 'refunded' : 'cancelled';
+    const isRefund = eventType.includes('refund') || 
+                     eventType.includes('estorno') || 
+                     eventType.includes('estornado') || 
+                     eventType.includes('cancel') || 
+                     eventType.includes('cancelado');
+
+    if (isRefund) {
+      const newStatus = (eventType.includes('refund') || eventType.includes('estorno')) ? 'refunded' : 'cancelled';
 
       await supabase
         .from('sales')
