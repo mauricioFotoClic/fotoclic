@@ -234,7 +234,7 @@ async function handleSyncPurchases(req, res, userJwt, supabaseUrl, serviceKey) {
 
         for (const billing of orphans) {
             const metadata = billing.metadata || {};
-            const cartIds = metadata.cartIds || [];
+            const cartIds = metadata.cartIds || metadata.photoIds || billing.items || [];
             if (cartIds.length > 0) {
                 const { data: photos } = await supabase.from('photos').select('*').in('id', cartIds);
                 if (photos && photos.length > 0) {
@@ -242,6 +242,7 @@ async function handleSyncPurchases(req, res, userJwt, supabaseUrl, serviceKey) {
                         await supabase.from('sales').insert({
                             photo_id: photo.id,
                             buyer_id: user.id,
+                            buyer_name: billing.customer_name || user.user_metadata?.name || 'Cliente',
                             price: photo.price,
                             commission: Number((photo.price * 0.06).toFixed(2)),
                             photographer_id: photo.photographer_id,

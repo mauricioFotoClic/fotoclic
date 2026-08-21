@@ -100,23 +100,30 @@ export default async function handler(req, res) {
                    eventType.includes('authorized');
 
     if (isPaid) {
-      // Checar se a venda já foi registrada (Idempotência) por billing_id
+      // 1. Checar se a venda já foi registrada ou se o pedido já foi processado (Idempotência Estrita)
       const { data: existingSales } = await supabase
         .from('sales')
         .select('id')
         .eq('billing_id', orderId);
 
-      if (existingSales && existingSales.length > 0) {
-        console.log(`[Appmax Webhook] Pedido ${orderId} já processado anteriormente.`);
+      // Buscar registro de faturamento associado no banco
+      const { data: billingRecord } = await supabase
+        .from('abacate_pay_billings')
+        .select('*')
+        .eq('billing_id', orderId)
+        .maybeSingle();
+
+      if ((existingSales && existingSales.length > 0) || (billingRecord?.status === 'PAID' && billingRecord?.metadata?.email_sent)) {
+        console.log(`[Appmax Webhook] Pedido ${orderId} já processado anteriormente. Encerrando para evitar duplicações.`);
         return res.status(200).json({ received: true, note: 'Already processed' });
       }
 
-      // Buscar comprador no banco de dados
-      const customerEmail = (orderData.customer?.email || body.customer_email || '').toLowerCase().trim();
-      let buyerId = null;
-      let buyerName = orderData.customer?.name || orderData.customer?.firstname || 'Cliente';
+      // 2. Identificar comprador no banco de dados
+      const customerEmail = (billingRecord?.customer_email || orderData.customer?.email || body.customer_email || '').toLowerCase().trim();
+      let buyerId = billingRecord?.user_id || billingRecord?.metadata?.userId || null;
+      let buyerName = billingRecord?.customer_name || orderData.customer?.name || orderData.customer?.firstname || 'Cliente';
 
-      if (customerEmail) {
+      if (!buyerId && customerEmail) {
         const { data: userProfile } = await supabase
           .from('users')
           .select('id, name')
@@ -129,7 +136,7 @@ export default async function handler(req, res) {
         }
       }
 
-      // Buscar configurações de comissão
+      // 3. Buscar configurações de comissão
       const { data: settingsRow } = await supabase
         .from('system_settings')
         .select('*')
@@ -139,11 +146,38 @@ export default async function handler(req, res) {
       const defaultRate = settingsRow?.commission_default_rate || 0.06;
       const customRates = settingsRow?.commission_custom_rates || {};
 
-      // Obter produtos do pedido
-      const rawProducts = orderData.products || orderData.items || [];
-      const productIds = rawProducts.map(p => p.sku || p.id || p.product_id).filter(Boolean);
+      // 4. Obter IDs das fotos de forma resiliente
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      let productIds = [];
 
-      // Buscar fotos reais no banco
+      // Prioridade 1: Do registro de billing gravado no checkout
+      if (billingRecord?.items && Array.isArray(billingRecord.items) && billingRecord.items.length > 0) {
+        productIds = billingRecord.items.filter(id => typeof id === 'string' && uuidRegex.test(id));
+      } else if (billingRecord?.metadata?.photoIds && Array.isArray(billingRecord.metadata.photoIds)) {
+        productIds = billingRecord.metadata.photoIds.filter(id => typeof id === 'string' && uuidRegex.test(id));
+      }
+
+      // Prioridade 2: Dos dados brutos do webhook da Appmax
+      if (productIds.length === 0) {
+        const rawProducts = orderData.products || orderData.items || orderData.order_products || [];
+        rawProducts.forEach(p => {
+          [p.sku, p.id, p.product_id, p.external_id, p.custom_id].forEach(val => {
+            if (val && typeof val === 'string' && uuidRegex.test(val) && !productIds.includes(val)) {
+              productIds.push(val);
+            }
+          });
+        });
+      }
+
+      // Prioridade 3: Do carrinho ativo do usuário caso não tenha sido possível recuperar
+      if (productIds.length === 0 && buyerId) {
+        const { data: cartData } = await supabase.from('carts').select('items').eq('user_id', buyerId).maybeSingle();
+        if (cartData && Array.isArray(cartData.items) && cartData.items.length > 0) {
+          productIds = cartData.items.filter(id => typeof id === 'string' && uuidRegex.test(id));
+        }
+      }
+
+      // 5. Buscar fotos reais no banco
       let photos = [];
       if (productIds.length > 0) {
         const { data: dbPhotos } = await supabase
@@ -151,6 +185,10 @@ export default async function handler(req, res) {
           .select('*')
           .in('id', productIds);
         photos = dbPhotos || [];
+      }
+
+      if (photos.length === 0) {
+        console.warn(`[Appmax Webhook] Nenhuma foto correspondente encontrada para o pedido ${orderId}.`);
       }
 
       const holdDays = (orderData.payment_method || '').toLowerCase().includes('card') ? 30 : 7;
@@ -197,7 +235,26 @@ export default async function handler(req, res) {
         photographerSalesMap[photo.photographer_id].photos.push(photo);
       }
 
-      // Limpar carrinho do comprador no banco
+      // 6. Atualizar registro de faturamento para PAID com marcação de e-mail disparado
+      try {
+        await supabase.from('abacate_pay_billings').upsert({
+          billing_id: orderId,
+          user_id: buyerId,
+          status: 'PAID',
+          payment_method: (orderData.payment_method || 'PIX').toUpperCase(),
+          updated_at: new Date().toISOString(),
+          metadata: {
+            ...(billingRecord?.metadata || {}),
+            email_sent: true,
+            email_dispatched_at: new Date().toISOString(),
+            sales_inserted: insertedCount
+          }
+        }, { onConflict: 'billing_id' });
+      } catch (bErr) {
+        console.warn('[Appmax Webhook] Erro ao atualizar status do faturamento:', bErr);
+      }
+
+      // 7. Limpar carrinho do comprador no banco
       if (buyerId) {
         try {
           const { data: cartData } = await supabase.from('carts').select('items').eq('user_id', buyerId).maybeSingle();
@@ -226,12 +283,14 @@ export default async function handler(req, res) {
       }
 
       // --- DISPARO DE E-MAILS DE CONFIRMAÇÃO ---
-      const totalAmountFormatted = `R$ ${(Number(orderData.total || 0) / 100).toFixed(2).replace('.', ',')}`;
-      const siteUrl = process.env.VITE_SITE_URL || 'https://www.fotoclic.com.br';
-      const methodFormatted = (orderData.payment_method || 'PIX').toUpperCase();
+      // Disparar apenas se houver fotos e vendas registradas com sucesso
+      if (photos.length > 0 && insertedCount > 0) {
+        const totalAmountFormatted = `R$ ${(Number(orderData.total || 0) / 100).toFixed(2).replace('.', ',')}`;
+        const siteUrl = process.env.VITE_SITE_URL || 'https://www.fotoclic.com.br';
+        const methodFormatted = (orderData.payment_method || 'PIX').toUpperCase();
 
-      // 1. E-mail Completo para o Comprador (com Preview, Nome da Foto, Fotógrafo e Link)
-      if (customerEmail) {
+        // 1. E-mail Completo para o Comprador (com Preview, Nome da Foto, Fotógrafo e Link)
+        if (customerEmail) {
         const photoListHtml = photos.map(p => {
           const photogName = photographerMap[p.photographer_id]?.name || 'Fotógrafo FotoClic';
           const priceFormatted = `R$ ${(Number(p.price) || 0).toFixed(2).replace('.', ',')}`;
@@ -371,8 +430,6 @@ export default async function handler(req, res) {
               html: photogHtml
             });
           }
-        } catch (err) {
-          console.warn('[Appmax Webhook] Falha ao notificar fotógrafo:', err);
         }
       }
 

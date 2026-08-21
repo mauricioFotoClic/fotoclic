@@ -185,7 +185,34 @@ export default async function handler(req, res) {
       split: splitRules.length > 0 ? splitRules : undefined
     });
 
-    const orderId = appmaxOrder.id;
+    const orderId = String(appmaxOrder.id || appmaxOrder.order_id || appmaxOrder);
+
+    // Salvar o pedido no banco de dados para rastreamento infalível do webhook e sincronização
+    try {
+      await supabase.from('abacate_pay_billings').upsert({
+        billing_id: orderId,
+        user_id: customer.userId || null,
+        amount: Math.round(finalOrderTotal * 100),
+        status: 'PENDING',
+        items: photoIds,
+        customer_name: customer.name,
+        customer_email: (customer.email || '').toLowerCase().trim(),
+        customer_cpf: (customer.cpf || customer.taxId || '').replace(/\D/g, ''),
+        payment_method: paymentMethod.toUpperCase(),
+        terms_accepted: true,
+        metadata: {
+          userId: customer.userId || null,
+          photoIds: photoIds,
+          cartIds: photoIds,
+          total: finalOrderTotal,
+          couponCode: couponCode || null,
+          gateway: 'appmax',
+          created_at: new Date().toISOString()
+        }
+      }, { onConflict: 'billing_id' });
+    } catch (dbErr) {
+      console.warn('[Appmax Checkout] Falha ao registrar billing prévio no banco:', dbErr);
+    }
 
     // 8. Processar Pagamento (PIX ou Cartão)
     if (paymentMethod === 'pix') {

@@ -190,8 +190,19 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
         let isMounted = true;
         const intervalId = setInterval(async () => {
             try {
+                // Tenta sincronizar compras em background para liberação imediata
+                const session = await api.getSession();
+                if (session?.access_token) {
+                    await fetch('/api/get-download-url?action=sync-purchases', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${session.access_token}`
+                        }
+                    }).catch(() => {});
+                }
+
                 const purchases = await api.getPurchasesByUserId(currentUser.id);
-                const isPaid = photos.some(p => purchases.some(item => item.photo.id === p.id));
+                const isPaid = photos.some(p => purchases.some(item => item.id === p.id || (item as any).photo_id === p.id));
                 if (isPaid && isMounted) {
                     clearInterval(intervalId);
                     localStorage.removeItem('appliedCoupon');
@@ -232,6 +243,7 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
                 couponCode: appliedCoupon?.code,
                 paymentMethod: paymentMethod,
                 customer: {
+                    userId: currentUser.id,
                     name: currentUser.name || cardHolder,
                     email: currentUser.email,
                     cpf: cpf.replace(/\D/g, ''),
