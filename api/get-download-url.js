@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import appmax from './lib/appmax-client.js';
+import { sendSaleNotifications } from './lib/sale-notifications.js';
 
 export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Credentials', true);
@@ -345,6 +346,16 @@ async function handleGetPurchases(req, res, userJwt, supabaseUrl, serviceKey) {
                                             sale_date: new Date().toISOString()
                                         });
                                     }
+
+                                    // Disparar notificações de e-mail para comprador, admin (svalmauricio@gmail.com) e fotógrafo
+                                    await sendSaleNotifications({
+                                        orderId: pending.billing_id,
+                                        buyerName: pending.customer_name || user.user_metadata?.name || 'Cliente',
+                                        customerEmail: pending.customer_email || user.email,
+                                        totalAmount: Number(pending.amount) / 100 || photos.reduce((acc, p) => acc + (Number(p.price) || 0), 0),
+                                        photos: photos,
+                                        supabase: supabase
+                                    }).catch(e => console.warn('[GetPurchases Email Error]:', e.message));
                                 }
                             }
                         } catch (errOne) {
