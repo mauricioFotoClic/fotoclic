@@ -210,41 +210,117 @@ export default async function handler(req, res) {
         }
       }
 
+      // Buscar dados dos fotógrafos para inclusão no e-mail
+      const photographerIds = [...new Set(photos.map(p => p.photographer_id).filter(Boolean))];
+      let photographerMap = {};
+      if (photographerIds.length > 0) {
+        const { data: photogList } = await supabase
+          .from('users')
+          .select('id, name, email')
+          .in('id', photographerIds);
+        if (photogList) {
+          photogList.forEach(ph => {
+            photographerMap[ph.id] = ph;
+          });
+        }
+      }
+
       // --- DISPARO DE E-MAILS DE CONFIRMAÇÃO ---
       const totalAmountFormatted = `R$ ${(Number(orderData.total || 0) / 100).toFixed(2).replace('.', ',')}`;
+      const siteUrl = process.env.VITE_SITE_URL || 'https://www.fotoclic.com.br';
+      const methodFormatted = (orderData.payment_method || 'PIX').toUpperCase();
 
-      // 1. E-mail para o Comprador
+      // 1. E-mail Completo para o Comprador (com Preview, Nome da Foto, Fotógrafo e Link)
       if (customerEmail) {
-        const photoListHtml = photos.map(p => `
-          <div style="display: flex; align-items: center; margin-bottom: 12px; padding: 10px; background: #f9fafb; border-radius: 8px; border: 1px solid #edf2f7;">
-            ${p.preview_url ? `<img src="${p.preview_url}" width="60" height="60" style="object-fit: cover; border-radius: 4px; margin-right: 12px;" />` : ''}
-            <div>
-              <div style="font-weight: bold; color: #2d3748; font-size: 14px;">${p.title || 'Foto Digital'}</div>
-              <div style="color: #718096; font-size: 12px;">R$ ${(Number(p.price) || 0).toFixed(2).replace('.', ',')}</div>
-            </div>
-          </div>
-        `).join('');
-
-        const buyerHtml = `
-          <div style="font-family: sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 12px; overflow: hidden;">
-            <div style="background-color: #FF6B00; padding: 24px 20px; text-align: center;">
-              <h1 style="color: white; margin: 0; font-size: 22px;">Pagamento Confirmado! 📸</h1>
-            </div>
-            <div style="padding: 24px;">
-              <p>Olá, <strong>${buyerName}</strong>!</p>
-              <p>Seu pagamento foi confirmado com sucesso. Suas fotos já estão liberadas em alta resolução para download!</p>
-              <div style="margin: 20px 0;">${photoListHtml}</div>
-              <div style="text-align: center; margin: 30px 0;">
-                <a href="${process.env.VITE_SITE_URL || 'https://www.fotoclic.com.br'}/minhas-compras" style="background-color: #FF6B00; color: white; padding: 14px 28px; text-decoration: none; border-radius: 30px; font-weight: bold; display: inline-block;">
-                  Baixar Minhas Fotos
-                </a>
+        const photoListHtml = photos.map(p => {
+          const photogName = photographerMap[p.photographer_id]?.name || 'Fotógrafo FotoClic';
+          const priceFormatted = `R$ ${(Number(p.price) || 0).toFixed(2).replace('.', ',')}`;
+          return `
+            <div style="display: flex; align-items: center; margin-bottom: 14px; padding: 14px; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0;">
+              ${p.preview_url ? `
+                <img src="${p.preview_url}" width="75" height="75" style="object-fit: cover; border-radius: 8px; border: 1px solid #cbd5e1; display: block; margin-right: 14px;" alt="${p.title || 'Foto'}" />
+              ` : `
+                <div style="width: 75px; height: 75px; background: #e2e8f0; border-radius: 8px; display: inline-block; margin-right: 14px; text-align: center; line-height: 75px; font-size: 24px;">📷</div>
+              `}
+              <div style="display: inline-block; vertical-align: middle;">
+                <div style="font-weight: bold; color: #1e293b; font-size: 15px; margin-bottom: 4px;">
+                  ${p.title || 'Foto Digital em Alta Resolução'}
+                </div>
+                <div style="color: #64748b; font-size: 13px; margin-bottom: 4px;">
+                  📸 Fotógrafo: <strong style="color: #334155;">${photogName}</strong>
+                </div>
+                <div style="font-weight: bold; color: #FF6B00; font-size: 14px;">
+                  ${priceFormatted}
+                </div>
               </div>
             </div>
-          </div>`;
+          `;
+        }).join('');
+
+        const buyerHtml = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          </head>
+          <body style="margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+            <div style="max-width: 600px; margin: 30px auto; background: #ffffff; border-radius: 16px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 4px 20px rgba(0,0,0,0.06);">
+              
+              <!-- Header com Logo FotoClic -->
+              <div style="background: #ffffff; padding: 28px 24px 20px; text-align: center; border-bottom: 1px solid #f1f5f9;">
+                <h1 style="margin: 0; font-size: 28px; font-weight: 800; color: #1e293b; letter-spacing: -0.5px;">
+                  Foto<span style="color: #FF6B00;">Clic</span>
+                </h1>
+              </div>
+
+              <!-- Conteúdo Principal -->
+              <div style="padding: 32px 28px;">
+                <p style="font-size: 16px; color: #334155; margin-top: 0; margin-bottom: 8px;">
+                  Olá, <strong style="color: #0f172a;">${buyerName}</strong>!
+                </p>
+                <h2 style="font-size: 22px; font-weight: 700; color: #0f172a; margin-top: 0; margin-bottom: 14px;">
+                  Recebemos seu pagamento pelo ${methodFormatted}. 🎉
+                </h2>
+                <p style="font-size: 15px; color: #475569; margin-bottom: 24px;">
+                  Valor Recebido: <strong style="font-size: 16px; color: #FF6B00;">${totalAmountFormatted}</strong>
+                </p>
+
+                <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: #94a3b8; letter-spacing: 0.5px; margin-bottom: 12px;">
+                  Itens do seu pedido (#${orderId})
+                </div>
+
+                <!-- Lista de Fotos com Preview, Nome e Fotógrafo -->
+                <div style="margin-bottom: 24px;">
+                  ${photoListHtml}
+                </div>
+
+                <!-- Botão de Ação para o Painel do Cliente -->
+                <div style="text-align: center; margin: 32px 0 24px;">
+                  <a href="${siteUrl}/minhas-compras" style="background-color: #FF6B00; color: #ffffff; padding: 16px 36px; text-decoration: none; border-radius: 50px; font-size: 15px; font-weight: bold; display: inline-block; box-shadow: 0 4px 14px rgba(255, 107, 0, 0.35);">
+                    📥 Acessar Meu Painel e Baixar Fotos
+                  </a>
+                </div>
+
+                <div style="background: #f8fafc; border-radius: 10px; padding: 16px; border: 1px solid #e2e8f0; font-size: 13px; color: #64748b; line-height: 1.5;">
+                  💡 Suas fotos já estão disponíveis em alta definição no seu painel. Basta clicar no botão acima para fazer o download a qualquer momento.
+                </div>
+              </div>
+
+              <!-- Rodapé -->
+              <div style="background: #f8fafc; padding: 20px 24px; text-align: center; border-top: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8;">
+                <p style="margin: 0 0 6px 0;">FotoClic &bull; Conectando momentos inesquecíveis e fotógrafos</p>
+                <p style="margin: 0;"><a href="${siteUrl}" style="color: #FF6B00; text-decoration: none;">www.fotoclic.com.br</a></p>
+              </div>
+
+            </div>
+          </body>
+          </html>
+        `;
 
         await sendLocawebEmail({
           to: customerEmail,
-          subject: '✅ Pagamento Confirmado - Suas fotos estão prontas no FotoClic!',
+          subject: `✅ Pagamento confirmado - Suas fotos estão prontas! (Pedido #${orderId})`,
           html: buyerHtml
         });
       }
