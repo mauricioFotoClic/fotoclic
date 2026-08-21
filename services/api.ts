@@ -2866,7 +2866,15 @@ export const api = {
   },
   getAdminStats: async (): Promise<any> => {
     try {
-      const { data: rpcData } = await supabase.rpc("get_admin_stats").catch(() => ({ data: null }));
+      let rpcData: any = null;
+      try {
+        const res = await supabase.rpc("get_admin_stats");
+        if (res && res.data) {
+          rpcData = res.data;
+        }
+      } catch (e) {
+        console.warn("RPC get_admin_stats warning:", e);
+      }
       
       const [salesRes, photogsRes, categoriesRes, photosRes] = await Promise.all([
         supabase.from("sales").select("price, photographer_id, status"),
@@ -2935,7 +2943,16 @@ export const api = {
       };
     } catch (error) {
       console.error("Error fetching admin stats:", error);
-      throw error;
+      return {
+        totalRevenue: 0,
+        salesCount: 0,
+        activePhotographersCount: 0,
+        notIndexedPhotosCount: 0,
+        topPhotographers: [],
+        categoryPhotoCount: [],
+        totalPhotos: 0,
+        totalCustomers: 0
+      };
     }
   },
   getSales: async (): Promise<Sale[]> => {
