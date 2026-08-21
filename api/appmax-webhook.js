@@ -20,6 +20,11 @@ export default async function handler(req, res) {
       status: 'healthy',
       platform: 'FotoClic',
       external_id: externalId,
+      alias: 'FotoClic',
+      data: {
+        external_id: externalId,
+        alias: 'FotoClic'
+      },
       timestamp: new Date().toISOString()
     });
   }
@@ -41,11 +46,16 @@ export default async function handler(req, res) {
 
     if (!orderId) {
       const externalId = crypto.randomUUID ? crypto.randomUUID() : 'fotoclic-' + Date.now();
-      console.warn('[Appmax Webhook] Pedido sem ID no payload (validação / ping).');
+      console.warn('[Appmax Webhook] Health Check / Ping recebido da Appmax.');
       return res.status(200).json({
         received: true,
         status: 'healthy',
         external_id: externalId,
+        alias: 'FotoClic',
+        data: {
+          external_id: externalId,
+          alias: 'FotoClic'
+        },
         note: 'Webhook active'
       });
     }
