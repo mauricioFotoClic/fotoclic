@@ -3,7 +3,7 @@ import { Photo, User, Page, Coupon, BulkDiscountRule } from '../types';
 import api from '../services/api';
 import Spinner from '../components/Spinner';
 import { useLanguage } from '../contexts/LanguageContext';
-import { QrCode, CreditCard, Copy, Check, ShieldCheck, AlertCircle, ArrowLeft } from 'lucide-react';
+import { QrCode, CreditCard, Copy, Check, ShieldCheck, AlertCircle, ArrowLeft, RefreshCw } from 'lucide-react';
 
 interface CheckoutPageProps {
     cartItemIds: string[];
@@ -28,6 +28,8 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
     const [groupedCart, setGroupedCart] = useState<CartGrouping[]>([]);
     const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
+    const [isVerifyingPix, setIsVerifyingPix] = useState(false);
+    const [pixVerificationMsg, setPixVerificationMsg] = useState<string | null>(null);
     const [termsAccepted, setTermsAccepted] = useState(false);
     const [paymentMethod, setPaymentMethod] = useState<'pix' | 'credit_card'>('pix');
     const [paymentError, setPaymentError] = useState<string | null>(null);
@@ -202,13 +204,14 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
                 }
 
                 const purchases = await api.getPurchasesByUserId(currentUser.id);
-                const isPaid = photos.some(p => purchases.some(item => item.id === p.id || (item as any).photo_id === p.id));
+                const currentCartIds = photos.map(p => p.id);
+                const isPaid = currentCartIds.some(pId => purchases.some(item => item.id === pId || (item as any).photo_id === pId));
                 if (isPaid && isMounted) {
                     clearInterval(intervalId);
                     localStorage.removeItem('appliedCoupon');
                     localStorage.removeItem('cartItems');
                     onPurchaseComplete();
-                    onNavigate({ name: 'checkout-success' });
+                    onNavigate({ name: 'checkout-success', photoIds: currentCartIds });
                 }
             } catch (err) {
                 console.warn("[Checkout] Verificando confirmação do PIX...", err);
@@ -220,6 +223,46 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
             clearInterval(intervalId);
         };
     }, [pixData, currentUser, photos, onPurchaseComplete, onNavigate]);
+
+    // Verificação manual sob demanda (quando o usuário clica no botão)
+    const handleManualVerifyPayment = async () => {
+        if (!currentUser) return;
+        try {
+            setIsVerifyingPix(true);
+            setPixVerificationMsg(null);
+
+            // Sincroniza em background
+            const session = await api.getSession();
+            if (session?.access_token) {
+                await fetch('/api/get-download-url?action=sync-purchases', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${session.access_token}`
+                    }
+                }).catch(() => {});
+            }
+
+            const purchases = await api.getPurchasesByUserId(currentUser.id);
+            const currentCartIds = photos.map(p => p.id);
+            const isPaid = currentCartIds.some(pId => 
+                purchases.some(item => item.id === pId || (item as any).photo_id === pId)
+            );
+
+            if (isPaid) {
+                localStorage.removeItem('appliedCoupon');
+                localStorage.removeItem('cartItems');
+                onPurchaseComplete();
+                onNavigate({ name: 'checkout-success', photoIds: currentCartIds });
+            } else {
+                setPixVerificationMsg("Pagamento ainda não confirmado pelo banco. Se você já realizou o PIX no app do seu banco, aguarde alguns instantes pela compensação automática.");
+            }
+        } catch (err) {
+            console.error("Erro ao verificar status do PIX:", err);
+            setPixVerificationMsg("Não foi possível confirmar o pagamento no momento. Tente novamente em instantes.");
+        } finally {
+            setIsVerifyingPix(false);
+        }
+    };
 
     // Checkout Submit
     const handleCheckoutSubmit = async (e: React.FormEvent) => {
@@ -395,22 +438,28 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ cartItemIds, currentUser, o
                                                         {copiedPix ? 'Copiado!' : 'Copiar'}
                                                     </button>
                                                 </div>
-                                            </div>
-
-                                            <div className="pt-4 border-t border-neutral-100 flex items-center justify-between text-xs text-neutral-500">
-                                                <span className="flex items-center gap-1">
-                                                    <Spinner size="sm" /> Aguardando confirmação...
-                                                </span>
-                                                <button
-                                                    onClick={() => {
-                                                        localStorage.removeItem('appliedCoupon');
-                                                        onPurchaseComplete();
-                                                        onNavigate({ name: 'checkout-success' });
-                                                    }}
-                                                    className="text-primary font-bold hover:underline"
-                                                >
-                                                    Já realizei o pagamento
-                                                </button>
+                                                <div className="pt-4 border-t border-neutral-100 flex flex-col gap-2.5">
+                                                    <div className="flex items-center justify-between text-xs text-neutral-500">
+                                                        <span className="flex items-center gap-1.5 font-medium">
+                                                            <Spinner size="sm" /> Aguardando confirmação do banco...
+                                                        </span>
+                                                        <button
+                                                            type="button"
+                                                            disabled={isVerifyingPix}
+                                                            onClick={handleManualVerifyPayment}
+                                                            className="text-primary font-bold hover:underline disabled:opacity-50 flex items-center gap-1 cursor-pointer"
+                                                        >
+                                                            {isVerifyingPix && <Spinner size="sm" />}
+                                                            {isVerifyingPix ? 'Verificando...' : 'Já realizei o pagamento'}
+                                                        </button>
+                                                    </div>
+                                                    {pixVerificationMsg && (
+                                                        <div className="p-3 bg-amber-50 border border-amber-200 text-amber-900 rounded-xl text-xs flex items-start gap-2 animate-in fade-in">
+                                                            <span className="text-base leading-none">⏳</span>
+                                                            <span className="flex-grow font-medium leading-relaxed">{pixVerificationMsg}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     ) : (

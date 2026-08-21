@@ -597,7 +597,7 @@ const MainApp: React.FC = () => {
             case 'checkout':
                 return <CheckoutPage cartItemIds={cartItems} currentUser={currentUser} onPurchaseComplete={handlePurchaseComplete} onNavigate={handleNavigate} />;
             case 'checkout-success':
-                return <CheckoutSuccessPage currentUser={currentUser} onClearCart={() => setCartItems([])} onNavigate={handleNavigate} />;
+                return <CheckoutSuccessPage currentUser={currentUser} purchasedPhotoIds={currentPage.name === 'checkout-success' ? currentPage.photoIds : undefined} onClearCart={() => setCartItems([])} onNavigate={handleNavigate} />;
             case 'welcome':
                 return <WelcomePage onNavigate={handleNavigate} role={currentPage.name === 'welcome' ? currentPage.role : undefined} />;
 

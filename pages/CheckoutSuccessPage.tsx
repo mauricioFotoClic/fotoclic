@@ -6,11 +6,12 @@ import { trackPurchaseConversion } from '../utils/tracking';
 
 interface CheckoutSuccessPageProps {
     currentUser: User | null;
+    purchasedPhotoIds?: string[];
     onClearCart: () => void;
     onNavigate: (page: Page) => void;
 }
 
-const CheckoutSuccessPage: React.FC<CheckoutSuccessPageProps> = ({ currentUser, onClearCart, onNavigate }) => {
+const CheckoutSuccessPage: React.FC<CheckoutSuccessPageProps> = ({ currentUser, purchasedPhotoIds, onClearCart, onNavigate }) => {
     const [purchases, setPurchases] = useState<PurchasedPhoto[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -21,6 +22,21 @@ const CheckoutSuccessPage: React.FC<CheckoutSuccessPageProps> = ({ currentUser, 
         onClearCart();
     }, [onClearCart]);
 
+    const displayedPurchases = React.useMemo(() => {
+        if (purchasedPhotoIds && purchasedPhotoIds.length > 0) {
+            const filtered = purchases.filter(p => purchasedPhotoIds.includes(p.id) || purchasedPhotoIds.includes((p as any).photo_id));
+            if (filtered.length > 0) return filtered;
+        }
+        // Fallback: mostrar fotos compradas recentemente nos últimos 15 minutos
+        const now = new Date();
+        const recent = purchases.filter(p => {
+            const purchaseTime = new Date(p.purchase_date);
+            const diffMinutes = (now.getTime() - purchaseTime.getTime()) / (1000 * 60);
+            return diffMinutes < 15;
+        });
+        return recent.length > 0 ? recent : purchases;
+    }, [purchases, purchasedPhotoIds]);
+
     useEffect(() => {
         const loadRecentPurchases = async () => {
             if (!currentUser) {
@@ -30,10 +46,9 @@ const CheckoutSuccessPage: React.FC<CheckoutSuccessPageProps> = ({ currentUser, 
             try {
                 setLoading(true);
                 
-                // Tenta sincronizar compras pendentes do webhook, caso o redirect tenha sido mais rápido que o webhook do Abacate Pay
+                // Tenta sincronizar compras pendentes do webhook
                 const session = await api.getSession();
                 if (session?.access_token) {
-                    // Executamos sem await para não bloquear o carregamento da tela
                     fetch('/api/get-download-url?action=sync-purchases', {
                         method: 'POST',
                         headers: {
@@ -41,7 +56,6 @@ const CheckoutSuccessPage: React.FC<CheckoutSuccessPageProps> = ({ currentUser, 
                         }
                     })
                     .then(() => {
-                        // Recarrega as compras após a sincronização terminar em background
                         api.getPurchasesByUserId(currentUser.id).then(recentData => {
                             setPurchases(recentData);
                         });
@@ -50,8 +64,6 @@ const CheckoutSuccessPage: React.FC<CheckoutSuccessPageProps> = ({ currentUser, 
                 }
 
                 const data = await api.getPurchasesByUserId(currentUser.id);
-                // Vamos mostrar apenas as compras mais recentes (limitando às que foram processadas agora)
-                // A API getPurchasesByUserId já retorna por data desc (as mais novas primeiro)
                 setPurchases(data);
 
                 // Disparo de Conversão de Compra (Google Ads + Meta Pixel)
@@ -145,9 +157,9 @@ const CheckoutSuccessPage: React.FC<CheckoutSuccessPageProps> = ({ currentUser, 
                         <Spinner size="lg" />
                         <p className="mt-4 text-neutral-500 font-medium">Preparando suas fotos em alta resolução...</p>
                     </div>
-                ) : purchases.length === 0 ? (
+                ) : displayedPurchases.length === 0 ? (
                     <div className="text-center py-10 bg-white rounded-2xl shadow-sm border border-neutral-200">
-                        <p className="text-neutral-500 mb-4">Ainda processando o seu pagamento ou liberando as fotos. Se demorar, atualize a página.</p>
+                        <p className="text-neutral-500 mb-4">Ainda processando a confirmação do pagamento. Assim que compensado, suas fotos aparecerão aqui automaticamente.</p>
                         <button
                             onClick={() => window.location.reload()}
                             className="px-6 py-2 bg-primary text-white rounded-full hover:bg-primary-dark transition-colors font-bold"
@@ -164,7 +176,7 @@ const CheckoutSuccessPage: React.FC<CheckoutSuccessPageProps> = ({ currentUser, 
                             Fotos Liberadas
                         </h2>
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-                            {purchases.map(photo => (
+                            {displayedPurchases.map(photo => (
                                 <div key={photo.sale_id} className="bg-neutral-50 rounded-xl overflow-hidden border border-neutral-200 flex flex-col shadow-sm hover:shadow-md transition-all">
                                     <div className="h-40 bg-neutral-200 relative">
                                         <img

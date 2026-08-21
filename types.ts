@@ -283,7 +283,7 @@ export type PageRoute =
   { name: 'photographers' } |
   { name: 'cart' } |
   { name: 'checkout' } |
-  { name: 'checkout-success' } |
+  { name: 'checkout-success'; photoIds?: string[] } |
   { name: 'welcome'; role?: 'photographer' | 'customer' | 'pending-approval' } |
 
   { name: 'face-search' } |
