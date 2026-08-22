@@ -41,22 +41,18 @@ export default async function handler(req, res) {
           })
         });
 
-        // 2. Mensagem de Deploy Concluído
-        setTimeout(async () => {
-          try {
-            await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                chat_id: chatId,
-                text: '🎉 *Deploy Concluído com Sucesso!*\n\n✅ A correção foi publicada e já está ativa em produção no FotoClic.\n🌐 *Status:* Site 100% online e operacional.',
-                parse_mode: 'Markdown'
-              })
-            });
-          } catch (e) {
-            console.error('[Telegram Deploy Notification Error]:', e);
-          }
-        }, 3000);
+        // 2. Aguarda e envia confirmação de Deploy Concluído
+        await new Promise(resolve => setTimeout(resolve, 2500));
+
+        await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: chatId,
+            text: '🎉 *Deploy Concluído com Sucesso!*\n\n✅ A correção foi publicada e já está ativa em produção no FotoClic.\n🌐 *Status:* Site 100% online e operacional.',
+            parse_mode: 'Markdown'
+          })
+        });
       } else if (data.startsWith('fix_ignore_')) {
         await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, {
           method: 'POST',
