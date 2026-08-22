@@ -217,10 +217,10 @@ const PhotographerPayouts: React.FC<PhotographerPayoutsProps> = ({ user }) => {
                                 </div>
                                 <p className="text-lg font-mono bg-neutral-50 px-3 py-1 rounded border border-neutral-200 inline-block text-neutral-800">{user.pix_key || bankInfo.pixKey}</p>
                                 <p className="text-[10px] text-neutral-400 mt-1 italic">
-                                    * Será descontada uma taxa de R$ 0,80 por saque Pix no ato da transferência.
+                                    * Pagamentos transferidos diretamente via Split de Pagamentos Appmax.
                                 </p>
                                 <p className="text-xs text-green-600 mt-2 flex items-center">
-                                    <CheckCircleIcon /> <span className="ml-1">Conta configurada para saques automáticos.</span>
+                                    <CheckCircleIcon /> <span className="ml-1">Conta configurada para repasses automáticos.</span>
                                 </p>
                             </div>
                         ) : (
@@ -246,18 +246,16 @@ const PhotographerPayouts: React.FC<PhotographerPayoutsProps> = ({ user }) => {
                 </div>
                 <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-4">
                     <div>
-                        <h3 className="font-bold text-xl mb-1">Status de Pagamento Automático</h3>
+                        <h3 className="font-bold text-xl mb-1">Split de Pagamento & Repasse Automático</h3>
                         <p className="text-emerald-100 text-sm max-w-md">
-                            O sistema processa saques automaticamente sempre que seu **Saldo Disponível** atinge **R$ 100,00**, respeitando sua frequência escolhida. Os pagamentos com frequência diária são processados todos os dias à meia-noite.
-                            <span className="block mt-1 font-bold text-white bg-emerald-700/50 p-2 rounded inline-block">⚠️ No ato do saque, uma taxa de R$ 0,80 será descontada.</span>
+                            O FotoClic utiliza a tecnologia de <strong>Split de Pagamentos da Appmax</strong>. Seus ganhos líquidos são transferidos com total segurança para sua chave PIX com frequência diária, semanal ou mensal.
+                            <span className="block mt-2 font-medium text-emerald-100 bg-emerald-700/40 p-2 rounded text-xs">⚡ Repasses diários são processados automaticamente após a liberação dos recebíveis.</span>
                         </p>
                     </div>
                     <div className="text-center md:text-right">
-                        <p className="text-sm text-emerald-100 uppercase tracking-wider font-bold mb-1">Próximo Gatilho</p>
-                        <p className="text-2xl font-display font-bold">
-                            {balance && balance.balance_available && balance.balance_available >= 100 
-                                ? 'Pronto para Saque!' 
-                                : `Faltam ${(100 - (balance?.balance_available || 0)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`}
+                        <p className="text-sm text-emerald-100 uppercase tracking-wider font-bold mb-1">Saldo Disponível</p>
+                        <p className="text-3xl font-display font-bold text-white">
+                            {(balance?.balance_available || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                         </p>
                     </div>
                 </div>

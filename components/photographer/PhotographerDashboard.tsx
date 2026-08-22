@@ -135,7 +135,12 @@ const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({ user, set
                     const saleLocalDate = `${sYear}-${sMonth}-${sDay}`;
                     return saleLocalDate === date;
                 })
-                .reduce((sum, sale) => sum + Math.max(0, Number(sale.price) - Number(sale.commission) - 1.00), 0);
+                .reduce((sum, sale) => {
+                    const price = Number(sale.price) || 0;
+                    const commission = Number(sale.commission) || (price * 0.06);
+                    const gatewayFee = (price * 0.0099) + 0.49;
+                    return sum + Math.max(0, price - commission - gatewayFee);
+                }, 0);
             return { date, total };
         });
         return dailySales;
@@ -332,7 +337,7 @@ const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({ user, set
                                         <p className="text-xs text-neutral-500">{new Date(sale.sale_date).toLocaleDateString('pt-BR')}</p>
                                     </div>
                                     <span className="font-bold text-green-600 text-sm">
-                                        +{Math.max(0, Number(sale.price) - Number(sale.commission) - 1.00).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                        +{Math.max(0, Number(sale.price) - Number(sale.commission) - ((Number(sale.price) * 0.0099) + 0.49)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                                     </span>
                                 </div>
                             );

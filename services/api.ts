@@ -778,8 +778,11 @@ export const api = {
       if (photographerSales && photographerSales.length > 0) {
         photographerSales.forEach((s: any) => {
           if (s.payout_id === null && s.status !== "refunded") {
-            const gatewayFee = 1.00; // Taxa de processamento por entrada de transação
-            const net = Math.max(0, (Number(s.price) || 0) - (Number(s.commission) || 0) - gatewayFee);
+            const price = Number(s.price) || 0;
+            const commission = Number(s.commission) || (price * 0.06);
+            // Taxa oficial negociada Appmax PIX: 0,99% + R$ 0,49
+            const gatewayFee = (price * 0.0099) + 0.49;
+            const net = Math.max(0, price - commission - gatewayFee);
             if (s.is_available) {
               calcAvailable += net;
             } else {

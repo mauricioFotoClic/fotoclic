@@ -93,7 +93,8 @@ const PhotographerSales: React.FC<PhotographerSalesProps> = ({ user }) => {
             <div className="md:hidden space-y-3">
                 {paginatedSales.map((sale) => {
                     const photo = getPhotoInfo(sale);
-                    const earning = Math.max(0, Number(sale.price) - Number(sale.commission) - 1.00);
+                    const gatewayFee = (Number(sale.price) * 0.0099) + 0.49;
+                    const earning = Math.max(0, Number(sale.price) - Number(sale.commission) - gatewayFee);
                     return (
                         <div 
                             key={sale.id} 
@@ -172,7 +173,8 @@ const PhotographerSales: React.FC<PhotographerSalesProps> = ({ user }) => {
                     <tbody>
                         {paginatedSales.map((sale, index) => {
                              const photo = getPhotoInfo(sale);
-                             const earning = Math.max(0, Number(sale.price) - Number(sale.commission) - 1.00);
+                             const gatewayFee = (Number(sale.price) * 0.0099) + 0.49;
+                             const earning = Math.max(0, Number(sale.price) - Number(sale.commission) - gatewayFee);
                              const cleanPhone = sale.buyer_phone ? sale.buyer_phone.replace(/\D/g, '') : '';
                              const whatsappUrl = cleanPhone ? `https://wa.me/${cleanPhone.startsWith('55') ? cleanPhone : '55' + cleanPhone}` : null;
 
@@ -369,12 +371,12 @@ const PhotographerSales: React.FC<PhotographerSalesProps> = ({ user }) => {
                                         <span>- {selectedSale.commission.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
                                     </div>
                                     <div className="flex justify-between border-b border-neutral-200 pb-1.5 text-red-600">
-                                        <span>Taxa de Processamento Gateway:</span>
-                                        <span>- {(1.00).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                                        <span>Taxa Gateway Appmax (0,99% + R$ 0,49):</span>
+                                        <span>- {((Number(selectedSale.price) * 0.0099) + 0.49).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
                                     </div>
                                     <div className="flex justify-between pt-1 text-base font-bold text-emerald-700">
                                         <span>Seu Ganho Líquido:</span>
-                                        <span>{Math.max(0, selectedSale.price - selectedSale.commission - 1.00).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                                        <span>{Math.max(0, selectedSale.price - selectedSale.commission - ((Number(selectedSale.price) * 0.0099) + 0.49)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
                                     </div>
                                 </div>
                             </div>
