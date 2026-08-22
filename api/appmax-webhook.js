@@ -201,7 +201,9 @@ export default async function handler(req, res) {
         console.warn(`[Appmax Webhook] Nenhuma foto correspondente encontrada para o pedido ${orderId}.`);
       }
 
-      const holdDays = (orderData.payment_method || '').toLowerCase().includes('card') ? 30 : 7;
+      const isCard = (orderData.payment_method || '').toLowerCase().includes('card');
+      const holdDays = isCard ? 30 : 0;
+      const isAvailable = !isCard; // PIX fica disponível imediatamente (D+0)
       const availableAtDate = new Date(Date.now() + (holdDays * 24 * 60 * 60 * 1000)).toISOString();
 
       let insertedCount = 0;
@@ -222,7 +224,7 @@ export default async function handler(req, res) {
           commission_rate: rate,
           sale_date: new Date().toISOString(),
           available_at: availableAtDate,
-          is_available: false,
+          is_available: isAvailable,
           billing_id: orderId,
           status: 'completed'
         }, { onConflict: 'photo_id, buyer_id', ignoreDuplicates: true });
