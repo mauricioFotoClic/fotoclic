@@ -778,7 +778,8 @@ export const api = {
       if (photographerSales && photographerSales.length > 0) {
         photographerSales.forEach((s: any) => {
           if (s.payout_id === null && s.status !== "refunded") {
-            const net = (s.price || 0) - (s.commission || 0);
+            const gatewayFee = 1.00; // Taxa de processamento por entrada de transação
+            const net = Math.max(0, (Number(s.price) || 0) - (Number(s.commission) || 0) - gatewayFee);
             if (s.is_available) {
               calcAvailable += net;
             } else {

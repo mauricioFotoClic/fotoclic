@@ -93,7 +93,7 @@ const PhotographerSales: React.FC<PhotographerSalesProps> = ({ user }) => {
             <div className="md:hidden space-y-3">
                 {paginatedSales.map((sale) => {
                     const photo = getPhotoInfo(sale);
-                    const earning = sale.price - sale.commission;
+                    const earning = Math.max(0, Number(sale.price) - Number(sale.commission) - 1.00);
                     return (
                         <div 
                             key={sale.id} 
@@ -172,7 +172,7 @@ const PhotographerSales: React.FC<PhotographerSalesProps> = ({ user }) => {
                     <tbody>
                         {paginatedSales.map((sale, index) => {
                              const photo = getPhotoInfo(sale);
-                             const earning = sale.price - sale.commission;
+                             const earning = Math.max(0, Number(sale.price) - Number(sale.commission) - 1.00);
                              const cleanPhone = sale.buyer_phone ? sale.buyer_phone.replace(/\D/g, '') : '';
                              const whatsappUrl = cleanPhone ? `https://wa.me/${cleanPhone.startsWith('55') ? cleanPhone : '55' + cleanPhone}` : null;
 
@@ -364,13 +364,17 @@ const PhotographerSales: React.FC<PhotographerSalesProps> = ({ user }) => {
                                         <span className="text-neutral-600">Valor da Foto:</span>
                                         <span className="font-bold text-neutral-900">{selectedSale.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
                                     </div>
-                                    <div className="flex justify-between border-b border-neutral-200 pb-1.5 text-red-600">
-                                        <span>Taxa da Plataforma ({((selectedSale.commission / selectedSale.price) * 100).toFixed(0)}%):</span>
+                                    <div className="flex justify-between border-b border-neutral-200 pb-1.5 text-amber-700">
+                                        <span>Taxa FotoClic ({((selectedSale.commission / selectedSale.price) * 100).toFixed(0)}%):</span>
                                         <span>- {selectedSale.commission.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                                    </div>
+                                    <div className="flex justify-between border-b border-neutral-200 pb-1.5 text-red-600">
+                                        <span>Taxa de Processamento Gateway:</span>
+                                        <span>- {(1.00).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
                                     </div>
                                     <div className="flex justify-between pt-1 text-base font-bold text-emerald-700">
                                         <span>Seu Ganho Líquido:</span>
-                                        <span>{(selectedSale.price - selectedSale.commission).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                                        <span>{Math.max(0, selectedSale.price - selectedSale.commission - 1.00).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
                                     </div>
                                 </div>
                             </div>

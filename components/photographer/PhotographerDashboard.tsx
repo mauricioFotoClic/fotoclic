@@ -135,7 +135,7 @@ const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({ user, set
                     const saleLocalDate = `${sYear}-${sMonth}-${sDay}`;
                     return saleLocalDate === date;
                 })
-                .reduce((sum, sale) => sum + (Number(sale.price) - Number(sale.commission)), 0);
+                .reduce((sum, sale) => sum + Math.max(0, Number(sale.price) - Number(sale.commission) - 1.00), 0);
             return { date, total };
         });
         return dailySales;
