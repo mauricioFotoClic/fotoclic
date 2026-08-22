@@ -19,19 +19,42 @@ export const emailService = {
   },
 
   sendNewPhotographerNotification: async (photographerName: string, photographerEmail: string) => {
+    const siteUrl = typeof window !== 'undefined' ? window.location.origin : 'https://www.fotoclic.com.br';
     return emailService.sendEmail(
       'svalmauricio@gmail.com', // Notification to Admin
-      '📸 Novo Fotógrafo Cadastrado no FotoClic',
-      `<div style="font-family: sans-serif; color: #333;">
-            <h1>Novo Fotógrafo Cadastrado!</h1>
-            <p>Um novo usuário se cadastrou como fotógrafo na plataforma.</p>
-            <hr />
-            <p><strong>Nome:</strong> ${photographerName}</p>
-            <p><strong>Email:</strong> ${photographerEmail}</p>
-            <p><strong>Data:</strong> ${new Date().toLocaleString('pt-BR')}</p>
-            <hr />
-            <p>Acesse o painel administrativo para revisar e aprovar este cadastro.</p>
-        </div>`
+      '📸 Novo Fotógrafo Aguardando Aprovação - FotoClic',
+      `<div style="font-family: sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+        <div style="background: linear-gradient(135deg, #FF6B00 0%, #FF8533 100%); padding: 24px; text-align: center;">
+          <h1 style="color: white; margin: 0; font-size: 22px; font-weight: bold;">📸 Novo Fotógrafo Cadastrado!</h1>
+        </div>
+        <div style="padding: 28px 24px; background-color: #ffffff;">
+          <p style="font-size: 16px; margin-top: 0; color: #334155;">Um novo fotógrafo acabou de se cadastrar na plataforma e está <strong>aguardando moderação</strong> para ter o acesso liberado.</p>
+          
+          <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 18px; margin: 20px 0;">
+            <p style="margin: 0 0 10px 0;"><strong>Nome:</strong> ${photographerName}</p>
+            <p style="margin: 0 0 10px 0;"><strong>E-mail:</strong> ${photographerEmail}</p>
+            <p style="margin: 0;"><strong>Data/Hora:</strong> ${new Date().toLocaleString('pt-BR')}</p>
+          </div>
+
+          <p style="font-size: 15px; color: #475569; font-weight: 600;">Você pode revisar e aprovar/recusar este cadastro de 2 formas:</p>
+          
+          <div style="margin: 24px 0; text-align: center;">
+            <a href="${siteUrl}/admin" style="background-color: #FF6B00; color: white; padding: 12px 22px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; margin-right: 10px; margin-bottom: 8px;">
+              💻 Revisar no Painel Admin
+            </a>
+            <a href="https://t.me/fotoclic_ai_bot" style="background-color: #0088cc; color: white; padding: 12px 22px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; margin-bottom: 8px;">
+              📱 Revisar pelo Telegram
+            </a>
+          </div>
+
+          <p style="font-size: 13px; color: #64748b; line-height: 1.5; margin-top: 24px; border-top: 1px solid #f1f5f9; padding-top: 16px;">
+            💡 <em>Dica: Pelo Telegram, você pode aprovar ou rejeitar o cadastro em 1 toque usando os botões interativos do bot.</em>
+          </p>
+        </div>
+        <div style="background-color: #f8fafc; padding: 16px; text-align: center; font-size: 12px; color: #94a3b8;">
+          FotoClic &bull; Sistema Automático de Notificações
+        </div>
+      </div>`
     );
   },
 
