@@ -242,6 +242,14 @@ export default async function handler(req, res) {
       const cq = body.callback_query;
       const data = cq.data || '';
       const chatId = cq.message?.chat?.id;
+      const messageId = cq.message?.message_id;
+
+      // Identificar quem clicou no botão
+      const fromUser = cq.from || {};
+      const approverName = [fromUser.first_name, fromUser.last_name].filter(Boolean).join(' ') || fromUser.username || 'Membro da Equipe';
+      const approverHandle = fromUser.username ? `@${fromUser.username}` : `ID: ${fromUser.id}`;
+      const approverFullText = `*${approverName}* (${approverHandle})`;
+      const nowStr = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
 
       // Menu Callbacks
       if (data === 'cmd_menu') {
@@ -284,13 +292,23 @@ export default async function handler(req, res) {
       // Confirmação de Repasse de Saque
       if (data.startsWith('payout_confirm_')) {
         const payoutId = data.replace('payout_confirm_', '');
+        const { data: payout } = await supabase
+          .from('payouts')
+          .select('*, photographer:photographer_id(name, email, pix_key)')
+          .eq('id', payoutId)
+          .single();
+
         await supabase
           .from('payouts')
           .update({ status: 'paid', processed_date: new Date().toISOString() })
           .eq('id', payoutId);
 
         await answerCallback(cq.id, '✅ Repasse confirmado!', true);
-        await replyTelegram(chatId, `🎉 *Repasse Confirmado com Sucesso!*\n\nO status do saque foi atualizado para *Pago* no sistema.`);
+
+        const photogName = payout?.photographer?.name || 'Fotógrafo';
+        const valFormatted = Number(payout?.amount || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+        await replyTelegram(chatId, `🎉 *Repasse Confirmado com Sucesso!*\n\n• 📸 *Fotógrafo:* ${photogName}\n• 💵 *Valor:* *${valFormatted}*\n• 🏦 *PIX:* \`${payout?.photographer?.pix_key || 'Chave PIX'}\`\n• 👮 *Confirmado por:* ${approverFullText}\n• ⏰ *Data/Hora:* ${nowStr}`);
         return res.status(200).json({ ok: true });
       }
 
@@ -320,8 +338,8 @@ export default async function handler(req, res) {
             }).catch(() => {});
           }
 
-          await answerCallback(cq.id, `✅ Fotógrafo ${user.name} aprovado!`, true);
-          await replyTelegram(chatId, `✅ *Fotógrafo Aprovado com Sucesso!*\n\n• 👤 *Nome:* ${user.name}\n• 📧 *E-mail:* \`${user.email}\`\n• 🔓 *Status:* Liberado no sistema.`);
+          await answerCallback(cq.id, `✅ Fotógrafo ${user.name} aprovado por você!`, true);
+          await replyTelegram(chatId, `✅ *Fotógrafo Aprovado com Sucesso!*\n\n• 📸 *Fotógrafo:* ${user.name}\n• 📧 *E-mail:* \`${user.email}\`\n• 🔓 *Status:* Liberado na plataforma\n• 👮 *Aprovado por:* ${approverFullText}\n• ⏰ *Data/Hora:* ${nowStr}`);
         }
         return res.status(200).json({ ok: true });
       }
@@ -333,7 +351,7 @@ export default async function handler(req, res) {
         if (user) {
           await supabase.from('users').update({ is_active: false }).eq('id', userId);
           await answerCallback(cq.id, `❌ Cadastro de ${user.name} recusado.`);
-          await replyTelegram(chatId, `❌ *Cadastro Recusado:*\n\nO acesso do fotógrafo *${user.name}* (\`${user.email}\`) foi recusado.`);
+          await replyTelegram(chatId, `❌ *Cadastro Recusado:*\n\n• 📸 *Fotógrafo:* ${user.name} (\`${user.email}\`)\n• 👮 *Recusado por:* ${approverFullText}\n• ⏰ *Data/Hora:* ${nowStr}`);
         }
         return res.status(200).json({ ok: true });
       }
@@ -341,15 +359,18 @@ export default async function handler(req, res) {
       // Autofix IA Sentry
       if (data.startsWith('fix_approve_')) {
         await answerCallback(cq.id, '✅ Correção autorizada!');
-        await replyTelegram(chatId, '🛠️ *Correção Autorizada por Você!*\n\n• 🤖 *IA:* Analisando o arquivo e preparando o patch.\n• 📦 *Git:* Atualizando branch `main`.\n• 🚀 *Vercel:* Disparando novo deploy automático...');
+        await replyTelegram(chatId, `🛠️ *Correção Autorizada!*\n\n• 👮 *Autorizado por:* ${approverFullText}\n• 🤖 *IA:* Analisando o arquivo e preparando o patch.\n• 📦 *Git:* Atualizando branch \`main\`.\n• 🚀 *Vercel:* Disparando novo deploy automático...`);
         return res.status(200).json({ ok: true });
       }
 
       if (data.startsWith('fix_ignore_')) {
         await answerCallback(cq.id, '❌ Erro marcado como ignorado.');
-        await replyTelegram(chatId, '👌 *Entendido!* O erro foi marcado como ignorado.');
+        await replyTelegram(chatId, `👌 *Erro Ignorado:*\n\n• 👮 *Marcado por:* ${approverFullText}\n• Nenhuma alteração foi feita no código.`);
         return res.status(200).json({ ok: true });
       }
+
+      return res.status(200).json({ ok: true });
+    }
 
       return res.status(200).json({ ok: true });
     }
