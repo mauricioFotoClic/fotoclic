@@ -25,29 +25,41 @@ export default async function handler(req, res) {
 
   // Helper para enviar mensagens ao Telegram
   const replyTelegram = async (chatId, text, buttons = []) => {
-    return await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text,
-        parse_mode: 'Markdown',
-        reply_markup: buttons.length > 0 ? { inline_keyboard: buttons } : undefined
-      })
-    });
+    try {
+      const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text,
+          parse_mode: 'Markdown',
+          reply_markup: buttons.length > 0 ? { inline_keyboard: buttons } : undefined
+        })
+      });
+      return await res.json();
+    } catch (e) {
+      console.warn('[Telegram Reply Error]:', e.message);
+      return { ok: false };
+    }
   };
 
   // Helper para responder Callback Query
   const answerCallback = async (callbackId, text = '', showAlert = false) => {
-    return await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        callback_query_id: callbackId,
-        text,
-        show_alert: showAlert
-      })
-    });
+    try {
+      const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          callback_query_id: callbackId,
+          text,
+          show_alert: showAlert
+        })
+      });
+      return await res.json();
+    } catch (e) {
+      console.warn('[Telegram AnswerCallback Error]:', e.message);
+      return { ok: false };
+    }
   };
 
   // --- Handlers de Comandos de Gestão (ChatOps) ---
@@ -368,9 +380,6 @@ export default async function handler(req, res) {
         await replyTelegram(chatId, `👌 *Erro Ignorado:*\n\n• 👮 *Marcado por:* ${approverFullText}\n• Nenhuma alteração foi feita no código.`);
         return res.status(200).json({ ok: true });
       }
-
-      return res.status(200).json({ ok: true });
-    }
 
       return res.status(200).json({ ok: true });
     }
