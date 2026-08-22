@@ -119,7 +119,7 @@ export default async function handler(req, res) {
 
         const { data: user, error: uErr } = await supabase.from('users').select('*').eq('id', userId).single();
         if (user) {
-          await supabase.from('users').update({ is_active: true, status: 'active' }).eq('id', userId);
+          await supabase.from('users').update({ is_active: true }).eq('id', userId);
 
           // Enviar e-mail de boas-vindas para o fotógrafo
           if (user.email) {
@@ -171,7 +171,7 @@ export default async function handler(req, res) {
 
         const { data: user } = await supabase.from('users').select('*').eq('id', userId).single();
         if (user) {
-          await supabase.from('users').update({ is_active: false, status: 'rejected' }).eq('id', userId);
+          await supabase.from('users').update({ is_active: false }).eq('id', userId);
 
           await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, {
             method: 'POST',

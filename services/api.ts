@@ -2200,7 +2200,6 @@ export const api = {
       ...dataWithoutPassword,
       name: formatNameAsTitleCase(data.name),
       is_active: !isPhotographer, // Fotógrafo entra aguardando moderação via Telegram
-      status: isPhotographer ? 'pending' : 'active',
     };
 
     const { data: newUser, error } = await supabase
