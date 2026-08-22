@@ -13,6 +13,7 @@
   "dependencies": {
     "@aws-sdk/client-rekognition": "^3.600.0",
     "@google/generative-ai": "^0.24.1",
+    "@sentry/react": "^10.70.0",
     "@supabase/supabase-js": "^2.39.7",
     "@vladmandic/human": "^3.3.6",
     "@xenova/transformers": "^2.17.2",
