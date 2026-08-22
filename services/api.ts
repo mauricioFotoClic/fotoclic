@@ -2794,10 +2794,30 @@ export const api = {
   ): Promise<Payout> => {
     const { data, error } = await supabase
       .from("payouts")
-      .insert({ photographer_id: photographerId, amount })
+      .insert({ photographer_id: photographerId, amount, status: 'pending' })
       .select()
       .single();
     if (error) throw error;
+
+    try {
+      const photographer = await api.getPhotographerById(photographerId);
+      fetch('/api/sentry-ai-webhook', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'payout_request',
+          payoutId: data.id,
+          photographerName: photographer?.name || 'Fotógrafo',
+          email: photographer?.email || '',
+          pixKey: photographer?.pix_key || (photographer as any)?.bank_info?.pixKey || '',
+          pixKeyType: photographer?.pix_key_type || (photographer as any)?.bank_info?.pixKeyType || 'PIX',
+          amount: amount
+        })
+      }).catch(() => {});
+    } catch (e) {
+      console.warn("Erro ao disparar webhook de repasse ao Telegram:", e);
+    }
+
     return data;
   },
   approvePayout: async (payoutId: string): Promise<boolean> => {

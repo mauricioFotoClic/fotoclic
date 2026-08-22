@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
+import { notifyNewSaleToTelegram } from '../lib/telegram-ai-service.js';
 
 // Helper para envio de e-mails via SMTP Locaweb
 async function sendLocawebEmail({ to, subject, html }) {
@@ -442,7 +443,26 @@ export default async function handler(req, res) {
               html: photogHtml
             });
           }
+        } catch (phErr) {
+          console.warn('[Appmax Webhook] Erro ao enviar email para fotógrafo:', phErr.message);
         }
+      }
+
+      // --- DISPARO DE NOTIFICAÇÃO EM TEMPO REAL NO TELEGRAM ---
+      try {
+        const uniquePhotogNames = [...new Set(Object.values(photographerMap).map(p => p.name).filter(Boolean))];
+        const totalAmountNum = (Number(orderData.total || 0) / 100) || photos.reduce((s, p) => s + (Number(p.price) || 0), 0);
+        await notifyNewSaleToTelegram({
+          orderId,
+          buyerName,
+          customerEmail,
+          totalAmount: totalAmountNum,
+          photos,
+          paymentMethod: (orderData.payment_method || 'PIX').toUpperCase(),
+          photographerNames: uniquePhotogNames
+        });
+      } catch (tgErr) {
+        console.warn('[Appmax Webhook Telegram Notification Error]:', tgErr.message);
       }
 
       return res.status(200).json({
