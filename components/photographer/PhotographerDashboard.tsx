@@ -332,7 +332,7 @@ const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({ user, set
                                         <p className="text-xs text-neutral-500">{new Date(sale.sale_date).toLocaleDateString('pt-BR')}</p>
                                     </div>
                                     <span className="font-bold text-green-600 text-sm">
-                                        +{(sale.price - sale.commission).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                        +{Math.max(0, Number(sale.price) - Number(sale.commission) - 1.00).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                                     </span>
                                 </div>
                             );
