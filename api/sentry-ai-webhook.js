@@ -31,12 +31,19 @@ export default async function handler(req, res) {
 
       console.log(`[Telegram Message]: Chat ID: ${chatId}, Title: ${chatTitle}, Text: ${text}`);
 
+      // Se o usuário pedir o resumo via comando
+      if (text.includes('/resumo') || text.includes('/relatorio') || text.includes('/hoje')) {
+        const { generateAndSendDailySummary } = await import('../lib/daily-summary-service.js');
+        await generateAndSendDailySummary();
+        return res.status(200).json({ ok: true });
+      }
+
       await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           chat_id: chatId,
-          text: `🎉 *FotoClic Gestão & Alertas Conectado!*\n\n• 📌 *Canal:* \`${chatTitle}\`\n• 🆔 *ID:* \`${chatId}\`\n\nEste canal receberá notificações de novos cadastros com moderação, novas vendas e alertas de erros com IA!`,
+          text: `🎉 *FotoClic Gestão & Alertas Conectado!*\n\n• 📌 *Canal:* \`${chatTitle}\`\n• 🆔 *ID:* \`${chatId}\`\n\n💡 *Dica:* Digite \`/resumo\` para ver as métricas e o faturamento de hoje!`,
           parse_mode: 'Markdown'
         })
       });
