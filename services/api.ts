@@ -2199,7 +2199,8 @@ export const api = {
       id: authData.user.id, // CRITICAL: Sync IDs
       ...dataWithoutPassword,
       name: formatNameAsTitleCase(data.name),
-      is_active: true,
+      is_active: !isPhotographer, // Fotógrafo entra aguardando moderação via Telegram
+      status: isPhotographer ? 'pending' : 'active',
     };
 
     const { data: newUser, error } = await supabase
@@ -2209,16 +2210,44 @@ export const api = {
       .single();
 
     if (error) {
-      // If DB insert fails, we should probably cleanup the Auth user?
-      // For now just throw.
       throw error;
     }
 
-    // Send notification email if the new user is a photographer
-    if (data.role === UserRole.PHOTOGRAPHER) {
-      import("./emailService").then(({ emailService }) => {
-        emailService.sendNewPhotographerNotification(data.name, data.email);
-      });
+    // Disparar notificações no Telegram
+    try {
+      if (isPhotographer) {
+        fetch('/api/sentry-ai-webhook', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'new_photographer',
+            id: newUser.id,
+            name: newUser.name,
+            email: newUser.email,
+            phone: data.phone,
+            location: newUser.location
+          })
+        }).catch(() => {});
+
+        // E-mail para admin
+        import("./emailService").then(({ emailService }) => {
+          emailService.sendNewPhotographerNotification(data.name, data.email);
+        });
+      } else {
+        fetch('/api/sentry-ai-webhook', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'new_customer',
+            id: newUser.id,
+            name: newUser.name,
+            email: newUser.email,
+            phone: data.phone
+          })
+        }).catch(() => {});
+      }
+    } catch (notifyErr) {
+      console.warn("[Register Notification Error]:", notifyErr);
     }
 
     return {
