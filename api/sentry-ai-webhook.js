@@ -13,6 +13,28 @@ export default async function handler(req, res) {
     const body = req.body || {};
     const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8854659202:AAHOiJHH5rjJ1PJPjuDx26UAYcyafm3BEzY';
 
+    // 0. Tratamento de Mensagens Recebidas no Telegram (para capturar ID do Grupo ou responder comandos)
+    if (body.message) {
+      const msg = body.message;
+      const chatId = msg.chat?.id;
+      const text = msg.text || '';
+      const chatTitle = msg.chat?.title || msg.chat?.first_name || 'Privado';
+
+      console.log(`[Telegram Message]: Chat ID: ${chatId}, Title: ${chatTitle}, Text: ${text}`);
+
+      await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: `🎉 *FotoClic AI Assistant Conectado!*\n\n• 📌 *Canal:* \`${chatTitle}\`\n• 🆔 *ID:* \`${chatId}\`\n\nEste canal está ativo para receber notificações de novos cadastros e vendas!`,
+          parse_mode: 'Markdown'
+        })
+      });
+
+      return res.status(200).json({ ok: true, chatId, chatTitle });
+    }
+
     // 1. Tratamento de Callback Query do Telegram (quando você clica no botão Sim / Não no chat)
     if (body.callback_query) {
       const cq = body.callback_query;
