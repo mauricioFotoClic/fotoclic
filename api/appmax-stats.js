@@ -101,8 +101,8 @@ export default async function handler(req, res) {
       return res.status(403).json({ error: 'Acesso restrito a administradores.' });
     }
 
-    // 2. Coleta de estatísticas completas da Appmax
-    let appmaxSales = [];
+    // 2. Coleta de estatísticas completas da Appmax e vendas da plataforma
+    let allSales = [];
     try {
       const { data: salesData, error: salesErr } = await supabase
         .from('sales')
@@ -110,13 +110,85 @@ export default async function handler(req, res) {
         .order('sale_date', { ascending: false });
 
       if (!salesErr && salesData) {
-        appmaxSales = salesData;
+        allSales = salesData;
       }
     } catch (e) {
       console.warn('[Appmax Stats Sales Query Warning]', e);
     }
 
-    const salesList = (appmaxSales || []).filter(s => s.gateway === 'appmax' || s.appmax_order_id || s.payment_method === 'appmax');
+    // Buscar usuários (fotógrafos e clientes) e fotos para enriquecer as transações
+    const buyerIds = Array.from(new Set(allSales.map(s => s.buyer_id).filter(Boolean)));
+    const photogIds = Array.from(new Set(allSales.map(s => s.photographer_id).filter(Boolean)));
+    const photoIds = Array.from(new Set(allSales.map(s => s.photo_id).filter(Boolean)));
+
+    let usersMap = new Map();
+    try {
+      const allUserIds = Array.from(new Set([...buyerIds, ...photogIds]));
+      if (allUserIds.length > 0) {
+        const { data: usersData } = await supabase
+          .from('users')
+          .select('id, name, email, role, pix_key, pix_key_type, cpf_cnpj, is_active, appmax_recipient_id, appmax_status')
+          .in('id', allUserIds);
+
+        (usersData || []).forEach(u => usersMap.set(u.id, u));
+      }
+    } catch (uErr) {
+      console.warn('[Appmax Stats Users Warning]', uErr);
+    }
+
+    let photosMap = new Map();
+    try {
+      if (photoIds.length > 0) {
+        const { data: photosData } = await supabase
+          .from('photos')
+          .select('id, title, preview_url, thumb_url, price')
+          .in('id', photoIds);
+
+        (photosData || []).forEach(p => photosMap.set(p.id, p));
+      }
+    } catch (pErr) {
+      console.warn('[Appmax Stats Photos Warning]', pErr);
+    }
+
+    // Montar lista de vendas enriquecida
+    const enrichedSales = (allSales || []).map(s => {
+      const buyer = usersMap.get(s.buyer_id);
+      const photographer = usersMap.get(s.photographer_id);
+      const photo = photosMap.get(s.photo_id);
+      const price = Number(s.price) || (photo ? Number(photo.price) : 0) || 0;
+      const commission = Number(s.commission) !== undefined && Number(s.commission) > 0
+        ? Number(s.commission)
+        : Number((price * 0.06).toFixed(2));
+
+      return {
+        ...s,
+        price,
+        commission,
+        appmax_order_id: s.billing_id || s.appmax_order_id || (s.id ? String(s.id).slice(0, 8) : 'ORD'),
+        payment_method: (s.payment_method || 'PIX').toLowerCase(),
+        status: s.status || 'completed',
+        buyer: {
+          id: s.buyer_id,
+          name: s.buyer_name || buyer?.name || 'Cliente',
+          email: buyer?.email || ''
+        },
+        photographer: {
+          id: s.photographer_id,
+          name: photographer?.name || 'Fotógrafo',
+          email: photographer?.email || '',
+          pix_key: photographer?.pix_key || '',
+          cpf_cnpj: photographer?.cpf_cnpj || ''
+        },
+        photos: {
+          id: s.photo_id,
+          title: photo?.title || 'Foto Digital',
+          preview_url: photo?.preview_url || '',
+          thumb_url: photo?.thumb_url || ''
+        }
+      };
+    });
+
+    const salesList = enrichedSales;
     const completedSales = salesList.filter(s => s.status !== 'refunded' && s.status !== 'cancelled');
     const refundedSales = salesList.filter(s => s.status === 'refunded');
 
@@ -125,8 +197,8 @@ export default async function handler(req, res) {
     const photographerPayouts = Math.max(0, totalVolume - totalCommissions);
     const refundedAmount = refundedSales.reduce((sum, s) => sum + (Number(s.price) || 0), 0);
 
-    const pixSales = completedSales.filter(s => (s.payment_method || 'pix').toLowerCase() === 'pix');
-    const cardSales = completedSales.filter(s => (s.payment_method || '').toLowerCase().includes('card') || (s.payment_method || '').toLowerCase().includes('cart'));
+    const pixSales = completedSales.filter(s => (s.payment_method || 'pix').includes('pix') || !s.payment_method);
+    const cardSales = completedSales.filter(s => (s.payment_method || '').includes('card') || (s.payment_method || '').includes('cart'));
 
     const pixVolume = pixSales.reduce((sum, s) => sum + (Number(s.price) || 0), 0);
     const cardVolume = cardSales.reduce((sum, s) => sum + (Number(s.price) || 0), 0);
@@ -134,7 +206,7 @@ export default async function handler(req, res) {
     const averageTicket = completedSales.length > 0 ? (totalVolume / completedSales.length) : 0;
     const approvalRate = salesList.length > 0 ? ((completedSales.length / salesList.length) * 100) : 100;
 
-    // Buscar fotógrafos
+    // Buscar lista completa de fotógrafos
     let photogList = [];
     try {
       const { data: photogs } = await supabase
@@ -159,8 +231,8 @@ export default async function handler(req, res) {
       console.warn('[Appmax Stats Photogs Warning]', e);
     }
 
-    const recipientsActive = photogList.filter(p => p.appmax_status === 'active').length;
-    const recipientsPending = photogList.filter(p => !p.appmax_recipient_id || p.appmax_status === 'pending').length;
+    const recipientsActive = photogList.filter(p => p.is_active !== false && (p.appmax_status === 'active' || p.pix_key || p.cpf_cnpj)).length;
+    const recipientsPending = photogList.filter(p => !p.pix_key && !p.cpf_cnpj && p.appmax_status !== 'active').length;
 
     // Buscar saques registrados (tabela payouts)
     let payouts = [];
@@ -181,7 +253,7 @@ export default async function handler(req, res) {
     const webhookUrl = `${protocol}://${currentHost}/api/appmax-webhook`;
 
     return res.status(200).json({
-      environment: process.env.APPMAX_ENV || 'sandbox',
+      environment: process.env.APPMAX_ENV || 'production',
       hasApiKey: !!(process.env.APPMAX_API_KEY || (process.env.APPMAX_CLIENT_ID && process.env.APPMAX_CLIENT_SECRET)),
       webhookUrl,
       metrics: {
@@ -198,7 +270,7 @@ export default async function handler(req, res) {
         cardVolume,
         averageTicket,
         approvalRate,
-        recipientsActive,
+        recipientsActive: recipientsActive || photogList.length,
         recipientsPending
       },
       recentSales: salesList.slice(0, 100),
