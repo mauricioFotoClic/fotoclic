@@ -188,7 +188,34 @@ export default async function handler(req, res) {
       };
     });
 
-    const salesList = enrichedSales;
+    // Filtra EXCLUSIVAMENTE transações da Appmax (ignora vendas legadas do Abacate Pay que usam 'bill_')
+    const isAppmaxTransaction = (s) => {
+      if (!s) return false;
+      const bId = String(s.billing_id || s.appmax_order_id || '').trim();
+      const lower = bId.toLowerCase();
+
+      // 1. Se tem prefixo do AbacatePay ('bill_', 'dev_bill_', 'prod_bill_'), é legado
+      if (lower.startsWith('bill_') || lower.startsWith('dev_bill_') || lower.startsWith('prod_bill_')) {
+        return false;
+      }
+      if (s.gateway === 'abacate' || s.gateway === 'abacatepay') {
+        return false;
+      }
+
+      // 2. Se for explicitamente marcado como appmax
+      if (s.gateway === 'appmax' || s.payment_method === 'appmax') {
+        return true;
+      }
+
+      // 3. Se tiver ID de pedido da Appmax (geralmente numérico) ou não for formato do Abacate
+      if (bId && !lower.startsWith('bill_') && !lower.startsWith('mock_') && !lower.startsWith('test_legacy_')) {
+        return true;
+      }
+
+      return false;
+    };
+
+    const salesList = enrichedSales.filter(isAppmaxTransaction);
     const completedSales = salesList.filter(s => s.status !== 'refunded' && s.status !== 'cancelled');
     const refundedSales = salesList.filter(s => s.status === 'refunded');
 
