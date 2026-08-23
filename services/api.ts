@@ -2203,7 +2203,7 @@ export const api = {
       id: authData.user.id, // CRITICAL: Sync IDs
       ...dataWithoutPassword,
       name: formatNameAsTitleCase(data.name),
-      is_active: !isPhotographer, // Fotógrafo entra aguardando moderação via Telegram
+      is_active: true, // Todos os novos cadastros (fotógrafos e clientes) liberados automaticamente
     };
 
     const { data: newUser, error } = await supabase

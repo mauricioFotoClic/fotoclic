@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Page, PageRoute } from '../types';
 import Logo from '../components/Logo';
 import { ArrowRight, CheckCircle2 } from 'lucide-react';
-import { trackPhotographerRegistration } from '../utils/tracking';
+import { trackCompleteRegistration } from '../utils/tracking';
 
 interface WelcomePageProps {
     onNavigate: (page: Page) => void;
@@ -47,11 +47,12 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onNavigate, role = 'customer'
             });
         }
 
-        // Dispara a conversão específica do Google Ads ("Cadastro de fotógrafo concluído")
-        // SOMENTE se for um novo fotógrafo cadastrado, com trava de disparo único
-        if (roleRef.current === 'photographer' || roleRef.current === 'pending-approval') {
-            trackPhotographerRegistration();
-        }
+        // Dispara o evento CompleteRegistration no Meta Pixel (Pixel ID: 1619367559854156)
+        // e se for fotógrafo, também a conversão do Google Ads.
+        // Disparado APENAS após confirmação de sucesso na tela de boas-vindas.
+        trackCompleteRegistration({
+            role: roleRef.current
+        });
 
         const interval = setInterval(() => {
             setSecondsLeft((prev) => prev - 1);

@@ -19,7 +19,7 @@ const PhotographerForm: React.FC<PhotographerFormProps> = ({ onSubmit, onCancel,
         banner_url: '',
         location: '',
         social_instagram: '',
-        is_active: false,
+        is_active: true,
     });
     const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
     const [bannerPreview, setBannerPreview] = useState<string | null>(null);
@@ -34,14 +34,14 @@ const PhotographerForm: React.FC<PhotographerFormProps> = ({ onSubmit, onCancel,
                 banner_url: initialData.banner_url || '',
                 location: initialData.location || '',
                 social_instagram: initialData.social_instagram || '',
-                is_active: initialData.is_active || false,
+                is_active: initialData.is_active !== undefined ? initialData.is_active : true,
             });
             if (initialData.avatar_url) setAvatarPreview(initialData.avatar_url);
             if (initialData.banner_url) setBannerPreview(initialData.banner_url);
         } else {
              setFormData({
                 name: '', email: '', bio: '', avatar_url: '',
-                banner_url: '', location: '', social_instagram: '', is_active: false
+                banner_url: '', location: '', social_instagram: '', is_active: true
             });
             setAvatarPreview(null);
             setBannerPreview(null);
