@@ -6,9 +6,10 @@ import {
   getLatestCommits
 } from '../lib/github-agent-service.js';
 
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const AUTHORIZED_CHAT_ID = String(process.env.TELEGRAM_CHAT_ID || '5525056555');
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const TELEGRAM_BOT_TOKEN = (process.env.TELEGRAM_BOT_TOKEN || '').trim();
+const AUTHORIZED_CHAT_ID = String(process.env.TELEGRAM_CHAT_ID || '5525056555').trim();
+const GEMINI_API_KEY = (process.env.GEMINI_API_KEY || '').trim().replace(/^["']|["']$/g, '');
+
 
 // Função auxiliar para enviar mensagens no Telegram
 async function sendTelegramMessage(chatId, text, parseMode = 'Markdown') {
