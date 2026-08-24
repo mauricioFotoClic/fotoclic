@@ -10,7 +10,6 @@ const TELEGRAM_BOT_TOKEN = (process.env.TELEGRAM_BOT_TOKEN || '').trim();
 const AUTHORIZED_CHAT_ID = String(process.env.TELEGRAM_CHAT_ID || '5525056555').trim();
 const GEMINI_API_KEY = (process.env.GEMINI_API_KEY || '').trim().replace(/^["']|["']$/g, '');
 
-
 // Função auxiliar para enviar mensagens no Telegram
 async function sendTelegramMessage(chatId, text, parseMode = 'Markdown') {
   if (!TELEGRAM_BOT_TOKEN) return null;
@@ -33,19 +32,38 @@ async function sendTelegramMessage(chatId, text, parseMode = 'Markdown') {
   }
 }
 
+// Animação visual de "digitando..." (typing) no Telegram
+async function sendTelegramChatAction(chatId, action = 'typing') {
+  if (!TELEGRAM_BOT_TOKEN) return null;
+  const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendChatAction`;
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        action
+      })
+    });
+    return await res.json();
+  } catch (err) {
+    return null;
+  }
+}
+
 // Configuração das Ferramentas (Tools) do Agente Gemini
 const agentTools = [
   {
     functionDeclarations: [
       {
         name: 'read_file',
-        description: 'Lê o conteúdo completo de um arquivo no repositório GitHub (ex: pages/HomePage.tsx, components/WatermarkedImage.tsx).',
+        description: 'Lê o conteúdo completo de um arquivo no repositório GitHub (ex: pages/HomePage.tsx, locales/pt.ts, components/WatermarkedImage.tsx).',
         parameters: {
           type: 'OBJECT',
           properties: {
             filePath: {
               type: 'STRING',
-              description: 'O caminho relativo do arquivo no repositório (ex: pages/HomePage.tsx)'
+              description: 'O caminho relativo do arquivo no repositório (ex: locales/pt.ts ou pages/HomePage.tsx)'
             }
           },
           required: ['filePath']
@@ -67,7 +85,7 @@ const agentTools = [
             },
             commitMessage: {
               type: 'STRING',
-              description: 'Mensagem descritiva do commit (ex: Update hero button color to blue).'
+              description: 'Mensagem descritiva do commit (ex: Update hero button text to Desfrute).'
             }
           },
           required: ['filePath', 'newContent', 'commitMessage']
@@ -101,6 +119,14 @@ const agentTools = [
       }
     ]
   }
+];
+
+// Pool de Modelos para Fallback Automático caso um atinja limite de taxa (429)
+const MODEL_POOL = [
+  'gemini-3.5-flash',
+  'gemini-3.1-flash-lite',
+  'gemini-3.5-flash-lite',
+  'gemini-3-flash-preview'
 ];
 
 export default async function handler(req, res) {
@@ -151,6 +177,9 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true });
   }
 
+  // Ativar animação de digitando imediatamente
+  await sendTelegramChatAction(chatId, 'typing');
+
   // Comandos Rápidos
   if (text.startsWith('/start') || text.startsWith('/help')) {
     const welcomeMsg = `🤖 *Agente Desenvolvedor FotoClic (24/7)*\n\n` +
@@ -182,6 +211,7 @@ export default async function handler(req, res) {
 
   // Notificar o usuário que a tarefa começou
   await sendTelegramMessage(chatId, `⏳ *Processando sua solicitação:* _"${text.slice(0, 80)}${text.length > 80 ? '...' : ''}"_`);
+  await sendTelegramChatAction(chatId, 'typing');
 
   if (!GEMINI_API_KEY) {
     await sendTelegramMessage(chatId, '❌ Erro: `GEMINI_API_KEY` não configurada no servidor.');
@@ -193,107 +223,108 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true });
   }
 
-  try {
-    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-3.5-flash',
-      tools: agentTools,
-      systemInstruction: `Você é o Engenheiro de Software Autônomo e Administrador Técnico do FotoClic.
+  const systemInstruction = `Você é o Engenheiro de Software Autônomo e Administrador Técnico do FotoClic.
 Seu objetivo é atender aos comandos do dono do projeto via Telegram de forma rápida, segura e precisa.
 Você tem acesso ao repositório GitHub da aplicação React / Vite / TypeScript / Tailwind / Supabase.
 
 DIRETRIZES FUNDAMENTAIS:
 1. Sempre leia o arquivo (read_file) antes de fazer qualquer alteração para entender o código existente.
 2. NUNCA quebre código que já está funcionando. Preserve importações, tipos e regras de negócio (Appmax, Supabase, etc).
-3. Ao alterar um arquivo (commit_file_change), forneça o código COMPLETO atualizado e uma mensagem de commit clara em inglês (ex: "fix: update hero button style").
-4. Responda em Português do Brasil (PT-BR) com um resumo conciso e amigável das alterações que você realizou e confirme o commit.`
-    });
+3. Ao alterar um arquivo (commit_file_change), forneça o código COMPLETO atualizado e uma mensagem de commit clara em inglês (ex: "fix: update hero text in pt translation").
+4. Responda em Português do Brasil (PT-BR) com um resumo conciso e amigável das alterações que você realizou e confirme o commit.`;
 
-    const chat = model.startChat();
-    
-    // Função auxiliar com retry para chamadas à API
-    const sendWithRetry = async (payload, maxRetries = 2) => {
-      for (let attempt = 0; attempt <= maxRetries; attempt++) {
-        try {
-          return await chat.sendMessage(payload);
-        } catch (err) {
-          if (attempt < maxRetries && err.message && err.message.includes('429')) {
-            console.warn(`[Rate limit 429] Aguardando 3s antes da tentativa ${attempt + 1}...`);
-            await new Promise(r => setTimeout(r, 3000));
-          } else {
-            throw err;
+  const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+
+  // Função para executar a conversa com fallback automático de modelos
+  for (const modelName of MODEL_POOL) {
+    try {
+      await sendTelegramChatAction(chatId, 'typing');
+      console.log(`[Agent Session] Tentando modelo: ${modelName}`);
+
+      const model = genAI.getGenerativeModel({
+        model: modelName,
+        tools: agentTools,
+        systemInstruction
+      });
+
+      const chat = model.startChat();
+      let result = await chat.sendMessage(text);
+      let response = await result.response;
+
+      // Loop de Execução de Ferramentas (Function Calling)
+      let iterations = 0;
+      const maxIterations = 8;
+
+      while (response.functionCalls() && response.functionCalls().length > 0 && iterations < maxIterations) {
+        iterations++;
+        const functionCalls = response.functionCalls();
+        const functionResponses = [];
+
+        for (const call of functionCalls) {
+          const { name, args } = call;
+          await sendTelegramChatAction(chatId, 'typing');
+
+          let functionResult;
+          try {
+            if (name === 'read_file') {
+              await sendTelegramMessage(chatId, `🔍 Lendo arquivo \`${args.filePath}\`...`);
+              await sendTelegramChatAction(chatId, 'typing');
+              const fileData = await getFileContent(args.filePath);
+              functionResult = fileData.exists ? { content: fileData.content } : { error: 'Arquivo não encontrado' };
+            } else if (name === 'commit_file_change') {
+              await sendTelegramMessage(chatId, `📝 Aplicando alterações e gerando commit em \`${args.filePath}\`...`);
+              await sendTelegramChatAction(chatId, 'typing');
+              const commitRes = await commitFile(args.filePath, args.newContent, args.commitMessage);
+              functionResult = { success: true, commitSha: commitRes.commitSha, url: commitRes.commitUrl };
+            } else if (name === 'list_files') {
+              const files = await listDirectory(args.dirPath || '');
+              functionResult = { files };
+            } else if (name === 'get_recent_commits') {
+              const commits = await getLatestCommits(args.limit || 3);
+              functionResult = { commits };
+            } else {
+              functionResult = { error: `Ferramenta desconhecida: ${name}` };
+            }
+          } catch (toolError) {
+            console.error(`[Tool Execution Error] ${name}:`, toolError);
+            functionResult = { error: toolError.message };
           }
+
+          functionResponses.push({
+            functionResponse: {
+              name,
+              response: functionResult
+            }
+          });
         }
-      }
-    };
 
-    let result = await sendWithRetry(text);
-    let response = await result.response;
-
-    // Loop de Execução de Ferramentas (Function Calling)
-    let iterations = 0;
-    const maxIterations = 8;
-
-    while (response.functionCalls() && response.functionCalls().length > 0 && iterations < maxIterations) {
-      iterations++;
-      const functionCalls = response.functionCalls();
-      const functionResponses = [];
-
-      for (const call of functionCalls) {
-        const { name, args } = call;
-        console.log(`[Agent Tool Call] ${name}:`, args);
-
-        let functionResult;
-        try {
-          if (name === 'read_file') {
-            await sendTelegramMessage(chatId, `🔍 Lendo arquivo \`${args.filePath}\`...`);
-            const fileData = await getFileContent(args.filePath);
-            functionResult = fileData.exists ? { content: fileData.content } : { error: 'Arquivo não encontrado' };
-          } else if (name === 'commit_file_change') {
-            await sendTelegramMessage(chatId, `📝 Aplicando alterações e gerando commit em \`${args.filePath}\`...`);
-            const commitRes = await commitFile(args.filePath, args.newContent, args.commitMessage);
-            functionResult = { success: true, commitSha: commitRes.commitSha, url: commitRes.commitUrl };
-          } else if (name === 'list_files') {
-            const files = await listDirectory(args.dirPath || '');
-            functionResult = { files };
-          } else if (name === 'get_recent_commits') {
-            const commits = await getLatestCommits(args.limit || 3);
-            functionResult = { commits };
-          } else {
-            functionResult = { error: `Ferramenta desconhecida: ${name}` };
-          }
-        } catch (toolError) {
-          console.error(`[Tool Execution Error] ${name}:`, toolError);
-          functionResult = { error: toolError.message };
-        }
-
-        functionResponses.push({
-          functionResponse: {
-            name,
-            response: functionResult
-          }
-        });
+        await sendTelegramChatAction(chatId, 'typing');
+        result = await chat.sendMessage(functionResponses);
+        response = await result.response;
       }
 
-      // Pequena pausa para respeitar taxa de requisições
-      await new Promise(r => setTimeout(r, 1000));
+      const replyText = response.text() || '✅ Solicitação processada com sucesso!';
+      await sendTelegramMessage(chatId, replyText);
+      return res.status(200).json({ ok: true, reply: replyText });
 
-      // Envia os resultados das ferramentas de volta ao modelo com retry
-      result = await sendWithRetry(functionResponses);
-      response = await result.response;
+    } catch (modelError) {
+      console.warn(`[Model ${modelName} Error]:`, modelError.message);
+      // Se for erro de cota 429 ou modelo indisponível, tenta o próximo modelo do pool
+      if (modelError.message && (modelError.message.includes('429') || modelError.message.includes('404') || modelError.message.includes('503'))) {
+        console.log(`[Rate Limit / Quota] Fazendo fallback para o próximo modelo do pool...`);
+        await new Promise(r => setTimeout(r, 1500));
+        continue;
+      }
+      // Se for outro erro, repassa o erro
+      throw modelError;
     }
-
-    const replyText = response.text() || '✅ Solicitação processada com sucesso!';
-    await sendTelegramMessage(chatId, replyText);
-
-    return res.status(200).json({ ok: true, reply: replyText });
-  } catch (error) {
-    console.error('[Telegram Agent Error]:', error);
-    await sendTelegramMessage(
-      chatId,
-      `❌ *Ocorreu um erro ao processar sua solicitação:*\n\`${error.message}\``
-    );
-
-    return res.status(200).json({ ok: true, error: error.message });
   }
+
+  // Se todos os modelos do pool falharem por cota
+  await sendTelegramMessage(
+    chatId,
+    `⚠️ *Cota temporária atingida.*\nAguarde cerca de 30 segundos e envie seu comando novamente.`
+  );
+  return res.status(200).json({ ok: true, error: 'Quota exceeded on all pool models' });
 }
+
