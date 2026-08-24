@@ -196,7 +196,7 @@ export default async function handler(req, res) {
   try {
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-3.5-flash',
       tools: agentTools,
       systemInstruction: `Você é o Engenheiro de Software Autônomo e Administrador Técnico do FotoClic.
 Seu objetivo é atender aos comandos do dono do projeto via Telegram de forma rápida, segura e precisa.
@@ -210,7 +210,24 @@ DIRETRIZES FUNDAMENTAIS:
     });
 
     const chat = model.startChat();
-    let result = await chat.sendMessage(text);
+    
+    // Função auxiliar com retry para chamadas à API
+    const sendWithRetry = async (payload, maxRetries = 2) => {
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+          return await chat.sendMessage(payload);
+        } catch (err) {
+          if (attempt < maxRetries && err.message && err.message.includes('429')) {
+            console.warn(`[Rate limit 429] Aguardando 3s antes da tentativa ${attempt + 1}...`);
+            await new Promise(r => setTimeout(r, 3000));
+          } else {
+            throw err;
+          }
+        }
+      }
+    };
+
+    let result = await sendWithRetry(text);
     let response = await result.response;
 
     // Loop de Execução de Ferramentas (Function Calling)
@@ -258,8 +275,11 @@ DIRETRIZES FUNDAMENTAIS:
         });
       }
 
-      // Envia os resultados das ferramentas de volta ao modelo
-      result = await chat.sendMessage(functionResponses);
+      // Pequena pausa para respeitar taxa de requisições
+      await new Promise(r => setTimeout(r, 1000));
+
+      // Envia os resultados das ferramentas de volta ao modelo com retry
+      result = await sendWithRetry(functionResponses);
       response = await result.response;
     }
 
@@ -273,6 +293,7 @@ DIRETRIZES FUNDAMENTAIS:
       chatId,
       `❌ *Ocorreu um erro ao processar sua solicitação:*\n\`${error.message}\``
     );
+
     return res.status(200).json({ ok: true, error: error.message });
   }
 }
