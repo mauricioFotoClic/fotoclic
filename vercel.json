@@ -3,6 +3,9 @@
   "functions": {
     "api/rekognition.js": {
       "maxDuration": 30
+    },
+    "api/telegram-agent.js": {
+      "maxDuration": 60
     }
   },
   "headers": [

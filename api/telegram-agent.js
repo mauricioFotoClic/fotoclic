@@ -121,6 +121,10 @@ const agentTools = [
   }
 ];
 
+export const config = {
+  maxDuration: 60
+};
+
 // Pool de Modelos para Fallback Automático caso um atinja limite de taxa (429)
 const MODEL_POOL = [
   'gemini-3.5-flash',
@@ -177,9 +181,6 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true });
   }
 
-  // Ativar animação de digitando imediatamente
-  await sendTelegramChatAction(chatId, 'typing');
-
   // Comandos Rápidos
   if (text.startsWith('/start') || text.startsWith('/help')) {
     const welcomeMsg = `🤖 *Agente Desenvolvedor FotoClic (24/7)*\n\n` +
@@ -209,16 +210,23 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true });
   }
 
+  // Heartbeat contínuo de "digitando..." (typing) a cada 4 segundos
+  await sendTelegramChatAction(chatId, 'typing');
+  const typingHeartbeat = setInterval(() => {
+    sendTelegramChatAction(chatId, 'typing').catch(() => {});
+  }, 4000);
+
   // Notificar o usuário que a tarefa começou
   await sendTelegramMessage(chatId, `⏳ *Processando sua solicitação:* _"${text.slice(0, 80)}${text.length > 80 ? '...' : ''}"_`);
-  await sendTelegramChatAction(chatId, 'typing');
 
   if (!GEMINI_API_KEY) {
+    clearInterval(typingHeartbeat);
     await sendTelegramMessage(chatId, '❌ Erro: `GEMINI_API_KEY` não configurada no servidor.');
     return res.status(200).json({ ok: true });
   }
 
   if (!process.env.GITHUB_TOKEN) {
+    clearInterval(typingHeartbeat);
     await sendTelegramMessage(chatId, '❌ Erro: `GITHUB_TOKEN` não configurado. Adicione o Token do GitHub nas variáveis de ambiente.');
     return res.status(200).json({ ok: true });
   }
@@ -304,6 +312,7 @@ DIRETRIZES FUNDAMENTAIS:
       }
 
       const replyText = response.text() || '✅ Solicitação processada com sucesso!';
+      clearInterval(typingHeartbeat);
       await sendTelegramMessage(chatId, replyText);
       return res.status(200).json({ ok: true, reply: replyText });
 
@@ -315,16 +324,18 @@ DIRETRIZES FUNDAMENTAIS:
         await new Promise(r => setTimeout(r, 1500));
         continue;
       }
-      // Se for outro erro, repassa o erro
+      clearInterval(typingHeartbeat);
       throw modelError;
     }
   }
 
   // Se todos os modelos do pool falharem por cota
+  clearInterval(typingHeartbeat);
   await sendTelegramMessage(
     chatId,
     `⚠️ *Cota temporária atingida.*\nAguarde cerca de 30 segundos e envie seu comando novamente.`
   );
   return res.status(200).json({ ok: true, error: 'Quota exceeded on all pool models' });
 }
+
 
