@@ -229,7 +229,7 @@ def process_photo_protect(
     img_vaccine = apply_adversarial_vaccine(img, epsilon=8.0, iterations=20)
 
     # 4. Aplicar Marca d'Água Visível FotoClic
-    img_watermarked = add_visible_watermark(img_vaccine, text="FOTOCLIC   PROVA   ")
+    img_watermarked = add_visible_watermark(img_vaccine, text="Fotoclic Preview")
 
     # 5. Aplicar Assinatura Digital Invisível (TrustMark)
     img_final = apply_trustmark_signature(img_watermarked, secret_id=secret_id)

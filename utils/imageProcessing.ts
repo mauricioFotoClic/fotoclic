@@ -44,7 +44,7 @@ export const processImageFast = async (file: File): Promise<FastProcessedImages>
     const thumbBlob = await drawToBlob(source, width, height, 500, 0.82, false);
 
     // 2. Generate Preview (Max 2048px 2K, 0.85 quality + Watermark)
-    const previewBlob = await drawToBlob(source, width, height, 2048, 0.85, true, "FOTOCLIC   PROVA   ");
+    const previewBlob = await drawToBlob(source, width, height, 2048, 0.85, true, "Fotoclic Preview");
 
     if ('close' in source && typeof source.close === 'function') {
         source.close();
