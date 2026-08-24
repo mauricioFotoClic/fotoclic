@@ -69,37 +69,37 @@ const WatermarkedImage: React.FC<WatermarkedImageProps> = ({
       {/* Camada de Proteção Invisível (Impede arrastar a imagem para o desktop) */}
       <div className="absolute inset-0 z-20 bg-transparent" />
 
-      {/* ── Malha de Proteção e Marca D'água Visual Avançada ── */}
+      {/* ── Malha de Proteção e Marca D'água Visual Anti-Print / Anti-IA ── */}
       {loaded && (
         <div className="absolute inset-0 z-30 pointer-events-none select-none flex flex-col justify-between overflow-hidden animate-fade-in">
-          {/* 1. Linhas de Segurança Cruzadas Contínuas (Estilo Banco de Imagens Getty/Shutterstock) */}
+          {/* 1. Linhas de Segurança Cruzadas Contínuas e Grossas (Alta Visibilidade em Qualquer Fundo) */}
           <svg
-            className="absolute inset-0 w-full h-full opacity-35"
+            className="absolute inset-0 w-full h-full opacity-65"
             xmlns="http://www.w3.org/2000/svg"
-            style={{ mixBlendMode: 'overlay' }}
           >
             <defs>
-              <pattern id="crosshatch-grid" width="120" height="120" patternUnits="userSpaceOnUse">
-                {/* Linhas diagonais cruzadas */}
-                <line x1="0" y1="0" x2="120" y2="120" stroke="white" strokeWidth="1.2" strokeDasharray="6 4" opacity="0.6" />
-                <line x1="120" y1="0" x2="0" y2="120" stroke="white" strokeWidth="1.2" strokeDasharray="6 4" opacity="0.6" />
-                <line x1="0" y1="0" x2="120" y2="120" stroke="black" strokeWidth="0.8" strokeDasharray="6 4" opacity="0.4" />
-                <line x1="120" y1="0" x2="0" y2="120" stroke="black" strokeWidth="0.8" strokeDasharray="6 4" opacity="0.4" />
+              <pattern id="crosshatch-grid-heavy" width="100" height="100" patternUnits="userSpaceOnUse">
+                {/* Linhas pretas de contorno / sombra para contraste em fundos claros */}
+                <line x1="0" y1="0" x2="100" y2="100" stroke="rgba(0,0,0,0.65)" strokeWidth="3.5" />
+                <line x1="100" y1="0" x2="0" y2="100" stroke="rgba(0,0,0,0.65)" strokeWidth="3.5" />
+                {/* Linhas brancas principais grossas e pontilhadas para contraste em fundos escuros */}
+                <line x1="0" y1="0" x2="100" y2="100" stroke="rgba(255,255,255,0.85)" strokeWidth="2.2" strokeDasharray="10 5" />
+                <line x1="100" y1="0" x2="0" y2="100" stroke="rgba(255,255,255,0.85)" strokeWidth="2.2" strokeDasharray="10 5" />
               </pattern>
             </defs>
-            <rect width="100%" height="100%" fill="url(#crosshatch-grid)" />
+            <rect width="100%" height="100%" fill="url(#crosshatch-grid-heavy)" />
           </svg>
 
-          {/* 2. Grade de Marcas D'água Dinâmica em Diagonal (16 Células com Efeito Duplo) */}
-          <div className="absolute inset-0 flex flex-wrap content-center justify-center opacity-40">
+          {/* 2. Grade de Marcas D'água Dinâmica em Diagonal (16 Células com Alto Contraste) */}
+          <div className="absolute inset-0 flex flex-wrap content-center justify-center opacity-75">
             {Array.from({ length: 16 }).map((_, i) => (
               <div
                 key={i}
-                className="w-1/4 h-1/4 flex items-center justify-center transform -rotate-30 p-2"
+                className="w-1/4 h-1/4 flex items-center justify-center transform -rotate-30 p-1.5"
               >
-                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded border border-white/40 bg-black/30 backdrop-blur-[1px] shadow-sm">
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                  <span className="text-white font-display font-extrabold text-[9px] sm:text-xs md:text-sm tracking-wider whitespace-nowrap drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-white/60 bg-black/45 backdrop-blur-[2px] shadow-lg">
+                  <span className="w-2 h-2 rounded-full bg-primary shadow-[0_0_8px_rgba(249,115,22,1)] animate-pulse" />
+                  <span className="text-white font-display font-extrabold text-[10px] sm:text-xs md:text-sm tracking-wider whitespace-nowrap drop-shadow-[0_2px_4px_rgba(0,0,0,1)]">
                     {i % 2 === 0 ? text : 'fotoclic.com.br'}
                   </span>
                 </div>
@@ -107,14 +107,19 @@ const WatermarkedImage: React.FC<WatermarkedImageProps> = ({
             ))}
           </div>
 
-          {/* 3. Selo Central de Alta Densidade (Sobre o ponto focal principal da foto) */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="transform -rotate-12 bg-black/40 border-2 border-white/50 px-4 py-1.5 sm:px-6 sm:py-2.5 rounded-xl shadow-2xl backdrop-blur-[2px] opacity-75">
-              <div className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-primary" />
-                <span className="text-white font-display font-black text-xs sm:text-base md:text-xl tracking-widest uppercase drop-shadow-[0_2px_6px_rgba(0,0,0,0.95)]">
-                  FOTOCLIC • PREVIEW
-                </span>
+          {/* 3. Selo Central de Alta Densidade com Difração Óptica (Foco no Centro da Foto) */}
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none p-4">
+            <div className="transform -rotate-12 bg-black/60 border-2 border-primary/90 px-5 py-2 sm:px-8 sm:py-3.5 rounded-2xl shadow-[0_10px_35px_rgba(0,0,0,0.8)] backdrop-blur-[3px]">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-primary shadow-[0_0_12px_rgba(249,115,22,1)]" />
+                <div className="flex flex-col text-center">
+                  <span className="text-white font-display font-black text-sm sm:text-lg md:text-2xl tracking-widest uppercase drop-shadow-[0_2px_8px_rgba(0,0,0,1)]">
+                    FOTOCLIC • PREVIEW
+                  </span>
+                  <span className="text-orange-300 font-sans font-bold text-[9px] sm:text-xs tracking-wider uppercase drop-shadow-[0_1px_4px_rgba(0,0,0,1)]">
+                    IMAGEM PROTEGIDA • COMPRE A ORIGINAL
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -125,4 +130,5 @@ const WatermarkedImage: React.FC<WatermarkedImageProps> = ({
 };
 
 export default WatermarkedImage;
+
 
