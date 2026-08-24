@@ -76,7 +76,7 @@ const drawToBlob = (
     maxSide: number,
     quality: number,
     addWatermark: boolean,
-    watermarkText = "FOTOCLIC   PROVA   "
+    watermarkText = "Fotoclic Preview"
 ): Promise<Blob> => {
     return new Promise((resolve, reject) => {
         let width = origW;
@@ -109,13 +109,18 @@ const drawToBlob = (
 
         if (addWatermark) {
             ctx.save();
-            ctx.font = `bold ${Math.max(22, Math.round(width / 18))}px sans-serif`;
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.72)';
+            const fontSize = Math.max(30, Math.round(width / 13.5));
+            ctx.font = `bold ${fontSize}px sans-serif`;
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.76)';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
 
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.85)';
-            ctx.shadowBlur = 8;
+            // Contorno escuro para maior contraste
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.80)';
+            ctx.lineWidth = Math.max(2, Math.round(fontSize / 14));
+
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.90)';
+            ctx.shadowBlur = 10;
             ctx.shadowOffsetX = 3;
             ctx.shadowOffsetY = 3;
 
@@ -123,11 +128,12 @@ const drawToBlob = (
             ctx.rotate(-45 * Math.PI / 180);
             ctx.translate(-width / 2, -height / 2);
 
-            const stepX = Math.round(width / 3);
-            const stepY = Math.round(height / 3);
+            const stepX = Math.round(width / 2.8);
+            const stepY = Math.round(height / 2.8);
 
             for (let y = -height; y < height * 2; y += stepY) {
                 for (let x = -width; x < width * 2; x += stepX) {
+                    ctx.strokeText(watermarkText, x, y);
                     ctx.fillText(watermarkText, x, y);
                 }
             }
