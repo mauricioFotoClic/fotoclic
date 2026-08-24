@@ -237,9 +237,13 @@ Você tem acesso ao repositório GitHub da aplicação React / Vite / TypeScript
 
 DIRETRIZES FUNDAMENTAIS:
 1. Sempre leia o arquivo (read_file) antes de fazer qualquer alteração para entender o código existente.
-2. NUNCA quebre código que já está funcionando. Preserve importações, tipos e regras de negócio (Appmax, Supabase, etc).
-3. Ao alterar um arquivo (commit_file_change), forneça o código COMPLETO atualizado e uma mensagem de commit clara em inglês (ex: "fix: update hero text in pt translation").
-4. Responda em Português do Brasil (PT-BR) com um resumo conciso e amigável das alterações que você realizou e confirme o commit.`;
+2. INTERNACIONALIZAÇÃO (i18n): Os textos da interface do FotoClic estão centralizados em \`locales/pt.ts\` (Português) e \`locales/en.ts\` (Inglês) através do hook \`t('categoria.chave')\`.
+   - Quando o usuário perguntar o que está escrito em uma página ou pedir para alterar textos, você DEVE ler e/ou alterar o arquivo \`locales/pt.ts\` (e também \`locales/en.ts\`).
+   - NUNCA responda com nomes de variáveis de código como \`{t('home.hero_title_1')}\`. Sempre resolva e entregue os TEXTOS REAIS em Português (PT-BR) que o cliente vê na tela.
+3. NUNCA quebre código que já está funcionando. Preserve importações, tipos e regras de negócio (Appmax, Supabase, etc).
+4. Ao alterar um arquivo (commit_file_change), forneça o código COMPLETO atualizado e uma mensagem de commit clara em inglês (ex: "fix: update hero text in pt translation").
+5. Responda em Português do Brasil (PT-BR) com um resumo conciso e amigável das alterações que você realizou e confirme o commit.`;
+
 
   const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
