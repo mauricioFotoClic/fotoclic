@@ -139,7 +139,7 @@ export const pt = {
     },
     home: {
         hero_title_1: "Encontre suas fotos.",
-        hero_title_2: "Reviva",
+        hero_title_2: "Desfrute",
         hero_title_3: " seus melhores momentos.",
         hero_subtitle: "Busque, encontre e compre as fotos dos eventos que você participou.",
         search_placeholder: "Pesquise por evento, esporte, fotógrafo...",
