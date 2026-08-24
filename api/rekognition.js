@@ -48,6 +48,7 @@ export default async function handler(req, res) {
             CreateCollectionCommand,
         } = await import('@aws-sdk/client-rekognition');
 
+        const COLLECTION_ID = process.env.AWS_REKOGNITION_COLLECTION_ID || 'fotoclic-faces';
         const rekognition = new RekognitionClient({
             region: process.env.AWS_REGION || 'us-east-1',
             credentials: {
