@@ -28,6 +28,9 @@ import bcrypt from "bcryptjs";
 
 const API_URL = '/api';
 
+// Allowed public columns on users table (Column Level Security safe for anon)
+const PUBLIC_USER_COLUMNS = "id, name, avatar_url, bio, slug, location, role, is_active, banner_url, social_instagram";
+
 // Cache and Promise Deduplication for Photographers
 let photographersCache: { data: PhotographerWithStats[]; ts: number } | null = null;
 let inflightPhotographersPromise: Promise<PhotographerWithStats[]> | null = null;
@@ -1132,8 +1135,9 @@ export const api = {
         if (!rpcData || rpcData.length === 0) {
           const { data: usersData } = await supabase
             .from("users")
-            .select("*")
-            .eq("role", "photographer");
+            .select(PUBLIC_USER_COLUMNS)
+            .eq("role", "photographer")
+            .eq("is_active", true);
 
           rpcData = (usersData || []).map((u: any) => ({
             user_data: u,
@@ -1209,7 +1213,7 @@ export const api = {
     }
     const { data, error } = await supabase
       .from("users")
-      .select("*")
+      .select(PUBLIC_USER_COLUMNS)
       .eq("id", id)
       .single();
     if (error) {
@@ -1230,7 +1234,7 @@ export const api = {
     }
     const { data, error } = await supabase
       .from("users")
-      .select("*")
+      .select(PUBLIC_USER_COLUMNS)
       .eq("slug", slug)
       .single();
     if (error) {
@@ -1254,7 +1258,7 @@ export const api = {
       if (result.length === 0) {
         const { data: fallbackUsers } = await supabase
           .from("users")
-          .select("*")
+          .select(PUBLIC_USER_COLUMNS)
           .eq("role", "photographer")
           .eq("is_active", true);
 
@@ -1762,7 +1766,7 @@ export const api = {
   getPublicPhotographers: async (): Promise<PhotographerWithStats[]> => {
     const { data: users, error } = await supabase
       .from("users")
-      .select("*, reviews!photographer_id(*)")
+      .select(`${PUBLIC_USER_COLUMNS}, reviews!photographer_id(rating)`)
       .eq("role", "photographer")
       .eq("is_active", true);
     if (error) throw error;
