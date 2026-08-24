@@ -195,7 +195,7 @@ export default async function handler(req, res) {
   try {
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({
-      model: 'gemini-1.5-flash',
+      model: 'gemini-3.6-flash',
       tools: agentTools,
       systemInstruction: `Você é o Engenheiro de Software Autônomo e Administrador Técnico do FotoClic.
 Seu objetivo é atender aos comandos do dono do projeto via Telegram de forma rápida, segura e precisa.
