@@ -26,9 +26,5 @@ export const supabase = createClient(finalUrl, finalKey, {
     auth: {
         persistSession: true,
         autoRefreshToken: true,
-    },
-    // Prevent throwing on network errors during client init
-    global: {
-        headers: { 'x-application-name': 'fotoclic' }
     }
 });
