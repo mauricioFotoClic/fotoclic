@@ -8,7 +8,8 @@ import { useConfirm } from '../contexts/ConfirmContext';
 import { 
     Trophy, Plus, Users, Calendar, DollarSign, 
     CheckCircle2, Clock, Trash2, Mail, ExternalLink, 
-    Wallet, ShieldCheck, MapPin, Sparkles, Building2, UserPlus, Sliders
+    Wallet, ShieldCheck, MapPin, Sparkles, Building2, UserPlus, Sliders,
+    Camera, Image as ImageIcon, UploadCloud, X
 } from 'lucide-react';
 
 interface ProducerDashboardPageProps {
@@ -57,6 +58,58 @@ const ProducerDashboardPage: React.FC<ProducerDashboardPageProps> = ({ currentUs
 
     // Sales data
     const [sales, setSales] = useState<any[]>([]);
+
+    // Image Upload & Camera Refs
+    const coverFileRef = React.useRef<HTMLInputElement>(null);
+    const cameraInputRef = React.useRef<HTMLInputElement>(null);
+    const [isProcessingImage, setIsProcessingImage] = useState(false);
+
+    const processImageFile = async (file: File) => {
+        if (!file) return;
+        setIsProcessingImage(true);
+        try {
+            const img = new Image();
+            const objectUrl = URL.createObjectURL(file);
+            img.src = objectUrl;
+            await new Promise((resolve, reject) => {
+                img.onload = resolve;
+                img.onerror = reject;
+            });
+
+            const canvas = document.createElement('canvas');
+            const MAX_WIDTH = 1200;
+            const MAX_HEIGHT = 800;
+            let width = img.width;
+            let height = img.height;
+
+            if (width > height) {
+                if (width > MAX_WIDTH) {
+                    height = Math.round((height * MAX_WIDTH) / width);
+                    width = MAX_WIDTH;
+                }
+            } else {
+                if (height > MAX_HEIGHT) {
+                    width = Math.round((width * MAX_HEIGHT) / height);
+                    height = MAX_HEIGHT;
+                }
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx?.drawImage(img, 0, 0, width, height);
+
+            const base64 = canvas.toDataURL('image/jpeg', 0.85);
+            setEventFormData(prev => ({ ...prev, cover_photo_url: base64 }));
+            URL.revokeObjectURL(objectUrl);
+            showToast("Foto de capa selecionada com sucesso!", "success");
+        } catch (e) {
+            console.error("Erro ao processar imagem de capa:", e);
+            showToast("Falha ao carregar a imagem. Tente novamente.", "error");
+        } finally {
+            setIsProcessingImage(false);
+        }
+    };
 
     const fetchData = useCallback(async () => {
         setLoading(true);
@@ -653,16 +706,107 @@ const ProducerDashboardPage: React.FC<ProducerDashboardPageProps> = ({ currentUs
                     </div>
 
                     <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
-                            URL da Foto de Capa (Banner)
+                        <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
+                            Foto de Capa do Evento (Banner)
                         </label>
+                        
+                        {/* Hidden Inputs for File and Camera */}
                         <input
-                            type="url"
-                            value={eventFormData.cover_photo_url}
-                            onChange={(e) => setEventFormData({ ...eventFormData, cover_photo_url: e.target.value })}
-                            placeholder="https://..."
-                            className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:ring-2 focus:ring-primary focus:bg-white text-gray-900"
+                            type="file"
+                            ref={coverFileRef}
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) processImageFile(file);
+                            }}
                         />
+                        <input
+                            type="file"
+                            ref={cameraInputRef}
+                            accept="image/*"
+                            capture="environment"
+                            className="hidden"
+                            onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) processImageFile(file);
+                            }}
+                        />
+
+                        {eventFormData.cover_photo_url ? (
+                            <div className="relative rounded-2xl overflow-hidden border border-neutral-200 bg-neutral-900 group aspect-video max-h-44 shadow-sm">
+                                <img
+                                    src={eventFormData.cover_photo_url}
+                                    alt="Capa do Evento"
+                                    className="w-full h-full object-cover"
+                                />
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => coverFileRef.current?.click()}
+                                        className="px-3 py-1.5 bg-white text-gray-900 font-bold text-xs rounded-lg shadow hover:bg-neutral-100 transition flex items-center gap-1.5 cursor-pointer"
+                                    >
+                                        <UploadCloud size={14} />
+                                        Trocar Arquivo
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => cameraInputRef.current?.click()}
+                                        className="px-3 py-1.5 bg-white text-gray-900 font-bold text-xs rounded-lg shadow hover:bg-neutral-100 transition flex items-center gap-1.5 cursor-pointer"
+                                    >
+                                        <Camera size={14} />
+                                        Tirar Foto
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setEventFormData(prev => ({ ...prev, cover_photo_url: '' }))}
+                                        className="p-1.5 bg-rose-600 text-white rounded-lg hover:bg-rose-700 transition cursor-pointer"
+                                        title="Remover Capa"
+                                    >
+                                        <X size={14} />
+                                    </button>
+                                </div>
+                                <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded bg-black/60 text-white text-[10px] font-medium backdrop-blur-xs">
+                                    ✓ Capa carregada
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-2 gap-2.5">
+                                <button
+                                    type="button"
+                                    disabled={isProcessingImage}
+                                    onClick={() => coverFileRef.current?.click()}
+                                    className="flex flex-col items-center justify-center p-4 bg-neutral-50 hover:bg-neutral-100/80 border-2 border-dashed border-neutral-200 hover:border-primary/50 rounded-2xl transition group cursor-pointer text-center"
+                                >
+                                    <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-2 group-hover:scale-110 transition">
+                                        <UploadCloud size={20} />
+                                    </div>
+                                    <span className="text-xs font-bold text-gray-800">
+                                        {isProcessingImage ? "Processando..." : "Escolher dos Arquivos"}
+                                    </span>
+                                    <span className="text-[10px] text-gray-400 mt-0.5">
+                                        Computador ou celular
+                                    </span>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    disabled={isProcessingImage}
+                                    onClick={() => cameraInputRef.current?.click()}
+                                    className="flex flex-col items-center justify-center p-4 bg-neutral-50 hover:bg-neutral-100/80 border-2 border-dashed border-neutral-200 hover:border-amber-500/50 rounded-2xl transition group cursor-pointer text-center"
+                                >
+                                    <div className="w-10 h-10 rounded-full bg-amber-500/10 text-amber-600 flex items-center justify-center mb-2 group-hover:scale-110 transition">
+                                        <Camera size={20} />
+                                    </div>
+                                    <span className="text-xs font-bold text-gray-800">
+                                        Tirar Foto na Hora
+                                    </span>
+                                    <span className="text-[10px] text-gray-400 mt-0.5">
+                                        Abrir câmera do aparelho
+                                    </span>
+                                </button>
+                            </div>
+                        )}
                     </div>
 
                     {/* Slider de Comissão do Produtor */}
