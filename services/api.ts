@@ -3278,6 +3278,22 @@ export const api = {
     return result;
   },
 
+  getAuthHeaders: async (): Promise<Record<string, string>> => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      return headers;
+    } catch {
+      return { 'Content-Type': 'application/json' };
+    }
+  },
+
   sendEmail: async (to: string | string[], subject: string, html: string): Promise<any> => {
     const headers = await api.getAuthHeaders();
     const response = await fetch('/api/send-email', {
