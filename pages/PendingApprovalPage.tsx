@@ -1,78 +1,131 @@
-
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Page } from '../types';
 import Logo from '../components/Logo';
+import { ShieldCheck, Clock, CheckCircle2, ArrowRight, HelpCircle, Mail } from 'lucide-react';
 
 interface PendingApprovalPageProps {
     onNavigate: (page: Page) => void;
 }
 
 const PendingApprovalPage: React.FC<PendingApprovalPageProps> = ({ onNavigate }) => {
-    const [timeLeft, setTimeLeft] = useState(20);
-
-    useEffect(() => {
-        if (timeLeft === 0) {
-            onNavigate({ name: 'home' });
-            return;
-        }
-
-        const timer = setInterval(() => {
-            setTimeLeft((prev) => prev - 1);
-        }, 1000);
-
-        return () => clearInterval(timer);
-    }, [timeLeft, onNavigate]);
-
     return (
-        <div className="min-h-screen bg-white flex flex-col justify-center items-center p-4 relative overflow-hidden">
-            {/* Decorative Background */}
+        <div className="min-h-screen bg-neutral-50/70 flex flex-col justify-center items-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+            {/* Background Gradients */}
             <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-                 <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] bg-primary/5 rounded-full blur-[120px]"></div>
-                 <div className="absolute bottom-[-20%] left-[-10%] w-[700px] h-[700px] bg-secondary/5 rounded-full blur-[150px]"></div>
+                <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-amber-500/5 rounded-full blur-[100px]"></div>
+                <div className="absolute bottom-[-10%] left-[-5%] w-[500px] h-[500px] bg-primary/5 rounded-full blur-[100px]"></div>
             </div>
 
-            <div className="max-w-2xl text-center relative z-10 flex flex-col items-center">
-                <Logo size={48} className="mb-12" useImage={true} />
-                <div className="mb-8 inline-block p-6 rounded-full bg-green-50 shadow-sm">
-                     <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-green-500">
-                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                    </svg>
+            <div className="max-w-2xl w-full text-center relative z-10 flex flex-col items-center">
+                <Logo size={46} className="mb-6" useImage={true} />
+
+                {/* Ícone de Status de Moderação */}
+                <div className="mb-5 relative">
+                    <div className="w-20 h-20 rounded-3xl bg-amber-500/10 text-amber-600 flex items-center justify-center shadow-inner border border-amber-500/20">
+                        <Clock size={38} className="animate-pulse" />
+                    </div>
+                    <div className="absolute -bottom-1 -right-1 bg-white p-1 rounded-full shadow-sm">
+                        <ShieldCheck size={20} className="text-emerald-600" />
+                    </div>
                 </div>
-                
-                <h1 className="text-4xl md:text-5xl font-display font-bold text-neutral-900 mb-6">
-                    Cadastro Recebido com Sucesso!
+
+                {/* Título e Subtítulo Técnicos */}
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-100 text-amber-800 mb-3 border border-amber-300/60">
+                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span>
+                    Status: Cadastro em Moderação Técnica
+                </div>
+
+                <h1 className="text-3xl sm:text-4xl font-display font-black text-gray-900 tracking-tight mb-3">
+                    Conta em Processo de Avaliação
                 </h1>
-                
-                <p className="text-xl text-neutral-600 mb-8 leading-relaxed">
-                    Estamos preparando seu espaço. No <span className="font-bold text-primary">FotoClic</span>, novos parceiros e produtores passam por uma análise dedicada para garantir a máxima qualidade, transparência e segurança da plataforma.
+
+                <p className="text-sm sm:text-base text-gray-600 max-w-lg mb-8 leading-relaxed">
+                    Seu cadastro foi recebido com sucesso pelos nossos servidores e está atualmente sob análise do departamento de curadoria e conformidade técnica do <strong>FotoClic</strong>.
                 </p>
 
-                <div className="bg-neutral-50 p-8 rounded-2xl border border-neutral-100 shadow-sm mb-8">
-                    <h3 className="text-lg font-bold text-neutral-800 mb-2">O que acontece agora?</h3>
-                    <p className="text-neutral-600">
-                        Sua conta entrou em nosso processo de moderação. Nossa equipe analisará seu perfil e, assim que aprovado pelo administrador, você receberá um e-mail liberando seu acesso total ao painel oficial.
-                    </p>
+                {/* Painel Explicativo Técnico */}
+                <div className="w-full bg-white rounded-2xl border border-neutral-200/80 shadow-sm p-6 sm:p-7 text-left space-y-4 mb-8">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400">
+                        Etapas do Processo de Homologação
+                    </h3>
+
+                    <div className="space-y-3.5">
+                        <div className="flex items-start gap-3">
+                            <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 mt-0.5">
+                                <CheckCircle2 size={15} />
+                            </div>
+                            <div>
+                                <div className="text-xs sm:text-sm font-bold text-gray-900">
+                                    1. Recebimento e Validação de Credenciais
+                                </div>
+                                <div className="text-xs text-gray-500 mt-0.5">
+                                    Seus dados cadastrais e identificação foram computados de forma segura em nossa infraestrutura.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex items-start gap-3">
+                            <div className="w-6 h-6 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 mt-0.5">
+                                <Clock size={15} />
+                            </div>
+                            <div>
+                                <div className="text-xs sm:text-sm font-bold text-amber-900">
+                                    2. Análise de Conformidade e Splits (Em Andamento)
+                                </div>
+                                <div className="text-xs text-gray-600 mt-0.5 leading-relaxed">
+                                    Nossa equipe técnica analisa a estrutura de coordenação de eventos e conformidade com as regras de repasse via gateway Appmax.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex items-start gap-3">
+                            <div className="w-6 h-6 rounded-full bg-neutral-100 text-neutral-400 flex items-center justify-center shrink-0 mt-0.5">
+                                <ShieldCheck size={15} />
+                            </div>
+                            <div>
+                                <div className="text-xs sm:text-sm font-bold text-gray-700">
+                                    3. Liberação Automática do Painel
+                                </div>
+                                <div className="text-xs text-gray-500 mt-0.5">
+                                    Assim que a moderação for concluída, você receberá a notificação de ativação por e-mail e o acesso total ao painel será destravado.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="pt-3.5 border-t border-neutral-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-xs text-gray-500">
+                        <div className="flex items-center gap-1.5">
+                            <Clock size={13} className="text-amber-600" />
+                            <span>Tempo médio de resposta: <strong>até 24 horas úteis</strong></span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-neutral-400">
+                            <Mail size={13} />
+                            <span>contato@fotoclic.com.br</span>
+                        </div>
+                    </div>
                 </div>
 
-                <div className="text-sm font-medium text-neutral-400 uppercase tracking-widest mb-2">
-                    Redirecionando em
-                </div>
-                <div className="text-5xl font-display font-bold text-primary mb-8">
-                    {timeLeft}s
-                </div>
+                {/* Botões de Ação */}
+                <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+                    <button
+                        onClick={() => onNavigate({ name: 'home' })}
+                        className="w-full sm:w-auto px-6 py-3 bg-primary text-white font-bold text-sm rounded-xl shadow hover:bg-primary-dark transition cursor-pointer flex items-center justify-center gap-2"
+                    >
+                        Navegar na FotoClic
+                        <ArrowRight size={16} />
+                    </button>
 
-                <button 
-                    onClick={() => onNavigate({ name: 'home' })}
-                    className="px-8 py-3 bg-white border border-neutral-200 text-neutral-600 font-medium rounded-full hover:bg-neutral-50 hover:border-neutral-300 transition-all"
-                >
-                    Ir para a Home agora
-                </button>
+                    <button
+                        onClick={() => onNavigate({ name: 'help-center' })}
+                        className="w-full sm:w-auto px-5 py-3 bg-white border border-neutral-200 text-gray-700 font-bold text-sm rounded-xl hover:bg-neutral-50 transition cursor-pointer flex items-center justify-center gap-2"
+                    >
+                        <HelpCircle size={16} className="text-gray-400" />
+                        Central de Ajuda
+                    </button>
+                </div>
             </div>
         </div>
     );
 };
 
 export default PendingApprovalPage;
-
-
