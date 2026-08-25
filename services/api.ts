@@ -1572,6 +1572,9 @@ export const api = {
         }
       }
 
+      // 4.5. Delete associated event collaborators
+      await supabase.from("event_collaborators").delete().eq("event_id", id);
+
       // 5. Delete the event row from events table
       const { error } = await supabase.from("events").delete().eq("id", id);
 

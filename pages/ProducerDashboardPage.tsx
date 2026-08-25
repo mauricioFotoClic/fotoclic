@@ -9,7 +9,7 @@ import {
     Trophy, Plus, Users, Calendar, DollarSign, 
     CheckCircle2, Clock, Trash2, Mail, ExternalLink, 
     Wallet, ShieldCheck, MapPin, Sparkles, Building2, UserPlus, Sliders,
-    Camera, Image as ImageIcon, UploadCloud, X
+    Camera, Image as ImageIcon, UploadCloud, X, Pencil
 } from 'lucide-react';
 
 interface ProducerDashboardPageProps {
@@ -33,8 +33,9 @@ const ProducerDashboardPage: React.FC<ProducerDashboardPageProps> = ({ currentUs
     const [collaborators, setCollaborators] = useState<EventCollaborator[]>([]);
     const [loadingCollabs, setLoadingCollabs] = useState(false);
 
-    // Modal state: Create Event
+    // Modal state: Create/Edit Event
     const [isEventModalOpen, setIsEventModalOpen] = useState(false);
+    const [editingEventId, setEditingEventId] = useState<string | null>(null);
     const [eventFormData, setEventFormData] = useState({
         name: '',
         description: '',
@@ -159,7 +160,59 @@ const ProducerDashboardPage: React.FC<ProducerDashboardPageProps> = ({ currentUs
         fetchCollaborators();
     }, [fetchCollaborators]);
 
-    const handleCreateEvent = async (e: React.FormEvent) => {
+    const handleOpenCreateModal = () => {
+        setEditingEventId(null);
+        setEventFormData({
+            name: '',
+            description: '',
+            category_id: categories.length > 0 ? categories[0].id : '',
+            location: '',
+            event_date: new Date().toISOString().split('T')[0],
+            cover_photo_url: '',
+            producer_commission_percent: 15
+        });
+        setIsEventModalOpen(true);
+    };
+
+    const handleOpenEditModal = (event: PhotoEvent) => {
+        setEditingEventId(event.id);
+        setEventFormData({
+            name: event.name,
+            description: event.description || '',
+            category_id: event.category_id,
+            location: event.location || '',
+            event_date: event.event_date ? new Date(event.event_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+            cover_photo_url: event.cover_photo_url || '',
+            producer_commission_percent: event.producer_commission_percent != null ? Number(event.producer_commission_percent) : 15
+        });
+        setIsEventModalOpen(true);
+    };
+
+    const handleDeleteEvent = async (event: PhotoEvent) => {
+        const confirmed = await confirm({
+            title: "Excluir Evento",
+            message: `Tem certeza que deseja excluir o evento "${event.name}"? Todos os convites e vínculos de equipe deste evento também serão excluídos.`,
+            confirmText: "Sim, Excluir",
+            cancelText: "Cancelar",
+            type: "danger"
+        });
+
+        if (!confirmed) return;
+
+        try {
+            await api.deleteEvent(event.id);
+            showToast("Evento excluído com sucesso!", "success");
+            setEvents(prev => prev.filter(e => e.id !== event.id));
+            if (selectedEventId === event.id) {
+                const remaining = events.filter(e => e.id !== event.id);
+                setSelectedEventId(remaining.length > 0 ? remaining[0].id : '');
+            }
+        } catch (error: any) {
+            showToast(error.message || "Erro ao excluir evento", "error");
+        }
+    };
+
+    const handleSaveEvent = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!eventFormData.name || !eventFormData.category_id || !eventFormData.event_date) {
             showToast("Preencha todos os campos obrigatórios", "error");
@@ -168,36 +221,53 @@ const ProducerDashboardPage: React.FC<ProducerDashboardPageProps> = ({ currentUs
 
         setSavingEvent(true);
         try {
-            const newEvent = await api.createEvent({
-                name: eventFormData.name,
-                description: eventFormData.description,
-                category_id: eventFormData.category_id,
-                location: eventFormData.location,
-                event_date: eventFormData.event_date,
-                cover_photo_url: eventFormData.cover_photo_url,
-                photographer_id: currentUser.id,
-                producer_id: currentUser.id,
-                producer_commission_percent: Number(eventFormData.producer_commission_percent)
-            } as any);
+            if (editingEventId) {
+                const updated = await api.updateEvent(editingEventId, {
+                    name: eventFormData.name,
+                    description: eventFormData.description,
+                    category_id: eventFormData.category_id,
+                    location: eventFormData.location,
+                    event_date: eventFormData.event_date,
+                    cover_photo_url: eventFormData.cover_photo_url,
+                    producer_commission_percent: Number(eventFormData.producer_commission_percent)
+                } as any);
 
-            showToast("Evento criado com sucesso! Agora você pode convidar sua equipe.", "success");
-            setIsEventModalOpen(false);
-            setEventFormData({
-                name: '',
-                description: '',
-                category_id: '',
-                location: '',
-                event_date: new Date().toISOString().split('T')[0],
-                cover_photo_url: '',
-                producer_commission_percent: 15
-            });
-            fetchData();
-            if (newEvent?.id) {
-                setSelectedEventId(newEvent.id);
-                setActiveTab('team');
+                showToast("Evento atualizado com sucesso!", "success");
+                setEvents(prev => prev.map(ev => ev.id === editingEventId ? { ...ev, ...updated, category: categories.find(c => c.id === eventFormData.category_id) } : ev));
+                setIsEventModalOpen(false);
+                setEditingEventId(null);
+            } else {
+                const newEvent = await api.createEvent({
+                    name: eventFormData.name,
+                    description: eventFormData.description,
+                    category_id: eventFormData.category_id,
+                    location: eventFormData.location,
+                    event_date: eventFormData.event_date,
+                    cover_photo_url: eventFormData.cover_photo_url,
+                    photographer_id: currentUser.id,
+                    producer_id: currentUser.id,
+                    producer_commission_percent: Number(eventFormData.producer_commission_percent)
+                } as any);
+
+                showToast("Evento criado com sucesso! Agora você pode convidar sua equipe.", "success");
+                setIsEventModalOpen(false);
+                setEventFormData({
+                    name: '',
+                    description: '',
+                    category_id: '',
+                    location: '',
+                    event_date: new Date().toISOString().split('T')[0],
+                    cover_photo_url: '',
+                    producer_commission_percent: 15
+                });
+                fetchData();
+                if (newEvent?.id) {
+                    setSelectedEventId(newEvent.id);
+                    setActiveTab('team');
+                }
             }
         } catch (error: any) {
-            showToast(error.message || "Erro ao criar evento", "error");
+            showToast(error.message || "Erro ao salvar evento", "error");
         } finally {
             setSavingEvent(false);
         }
@@ -306,7 +376,7 @@ const ProducerDashboardPage: React.FC<ProducerDashboardPageProps> = ({ currentUs
 
                         <div className="flex flex-wrap items-center gap-3">
                             <button
-                                onClick={() => setIsEventModalOpen(true)}
+                                onClick={handleOpenCreateModal}
                                 className="px-5 py-3 rounded-xl font-bold text-sm bg-gradient-to-r from-primary to-primary-dark text-white hover:shadow-lg transition-all flex items-center gap-2 cursor-pointer"
                             >
                                 <Plus size={18} />
@@ -367,7 +437,7 @@ const ProducerDashboardPage: React.FC<ProducerDashboardPageProps> = ({ currentUs
                         }`}
                     >
                         <Users size={18} />
-                        Equipe de Fotógrafos
+                        Equipe de Fotógrafos ({collaborators.length}/10)
                     </button>
 
                     <button
@@ -379,7 +449,7 @@ const ProducerDashboardPage: React.FC<ProducerDashboardPageProps> = ({ currentUs
                         }`}
                     >
                         <DollarSign size={18} />
-                        Extrato de Vendas & Splits
+                        Vendas & Repasses
                     </button>
 
                     <button
@@ -410,7 +480,7 @@ const ProducerDashboardPage: React.FC<ProducerDashboardPageProps> = ({ currentUs
                                     Crie seu primeiro evento esportivo ou festival e convide fotógrafos para montar sua equipe de cobertura.
                                 </p>
                                 <button
-                                    onClick={() => setIsEventModalOpen(true)}
+                                    onClick={handleOpenCreateModal}
                                     className="mt-5 px-6 py-3 bg-primary text-white font-bold rounded-xl shadow hover:bg-primary-dark transition cursor-pointer"
                                 >
                                     Criar Meu Primeiro Evento
@@ -453,17 +523,34 @@ const ProducerDashboardPage: React.FC<ProducerDashboardPageProps> = ({ currentUs
                                                 </div>
                                             </div>
 
-                                            <div className="mt-5 pt-4 border-t border-neutral-100 flex items-center justify-between">
+                                            <div className="mt-5 pt-4 border-t border-neutral-100 flex items-center justify-between gap-2">
                                                 <button
                                                     onClick={() => {
                                                         setSelectedEventId(event.id);
                                                         setActiveTab('team');
                                                     }}
-                                                    className="text-xs font-bold text-primary hover:text-primary-dark flex items-center gap-1 cursor-pointer"
+                                                    className="text-xs font-bold text-primary hover:text-primary-dark flex items-center gap-1 cursor-pointer truncate"
                                                 >
-                                                    <Users size={14} />
-                                                    Gerenciar Equipe (até 10) ➔
+                                                    <Users size={14} className="shrink-0" />
+                                                    <span className="truncate">Gerenciar Equipe (até 10)</span> ➔
                                                 </button>
+
+                                                <div className="flex items-center gap-1 shrink-0">
+                                                    <button
+                                                        onClick={() => handleOpenEditModal(event)}
+                                                        title="Editar Evento"
+                                                        className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition cursor-pointer"
+                                                    >
+                                                        <Pencil size={15} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteEvent(event)}
+                                                        title="Excluir Evento"
+                                                        className="p-1.5 text-gray-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                                                    >
+                                                        <Trash2 size={15} />
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -655,9 +742,18 @@ const ProducerDashboardPage: React.FC<ProducerDashboardPageProps> = ({ currentUs
                 )}
             </div>
 
-            {/* MODAL: CRIAR NOVO EVENTO */}
-            <Modal isOpen={isEventModalOpen} onClose={() => setIsEventModalOpen(false)} title="Criar Novo Evento Produzido" size="md" closeOnOverlayClick={false}>
-                <form className="space-y-4" onSubmit={handleCreateEvent}>
+            {/* MODAL: CRIAR OU EDITAR EVENTO */}
+            <Modal
+                isOpen={isEventModalOpen}
+                onClose={() => {
+                    setIsEventModalOpen(false);
+                    setEditingEventId(null);
+                }}
+                title={editingEventId ? "Editar Evento" : "Criar Novo Evento Produzido"}
+                size="md"
+                closeOnOverlayClick={false}
+            >
+                <form className="space-y-4" onSubmit={handleSaveEvent}>
                     <div>
                         <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
                             Nome do Evento *
@@ -850,7 +946,7 @@ const ProducerDashboardPage: React.FC<ProducerDashboardPageProps> = ({ currentUs
                         disabled={savingEvent}
                         className="w-full py-3 bg-primary text-white font-bold rounded-xl shadow hover:bg-primary-dark transition disabled:opacity-50 cursor-pointer text-sm"
                     >
-                        {savingEvent ? "Criando Evento..." : "Salvar e Continuar"}
+                        {savingEvent ? "Salvando..." : editingEventId ? "Salvar Alterações" : "Criar Evento e Convidar Equipe"}
                     </button>
                 </form>
             </Modal>
