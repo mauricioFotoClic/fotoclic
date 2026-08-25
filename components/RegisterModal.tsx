@@ -202,55 +202,48 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginS
     }
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title="" size="lg" noPadding>
-            <div className="p-6 sm:p-8 max-h-[90vh] overflow-y-auto">
-                {/* Cabeçalho */}
-                <div className="text-center mb-6">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary mb-3">
-                        <Sparkles size={13} />
-                        Cadastro Oficial FotoClic
-                    </span>
-                    <h2 className="text-2xl sm:text-3xl font-display font-black text-gray-900 tracking-tight">
+        <Modal isOpen={isOpen} onClose={onClose} size="lg" noPadding showCloseButton={true}>
+            <div className="p-5 sm:p-6">
+                {/* Cabeçalho Compacto */}
+                <div className="text-center mb-3.5">
+                    <h2 className="text-xl sm:text-2xl font-display font-black text-gray-900 tracking-tight">
                         {t('auth.create_account_title')}
                     </h2>
-                    <p className="text-sm text-gray-500 mt-1 max-w-md mx-auto">
-                        Selecione seu objetivo para configurarmos a melhor experiência para você
+                    <p className="text-xs text-gray-500 mt-0.5">
+                        Selecione seu tipo de conta para começar
                     </p>
                 </div>
 
-                {/* 🌟 SELETOR DE PERFIL EM 3 CARDS UX INTERATIVOS */}
-                <div className="mb-6">
-                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2.5 ml-1">
-                        Escolha seu tipo de conta
-                    </label>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                        {/* 1. Atleta / Comprador */}
+                {/* 🌟 SELETOR DE PERFIL COMPACTO (3 CARDS SEM ROLAGEM) */}
+                <div className="mb-3.5">
+                    <div className="grid grid-cols-3 gap-2">
+                        {/* 1. Cliente */}
                         <button
                             type="button"
                             onClick={() => setSelectedRole(UserRole.CUSTOMER)}
-                            className={`relative flex flex-col items-start p-3.5 rounded-2xl border-2 text-left transition-all duration-200 cursor-pointer ${
+                            className={`relative flex flex-col items-center sm:items-start p-2.5 rounded-xl border-2 text-center sm:text-left transition-all duration-150 cursor-pointer ${
                                 selectedRole === UserRole.CUSTOMER
-                                    ? 'border-primary bg-primary/[0.04] ring-2 ring-primary/20 shadow-sm'
-                                    : 'border-neutral-200 bg-white hover:border-neutral-300 hover:bg-neutral-50/70'
+                                    ? 'border-primary bg-primary/[0.04] ring-1 ring-primary/20 shadow-xs'
+                                    : 'border-neutral-200 bg-white hover:border-neutral-300 hover:bg-neutral-50/50'
                             }`}
                         >
-                            <div className="flex items-center justify-between w-full mb-2">
-                                <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+                            <div className="flex items-center justify-between w-full mb-1">
+                                <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${
                                     selectedRole === UserRole.CUSTOMER
-                                        ? 'bg-primary text-white shadow-sm'
+                                        ? 'bg-primary text-white shadow-xs'
                                         : 'bg-neutral-100 text-neutral-600'
                                 }`}>
-                                    <Sparkles size={18} />
+                                    <Sparkles size={14} />
                                 </div>
                                 {selectedRole === UserRole.CUSTOMER && (
-                                    <CheckCircle2 size={18} className="text-primary animate-in zoom-in-50 duration-150" />
+                                    <CheckCircle2 size={15} className="text-primary hidden sm:block animate-in zoom-in-50 duration-150" />
                                 )}
                             </div>
-                            <div className="font-bold text-sm text-gray-900 leading-tight">Atleta / Cliente</div>
-                            <div className="text-[11px] text-gray-500 mt-0.5 leading-snug">
-                                Comprar e buscar fotos por selfie ou evento
+                            <div className="font-bold text-xs sm:text-sm text-gray-900 leading-tight">Cliente</div>
+                            <div className="text-[10px] text-gray-500 mt-0.5 hidden sm:block line-clamp-1">
+                                Comprar e buscar fotos
                             </div>
-                            <span className="mt-2 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/60">
+                            <span className="mt-1.5 text-[9px] font-semibold px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200/60">
                                 Acesso Direto
                             </span>
                         </button>
@@ -259,155 +252,178 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginS
                         <button
                             type="button"
                             onClick={() => setSelectedRole(UserRole.PHOTOGRAPHER)}
-                            className={`relative flex flex-col items-start p-3.5 rounded-2xl border-2 text-left transition-all duration-200 cursor-pointer ${
+                            className={`relative flex flex-col items-center sm:items-start p-2.5 rounded-xl border-2 text-center sm:text-left transition-all duration-150 cursor-pointer ${
                                 selectedRole === UserRole.PHOTOGRAPHER
-                                    ? 'border-primary bg-primary/[0.04] ring-2 ring-primary/20 shadow-sm'
-                                    : 'border-neutral-200 bg-white hover:border-neutral-300 hover:bg-neutral-50/70'
+                                    ? 'border-primary bg-primary/[0.04] ring-1 ring-primary/20 shadow-xs'
+                                    : 'border-neutral-200 bg-white hover:border-neutral-300 hover:bg-neutral-50/50'
                             }`}
                         >
-                            <div className="flex items-center justify-between w-full mb-2">
-                                <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+                            <div className="flex items-center justify-between w-full mb-1">
+                                <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${
                                     selectedRole === UserRole.PHOTOGRAPHER
-                                        ? 'bg-primary text-white shadow-sm'
+                                        ? 'bg-primary text-white shadow-xs'
                                         : 'bg-neutral-100 text-neutral-600'
                                 }`}>
-                                    <Camera size={18} />
+                                    <Camera size={14} />
                                 </div>
                                 {selectedRole === UserRole.PHOTOGRAPHER && (
-                                    <CheckCircle2 size={18} className="text-primary animate-in zoom-in-50 duration-150" />
+                                    <CheckCircle2 size={15} className="text-primary hidden sm:block animate-in zoom-in-50 duration-150" />
                                 )}
                             </div>
-                            <div className="font-bold text-sm text-gray-900 leading-tight">Fotógrafo</div>
-                            <div className="text-[11px] text-gray-500 mt-0.5 leading-snug">
-                                Vender fotos com IA e criar galerias próprias
+                            <div className="font-bold text-xs sm:text-sm text-gray-900 leading-tight">Fotógrafo</div>
+                            <div className="text-[10px] text-gray-500 mt-0.5 hidden sm:block line-clamp-1">
+                                Vender fotos e criar galerias
                             </div>
-                            <span className="mt-2 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200/60">
+                            <span className="mt-1.5 text-[9px] font-semibold px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200/60">
                                 Vender Fotos
                             </span>
                         </button>
 
-                        {/* 3. Produtor de Eventos */}
+                        {/* 3. Produtor */}
                         <button
                             type="button"
                             onClick={() => setSelectedRole(UserRole.PRODUCER)}
-                            className={`relative flex flex-col items-start p-3.5 rounded-2xl border-2 text-left transition-all duration-200 cursor-pointer ${
+                            className={`relative flex flex-col items-center sm:items-start p-2.5 rounded-xl border-2 text-center sm:text-left transition-all duration-150 cursor-pointer ${
                                 selectedRole === UserRole.PRODUCER
-                                    ? 'border-primary bg-primary/[0.04] ring-2 ring-primary/20 shadow-sm'
-                                    : 'border-neutral-200 bg-white hover:border-neutral-300 hover:bg-neutral-50/70'
+                                    ? 'border-primary bg-primary/[0.04] ring-1 ring-primary/20 shadow-xs'
+                                    : 'border-neutral-200 bg-white hover:border-neutral-300 hover:bg-neutral-50/50'
                             }`}
                         >
-                            <div className="flex items-center justify-between w-full mb-2">
-                                <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+                            <div className="flex items-center justify-between w-full mb-1">
+                                <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${
                                     selectedRole === UserRole.PRODUCER
-                                        ? 'bg-amber-500 text-white shadow-sm'
+                                        ? 'bg-amber-500 text-white shadow-xs'
                                         : 'bg-neutral-100 text-neutral-600'
                                 }`}>
-                                    <Trophy size={18} />
+                                    <Trophy size={14} />
                                 </div>
                                 {selectedRole === UserRole.PRODUCER && (
-                                    <CheckCircle2 size={18} className="text-primary animate-in zoom-in-50 duration-150" />
+                                    <CheckCircle2 size={15} className="text-primary hidden sm:block animate-in zoom-in-50 duration-150" />
                                 )}
                             </div>
-                            <div className="font-bold text-sm text-gray-900 leading-tight">Produtor</div>
-                            <div className="text-[11px] text-gray-500 mt-0.5 leading-snug">
-                                Criar eventos e gerenciar equipe (até 10 fotógrafos)
+                            <div className="font-bold text-xs sm:text-sm text-gray-900 leading-tight">Produtor</div>
+                            <div className="text-[10px] text-gray-500 mt-0.5 hidden sm:block line-clamp-1">
+                                Eventos e equipe (até 10)
                             </div>
-                            <span className="mt-2 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200/60">
-                                Coordenação & Split
+                            <span className="mt-1.5 text-[9px] font-semibold px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200/60">
+                                Coordenação
                             </span>
                         </button>
                     </div>
                 </div>
 
-                {/* Formulário Dinâmico */}
-                <form className="space-y-4" onSubmit={handleSubmit}>
-                    <div>
-                        <label htmlFor="reg-name" className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1 ml-1">
-                            {selectedRole === UserRole.PRODUCER ? 'Nome do Responsável' : t('auth.name')}
-                        </label>
-                        <input
-                            id="reg-name"
-                            name="name"
-                            type="text"
-                            required
-                            value={formData.name}
-                            onChange={handleChange}
-                            placeholder={t('auth.your_name')}
-                            className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-primary focus:bg-white focus:border-transparent transition-all outline-none text-gray-900 placeholder-gray-400 text-sm"
-                        />
-                    </div>
-
-                    {/* Campo Adicional para Produtores */}
-                    {selectedRole === UserRole.PRODUCER && (
-                        <div className="animate-in fade-in-50 duration-200">
-                            <label htmlFor="reg-company" className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1 ml-1">
-                                Nome da Produtora / Empresa / Agência
+                {/* Formulário Dinâmico e Compacto */}
+                <form className="space-y-2.5" onSubmit={handleSubmit}>
+                    {/* Linha 1: Nome (e Empresa se Produtor) */}
+                    <div className={selectedRole === UserRole.PRODUCER ? "grid grid-cols-1 sm:grid-cols-2 gap-2" : "grid grid-cols-1 sm:grid-cols-2 gap-2"}>
+                        <div>
+                            <label htmlFor="reg-name" className="block text-[11px] font-bold uppercase tracking-wider text-gray-700 mb-0.5 ml-0.5">
+                                {selectedRole === UserRole.PRODUCER ? 'Nome do Responsável' : t('auth.name')}
                             </label>
                             <input
-                                id="reg-company"
-                                name="companyName"
+                                id="reg-name"
+                                name="name"
                                 type="text"
-                                value={formData.companyName}
-                                onChange={handleChange}
-                                placeholder="Ex: TopSports Eventos Esportivos"
-                                className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-primary focus:bg-white focus:border-transparent transition-all outline-none text-gray-900 placeholder-gray-400 text-sm"
-                            />
-                        </div>
-                    )}
-
-                    <div>
-                        <label htmlFor="reg-email" className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1 ml-1">
-                            {t('auth.email')}
-                        </label>
-                        <input
-                            id="reg-email"
-                            name="email"
-                            type="email"
-                            required
-                            value={formData.email}
-                            onChange={handleChange}
-                            placeholder={t('auth.email_placeholder')}
-                            className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-primary focus:bg-white focus:border-transparent transition-all outline-none text-gray-900 placeholder-gray-400 text-sm"
-                        />
-                    </div>
-
-                    <div>
-                        <label htmlFor="reg-phone" className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1 ml-1">
-                            {t('auth.whatsapp_phone')}
-                        </label>
-                        <div className="flex gap-2">
-                            <select
-                                name="ddi"
-                                value={formData.ddi}
-                                onChange={handleChange}
-                                className="w-1/3 min-w-[100px] px-3 py-3 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-primary focus:bg-white focus:border-transparent transition-all outline-none text-gray-900 cursor-pointer text-sm font-medium"
-                            >
-                                {ddiList.map(item => (
-                                    <option key={item.code} value={item.code}>
-                                        {item.code} {item.country}
-                                    </option>
-                                ))}
-                            </select>
-                            <input
-                                id="reg-phone"
-                                name="phone"
-                                type="tel"
                                 required
-                                value={formData.phone}
-                                onChange={handlePhoneChange}
-                                placeholder="(11) 99999-9999"
-                                maxLength={15}
-                                className="w-2/3 px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-primary focus:bg-white focus:border-transparent transition-all outline-none text-gray-900 placeholder-gray-400 text-sm"
+                                value={formData.name}
+                                onChange={handleChange}
+                                placeholder={t('auth.your_name')}
+                                className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary focus:bg-white focus:border-transparent transition-all outline-none text-gray-900 placeholder-gray-400 text-xs sm:text-sm"
                             />
+                        </div>
+
+                        {selectedRole === UserRole.PRODUCER ? (
+                            <div>
+                                <label htmlFor="reg-company" className="block text-[11px] font-bold uppercase tracking-wider text-gray-700 mb-0.5 ml-0.5">
+                                    Produtora / Empresa
+                                </label>
+                                <input
+                                    id="reg-company"
+                                    name="companyName"
+                                    type="text"
+                                    value={formData.companyName}
+                                    onChange={handleChange}
+                                    placeholder="Ex: TopSports Eventos"
+                                    className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary focus:bg-white focus:border-transparent transition-all outline-none text-gray-900 placeholder-gray-400 text-xs sm:text-sm"
+                                />
+                            </div>
+                        ) : (
+                            <div>
+                                <label htmlFor="reg-email" className="block text-[11px] font-bold uppercase tracking-wider text-gray-700 mb-0.5 ml-0.5">
+                                    {t('auth.email')}
+                                </label>
+                                <input
+                                    id="reg-email"
+                                    name="email"
+                                    type="email"
+                                    required
+                                    value={formData.email}
+                                    onChange={handleChange}
+                                    placeholder={t('auth.email_placeholder')}
+                                    className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary focus:bg-white focus:border-transparent transition-all outline-none text-gray-900 placeholder-gray-400 text-xs sm:text-sm"
+                                />
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Linha 2: E-mail (se Produtor) e WhatsApp/Telefone */}
+                    <div className={selectedRole === UserRole.PRODUCER ? "grid grid-cols-1 sm:grid-cols-2 gap-2" : "grid grid-cols-1 gap-2"}>
+                        {selectedRole === UserRole.PRODUCER && (
+                            <div>
+                                <label htmlFor="reg-email-prod" className="block text-[11px] font-bold uppercase tracking-wider text-gray-700 mb-0.5 ml-0.5">
+                                    {t('auth.email')}
+                                </label>
+                                <input
+                                    id="reg-email-prod"
+                                    name="email"
+                                    type="email"
+                                    required
+                                    value={formData.email}
+                                    onChange={handleChange}
+                                    placeholder={t('auth.email_placeholder')}
+                                    className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary focus:bg-white focus:border-transparent transition-all outline-none text-gray-900 placeholder-gray-400 text-xs sm:text-sm"
+                                />
+                            </div>
+                        )}
+
+                        <div>
+                            <label htmlFor="reg-phone" className="block text-[11px] font-bold uppercase tracking-wider text-gray-700 mb-0.5 ml-0.5">
+                                {t('auth.whatsapp_phone')}
+                            </label>
+                            <div className="flex gap-1.5">
+                                <select
+                                    name="ddi"
+                                    value={formData.ddi}
+                                    onChange={handleChange}
+                                    className="w-28 px-2 py-2 bg-neutral-50 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary focus:bg-white focus:border-transparent transition-all outline-none text-gray-900 cursor-pointer text-xs font-medium shrink-0"
+                                >
+                                    {ddiList.map(item => (
+                                        <option key={item.code} value={item.code}>
+                                            {item.code} {item.country}
+                                        </option>
+                                    ))}
+                                </select>
+                                <input
+                                    id="reg-phone"
+                                    name="phone"
+                                    type="tel"
+                                    required
+                                    value={formData.phone}
+                                    onChange={handlePhoneChange}
+                                    placeholder="(11) 99999-9999"
+                                    maxLength={15}
+                                    className="flex-1 px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary focus:bg-white focus:border-transparent transition-all outline-none text-gray-900 placeholder-gray-400 text-xs sm:text-sm"
+                                />
+                            </div>
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                    {/* Linha 3: Senhas */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         <div>
-                            <label htmlFor="reg-password" className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1 ml-1">
+                            <label htmlFor="reg-password" className="block text-[11px] font-bold uppercase tracking-wider text-gray-700 mb-0.5 ml-0.5">
                                 {t('auth.password')}
                             </label>
-
                             <div className="relative">
                                 <input
                                     id="reg-password"
@@ -417,22 +433,21 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginS
                                     value={formData.password}
                                     onChange={handleChange}
                                     placeholder="••••••"
-                                    className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-primary focus:bg-white focus:border-transparent transition-all outline-none text-gray-900 placeholder-gray-400 pr-12 text-sm"
+                                    className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary focus:bg-white focus:border-transparent transition-all outline-none text-gray-900 placeholder-gray-400 pr-9 text-xs sm:text-sm"
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none cursor-pointer"
+                                    className="absolute right-2.5 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none cursor-pointer"
                                 >
-                                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                    {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                                 </button>
                             </div>
                         </div>
                         <div>
-                            <label htmlFor="reg-confirm" className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1 ml-1">
+                            <label htmlFor="reg-confirm" className="block text-[11px] font-bold uppercase tracking-wider text-gray-700 mb-0.5 ml-0.5">
                                 {t('auth.confirm')}
                             </label>
-
                             <div className="relative">
                                 <input
                                     id="reg-confirm"
@@ -442,14 +457,14 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginS
                                     value={formData.confirmPassword}
                                     onChange={handleChange}
                                     placeholder="••••••"
-                                    className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-primary focus:bg-white focus:border-transparent transition-all outline-none text-gray-900 placeholder-gray-400 pr-12 text-sm"
+                                    className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary focus:bg-white focus:border-transparent transition-all outline-none text-gray-900 placeholder-gray-400 pr-9 text-xs sm:text-sm"
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none cursor-pointer"
+                                    className="absolute right-2.5 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none cursor-pointer"
                                 >
-                                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                    {showConfirmPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                                 </button>
                             </div>
                         </div>
@@ -457,17 +472,17 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginS
 
                     {/* Aviso de Moderação para Produtores */}
                     {selectedRole === UserRole.PRODUCER && (
-                        <div className="p-3 bg-amber-50/80 border border-amber-200/70 rounded-xl flex items-start gap-2.5 text-xs text-amber-900 animate-in fade-in duration-150">
-                            <ShieldAlert size={16} className="text-amber-600 shrink-0 mt-0.5" />
+                        <div className="p-2 bg-amber-50/80 border border-amber-200/70 rounded-lg flex items-center gap-2 text-[11px] text-amber-900 animate-in fade-in duration-150">
+                            <ShieldAlert size={14} className="text-amber-600 shrink-0" />
                             <span>
-                                Contas de <strong>Produtor</strong> passam por moderação da equipe FotoClic antes da liberação do painel para garantir a segurança dos splits e eventos.
+                                Contas de <strong>Produtor</strong> passam por moderação antes da liberação do painel.
                             </span>
                         </div>
                     )}
 
                     {error && (
-                        <div className="text-red-600 text-sm text-center bg-red-50 p-3 rounded-xl border border-red-100 flex items-center justify-center animate-pulse">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <div className="text-red-600 text-xs text-center bg-red-50 p-2 rounded-lg border border-red-100 flex items-center justify-center animate-pulse">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 mr-1.5" viewBox="0 0 20 20" fill="currentColor">
                                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                             </svg>
                             {error}
@@ -477,10 +492,10 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginS
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full flex justify-center items-center py-3.5 px-4 border border-transparent rounded-xl shadow-lg text-sm font-bold text-white bg-gradient-to-r from-primary to-primary-dark hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none cursor-pointer mt-2"
+                        className="w-full flex justify-center items-center py-2.5 px-4 border border-transparent rounded-xl shadow text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-primary to-primary-dark hover:shadow-md transition-all duration-150 disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer mt-1"
                     >
                         {loading ? (
-                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                         ) : (
                             selectedRole === UserRole.PRODUCER
                                 ? 'Criar Conta de Produtor'
@@ -491,8 +506,8 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginS
                     </button>
                 </form>
 
-                <div className="mt-6 pt-5 border-t border-gray-100 text-center">
-                    <p className="text-sm text-gray-600">
+                <div className="mt-3 pt-2.5 border-t border-gray-100 text-center">
+                    <p className="text-xs text-gray-600">
                         {t('auth.already_have_account')}{' '}
                         <button
                             onClick={handleLoginClick}

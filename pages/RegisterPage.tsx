@@ -144,7 +144,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onLoginSuccess 
                             Escolha seu tipo de conta
                         </label>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                            {/* 1. Atleta / Comprador */}
+                            {/* 1. Cliente */}
                             <button
                                 type="button"
                                 onClick={() => setSelectedRole(UserRole.CUSTOMER)}
@@ -166,7 +166,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onLoginSuccess 
                                         <CheckCircle2 size={18} className="text-primary animate-in zoom-in-50 duration-150" />
                                     )}
                                 </div>
-                                <div className="font-bold text-sm text-gray-900 leading-tight">Atleta / Cliente</div>
+                                <div className="font-bold text-sm text-gray-900 leading-tight">Cliente</div>
                                 <div className="text-[11px] text-gray-500 mt-0.5 leading-snug">
                                     Comprar e buscar fotos
                                 </div>
@@ -199,14 +199,14 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onLoginSuccess 
                                 </div>
                                 <div className="font-bold text-sm text-gray-900 leading-tight">Fotógrafo</div>
                                 <div className="text-[11px] text-gray-500 mt-0.5 leading-snug">
-                                    Vender fotos e criar eventos
+                                    Vender fotos e criar galerias
                                 </div>
                                 <span className="mt-2 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200/60">
                                     Vender Fotos
                                 </span>
                             </button>
 
-                            {/* 3. Produtor de Eventos */}
+                            {/* 3. Produtor */}
                             <button
                                 type="button"
                                 onClick={() => setSelectedRole(UserRole.PRODUCER)}
@@ -230,7 +230,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onLoginSuccess 
                                 </div>
                                 <div className="font-bold text-sm text-gray-900 leading-tight">Produtor</div>
                                 <div className="text-[11px] text-gray-500 mt-0.5 leading-snug">
-                                    Eventos & equipe (até 10)
+                                    Eventos e equipe (até 10)
                                 </div>
                                 <span className="mt-2 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200/60">
                                     Coordenação
