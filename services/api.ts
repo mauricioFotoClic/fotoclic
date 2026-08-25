@@ -3592,7 +3592,7 @@ export const api = {
               companyName: pr?.company_name || undefined,
               eventName: ev.name,
               eventDate: ev.event_date,
-              commissionPercent: params.commissionPercent,
+              commissionPercent: Number(params.commissionPercent),
             });
           }).catch(e => console.warn("Failed to import emailService", e));
         }
