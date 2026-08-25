@@ -316,7 +316,7 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginS
                 <form className="space-y-2.5" onSubmit={handleSubmit}>
                     {/* Linha 1: Nome (e Empresa se Produtor) */}
                     <div className={selectedRole === UserRole.PRODUCER ? "grid grid-cols-1 sm:grid-cols-2 gap-2" : "grid grid-cols-1 sm:grid-cols-2 gap-2"}>
-                        <div>
+                        <div className="min-w-0">
                             <label htmlFor="reg-name" className="block text-[11px] font-bold uppercase tracking-wider text-gray-700 mb-0.5 ml-0.5">
                                 {selectedRole === UserRole.PRODUCER ? 'Nome do Responsável' : t('auth.name')}
                             </label>
@@ -333,7 +333,7 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginS
                         </div>
 
                         {selectedRole === UserRole.PRODUCER ? (
-                            <div>
+                            <div className="min-w-0">
                                 <label htmlFor="reg-company" className="block text-[11px] font-bold uppercase tracking-wider text-gray-700 mb-0.5 ml-0.5">
                                     Produtora / Empresa
                                 </label>
@@ -348,7 +348,7 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginS
                                 />
                             </div>
                         ) : (
-                            <div>
+                            <div className="min-w-0">
                                 <label htmlFor="reg-email" className="block text-[11px] font-bold uppercase tracking-wider text-gray-700 mb-0.5 ml-0.5">
                                     {t('auth.email')}
                                 </label>
@@ -369,7 +369,7 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginS
                     {/* Linha 2: E-mail (se Produtor) e WhatsApp/Telefone */}
                     <div className={selectedRole === UserRole.PRODUCER ? "grid grid-cols-1 sm:grid-cols-2 gap-2" : "grid grid-cols-1 gap-2"}>
                         {selectedRole === UserRole.PRODUCER && (
-                            <div>
+                            <div className="min-w-0">
                                 <label htmlFor="reg-email-prod" className="block text-[11px] font-bold uppercase tracking-wider text-gray-700 mb-0.5 ml-0.5">
                                     {t('auth.email')}
                                 </label>
@@ -386,16 +386,16 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginS
                             </div>
                         )}
 
-                        <div>
+                        <div className="min-w-0">
                             <label htmlFor="reg-phone" className="block text-[11px] font-bold uppercase tracking-wider text-gray-700 mb-0.5 ml-0.5">
                                 {t('auth.whatsapp_phone')}
                             </label>
-                            <div className="flex gap-1.5">
+                            <div className="flex gap-1.5 w-full min-w-0">
                                 <select
                                     name="ddi"
                                     value={formData.ddi}
                                     onChange={handleChange}
-                                    className="w-28 px-2 py-2 bg-neutral-50 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary focus:bg-white focus:border-transparent transition-all outline-none text-gray-900 cursor-pointer text-xs font-medium shrink-0"
+                                    className="w-[84px] sm:w-[90px] px-1.5 py-2 bg-neutral-50 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary focus:bg-white focus:border-transparent transition-all outline-none text-gray-900 cursor-pointer text-xs font-medium shrink-0 text-ellipsis overflow-hidden"
                                 >
                                     {ddiList.map(item => (
                                         <option key={item.code} value={item.code}>
@@ -412,7 +412,7 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginS
                                     onChange={handlePhoneChange}
                                     placeholder="(11) 99999-9999"
                                     maxLength={15}
-                                    className="flex-1 px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary focus:bg-white focus:border-transparent transition-all outline-none text-gray-900 placeholder-gray-400 text-xs sm:text-sm"
+                                    className="w-full min-w-0 flex-1 px-2.5 py-2 bg-neutral-50 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary focus:bg-white focus:border-transparent transition-all outline-none text-gray-900 placeholder-gray-400 text-xs sm:text-sm"
                                 />
                             </div>
                         </div>
@@ -420,11 +420,11 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginS
 
                     {/* Linha 3: Senhas */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        <div>
+                        <div className="min-w-0">
                             <label htmlFor="reg-password" className="block text-[11px] font-bold uppercase tracking-wider text-gray-700 mb-0.5 ml-0.5">
                                 {t('auth.password')}
                             </label>
-                            <div className="relative">
+                            <div className="relative w-full min-w-0">
                                 <input
                                     id="reg-password"
                                     name="password"
@@ -444,11 +444,11 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginS
                                 </button>
                             </div>
                         </div>
-                        <div>
+                        <div className="min-w-0">
                             <label htmlFor="reg-confirm" className="block text-[11px] font-bold uppercase tracking-wider text-gray-700 mb-0.5 ml-0.5">
                                 {t('auth.confirm')}
                             </label>
-                            <div className="relative">
+                            <div className="relative w-full min-w-0">
                                 <input
                                     id="reg-confirm"
                                     name="confirmPassword"
