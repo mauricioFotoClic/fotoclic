@@ -92,6 +92,11 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigate, currentView
                                                 {t('nav.photographer_panel')}
                                             </button>
                                         )}
+                                        {user.role === UserRole.PRODUCER && currentView !== 'producer' && (
+                                            <button onClick={() => onNavigate({ name: 'producer' })} className="px-4 py-2 text-sm font-bold text-white bg-amber-600 rounded-full hover:bg-amber-700 transition-colors shadow-sm flex items-center gap-1.5">
+                                                <span>Painel do Produtor</span>
+                                            </button>
+                                        )}
                                         {user.role === UserRole.CUSTOMER && (
                                             <button onClick={() => onNavigate({ name: 'customer-dashboard' })} className="px-4 py-2 text-sm font-medium text-neutral-700 hover:text-primary transition-colors">
                                                 {t('nav.my_purchases')}
@@ -178,6 +183,14 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigate, currentView
                                     className="w-full text-center px-4 py-2 mb-2 text-sm font-medium text-white bg-neutral-900 hover:bg-neutral-800 rounded-full shadow-sm transition-all"
                                 >
                                     {t('nav.photographer_panel')}
+                                </button>
+                            )}
+                            {user.role === UserRole.PRODUCER && currentView !== 'producer' && (
+                                <button
+                                    onClick={() => { onNavigate({ name: 'producer' }); setIsMenuOpen(false); }}
+                                    className="w-full text-center px-4 py-2 mb-2 text-sm font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-full shadow-sm transition-all"
+                                >
+                                    Painel do Produtor
                                 </button>
                             )}
                             {isPhotographerView && (

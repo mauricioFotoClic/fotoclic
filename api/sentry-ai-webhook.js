@@ -3,6 +3,7 @@ import {
   notifyErrorWithAi, 
   notifyNewPhotographerRegistration, 
   notifyNewCustomerRegistration, 
+  notifyNewProducerRegistration,
   notifyNewSaleToTelegram,
   notifyPayoutRequestToTelegram,
   sendTelegramMenu
@@ -368,6 +369,50 @@ export default async function handler(req, res) {
         return res.status(200).json({ ok: true });
       }
 
+      // Aprovar Produtor de Eventos
+      if (data.startsWith('producer_approve_')) {
+        const userId = data.replace('producer_approve_', '');
+        const { data: user } = await supabase.from('users').select('*').eq('id', userId).single();
+        if (user) {
+          await supabase.from('users').update({ is_active: true }).eq('id', userId);
+
+          if (user.email) {
+            await sendLocawebEmail({
+              to: user.email,
+              subject: '🎉 Seu cadastro de Produtor no FotoClic foi Aprovado!',
+              html: `
+                <div style="font-family: sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 8px; padding: 24px;">
+                  <h2 style="color: #FF6B00; margin-top: 0;">🎉 Parabéns, ${user.name}!</h2>
+                  <p>Seu cadastro de <strong>Produtor de Eventos</strong> foi <strong>aprovado com sucesso</strong> no FotoClic.</p>
+                  <p>Você já pode acessar seu painel exclusivo, criar seus eventos, convidar sua equipe de até 10 fotógrafos e configurar suas comissões de coordenação!</p>
+                  <div style="text-align: center; margin: 24px 0;">
+                    <a href="https://www.fotoclic.com.br/produtor" style="background-color: #FF6B00; color: white; padding: 14px 28px; text-decoration: none; border-radius: 20px; font-weight: bold; display: inline-block;">
+                      Acessar Painel do Produtor
+                    </a>
+                  </div>
+                  <p style="font-size: 12px; color: #999; text-align: center;">Equipe FotoClic &bull; Conectando momentos, produtores e fotógrafos</p>
+                </div>`
+            }).catch(() => {});
+          }
+
+          await answerCallback(cq.id, `✅ Produtor ${user.name} aprovado por você!`, true);
+          await replyTelegram(chatId, `✅ *Produtor Aprovado com Sucesso!*\n\n• 🎪 *Produtor:* ${user.name}\n• 🏢 *Empresa:* ${user.company_name || 'Individual'}\n• 📧 *E-mail:* \`${user.email}\`\n• 🔓 *Status:* Liberado na plataforma\n• 👮 *Aprovado por:* ${approverFullText}\n• ⏰ *Data/Hora:* ${nowStr}`);
+        }
+        return res.status(200).json({ ok: true });
+      }
+
+      // Recusar Produtor
+      if (data.startsWith('producer_reject_')) {
+        const userId = data.replace('producer_reject_', '');
+        const { data: user } = await supabase.from('users').select('*').eq('id', userId).single();
+        if (user) {
+          await supabase.from('users').update({ is_active: false }).eq('id', userId);
+          await answerCallback(cq.id, `❌ Cadastro de Produtor ${user.name} recusado.`);
+          await replyTelegram(chatId, `❌ *Cadastro de Produtor Recusado:*\n\n• 🎪 *Produtor:* ${user.name} (\`${user.email}\`)\n• 👮 *Recusado por:* ${approverFullText}\n• ⏰ *Data/Hora:* ${nowStr}`);
+        }
+        return res.status(200).json({ ok: true });
+      }
+
       // Autofix IA Sentry
       if (data.startsWith('fix_approve_')) {
         await answerCallback(cq.id, '✅ Correção autorizada!');
@@ -386,6 +431,17 @@ export default async function handler(req, res) {
 
     // 2. Ações Diretas da Aplicação (Webhooks Internos)
     const action = body.action;
+
+    if (action === 'new_producer') {
+      const success = await notifyNewProducerRegistration({
+        id: body.id,
+        name: body.name,
+        email: body.email,
+        phone: body.phone,
+        company_name: body.company_name
+      });
+      return res.status(200).json({ success });
+    }
 
     if (action === 'new_photographer') {
       const success = await notifyNewPhotographerRegistration({

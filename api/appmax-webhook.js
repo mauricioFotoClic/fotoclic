@@ -447,6 +447,7 @@ export default async function handler(req, res) {
           console.warn('[Appmax Webhook] Erro ao enviar email para fotógrafo:', phErr.message);
         }
       }
+    }
 
       // --- DISPARO DE NOTIFICAÇÃO EM TEMPO REAL NO TELEGRAM ---
       try {

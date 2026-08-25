@@ -5,6 +5,7 @@ import AdminSidebar from '../components/admin/AdminSidebar';
 import AdminDashboard from '../components/admin/AdminDashboard';
 import AdminCategories from '../components/admin/AdminCategories';
 import AdminPhotographers from '../components/admin/AdminPhotographers';
+import AdminProducers from '../components/admin/AdminProducers';
 import AdminCustomers from '../components/admin/AdminCustomers';
 import AdminPhotos from '../components/admin/AdminPhotos';
 import AdminSales from '../components/admin/AdminSales';
@@ -18,7 +19,7 @@ import AdminRemarketing from '../components/admin/AdminRemarketing';
 import { Page, User } from '../types';
 import api from '../services/api';
 
-type AdminView = 'dashboard' | 'photos' | 'photographers' | 'customers' | 'categories' | 'sales' | 'payouts' | 'settings' | 'storage-requests' | 'rekognition' | 'appmax' | 'remarketing';
+type AdminView = 'dashboard' | 'photos' | 'photographers' | 'producers' | 'customers' | 'categories' | 'sales' | 'payouts' | 'settings' | 'storage-requests' | 'rekognition' | 'appmax' | 'remarketing';
 
 const KeepAliveView = React.memo(
     ({ active, children, index = 0 }: { active: boolean; children: React.ReactNode; index?: number }) => {
@@ -82,6 +83,9 @@ const AdminPage: React.FC<AdminPageProps> = ({ onNavigate, onImpersonate }) => {
                 </KeepAliveView>
                 <KeepAliveView active={view === 'photographers'} index={2}>
                     <AdminPhotographers onNavigate={onNavigate} onImpersonate={onImpersonate} />
+                </KeepAliveView>
+                <KeepAliveView active={view === 'producers'} index={12}>
+                    <AdminProducers onNavigate={onNavigate} onImpersonate={onImpersonate} />
                 </KeepAliveView>
                 <KeepAliveView active={view === 'customers'} index={3}>
                     <AdminCustomers onImpersonate={onImpersonate} />

@@ -68,6 +68,8 @@ const CheckoutSuccessPage = lazyWithRetry(() => import('./pages/CheckoutSuccessP
 const HelpCenterPage = lazyWithRetry(() => import('./pages/HelpCenterPage'));
 const NotFoundPage = lazyWithRetry(() => import('./pages/NotFoundPage'));
 const WelcomePage = lazyWithRetry(() => import('./pages/WelcomePage'));
+const ProducerDashboardPage = lazyWithRetry(() => import('./pages/ProducerDashboardPage'));
+
 
 
 interface FlyingImage {
@@ -99,6 +101,8 @@ const MainApp: React.FC = () => {
         
         if (user.role === UserRole.PHOTOGRAPHER) {
             handleNavigate({ name: 'photographer' }, user);
+        } else if (user.role === UserRole.PRODUCER) {
+            handleNavigate({ name: 'producer' }, user);
         } else {
             handleNavigate({ name: 'customer-dashboard' }, user);
         }
@@ -556,6 +560,9 @@ const MainApp: React.FC = () => {
             case 'photographer':
                 if (isSessionLoading) return <Spinner size="lg" fullHeight={true} label="Autenticando sessão..." />;
                 return currentUser?.role === UserRole.PHOTOGRAPHER ? <PhotographerPage user={currentUser} onLogout={handleLogout} onNavigate={handleNavigate} showToast={showToast} /> : <HomePage onNavigate={handleNavigate} onAddToCart={handleAddToCart} currentUser={currentUser} />;
+            case 'producer':
+                if (isSessionLoading) return <Spinner size="lg" fullHeight={true} label="Autenticando sessão..." />;
+                return (currentUser?.role === UserRole.PRODUCER || currentUser?.role === UserRole.ADMIN) ? <ProducerDashboardPage currentUser={currentUser} onNavigate={handleNavigate} /> : <HomePage onNavigate={handleNavigate} onAddToCart={handleAddToCart} currentUser={currentUser} />;
             case 'customer-dashboard':
                 if (isSessionLoading) return <Spinner size="lg" fullHeight={true} label="Autenticando sessão..." />;
                 return <CustomerDashboardPage onNavigate={handleNavigate} currentUser={currentUser} />;
@@ -611,7 +618,7 @@ const MainApp: React.FC = () => {
         }
     }
 
-    const showFooter = !['admin', 'photographer', 'login', 'register', 'pending-approval', 'checkout', 'checkout-success'].includes(currentPage.name);
+    const showFooter = !['admin', 'photographer', 'producer', 'login', 'register', 'pending-approval', 'checkout', 'checkout-success'].includes(currentPage.name);
 
     return (
         <div className="bg-neutral-100 text-neutral-800 min-h-screen flex flex-col font-sans relative">

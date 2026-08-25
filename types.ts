@@ -3,6 +3,7 @@ export enum UserRole {
   ADMIN = 'admin',
   PHOTOGRAPHER = 'photographer',
   CUSTOMER = 'customer',
+  PRODUCER = 'producer',
 }
 
 export interface BankInfo {
@@ -40,6 +41,7 @@ export interface User {
   liability_waiver_accepted_at?: string;
   sports_policy_accepted_at?: string;
   phone?: string;
+  company_name?: string;
   communication_templates?: {
     abandoned_cart?: {
       email_subject?: string;
@@ -49,8 +51,39 @@ export interface User {
   };
 }
 
+export interface EventCollaborator {
+  id: string;
+  event_id: string;
+  producer_id: string;
+  photographer_id?: string;
+  invited_email: string;
+  status: 'pending' | 'accepted' | 'declined';
+  coordinator_commission_percent: number;
+  created_at: string;
+  accepted_at?: string;
+  photographer?: {
+    id: string;
+    name: string;
+    avatar_url?: string;
+    email?: string;
+    phone?: string;
+  };
+  event?: PhotoEvent;
+}
+
+export interface ProducerWithStats extends User {
+  eventsCount: number;
+  collaboratorsCount: number;
+  totalTeamPhotos: number;
+  totalSalesCount: number;
+  totalTeamRevenue: number;
+  producerCommissionTotal: number;
+}
+
 export interface PhotographerWithStats extends User {
   photoCount: number;
+  totalPhotos?: number;
+  hasPhotos?: boolean;
   salesCount: number;
   commissionValue: number;
   commissionRate: number;
@@ -58,6 +91,7 @@ export interface PhotographerWithStats extends User {
   avgRating: number; // 0-5
   reviewCount: number;
   approvalPercentage: number; // 0-100
+
   approvedCount: number;
   rejectedCount: number;
   pendingCount: number;
@@ -118,6 +152,8 @@ export interface Photo {
 export interface PhotoEvent {
   id: string;
   photographer_id: string;
+  producer_id?: string;
+  producer_commission_percent?: number;
   category_id: string;
   name: string;
   description?: string;
@@ -132,6 +168,7 @@ export interface PhotoEvent {
     avatar_url?: string;
     is_active?: boolean;
   };
+  collaborators?: EventCollaborator[];
 }
 
 export interface CartItem {
@@ -268,6 +305,7 @@ export type PageRoute =
   { name: 'pending-approval' } |
   { name: 'admin' } |
   { name: 'photographer' } |
+  { name: 'producer' } |
   { name: 'customer-dashboard' } |
   { name: 'category', id: string } |
   { name: 'event', id: string } |
@@ -284,7 +322,7 @@ export type PageRoute =
   { name: 'cart' } |
   { name: 'checkout' } |
   { name: 'checkout-success'; photoIds?: string[] } |
-  { name: 'welcome'; role?: 'photographer' | 'customer' | 'pending-approval' } |
+  { name: 'welcome'; role?: 'photographer' | 'customer' | 'producer' | 'pending-approval' } |
 
   { name: 'face-search' } |
   { name: 'not-found' } |

@@ -22,6 +22,8 @@ import {
   ReportStatus,
   PhotoEvent,
   RegisterResponse,
+  ProducerWithStats,
+  EventCollaborator,
 } from "../types";
 import { supabase } from "./supabaseClient";
 import bcrypt from "bcryptjs";
@@ -2192,12 +2194,13 @@ export const api = {
     // NOTE: password is managed by Supabase Auth (signUp above).
     // Do NOT insert password into the public users table — the column does not exist.
     const { password: _pw, ...dataWithoutPassword } = data as any;
-    const isPhotographer = data.role === UserRole.PHOTOGRAPHER || data.role === 'photographer';
+    const isPhotographer = (data.role as any) === UserRole.PHOTOGRAPHER || (data.role as any) === 'photographer';
+    const isProducer = (data.role as any) === UserRole.PRODUCER || (data.role as any) === 'producer';
     const userData: any = {
       id: authData.user.id, // CRITICAL: Sync IDs
       ...dataWithoutPassword,
       name: formatNameAsTitleCase(data.name),
-      is_active: true, // Todos os novos cadastros (fotógrafos e clientes) liberados automaticamente
+      is_active: isProducer ? false : true, // Produtores entram pendentes para moderação do admin
     };
 
     const { data: newUser, error } = await supabase
@@ -2212,7 +2215,20 @@ export const api = {
 
     // Disparar notificações no Telegram
     try {
-      if (isPhotographer) {
+      if (isProducer) {
+        fetch('/api/sentry-ai-webhook', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'new_producer',
+            id: newUser.id,
+            name: newUser.name,
+            email: newUser.email,
+            phone: data.phone,
+            company_name: (data as any).company_name
+          })
+        }).catch(() => {});
+      } else if (isPhotographer) {
         fetch('/api/sentry-ai-webhook', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -3420,7 +3436,175 @@ export const api = {
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || 'Erro ao consultar recebedor Appmax.');
     return result;
+  },
+
+  updateUser: async (userId: string, data: Partial<User>): Promise<boolean> => {
+    const { error } = await supabase
+      .from("users")
+      .update(data)
+      .eq("id", userId);
+    if (error) throw error;
+    return true;
+  },
+
+  // --- PRODUCERS & COLLABORATORS ---
+  getProducers: async (includeInactive = true): Promise<ProducerWithStats[]> => {
+    try {
+      let query = supabase
+        .from("users")
+        .select("*")
+        .eq("role", "producer")
+        .order("created_at", { ascending: false });
+
+      if (!includeInactive) {
+        query = query.eq("is_active", true);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      const producers = (data || []).map(mapUser);
+
+      // Populate basic metrics for each producer
+      const statsList: ProducerWithStats[] = await Promise.all(
+        producers.map(async (p) => {
+          const { count: eventsCount } = await supabase
+            .from("events")
+            .select("id", { count: "exact", head: true })
+            .eq("producer_id", p.id);
+
+          const { count: collabCount } = await supabase
+            .from("event_collaborators")
+            .select("id", { count: "exact", head: true })
+            .eq("producer_id", p.id)
+            .eq("status", "accepted");
+
+          const { data: salesData } = await supabase
+            .from("sales")
+            .select("producer_commission, price")
+            .eq("producer_id", p.id);
+
+          const totalCommission = (salesData || []).reduce((acc, s) => acc + Number(s.producer_commission || 0), 0);
+          const totalRevenue = (salesData || []).reduce((acc, s) => acc + Number(s.price || 0), 0);
+
+          return {
+            ...p,
+            eventsCount: eventsCount || 0,
+            collaboratorsCount: collabCount || 0,
+            totalTeamPhotos: 0,
+            totalSalesCount: salesData?.length || 0,
+            totalTeamRevenue: totalRevenue,
+            producerCommissionTotal: totalCommission,
+          };
+        })
+      );
+
+      return statsList;
+    } catch (e) {
+      console.error("Failed to fetch producers:", e);
+      return [];
+    }
+  },
+
+  updateProducerStatus: async (producerId: string, isActive: boolean): Promise<boolean> => {
+    const { error } = await supabase
+      .from("users")
+      .update({ is_active: isActive })
+      .eq("id", producerId);
+    if (error) throw error;
+    return true;
+  },
+
+  getProducerEvents: async (producerId: string): Promise<PhotoEvent[]> => {
+    const { data, error } = await supabase
+      .from("events")
+      .select("*, category:category_id(*)")
+      .eq("producer_id", producerId)
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+    return (data || []) as PhotoEvent[];
+  },
+
+  getEventCollaborators: async (eventId: string): Promise<EventCollaborator[]> => {
+    const { data, error } = await supabase
+      .from("event_collaborators")
+      .select("*, photographer:photographer_id(*)")
+      .eq("event_id", eventId)
+      .order("created_at", { ascending: true });
+
+    if (error) throw error;
+    return (data || []).map((c: any) => ({
+      ...c,
+      photographer: c.photographer ? mapUser(c.photographer) : undefined,
+    }));
+  },
+
+  inviteEventCollaborator: async (params: {
+    eventId: string;
+    producerId: string;
+    email: string;
+    commissionPercent: number;
+  }): Promise<EventCollaborator> => {
+    const { data: existingUser } = await supabase
+      .from("users")
+      .select("id, name, email, role")
+      .eq("email", params.email.trim().toLowerCase())
+      .maybeSingle();
+
+    const photographerId = existingUser?.id || null;
+
+    const { data, error } = await supabase
+      .from("event_collaborators")
+      .insert({
+        event_id: params.eventId,
+        producer_id: params.producerId,
+        photographer_id: photographerId,
+        invited_email: params.email.trim().toLowerCase(),
+        coordinator_commission_percent: params.commissionPercent,
+        status: "pending",
+      })
+      .select("*, photographer:photographer_id(*)")
+      .single();
+
+    if (error) throw error;
+    return {
+      ...data,
+      photographer: data.photographer ? mapUser(data.photographer) : undefined,
+    };
+  },
+
+  removeEventCollaborator: async (collaboratorId: string): Promise<boolean> => {
+    const { error } = await supabase
+      .from("event_collaborators")
+      .delete()
+      .eq("id", collaboratorId);
+    if (error) throw error;
+    return true;
+  },
+
+  respondCollaboratorInvite: async (
+    collaboratorId: string,
+    status: "accepted" | "declined",
+    photographerId?: string
+  ): Promise<boolean> => {
+    const updatePayload: any = {
+      status,
+      accepted_at: status === "accepted" ? new Date().toISOString() : null,
+    };
+    if (photographerId) {
+      updatePayload.photographer_id = photographerId;
+    }
+
+    const { error } = await supabase
+      .from("event_collaborators")
+      .update(updatePayload)
+      .eq("id", collaboratorId);
+
+    if (error) throw error;
+    return true;
   }
 };
 
 export default api;
+
