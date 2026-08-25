@@ -150,7 +150,7 @@ const MainApp: React.FC = () => {
             try {
                 const user = await api.getCurrentUser();
                 if (user) {
-                    if (user.role === UserRole.ADMIN || user.role === UserRole.PHOTOGRAPHER) {
+                    if (user.role === UserRole.ADMIN || user.role === UserRole.PHOTOGRAPHER || user.role === UserRole.PRODUCER) {
                         const hasActiveSession = sessionStorage.getItem('active_session_panel');
                         const isResetPassword = window.location.pathname === '/reset-password' || window.location.pathname.startsWith('/reset-password');
                         if (!hasActiveSession && !isResetPassword) {
@@ -201,6 +201,7 @@ const MainApp: React.FC = () => {
             case 'pending-approval': return '/aguardando-aprovacao';
             case 'admin': return '/admin';
             case 'photographer': return '/area-fotografo';
+            case 'producer': return '/produtor';
             case 'customer-dashboard': return '/minhas-compras';
             case 'category': return `/categoria/${page.id}`;
             case 'event': return `/evento/${page.id}`;
@@ -234,6 +235,7 @@ const MainApp: React.FC = () => {
         if (pathname === '/aguardando-aprovacao') return { name: 'pending-approval' };
         if (pathname === '/admin') return { name: 'admin' };
         if (pathname === '/area-fotografo') return { name: 'photographer' };
+        if (pathname === '/produtor' || pathname === '/area-produtor') return { name: 'producer' };
         if (pathname === '/minhas-compras') return { name: 'customer-dashboard' };
         if (pathname === '/sobre' || pathname === '/about') return { name: 'about' };
         if (pathname === '/contato' || pathname === '/contact') return { name: 'contact' };
@@ -316,7 +318,7 @@ const MainApp: React.FC = () => {
         // e clicar em Voltar, o navegador pode tirá-lo do site (ex: voltar pro Google).
         // Para evitar isso, injetamos a Home ('/') no histórico antes de carregar o painel.
         const currentPath = window.location.pathname;
-        if (currentPath === '/admin' || currentPath === '/area-fotografo') {
+        if (currentPath === '/admin' || currentPath === '/area-fotografo' || currentPath === '/produtor' || currentPath === '/area-produtor') {
             window.history.replaceState(null, '', '/');
             window.history.pushState(null, '', currentPath + window.location.search + window.location.hash);
         }
@@ -331,7 +333,7 @@ const MainApp: React.FC = () => {
 
             // Trap logic for panels
             const state = currentPageRef.current;
-            if ((state.name === 'admin' || state.name === 'photographer') && newPage.name !== state.name) {
+            if ((state.name === 'admin' || state.name === 'photographer' || state.name === 'producer') && newPage.name !== state.name) {
                 window.history.pushState(null, '', getUrlFromPage(state));
                 showToast("Use o botão Sair do menu para sair do painel.", "info");
                 return;
@@ -356,7 +358,7 @@ const MainApp: React.FC = () => {
     }, [cartItems, currentUser]);
 
     const handleLoginSuccess = async (user: User, skipRedirect = false) => {
-        if (user.role === UserRole.ADMIN || user.role === UserRole.PHOTOGRAPHER) {
+        if (user.role === UserRole.ADMIN || user.role === UserRole.PHOTOGRAPHER || user.role === UserRole.PRODUCER) {
             sessionStorage.setItem('active_session_panel', 'true');
         }
         setCurrentUser(user);
