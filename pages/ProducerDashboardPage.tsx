@@ -70,10 +70,11 @@ const ProducerDashboardPage: React.FC<ProducerDashboardPageProps> = ({ currentUs
         try {
             const img = new Image();
             const objectUrl = URL.createObjectURL(file);
-            img.src = objectUrl;
-            await new Promise((resolve, reject) => {
-                img.onload = resolve;
-                img.onerror = reject;
+            
+            await new Promise<void>((resolve, reject) => {
+                img.onload = () => resolve();
+                img.onerror = () => reject(new Error("Erro ao ler o arquivo de imagem"));
+                img.src = objectUrl;
             });
 
             const canvas = document.createElement('canvas');
@@ -97,17 +98,20 @@ const ProducerDashboardPage: React.FC<ProducerDashboardPageProps> = ({ currentUs
             canvas.width = width;
             canvas.height = height;
             const ctx = canvas.getContext('2d');
-            ctx?.drawImage(img, 0, 0, width, height);
+            if (!ctx) throw new Error("Não foi possível processar a imagem");
+            ctx.drawImage(img, 0, 0, width, height);
 
             const base64 = canvas.toDataURL('image/jpeg', 0.85);
             setEventFormData(prev => ({ ...prev, cover_photo_url: base64 }));
             URL.revokeObjectURL(objectUrl);
-            showToast("Foto de capa selecionada com sucesso!", "success");
-        } catch (e) {
+            showToast("Foto de capa anexada com sucesso!", "success");
+        } catch (e: any) {
             console.error("Erro ao processar imagem de capa:", e);
-            showToast("Falha ao carregar a imagem. Tente novamente.", "error");
+            showToast(e.message || "Falha ao carregar a imagem. Tente novamente.", "error");
         } finally {
             setIsProcessingImage(false);
+            if (coverFileRef.current) coverFileRef.current.value = '';
+            if (cameraInputRef.current) cameraInputRef.current.value = '';
         }
     };
 
@@ -121,16 +125,14 @@ const ProducerDashboardPage: React.FC<ProducerDashboardPageProps> = ({ currentUs
             setEvents(eventsData);
             setCategories(categoriesData);
 
-            if (eventsData.length > 0 && !selectedEventId) {
-                setSelectedEventId(eventsData[0].id);
-            }
+            setSelectedEventId(prev => (prev || (eventsData.length > 0 ? eventsData[0].id : '')));
         } catch (error) {
             console.error("Failed to load producer data:", error);
             showToast("Erro ao carregar dados do painel", "error");
         } finally {
             setLoading(false);
         }
-    }, [currentUser.id, selectedEventId, showToast]);
+    }, [currentUser.id, showToast]);
 
     useEffect(() => {
         fetchData();
@@ -644,7 +646,7 @@ const ProducerDashboardPage: React.FC<ProducerDashboardPageProps> = ({ currentUs
             </div>
 
             {/* MODAL: CRIAR NOVO EVENTO */}
-            <Modal isOpen={isEventModalOpen} onClose={() => setIsEventModalOpen(false)} title="Criar Novo Evento Produzido" size="md">
+            <Modal isOpen={isEventModalOpen} onClose={() => setIsEventModalOpen(false)} title="Criar Novo Evento Produzido" size="md" closeOnOverlayClick={false}>
                 <form className="space-y-4" onSubmit={handleCreateEvent}>
                     <div>
                         <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
@@ -844,7 +846,7 @@ const ProducerDashboardPage: React.FC<ProducerDashboardPageProps> = ({ currentUs
             </Modal>
 
             {/* MODAL: CONVIDAR FOTÓGRAFO */}
-            <Modal isOpen={isInviteModalOpen} onClose={() => setIsInviteModalOpen(false)} title="Convidar Fotógrafo para a Equipe" size="sm">
+            <Modal isOpen={isInviteModalOpen} onClose={() => setIsInviteModalOpen(false)} title="Convidar Fotógrafo para a Equipe" size="sm" closeOnOverlayClick={false}>
                 <form className="space-y-4" onSubmit={handleInviteCollaborator}>
                     <div>
                         <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
