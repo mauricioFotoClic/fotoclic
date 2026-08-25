@@ -1464,14 +1464,16 @@ export const api = {
 
   getPhotographerEvents: async (
     photographerId: string,
+    photographerEmail?: string,
   ): Promise<PhotoEvent[]> => {
     const now = Date.now();
-    const cached = inMemoryCache.photographerEventsCache[photographerId];
+    const cacheKey = `${photographerId}_${photographerEmail || ''}`;
+    const cached = inMemoryCache.photographerEventsCache[cacheKey];
     if (cached && (now - cached.ts < CACHE_TTL)) {
       return cached.data;
     }
 
-    // 1. Eventos criados pelo fotógrafo
+    // 1. Eventos criados pelo próprio fotógrafo
     const { data: ownEvents, error } = await supabase
       .from("events")
       .select("*")
@@ -1483,21 +1485,57 @@ export const api = {
       return [];
     }
 
-    // 2. Eventos onde o fotógrafo é colaborador de equipe de um produtor
+    // 2. Eventos onde o fotógrafo foi convidado por um produtor (por ID ou por e-mail)
     let collabEvents: any[] = [];
     try {
-      const { data: collabs } = await supabase
+      let query = supabase
         .from("event_collaborators")
-        .select("event_id")
-        .eq("photographer_id", photographerId);
+        .select("id, event_id, coordinator_commission_percent, status, producer_id, invited_email");
 
-      const eventIds = (collabs || []).map((c: any) => c.event_id).filter((id: string) => !ownEvents?.some((e: any) => e.id === id));
-      if (eventIds.length > 0) {
-        const { data: teamEvents } = await supabase
-          .from("events")
-          .select("*")
-          .in("id", eventIds);
-        if (teamEvents) collabEvents = teamEvents;
+      if (photographerEmail) {
+        query = query.or(`photographer_id.eq.${photographerId},invited_email.eq.${photographerEmail.trim().toLowerCase()}`);
+      } else {
+        query = query.eq("photographer_id", photographerId);
+      }
+
+      const { data: collabs } = await query;
+
+      if (collabs && collabs.length > 0) {
+        // Auto-link photographer_id if it was null
+        const unlinkedCollabs = collabs.filter((c: any) => !c.photographer_id && photographerId);
+        if (unlinkedCollabs.length > 0) {
+          supabase
+            .from("event_collaborators")
+            .update({ photographer_id: photographerId })
+            .in("id", unlinkedCollabs.map((c: any) => c.id))
+            .then(() => {})
+            .catch(() => {});
+        }
+
+        const eventIds = collabs
+          .map((c: any) => c.event_id)
+          .filter((id: string) => !ownEvents?.some((e: any) => e.id === id));
+
+        if (eventIds.length > 0) {
+          const { data: teamEvents } = await supabase
+            .from("events")
+            .select("*, producer:producer_id(id, name, company_name)")
+            .in("id", eventIds);
+
+          if (teamEvents) {
+            collabEvents = teamEvents.map((te: any) => {
+              const collab = collabs.find((c: any) => c.event_id === te.id);
+              return {
+                ...te,
+                is_team_event: true,
+                collab_id: collab?.id,
+                collab_status: collab?.status || 'pending',
+                producer_commission_percent: collab?.coordinator_commission_percent != null ? Number(collab.coordinator_commission_percent) : Number(te.producer_commission_percent || 0),
+                producer_name: te.producer?.name || te.producer?.company_name || 'Produtor FotoClic',
+              };
+            });
+          }
+        }
       }
     } catch (e) {
       console.warn("Notice: Fetching team collaborated events for photographer:", e);
@@ -1505,7 +1543,7 @@ export const api = {
 
     const allEvents = [...(ownEvents || []), ...collabEvents];
     const result = allEvents as PhotoEvent[];
-    inMemoryCache.photographerEventsCache[photographerId] = { data: result, ts: now };
+    inMemoryCache.photographerEventsCache[cacheKey] = { data: result, ts: now };
     return result;
   },
 

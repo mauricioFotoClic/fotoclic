@@ -205,6 +205,12 @@ export const emailService = {
             <p style="margin: 0; font-size: 14px; color: #d97706;">🎯 <strong>Taxa de Coordenação do Produtor:</strong> <strong>${params.commissionPercent}%</strong> sobre as vendas deste evento</p>
           </div>
 
+          <div style="background-color: #fffbeb; border: 1px solid #fef3c7; border-radius: 8px; padding: 14px 16px; margin: 18px 0;">
+            <p style="margin: 0; font-size: 13px; color: #92400e; line-height: 1.5;">
+              📌 <strong>Como participar:</strong> Ao clicar no botão abaixo, faça login com sua conta de fotógrafo no FotoClic (ou crie seu cadastro caso seja seu primeiro acesso com este mesmo e-mail: <strong>${params.photographerEmail}</strong>). O evento aparecerá automaticamente na sua aba <strong>"Meus Eventos"</strong> para você enviar suas fotos!
+            </p>
+          </div>
+
           <div style="background-color: #f1f5f9; border-left: 4px solid #FF6B00; border-radius: 4px; padding: 12px 16px; margin: 18px 0;">
             <p style="margin: 0; font-size: 12px; color: #475569; line-height: 1.5;">
               💡 <strong>Divisão Automática de Vendas:</strong> A cada foto vendida neste evento, os repasses para sua conta de fotógrafo e a taxa de ${params.commissionPercent}% do produtor são calculados e creditados automaticamente, respeitando as taxas operacionais padrão do FotoClic.
