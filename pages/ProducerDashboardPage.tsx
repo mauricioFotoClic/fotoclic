@@ -287,11 +287,15 @@ const ProducerDashboardPage: React.FC<ProducerDashboardPageProps> = ({ currentUs
 
         setInviting(true);
         try {
+            const eventCommission = selectedEvent?.producer_commission_percent != null
+                ? Number(selectedEvent.producer_commission_percent)
+                : 15;
+
             await api.inviteEventCollaborator({
                 eventId: selectedEventId,
                 producerId: currentUser.id,
                 email: inviteEmail,
-                commissionPercent: inviteCommission
+                commissionPercent: eventCommission
             });
 
             showToast(`Convite enviado para ${inviteEmail}!`, "success");
@@ -971,22 +975,15 @@ const ProducerDashboardPage: React.FC<ProducerDashboardPageProps> = ({ currentUs
                         </p>
                     </div>
 
-                    <div className="p-3.5 bg-amber-50/70 border border-amber-200/60 rounded-xl space-y-2">
-                        <div className="flex justify-between items-center text-xs font-bold text-gray-800">
-                            <span>Sua Taxa de Coordenação</span>
-                            <span className="text-amber-600 font-extrabold text-sm">{inviteCommission}%</span>
+                    <div className="p-3.5 bg-neutral-50 border border-neutral-200 rounded-xl">
+                        <div className="flex justify-between items-center text-xs font-bold text-gray-700">
+                            <span>Taxa de Coordenação do Evento</span>
+                            <span className="text-amber-600 font-extrabold text-sm">
+                                {selectedEvent?.producer_commission_percent != null ? `${Number(selectedEvent.producer_commission_percent)}%` : '15%'}
+                            </span>
                         </div>
-                        <input
-                            type="range"
-                            min="0"
-                            max="30"
-                            step="1"
-                            value={inviteCommission}
-                            onChange={(e) => setInviteCommission(Number(e.target.value))}
-                            className="w-full accent-amber-500 cursor-pointer"
-                        />
-                        <p className="text-[11px] text-amber-900/80">
-                            O fotógrafo receberá <strong>{100 - inviteCommission}% líquido</strong> sobre as fotos vendidas neste evento.
+                        <p className="text-[11px] text-gray-500 mt-1">
+                            Taxa definida no cadastro deste evento, calculada e repassada automaticamente a cada foto vendida pela equipe.
                         </p>
                     </div>
 
