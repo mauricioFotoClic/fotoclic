@@ -70,10 +70,10 @@ const PendingApprovalPage: React.FC<PendingApprovalPageProps> = ({ onNavigate })
                             </div>
                             <div>
                                 <div className="text-xs sm:text-sm font-bold text-amber-900">
-                                    2. Análise de Conformidade e Splits (Em Andamento)
+                                    2. Análise de Conformidade e Coordenação (Em Andamento)
                                 </div>
                                 <div className="text-xs text-gray-600 mt-0.5 leading-relaxed">
-                                    Nossa equipe técnica analisa a estrutura de coordenação de eventos e conformidade com as regras de repasse via gateway Appmax.
+                                    Nossa equipe técnica analisa a estrutura de coordenação de eventos e valida as diretrizes de comissões e segurança da plataforma.
                                 </div>
                             </div>
                         </div>
