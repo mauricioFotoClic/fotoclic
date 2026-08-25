@@ -422,11 +422,11 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
                                     >
                                         <div className="h-48 bg-neutral-200 relative overflow-hidden">
                                             {coverPhotoUrl ? (
-                                                <WatermarkedImage
+                                                <img
                                                     src={getOptimizedImageUrl(coverPhotoUrl, 600, 75)}
                                                     alt={event.name}
                                                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                                    containWithBlur={true}
+                                                    loading="lazy"
                                                 />
                                             ) : (
                                                 <div className="w-full h-full flex items-center justify-center text-neutral-400 bg-neutral-100">
