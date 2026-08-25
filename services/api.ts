@@ -2228,6 +2228,12 @@ export const api = {
             company_name: (data as any).company_name
           })
         }).catch(() => {});
+
+        // E-mail para o Produtor (confirmação em moderação) e para o Admin
+        import("./emailService").then(({ emailService }) => {
+          emailService.sendProducerPendingModerationEmail(newUser.email, newUser.name);
+          emailService.sendNewProducerAdminNotification(newUser.name, newUser.email, (data as any).company_name);
+        }).catch(e => console.warn("Failed to send producer registration emails", e));
       } else if (isPhotographer) {
         fetch('/api/sentry-ai-webhook', {
           method: 'POST',

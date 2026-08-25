@@ -54,6 +54,11 @@ const AdminProducers: React.FC<AdminProducersProps> = ({ onNavigate, onImpersona
         try {
             const success = await api.updateProducerStatus(producer.id, newStatus);
             if (success) {
+                if (newStatus && producer.email) {
+                    import('../../services/emailService').then(({ emailService }) => {
+                        emailService.sendProducerActivatedEmail(producer.email, producer.name);
+                    }).catch(e => console.warn("Failed to send activation email", e));
+                }
                 showToast(`Produtor ${producer.name} ${newStatus ? 'aprovado' : 'desativado'} com sucesso!`, 'success');
                 fetchProducers();
             }

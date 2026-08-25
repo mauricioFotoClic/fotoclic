@@ -58,6 +58,121 @@ export const emailService = {
     );
   },
 
+  sendNewProducerAdminNotification: async (producerName: string, producerEmail: string, companyName?: string) => {
+    const siteUrl = typeof window !== 'undefined' ? window.location.origin : 'https://www.fotoclic.com.br';
+    return emailService.sendEmail(
+      'svalmauricio@gmail.com',
+      '🎪 Novo Produtor de Eventos Aguardando Moderação - FotoClic',
+      `<div style="font-family: sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+        <div style="background: linear-gradient(135deg, #ea580c 0%, #f97316 100%); padding: 24px; text-align: center;">
+          <h1 style="color: white; margin: 0; font-size: 22px; font-weight: bold;">🎪 Novo Produtor de Eventos Cadastrado!</h1>
+        </div>
+        <div style="padding: 28px 24px; background-color: #ffffff;">
+          <p style="font-size: 16px; margin-top: 0; color: #334155;">Um novo organizador de eventos solicitou acesso como <strong>Produtor</strong> e está aguardando moderação para gerenciar eventos e equipes de fotógrafos.</p>
+          
+          <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 18px; margin: 20px 0;">
+            <p style="margin: 0 0 10px 0;"><strong>Responsável:</strong> ${producerName}</p>
+            <p style="margin: 0 0 10px 0;"><strong>Produtora / Empresa:</strong> ${companyName || 'Individual'}</p>
+            <p style="margin: 0 0 10px 0;"><strong>E-mail:</strong> ${producerEmail}</p>
+            <p style="margin: 0;"><strong>Data/Hora:</strong> ${new Date().toLocaleString('pt-BR')}</p>
+          </div>
+
+          <p style="font-size: 15px; color: #475569; font-weight: 600;">Modere este cadastro pelo Painel Admin ou Telegram:</p>
+          
+          <div style="margin: 24px 0; text-align: center;">
+            <a href="${siteUrl}/admin#producers" style="background-color: #ea580c; color: white; padding: 12px 22px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; margin-right: 10px; margin-bottom: 8px;">
+              💻 Moderar no Painel Admin
+            </a>
+            <a href="https://t.me/fotoclic_ai_bot" style="background-color: #0088cc; color: white; padding: 12px 22px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; margin-bottom: 8px;">
+              📱 Moderar pelo Telegram
+            </a>
+          </div>
+        </div>
+        <div style="background-color: #f8fafc; padding: 16px; text-align: center; font-size: 12px; color: #94a3b8;">
+          FotoClic &bull; Sistema Automático de Notificações
+        </div>
+      </div>`
+    );
+  },
+
+  sendProducerPendingModerationEmail: async (producerEmail: string, producerName: string) => {
+    return emailService.sendEmail(
+      producerEmail,
+      '⏳ Seu cadastro de Produtor foi recebido e está em moderação - FotoClic',
+      `<div style="font-family: sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+        <div style="background: linear-gradient(135deg, #ea580c 0%, #f97316 100%); padding: 24px; text-align: center;">
+          <h1 style="color: white; margin: 0; font-size: 22px; font-weight: bold;">FotoClic &bull; Bem-vindo!</h1>
+        </div>
+        <div style="padding: 28px 24px; background-color: #ffffff;">
+          <h2 style="color: #1e293b; font-size: 18px; margin-top: 0;">Olá, ${producerName}!</h2>
+          <p style="font-size: 15px; color: #334155; line-height: 1.6;">
+            Recebemos com sucesso sua solicitação de cadastro como <strong>Produtor de Eventos</strong> na plataforma FotoClic.
+          </p>
+          
+          <div style="background-color: #fffbeb; border-left: 4px solid #f59e0b; border-radius: 6px; padding: 16px; margin: 20px 0;">
+            <p style="margin: 0; font-size: 14px; color: #92400e; line-height: 1.5;">
+              <strong>📋 Status: Em Moderação Técnica</strong><br/>
+              Sua conta entrou em nossa fila de avaliação para validação das diretrizes e segurança da plataforma.
+            </p>
+          </div>
+
+          <h3 style="font-size: 15px; color: #1e293b; margin-top: 24px; margin-bottom: 8px;">O que acontece a seguir?</h3>
+          <ul style="font-size: 14px; color: #475569; line-height: 1.6; padding-left: 20px; margin: 0 0 20px 0;">
+            <li>Nossa equipe técnica analisa seu perfil (tempo médio: <strong>até 24 horas úteis</strong>).</li>
+            <li>Assim que a conta for homologada, você receberá um e-mail de confirmação de ativação.</li>
+            <li>Seu painel exclusivo será destravado para criação de eventos e convocação de equipes.</li>
+          </ul>
+
+          <p style="font-size: 13px; color: #64748b; line-height: 1.5; margin-top: 24px; border-top: 1px solid #f1f5f9; padding-top: 16px;">
+            Dúvidas ou urgência com algum evento próximo? Responda a este e-mail ou escreva para <strong>contato@fotoclic.com.br</strong>.
+          </p>
+        </div>
+        <div style="background-color: #f8fafc; padding: 16px; text-align: center; font-size: 12px; color: #94a3b8;">
+          FotoClic &bull; Gestão Inteligente de Fotos e Eventos
+        </div>
+      </div>`
+    );
+  },
+
+  sendProducerActivatedEmail: async (producerEmail: string, producerName: string) => {
+    return emailService.sendEmail(
+      producerEmail,
+      '🎉 Parabéns! Seu cadastro de Produtor no FotoClic foi Aprovado!',
+      `<div style="font-family: sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+        <div style="background: linear-gradient(135deg, #16a34a 0%, #22c55e 100%); padding: 26px; text-align: center;">
+          <h1 style="color: white; margin: 0; font-size: 24px; font-weight: bold;">🎉 Cadastro Aprovado!</h1>
+          <p style="color: #f0fdf4; margin: 6px 0 0 0; font-size: 14px;">Seu Painel de Produtor de Eventos está liberado</p>
+        </div>
+        <div style="padding: 28px 24px; background-color: #ffffff;">
+          <h2 style="color: #1e293b; font-size: 18px; margin-top: 0;">Parabéns, ${producerName}!</h2>
+          <p style="font-size: 15px; color: #334155; line-height: 1.6;">
+            É um prazer ter você conosco! Sua conta de <strong>Produtor Oficial FotoClic</strong> foi analisada, aprovada e já está totalmente ativada.
+          </p>
+          
+          <div style="text-align: center; margin: 28px 0;">
+            <a href="https://www.fotoclic.com.br/produtor" style="background-color: #ea580c; color: white; padding: 14px 28px; text-decoration: none; border-radius: 10px; font-weight: bold; font-size: 15px; display: inline-block; box-shadow: 0 4px 10px rgba(234, 88, 12, 0.3);">
+              🚀 Acessar Painel do Produtor
+            </a>
+          </div>
+
+          <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 18px; margin: 24px 0;">
+            <p style="margin: 0 0 10px 0; font-weight: bold; color: #1e293b; font-size: 14px;">O que você pode fazer agora:</p>
+            <p style="margin: 0 0 8px 0; font-size: 13px; color: #475569;">📅 <strong>Criar seus Eventos:</strong> Cadastre corridas, torneios ou festivais esportivos.</p>
+            <p style="margin: 0 0 8px 0; font-size: 13px; color: #475569;">👥 <strong>Convidar Fotógrafos:</strong> Monte sua equipe de cobertura com até 10 profissionais.</p>
+            <p style="margin: 0; font-size: 13px; color: #475569;">💰 <strong>Acompanhar Vendas & Comissões:</strong> Visualize o faturamento em tempo real e configure sua chave Pix para saques.</p>
+          </div>
+
+          <p style="font-size: 13px; color: #64748b; line-height: 1.5; margin-top: 24px; border-top: 1px solid #f1f5f9; padding-top: 16px;">
+            Conte com o suporte FotoClic para o sucesso dos seus eventos esportivos!
+          </p>
+        </div>
+        <div style="background-color: #f8fafc; padding: 16px; text-align: center; font-size: 12px; color: #94a3b8;">
+          FotoClic &bull; Conectando momentos, organizadores e fotógrafos
+        </div>
+      </div>`
+    );
+  },
+
   sendPhotographerStatusEmail: async (photographerEmail: string, photographerName: string, status: 'activated' | 'deactivated') => {
     const templates = await emailService.getTemplates();
     if (!templates) return false;
