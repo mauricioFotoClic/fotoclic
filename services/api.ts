@@ -3574,6 +3574,30 @@ export const api = {
       .single();
 
     if (error) throw error;
+
+    // Disparar e-mail de convite para o fotógrafo
+    try {
+      Promise.all([
+        supabase.from("events").select("name, event_date").eq("id", params.eventId).single(),
+        supabase.from("users").select("name, company_name").eq("id", params.producerId).single(),
+      ]).then(([{ data: ev }, { data: pr }]) => {
+        if (ev) {
+          import("./emailService").then(({ emailService }) => {
+            emailService.sendCollaboratorInviteEmail({
+              photographerEmail: params.email.trim().toLowerCase(),
+              producerName: pr?.name || "Produtor FotoClic",
+              companyName: pr?.company_name || undefined,
+              eventName: ev.name,
+              eventDate: ev.event_date,
+              commissionPercent: params.commissionPercent,
+            });
+          }).catch(e => console.warn("Failed to import emailService", e));
+        }
+      }).catch(e => console.warn("Failed to fetch event/producer for invite email", e));
+    } catch (e) {
+      console.warn("Notice: Error sending collaborator invite email:", e);
+    }
+
     return {
       ...data,
       photographer: data.photographer ? mapUser(data.photographer) : undefined,

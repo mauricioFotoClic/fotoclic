@@ -326,8 +326,14 @@ const ProducerDashboardPage: React.FC<ProducerDashboardPageProps> = ({ currentUs
                             <div className="text-xl font-bold text-amber-400 mt-0.5">{collaborators.length} / 10</div>
                         </div>
                         <div className="bg-white/5 backdrop-blur-sm p-3.5 rounded-2xl border border-white/10">
-                            <div className="text-xs text-neutral-400">Taxa Padrão de Coordenação</div>
-                            <div className="text-xl font-bold text-emerald-400 mt-0.5">15%</div>
+                            <div className="text-xs text-neutral-400">Taxa de Coordenação</div>
+                            <div className="text-xl font-bold text-emerald-400 mt-0.5">
+                                {selectedEvent?.producer_commission_percent != null
+                                    ? `${Number(selectedEvent.producer_commission_percent)}%`
+                                    : (events.length > 0 && events[0].producer_commission_percent != null
+                                        ? `${Number(events[0].producer_commission_percent)}%`
+                                        : '15%')}
+                            </div>
                         </div>
                         <div className="bg-white/5 backdrop-blur-sm p-3.5 rounded-2xl border border-white/10">
                             <div className="text-xs text-neutral-400">Comissões Acumuladas</div>
@@ -495,7 +501,11 @@ const ProducerDashboardPage: React.FC<ProducerDashboardPageProps> = ({ currentUs
                                     <div className="font-bold text-sm text-gray-800">{collaborators.length} de 10 preenchidas</div>
                                 </div>
                                 <button
-                                    onClick={() => setIsInviteModalOpen(true)}
+                                    onClick={() => {
+                                        const defaultComm = selectedEvent?.producer_commission_percent != null ? Number(selectedEvent.producer_commission_percent) : 15;
+                                        setInviteCommission(defaultComm);
+                                        setIsInviteModalOpen(true);
+                                    }}
                                     disabled={collaborators.length >= 10 || !selectedEventId}
                                     className="w-full sm:w-auto px-5 py-2.5 rounded-xl font-bold text-sm bg-gradient-to-r from-primary to-primary-dark text-white hover:shadow transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
                                 >
@@ -865,11 +875,23 @@ const ProducerDashboardPage: React.FC<ProducerDashboardPageProps> = ({ currentUs
                         </p>
                     </div>
 
-                    <div className="p-3 bg-neutral-50 border border-neutral-200 rounded-xl">
-                        <div className="flex justify-between items-center text-xs font-bold text-gray-700">
+                    <div className="p-3.5 bg-amber-50/70 border border-amber-200/60 rounded-xl space-y-2">
+                        <div className="flex justify-between items-center text-xs font-bold text-gray-800">
                             <span>Sua Taxa de Coordenação</span>
-                            <span className="text-amber-600 font-extrabold">{inviteCommission}%</span>
+                            <span className="text-amber-600 font-extrabold text-sm">{inviteCommission}%</span>
                         </div>
+                        <input
+                            type="range"
+                            min="0"
+                            max="30"
+                            step="1"
+                            value={inviteCommission}
+                            onChange={(e) => setInviteCommission(Number(e.target.value))}
+                            className="w-full accent-amber-500 cursor-pointer"
+                        />
+                        <p className="text-[11px] text-amber-900/80">
+                            O fotógrafo receberá <strong>{100 - inviteCommission}% líquido</strong> sobre as fotos vendidas neste evento.
+                        </p>
                     </div>
 
                     <button

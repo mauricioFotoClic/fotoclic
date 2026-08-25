@@ -173,6 +173,56 @@ export const emailService = {
     );
   },
 
+  sendCollaboratorInviteEmail: async (params: {
+    photographerEmail: string;
+    producerName: string;
+    companyName?: string;
+    eventName: string;
+    eventDate: string;
+    commissionPercent: number;
+  }) => {
+    const inviter = params.companyName || params.producerName;
+    const photographerSplitPercent = 100 - params.commissionPercent;
+    const siteUrl = typeof window !== 'undefined' ? window.location.origin : 'https://www.fotoclic.com.br';
+
+    return emailService.sendEmail(
+      params.photographerEmail,
+      `📸 Convite para Equipe: ${params.eventName} no FotoClic`,
+      `<div style="font-family: sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+        <div style="background: linear-gradient(135deg, #FF6B00 0%, #FF8533 100%); padding: 24px; text-align: center;">
+          <h1 style="color: white; margin: 0; font-size: 22px; font-weight: bold;">📸 Convite de Cobertura Fotográfica</h1>
+          <p style="color: #fff7ed; margin: 6px 0 0 0; font-size: 14px;">Você foi convidado para a equipe oficial de um evento!</p>
+        </div>
+        <div style="padding: 28px 24px; background-color: #ffffff;">
+          <h2 style="color: #1e293b; font-size: 18px; margin-top: 0;">Olá!</h2>
+          <p style="font-size: 15px; color: #334155; line-height: 1.6;">
+            O produtor <strong>${inviter}</strong> convocou você para integrar a equipe exclusiva de cobertura fotográfica no <strong>FotoClic</strong>.
+          </p>
+          
+          <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 18px; margin: 20px 0;">
+            <p style="margin: 0 0 8px 0; font-size: 14px; color: #1e293b;">📅 <strong>Evento:</strong> ${params.eventName}</p>
+            <p style="margin: 0 0 8px 0; font-size: 14px; color: #1e293b;">🗓️ <strong>Data:</strong> ${new Date(params.eventDate).toLocaleDateString('pt-BR')}</p>
+            <p style="margin: 0 0 8px 0; font-size: 14px; color: #1e293b;">🏢 <strong>Coordenação:</strong> ${inviter}</p>
+            <p style="margin: 0; font-size: 14px; color: #16a34a;">💰 <strong>Sua Parte das Vendas:</strong> <strong>${photographerSplitPercent}% líquido</strong> (taxa de coordenação do produtor: ${params.commissionPercent}%)</p>
+          </div>
+
+          <div style="text-align: center; margin: 28px 0;">
+            <a href="${siteUrl}/area-fotografo" style="background-color: #FF6B00; color: white; padding: 14px 28px; text-decoration: none; border-radius: 10px; font-weight: bold; font-size: 15px; display: inline-block; box-shadow: 0 4px 10px rgba(255, 107, 0, 0.3);">
+              🚀 Acessar FotoClic e Começar
+            </a>
+          </div>
+
+          <p style="font-size: 13px; color: #64748b; line-height: 1.5; margin-top: 24px; border-top: 1px solid #f1f5f9; padding-top: 16px;">
+            Ao publicar suas fotos selecionando este evento, os repasses financeiros e divisões automáticas de comissões serão aplicados diretamente em cada venda.
+          </p>
+        </div>
+        <div style="background-color: #f8fafc; padding: 16px; text-align: center; font-size: 12px; color: #94a3b8;">
+          FotoClic &bull; Marketplace Profissional de Fotografia Esportiva
+        </div>
+      </div>`
+    );
+  },
+
   sendPhotographerStatusEmail: async (photographerEmail: string, photographerName: string, status: 'activated' | 'deactivated') => {
     const templates = await emailService.getTemplates();
     if (!templates) return false;
