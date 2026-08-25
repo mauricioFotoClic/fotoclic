@@ -203,7 +203,7 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginS
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} size="lg" noPadding showCloseButton={true}>
-            <div className="p-5 sm:p-6">
+            <div className="p-4 sm:p-6">
                 {/* Cabeçalho Compacto */}
                 <div className="text-center mb-3.5">
                     <h2 className="text-xl sm:text-2xl font-display font-black text-gray-900 tracking-tight">

@@ -37,27 +37,41 @@ const Modal: React.FC<ModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-70 z-50 flex justify-center items-center p-4 backdrop-blur-sm"
+      className="fixed inset-0 bg-black bg-opacity-70 z-50 flex justify-center items-center p-2.5 sm:p-4 backdrop-blur-sm"
       onClick={closeOnOverlayClick ? onClose : undefined}
     >
       <div
         className={`bg-white rounded-xl shadow-2xl w-full ${sizeClasses[size]} relative animate-fade-in-up flex flex-col max-h-[90vh]`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex justify-between items-center p-4 border-b border-neutral-100 flex-shrink-0">
-          <h2 className="text-xl font-display font-bold text-primary-dark truncate pr-4">{title}</h2>
-          {showCloseButton && (
-            <button
-              onClick={onClose}
-              className="p-2 rounded-full hover:bg-neutral-100 text-neutral-500 hover:text-neutral-800 transition-colors"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            </button>
-          )}
-        </div>
+        {title ? (
+          <div className="flex justify-between items-center p-3 sm:p-4 border-b border-neutral-100 flex-shrink-0">
+            <h2 className="text-lg sm:text-xl font-display font-bold text-primary-dark truncate pr-4">{title}</h2>
+            {showCloseButton && (
+              <button
+                onClick={onClose}
+                className="p-1.5 sm:p-2 rounded-full hover:bg-neutral-100 text-neutral-500 hover:text-neutral-800 transition-colors cursor-pointer"
+                aria-label="Fechar"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            )}
+          </div>
+        ) : showCloseButton ? (
+          <button
+            onClick={onClose}
+            className="absolute top-3 right-3 z-20 p-1.5 rounded-full bg-neutral-100 hover:bg-neutral-200 text-neutral-600 hover:text-neutral-900 transition-colors cursor-pointer shadow-xs"
+            aria-label="Fechar"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        ) : null}
         <div className="overflow-y-auto flex-grow">
           <div className={noPadding ? '' : 'p-6'}>
             {children}
