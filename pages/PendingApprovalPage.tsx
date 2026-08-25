@@ -45,13 +45,13 @@ const PendingApprovalPage: React.FC<PendingApprovalPageProps> = ({ onNavigate })
                 </h1>
                 
                 <p className="text-xl text-neutral-600 mb-8 leading-relaxed">
-                    Estamos preparando seu palco. No <span className="font-bold text-primary">FotoClic</span>, cada fotógrafo passa por uma curadoria dedicada para garantir que sua arte receba o destaque e valorização que merece.
+                    Estamos preparando seu espaço. No <span className="font-bold text-primary">FotoClic</span>, novos parceiros e produtores passam por uma análise dedicada para garantir a máxima qualidade, transparência e segurança da plataforma.
                 </p>
 
                 <div className="bg-neutral-50 p-8 rounded-2xl border border-neutral-100 shadow-sm mb-8">
                     <h3 className="text-lg font-bold text-neutral-800 mb-2">O que acontece agora?</h3>
                     <p className="text-neutral-600">
-                        Sua conta entrou em nosso processo de moderacão. Nossa equipe analisará seu perfil e, assim que aprovado, você receberá um e-mail de boas-vindas liberando seu acesso total ao painel para começar a vender.
+                        Sua conta entrou em nosso processo de moderação. Nossa equipe analisará seu perfil e, assim que aprovado pelo administrador, você receberá um e-mail liberando seu acesso total ao painel oficial.
                     </p>
                 </div>
 

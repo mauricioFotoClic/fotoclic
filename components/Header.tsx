@@ -93,9 +93,16 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigate, currentView
                                             </button>
                                         )}
                                         {user.role === UserRole.PRODUCER && currentView !== 'producer' && (
-                                            <button onClick={() => onNavigate({ name: 'producer' })} className="px-4 py-2 text-sm font-bold text-white bg-amber-600 rounded-full hover:bg-amber-700 transition-colors shadow-sm flex items-center gap-1.5">
-                                                <span>Painel do Produtor</span>
-                                            </button>
+                                            user.is_active === false ? (
+                                                <button onClick={() => onNavigate({ name: 'pending-approval' })} className="px-3.5 py-1.5 text-xs font-bold text-amber-800 bg-amber-100 border border-amber-300/70 rounded-full hover:bg-amber-200 transition-colors shadow-xs flex items-center gap-1.5 cursor-pointer">
+                                                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                                                    <span>Aguardando Aprovação</span>
+                                                </button>
+                                            ) : (
+                                                <button onClick={() => onNavigate({ name: 'producer' })} className="px-4 py-2 text-sm font-bold text-white bg-amber-600 rounded-full hover:bg-amber-700 transition-colors shadow-sm flex items-center gap-1.5 cursor-pointer">
+                                                    <span>Painel do Produtor</span>
+                                                </button>
+                                            )
                                         )}
                                         {user.role === UserRole.CUSTOMER && (
                                             <button onClick={() => onNavigate({ name: 'customer-dashboard' })} className="px-4 py-2 text-sm font-medium text-neutral-700 hover:text-primary transition-colors">
@@ -186,12 +193,21 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigate, currentView
                                 </button>
                             )}
                             {user.role === UserRole.PRODUCER && currentView !== 'producer' && (
-                                <button
-                                    onClick={() => { onNavigate({ name: 'producer' }); setIsMenuOpen(false); }}
-                                    className="w-full text-center px-4 py-2 mb-2 text-sm font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-full shadow-sm transition-all"
-                                >
-                                    Painel do Produtor
-                                </button>
+                                user.is_active === false ? (
+                                    <button
+                                        onClick={() => { onNavigate({ name: 'pending-approval' }); setIsMenuOpen(false); }}
+                                        className="w-full text-center px-4 py-2 mb-2 text-sm font-bold text-amber-800 bg-amber-100 rounded-full shadow-xs transition-all"
+                                    >
+                                        ⏳ Aguardando Aprovação
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={() => { onNavigate({ name: 'producer' }); setIsMenuOpen(false); }}
+                                        className="w-full text-center px-4 py-2 mb-2 text-sm font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-full shadow-sm transition-all"
+                                    >
+                                        Painel do Produtor
+                                    </button>
+                                )
                             )}
                             {isPhotographerView && (
                                 <button
