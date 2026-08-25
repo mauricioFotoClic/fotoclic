@@ -182,7 +182,6 @@ export const emailService = {
     commissionPercent: number;
   }) => {
     const inviter = params.companyName || params.producerName;
-    const photographerSplitPercent = 100 - params.commissionPercent;
     const siteUrl = typeof window !== 'undefined' ? window.location.origin : 'https://www.fotoclic.com.br';
 
     return emailService.sendEmail(
@@ -203,17 +202,23 @@ export const emailService = {
             <p style="margin: 0 0 8px 0; font-size: 14px; color: #1e293b;">📅 <strong>Evento:</strong> ${params.eventName}</p>
             <p style="margin: 0 0 8px 0; font-size: 14px; color: #1e293b;">🗓️ <strong>Data:</strong> ${new Date(params.eventDate).toLocaleDateString('pt-BR')}</p>
             <p style="margin: 0 0 8px 0; font-size: 14px; color: #1e293b;">🏢 <strong>Coordenação:</strong> ${inviter}</p>
-            <p style="margin: 0; font-size: 14px; color: #16a34a;">💰 <strong>Sua Parte das Vendas:</strong> <strong>${photographerSplitPercent}% líquido</strong> (taxa de coordenação do produtor: ${params.commissionPercent}%)</p>
+            <p style="margin: 0; font-size: 14px; color: #d97706;">🎯 <strong>Taxa de Coordenação do Produtor:</strong> <strong>${params.commissionPercent}%</strong> sobre as vendas deste evento</p>
           </div>
 
-          <div style="text-align: center; margin: 28px 0;">
+          <div style="background-color: #f1f5f9; border-left: 4px solid #FF6B00; border-radius: 4px; padding: 12px 16px; margin: 18px 0;">
+            <p style="margin: 0; font-size: 12px; color: #475569; line-height: 1.5;">
+              💡 <strong>Divisão Automática de Vendas:</strong> A cada foto vendida neste evento, os repasses para sua conta de fotógrafo e a taxa de ${params.commissionPercent}% do produtor são calculados e creditados automaticamente, respeitando as taxas operacionais padrão do FotoClic.
+            </p>
+          </div>
+
+          <div style="text-align: center; margin: 26px 0;">
             <a href="${siteUrl}/area-fotografo" style="background-color: #FF6B00; color: white; padding: 14px 28px; text-decoration: none; border-radius: 10px; font-weight: bold; font-size: 15px; display: inline-block; box-shadow: 0 4px 10px rgba(255, 107, 0, 0.3);">
               🚀 Acessar FotoClic e Começar
             </a>
           </div>
 
-          <p style="font-size: 13px; color: #64748b; line-height: 1.5; margin-top: 24px; border-top: 1px solid #f1f5f9; padding-top: 16px;">
-            Ao publicar suas fotos selecionando este evento, os repasses financeiros e divisões automáticas de comissões serão aplicados diretamente em cada venda.
+          <p style="font-size: 12px; color: #94a3b8; line-height: 1.5; margin-top: 20px; border-top: 1px solid #f1f5f9; padding-top: 14px;">
+            Dúvidas ou suporte? Entre em contato com a nossa equipe em <a href="mailto:contato@fotoclic.com.br" style="color: #FF6B00; text-decoration: none;">contato@fotoclic.com.br</a>.
           </p>
         </div>
         <div style="background-color: #f8fafc; padding: 16px; text-align: center; font-size: 12px; color: #94a3b8;">

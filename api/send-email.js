@@ -70,7 +70,7 @@ export default async function handler(request, response) {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                from: 'nao-responda@email.fotoclic.com.br', // Authenticated subdomain
+                from: request.body.from || 'contato@email.fotoclic.com.br', // Authenticated subdomain
                 to: Array.isArray(to) ? to : [to],
                 subject: subject,
                 body: html,
