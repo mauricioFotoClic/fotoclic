@@ -1471,7 +1471,8 @@ export const api = {
       return cached.data;
     }
 
-    const { data, error } = await supabase
+    // 1. Eventos criados pelo fotógrafo
+    const { data: ownEvents, error } = await supabase
       .from("events")
       .select("*")
       .eq("photographer_id", photographerId)
@@ -1481,7 +1482,29 @@ export const api = {
       console.error("Error fetching events:", error);
       return [];
     }
-    const result = data as PhotoEvent[];
+
+    // 2. Eventos onde o fotógrafo é colaborador de equipe de um produtor
+    let collabEvents: any[] = [];
+    try {
+      const { data: collabs } = await supabase
+        .from("event_collaborators")
+        .select("event_id")
+        .eq("photographer_id", photographerId);
+
+      const eventIds = (collabs || []).map((c: any) => c.event_id).filter((id: string) => !ownEvents?.some((e: any) => e.id === id));
+      if (eventIds.length > 0) {
+        const { data: teamEvents } = await supabase
+          .from("events")
+          .select("*")
+          .in("id", eventIds);
+        if (teamEvents) collabEvents = teamEvents;
+      }
+    } catch (e) {
+      console.warn("Notice: Fetching team collaborated events for photographer:", e);
+    }
+
+    const allEvents = [...(ownEvents || []), ...collabEvents];
+    const result = allEvents as PhotoEvent[];
     inMemoryCache.photographerEventsCache[photographerId] = { data: result, ts: now };
     return result;
   },
@@ -2238,6 +2261,14 @@ export const api = {
           emailService.sendNewProducerAdminNotification(newUser.name, newUser.email, (data as any).company_name);
         }).catch(e => console.warn("Failed to send producer registration emails", e));
       } else if (isPhotographer) {
+        // Vincular automaticamente convites pendentes de produtores enviados para este e-mail
+        supabase
+          .from("event_collaborators")
+          .update({ photographer_id: newUser.id })
+          .eq("invited_email", newUser.email.trim().toLowerCase())
+          .then(() => {})
+          .catch((e) => console.warn("Notice: Failed to link invited collaborators on signup:", e));
+
         fetch('/api/sentry-ai-webhook', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -3276,22 +3307,6 @@ export const api = {
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || 'Erro ao transferir saldo.');
     return result;
-  },
-
-  getAuthHeaders: async (): Promise<Record<string, string>> => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-      return headers;
-    } catch {
-      return { 'Content-Type': 'application/json' };
-    }
   },
 
   sendEmail: async (to: string | string[], subject: string, html: string): Promise<any> => {
