@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 
 interface WatermarkedImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   text?: string;
@@ -9,12 +9,13 @@ const WatermarkedImage: React.FC<WatermarkedImageProps> = ({
   src,
   alt,
   className = "",
-  text = "FotoClic Preview",
+  text = "fotoclic.com.br",
   style,
   containWithBlur = false,
   ...props
 }) => {
   const [loaded, setLoaded] = React.useState(false);
+  const patternId = useId().replace(/:/g, '_');
 
   // Previne o menu de contexto (botão direito)
   const handleContextMenu = (e: React.MouseEvent) => {
@@ -69,58 +70,95 @@ const WatermarkedImage: React.FC<WatermarkedImageProps> = ({
       {/* Camada de Proteção Invisível (Impede arrastar a imagem para o desktop) */}
       <div className="absolute inset-0 z-20 bg-transparent" />
 
-      {/* ── Malha de Proteção e Marca D'água Visual Anti-Print / Anti-IA ── */}
+      {/* ── Malha de Proteção e Marca D'água Anti-Print / Anti-IA ── */}
       {loaded && (
-        <div className="absolute inset-0 z-30 pointer-events-none select-none flex flex-col justify-between overflow-hidden animate-fade-in">
-          {/* 1. Linhas de Segurança Cruzadas Contínuas e Grossas (Alta Visibilidade em Qualquer Fundo) */}
+        <div className="absolute inset-0 z-30 pointer-events-none select-none flex items-center justify-center overflow-hidden animate-fade-in">
+          {/* 1. Grade Vetorial SVG com Textos Cruzados e Linhas Finas de Segurança */}
           <svg
-            className="absolute inset-0 w-full h-full opacity-65"
+            className="absolute inset-0 w-full h-full"
             xmlns="http://www.w3.org/2000/svg"
           >
             <defs>
-              <pattern id="crosshatch-grid-heavy" width="100" height="100" patternUnits="userSpaceOnUse">
-                {/* Linhas pretas de contorno / sombra para contraste em fundos claros */}
-                <line x1="0" y1="0" x2="100" y2="100" stroke="rgba(0,0,0,0.65)" strokeWidth="3.5" />
-                <line x1="100" y1="0" x2="0" y2="100" stroke="rgba(0,0,0,0.65)" strokeWidth="3.5" />
-                {/* Linhas brancas principais grossas e pontilhadas para contraste em fundos escuros */}
-                <line x1="0" y1="0" x2="100" y2="100" stroke="rgba(255,255,255,0.85)" strokeWidth="2.2" strokeDasharray="10 5" />
-                <line x1="100" y1="0" x2="0" y2="100" stroke="rgba(255,255,255,0.85)" strokeWidth="2.2" strokeDasharray="10 5" />
+              <pattern
+                id={`wm-pattern-${patternId}`}
+                width="200"
+                height="100"
+                patternUnits="userSpaceOnUse"
+                patternTransform="rotate(-28)"
+              >
+                {/* Linhas de segurança sutis anti-corte e anti-IA */}
+                <line x1="0" y1="0" x2="200" y2="0" stroke="rgba(255,255,255,0.18)" strokeWidth="0.75" />
+                <line x1="0" y1="50" x2="200" y2="50" stroke="rgba(0,0,0,0.14)" strokeWidth="0.75" />
+                <line x1="0" y1="0" x2="0" y2="100" stroke="rgba(255,255,255,0.12)" strokeWidth="0.75" />
+
+                {/* Linha 1: FotoClic .com.br com ponto laranja */}
+                <g transform="translate(16, 32)">
+                  <text
+                    x="0"
+                    y="0"
+                    fill="rgba(255, 255, 255, 0.55)"
+                    stroke="rgba(0, 0, 0, 0.45)"
+                    strokeWidth="0.6"
+                    paintOrder="stroke fill"
+                    style={{
+                      fontFamily: 'system-ui, -apple-system, sans-serif',
+                      fontWeight: 800,
+                      fontSize: '13px',
+                      letterSpacing: '1px',
+                    }}
+                  >
+                    FOTOCLIC
+                  </text>
+                  <text
+                    x="76"
+                    y="0"
+                    fill="rgba(249, 115, 22, 0.70)"
+                    stroke="rgba(0, 0, 0, 0.4)"
+                    strokeWidth="0.5"
+                    paintOrder="stroke fill"
+                    style={{
+                      fontFamily: 'system-ui, -apple-system, sans-serif',
+                      fontWeight: 700,
+                      fontSize: '11px',
+                      letterSpacing: '0.5px',
+                    }}
+                  >
+                    .com.br
+                  </text>
+                </g>
+
+                {/* Linha 2 (deslocada): PREVIEW PROTEGIDA */}
+                <g transform="translate(100, 82)">
+                  <text
+                    x="0"
+                    y="0"
+                    fill="rgba(255, 255, 255, 0.42)"
+                    stroke="rgba(0, 0, 0, 0.38)"
+                    strokeWidth="0.5"
+                    paintOrder="stroke fill"
+                    style={{
+                      fontFamily: 'system-ui, -apple-system, sans-serif',
+                      fontWeight: 700,
+                      fontSize: '10px',
+                      letterSpacing: '1.5px',
+                    }}
+                  >
+                    PREVIEW
+                  </text>
+                  <circle cx="68" cy="-3" r="1.5" fill="rgba(249, 115, 22, 0.7)" />
+                </g>
               </pattern>
             </defs>
-            <rect width="100%" height="100%" fill="url(#crosshatch-grid-heavy)" />
+            <rect width="100%" height="100%" fill={`url(#wm-pattern-${patternId})`} />
           </svg>
 
-          {/* 2. Grade de Marcas D'água Dinâmica em Diagonal (16 Células com Alto Contraste) */}
-          <div className="absolute inset-0 flex flex-wrap content-center justify-center opacity-75">
-            {Array.from({ length: 16 }).map((_, i) => (
-              <div
-                key={i}
-                className="w-1/4 h-1/4 flex items-center justify-center transform -rotate-30 p-1.5"
-              >
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-white/60 bg-black/45 backdrop-blur-[2px] shadow-lg">
-                  <span className="w-2 h-2 rounded-full bg-primary shadow-[0_0_8px_rgba(249,115,22,1)] animate-pulse" />
-                  <span className="text-white font-display font-extrabold text-[10px] sm:text-xs md:text-sm tracking-wider whitespace-nowrap drop-shadow-[0_2px_4px_rgba(0,0,0,1)]">
-                    {i % 2 === 0 ? text : 'fotoclic.com.br'}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* 3. Selo Central de Alta Densidade com Difração Óptica (Foco no Centro da Foto) */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none p-4">
-            <div className="transform -rotate-12 bg-black/60 border-2 border-primary/90 px-5 py-2 sm:px-8 sm:py-3.5 rounded-2xl shadow-[0_10px_35px_rgba(0,0,0,0.8)] backdrop-blur-[3px]">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-primary shadow-[0_0_12px_rgba(249,115,22,1)]" />
-                <div className="flex flex-col text-center">
-                  <span className="text-white font-display font-black text-sm sm:text-lg md:text-2xl tracking-widest uppercase drop-shadow-[0_2px_8px_rgba(0,0,0,1)]">
-                    FOTOCLIC • PREVIEW
-                  </span>
-                  <span className="text-orange-300 font-sans font-bold text-[9px] sm:text-xs tracking-wider uppercase drop-shadow-[0_1px_4px_rgba(0,0,0,1)]">
-                    IMAGEM PROTEGIDA • COMPRE A ORIGINAL
-                  </span>
-                </div>
-              </div>
+          {/* 2. Selo Central Discreto e Translúcido (Apenas em cards médios/grandes, sem tampar fotos pequenas) */}
+          <div className="relative z-10 hidden sm:flex items-center justify-center p-2 transform scale-90 md:scale-100 transition-transform">
+            <div className="flex items-center gap-2 px-3.5 py-1 rounded-full bg-black/30 border border-white/20 shadow-md backdrop-blur-[1px]">
+              <span className="w-2 h-2 rounded-full bg-primary shadow-[0_0_8px_rgba(249,115,22,0.9)] animate-pulse" />
+              <span className="text-white font-display font-bold text-[10px] md:text-xs tracking-wider uppercase drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
+                FotoClic Preview
+              </span>
             </div>
           </div>
         </div>
@@ -130,5 +168,6 @@ const WatermarkedImage: React.FC<WatermarkedImageProps> = ({
 };
 
 export default WatermarkedImage;
+
 
 
