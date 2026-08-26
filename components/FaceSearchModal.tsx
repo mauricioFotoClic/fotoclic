@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { X, Upload, Search, Camera, RotateCcw, Calendar, MapPin, Check, Store, Trophy } from 'lucide-react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import { X, Upload, Search, Camera, RotateCcw, Calendar, MapPin, Check, Store, Trophy, ChevronLeft, ChevronRight, ShoppingCart, ArrowLeft, Eye, ShoppingBag } from 'lucide-react';
 import { faceRecognitionService } from '../services/faceRecognition';
 import api from '../services/api';
 import { Photo, PhotoEvent, User } from '../types';
@@ -44,6 +44,8 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({
     const [isProcessing, setIsProcessing] = useState(false);
     const [results, setResults] = useState<Photo[]>([]);
     const [hasSearched, setHasSearched] = useState(false);
+    const [previewIndex, setPreviewIndex] = useState<number | null>(null);
+    const [addedPhotoIds, setAddedPhotoIds] = useState<Set<string>>(new Set());
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
@@ -62,6 +64,8 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({
 
             setResults([]);
             setHasSearched(false);
+            setPreviewIndex(null);
+            setAddedPhotoIds(new Set());
             setIsProcessing(false);
             if (initialEventId) setSelectedEventId(initialEventId);
 
@@ -89,8 +93,62 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({
             }
         } else {
             stopCamera();
+            setPreviewIndex(null);
         }
     }, [isOpen, initialEventId]);
+
+    const handlePrev = useCallback(() => {
+        setPreviewIndex(prev => (prev !== null && prev > 0 ? prev - 1 : prev));
+    }, []);
+
+    const handleNext = useCallback(() => {
+        setPreviewIndex(prev => (prev !== null && prev < results.length - 1 ? prev + 1 : prev));
+    }, [results.length]);
+
+    const handleOpenPreview = useCallback((photo: Photo) => {
+        const idx = results.findIndex(p => p.id === photo.id);
+        if (idx !== -1) setPreviewIndex(idx);
+    }, [results]);
+
+    const handleAddToCartItem = useCallback((photo: Photo, e?: React.MouseEvent) => {
+        e?.stopPropagation();
+        onAddToCart(photo.id);
+        setAddedPhotoIds(prev => new Set(prev).add(photo.id));
+        onShowToast('Foto adicionada ao carrinho!', 'success');
+    }, [onAddToCart, onShowToast]);
+
+    const handleBuyNowItem = useCallback((photo: Photo) => {
+        onAddToCart(photo.id);
+        onClose();
+        onNavigate({ name: 'cart' });
+    }, [onAddToCart, onClose, onNavigate]);
+
+    // Keyboard navigation when in Lightbox Preview mode
+    useEffect(() => {
+        if (!isOpen || previewIndex === null) return;
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'ArrowLeft') handlePrev();
+            if (e.key === 'ArrowRight') handleNext();
+            if (e.key === 'Escape') setPreviewIndex(null);
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen, previewIndex, handlePrev, handleNext]);
+
+    const touchStartX = useRef<number | null>(null);
+    const handleTouchStart = (e: React.TouchEvent) => {
+        touchStartX.current = e.touches[0].clientX;
+    };
+    const handleTouchEnd = (e: React.TouchEvent) => {
+        if (touchStartX.current === null) return;
+        const deltaX = e.changedTouches[0].clientX - touchStartX.current;
+        if (deltaX > 45) {
+            handlePrev();
+        } else if (deltaX < -45) {
+            handleNext();
+        }
+        touchStartX.current = null;
+    };
 
     // Handle tab change
     const handleTabChange = (tab: 'selfie' | 'upload') => {
@@ -552,110 +610,303 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({
                         </>
                     )}
 
-                    {/* Mode 2: Results Display (Grouped by Photographer) */}
+                    {/* Mode 2: Results Display */}
                     {hasSearched && (
-                        <div className="space-y-6">
-                            {/* Top Bar with New Search Button */}
-                            <div className="flex items-center justify-between pb-3 border-b border-neutral-800">
-                                <div>
-                                    <span className="text-xs text-neutral-400 block">{t('face_search.photos_found', { count: results.length })}</span>
-                                    {selectedCity && (
-                                        <span className="text-xs text-primary font-semibold mr-2">📍 {selectedCity}</span>
-                                    )}
-                                    {selectedEventId && (
-                                        <span className="text-xs text-[#FACC15] font-semibold">🏆 Evento selecionado</span>
-                                    )}
+                        previewIndex !== null && results[previewIndex] ? (
+                            /* ─── LIGHTBOX CAROUSEL VIEWER (Navegação lateral nas fotos encontradas) ─── */
+                            <div className="space-y-4 animate-in fade-in duration-200">
+                                {/* Top Bar inside Lightbox */}
+                                <div className="flex items-center justify-between pb-3 border-b border-neutral-800">
+                                    <button
+                                        onClick={() => setPreviewIndex(null)}
+                                        className="flex items-center gap-2 text-xs font-semibold text-neutral-300 hover:text-white bg-neutral-900 hover:bg-neutral-800 px-3.5 py-2 rounded-xl transition-all border border-neutral-800 shadow-sm"
+                                    >
+                                        <ArrowLeft size={16} />
+                                        <span>Voltar à grade ({results.length} fotos)</span>
+                                    </button>
+
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs font-bold text-neutral-300 bg-neutral-900 px-3 py-1.5 rounded-full border border-neutral-800">
+                                            Foto {previewIndex + 1} de {results.length}
+                                        </span>
+                                        <button
+                                            onClick={() => { setHasSearched(false); setPreviewIndex(null); }}
+                                            className="text-neutral-400 hover:text-white bg-neutral-900 hover:bg-neutral-800 p-2 rounded-xl border border-neutral-800 transition-all text-xs flex items-center gap-1"
+                                            title="Nova Busca Facial"
+                                        >
+                                            <RotateCcw size={14} />
+                                        </button>
+                                    </div>
                                 </div>
-                                <button
-                                    onClick={() => { setHasSearched(false); }}
-                                    className="bg-primary hover:bg-primary-dark text-white font-bold px-4 py-2 rounded-xl text-xs transition-all flex items-center gap-1.5 shadow-md"
-                                >
-                                    <RotateCcw size={14} />
-                                    {t('face_search.new_search')}
-                                </button>
-                            </div>
 
-                            {results.length > 0 ? (
-                                <div className="space-y-8">
-                                    {groupedResults.map(({ photographer, photos }) => {
-                                        const pName = photographer?.name || 'Fotógrafo FotoClic';
-                                        const pSlug = photographer?.slug || photographer?.id;
+                                {/* Main Stage Image Viewer */}
+                                {(() => {
+                                    const currentPhoto = results[previewIndex];
+                                    const pUser = photographersMap[currentPhoto.photographer_id];
+                                    const pName = pUser?.name || 'Fotógrafo FotoClic';
+                                    const isAdded = addedPhotoIds.has(currentPhoto.id);
+                                    const hasPrev = previewIndex > 0;
+                                    const hasNext = previewIndex < results.length - 1;
 
-                                        return (
-                                            <div key={photographer?.id || 'unknown'} className="bg-neutral-900/60 rounded-3xl p-4 border border-neutral-800/80 space-y-4">
-                                                {/* Photographer Header Card */}
-                                                <div className="flex items-center justify-between bg-neutral-900 p-3 rounded-2xl border border-neutral-800">
-                                                    <div className="flex items-center gap-3">
-                                                        <img
-                                                            src={photographer?.avatar_url || getAvatarFallbackUrl(pName, 40)}
-                                                            alt={pName}
-                                                            className="w-10 h-10 rounded-full object-cover border border-neutral-700"
-                                                            onError={(e) => { e.currentTarget.src = getAvatarFallbackUrl(pName, 40); }}
-                                                        />
-                                                        <div>
-                                                            <p className="text-xs text-neutral-400 uppercase font-semibold tracking-wider">{t('face_search.photographer_label')}</p>
-                                                            <h4 className="text-sm font-bold text-white truncate max-w-[180px] sm:max-w-xs">{pName}</h4>
-                                                        </div>
+                                    return (
+                                        <div className="space-y-4">
+                                            {/* Photo Display Stage */}
+                                            <div 
+                                                className="relative w-full bg-neutral-950 rounded-2xl overflow-hidden border border-neutral-800 flex items-center justify-center min-h-[340px] max-h-[58vh] select-none shadow-2xl"
+                                                onTouchStart={handleTouchStart}
+                                                onTouchEnd={handleTouchEnd}
+                                            >
+                                                <WatermarkedImage
+                                                    src={getOptimizedImageUrl(currentPhoto.preview_url || currentPhoto.thumb_url, 1200, 85)}
+                                                    alt={currentPhoto.title}
+                                                    className="w-full h-auto max-h-[55vh] object-contain"
+                                                    containWithBlur={true}
+                                                />
+
+                                                {/* Floating Lateral Navigation: Prev Button */}
+                                                {hasPrev && (
+                                                    <button
+                                                        onClick={handlePrev}
+                                                        className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/75 hover:bg-primary text-white p-3 sm:p-3.5 rounded-full backdrop-blur-md border border-white/20 shadow-2xl transition-all transform hover:scale-110 active:scale-95 z-20 cursor-pointer"
+                                                        title="Foto Anterior (←)"
+                                                    >
+                                                        <ChevronLeft size={24} strokeWidth={2.5} />
+                                                    </button>
+                                                )}
+
+                                                {/* Floating Lateral Navigation: Next Button */}
+                                                {hasNext && (
+                                                    <button
+                                                        onClick={handleNext}
+                                                        className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/75 hover:bg-primary text-white p-3 sm:p-3.5 rounded-full backdrop-blur-md border border-white/20 shadow-2xl transition-all transform hover:scale-110 active:scale-95 z-20 cursor-pointer"
+                                                        title="Próxima Foto (→)"
+                                                    >
+                                                        <ChevronRight size={24} strokeWidth={2.5} />
+                                                    </button>
+                                                )}
+
+                                                {/* Photo Resolution Badge */}
+                                                {currentPhoto.resolution && (
+                                                    <span className="absolute bottom-3 left-3 bg-black/70 backdrop-blur-md text-neutral-300 text-[11px] font-medium px-2.5 py-1 rounded-lg border border-white/10">
+                                                        {currentPhoto.resolution}
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            {/* Bottom Action Bar: Info, Add to Cart & Buy */}
+                                            <div className="bg-neutral-900/90 border border-neutral-800 rounded-2xl p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+                                                {/* Photographer info */}
+                                                <div className="flex items-center gap-3">
+                                                    <img
+                                                        src={pUser?.avatar_url || getAvatarFallbackUrl(pName, 44)}
+                                                        alt={pName}
+                                                        className="w-11 h-11 rounded-full object-cover border border-neutral-700 shrink-0"
+                                                        onError={(e) => { e.currentTarget.src = getAvatarFallbackUrl(pName, 44); }}
+                                                    />
+                                                    <div className="min-w-0">
+                                                        <h4 className="text-sm font-bold text-white truncate">{pName}</h4>
+                                                        <p className="text-xs text-neutral-400 truncate">{currentPhoto.title || 'Foto de Evento'}</p>
+                                                    </div>
+                                                </div>
+
+                                                {/* Price & Action Buttons */}
+                                                <div className="flex items-center justify-between sm:justify-end gap-3 pt-3 sm:pt-0 border-t sm:border-t-0 border-neutral-800">
+                                                    <div className="text-left sm:text-right pr-2">
+                                                        <span className="text-[10px] uppercase font-bold text-neutral-400 block tracking-wider">Preço</span>
+                                                        <span className="text-xl font-display font-extrabold text-primary">
+                                                            R$ {currentPhoto.price ? currentPhoto.price.toFixed(2).replace('.', ',') : '20,00'}
+                                                        </span>
                                                     </div>
 
-                                                    {pSlug && (
-                                                        <button
-                                                            onClick={() => {
-                                                                onClose();
-                                                                onNavigate({ name: 'photographer-portfolio', photographerId: pSlug });
-                                                            }}
-                                                            className="bg-neutral-800 hover:bg-neutral-700 text-neutral-200 px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all"
-                                                        >
-                                                            <Store size={14} />
-                                                            <span>{t('face_search.visit_store')}</span>
-                                                            <span className="bg-primary text-white text-[10px] font-extrabold px-1.5 py-0.5 rounded-full ml-1">
-                                                                {photos.length}
-                                                            </span>
-                                                        </button>
-                                                    )}
-                                                </div>
+                                                    <button
+                                                        onClick={(e) => handleAddToCartItem(currentPhoto, e)}
+                                                        className={`px-4 py-3 rounded-xl font-bold text-xs flex items-center gap-2 shadow-lg transition-all transform active:scale-95 cursor-pointer ${
+                                                            isAdded 
+                                                                ? 'bg-emerald-600 text-white hover:bg-emerald-500' 
+                                                                : 'bg-neutral-800 hover:bg-neutral-700 text-white border border-neutral-700'
+                                                        }`}
+                                                    >
+                                                        {isAdded ? <Check size={16} /> : <ShoppingCart size={16} />}
+                                                        <span>{isAdded ? 'No Carrinho ✓' : 'Adicionar ao Carrinho'}</span>
+                                                    </button>
 
-                                                {/* Photos Grid */}
-                                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                                    {photos.map(photo => (
-                                                        <div
-                                                            key={photo.id}
-                                                            className="group relative bg-neutral-950 rounded-2xl overflow-hidden border border-neutral-800 hover:border-primary transition-all cursor-pointer aspect-[3/4]"
-                                                            onClick={() => {
-                                                                onClose();
-                                                                onNavigate({ name: 'photo-detail', id: photo.id });
-                                                            }}
-                                                        >
-                                                            <WatermarkedImage
-                                                                src={getOptimizedImageUrl(photo.thumb_url || photo.preview_url, 400, 75)}
-                                                                alt={photo.title}
-                                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                                                containWithBlur={true}
-                                                            />
-                                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center p-2">
-                                                                <span className="text-xs font-bold text-white bg-primary px-3 py-1.5 rounded-full shadow-lg">
-                                                                    Ver Foto
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                    ))}
+                                                    <button
+                                                        onClick={() => handleBuyNowItem(currentPhoto)}
+                                                        className="bg-primary hover:bg-primary-dark text-white font-bold px-5 py-3 rounded-xl text-xs flex items-center gap-1.5 shadow-lg shadow-primary/25 transition-all transform hover:scale-105 active:scale-95 whitespace-nowrap cursor-pointer"
+                                                    >
+                                                        <ShoppingBag size={16} />
+                                                        <span>Comprar Agora</span>
+                                                    </button>
                                                 </div>
                                             </div>
-                                        );
-                                    })}
-                                </div>
-                            ) : (
-                                <div className="text-center py-12 px-4 space-y-3">
-                                    <div className="w-16 h-16 bg-neutral-900 rounded-full flex items-center justify-center mx-auto text-neutral-500 border border-neutral-800">
-                                        <Search size={28} />
+
+                                            {/* Thumbnail Strip */}
+                                            <div className="pt-2">
+                                                <p className="text-[11px] font-semibold text-neutral-400 mb-2 uppercase tracking-wider">
+                                                    Fotos encontradas ({results.length})
+                                                </p>
+                                                <div 
+                                                    className="flex gap-2.5 overflow-x-auto pb-2"
+                                                    style={{ scrollbarWidth: 'thin' }}
+                                                >
+                                                    {results.map((p, idx) => {
+                                                        const isActive = idx === previewIndex;
+                                                        const inCart = addedPhotoIds.has(p.id);
+                                                        return (
+                                                            <button
+                                                                key={p.id}
+                                                                onClick={() => setPreviewIndex(idx)}
+                                                                className={`relative flex-none w-16 h-20 rounded-xl overflow-hidden border-2 transition-all transform cursor-pointer ${
+                                                                    isActive 
+                                                                        ? 'border-primary ring-2 ring-primary/40 scale-105' 
+                                                                        : 'border-neutral-800 opacity-60 hover:opacity-100 hover:border-neutral-600'
+                                                                }`}
+                                                            >
+                                                                <img
+                                                                    src={getOptimizedImageUrl(p.thumb_url || p.preview_url, 150, 60)}
+                                                                    alt={p.title}
+                                                                    className="w-full h-full object-cover"
+                                                                />
+                                                                {inCart && (
+                                                                    <div className="absolute top-1 right-1 bg-emerald-600 text-white rounded-full p-0.5 shadow">
+                                                                        <Check size={10} strokeWidth={3} />
+                                                                    </div>
+                                                                )}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
+                            </div>
+                        ) : (
+                            /* ─── GRID VIEW (Grade de resultados agrupada por fotógrafo) ─── */
+                            <div className="space-y-6">
+                                {/* Top Bar with New Search Button */}
+                                <div className="flex items-center justify-between pb-3 border-b border-neutral-800">
+                                    <div>
+                                        <span className="text-xs text-neutral-400 block">{t('face_search.photos_found', { count: results.length })}</span>
+                                        {selectedCity && (
+                                            <span className="text-xs text-primary font-semibold mr-2">📍 {selectedCity}</span>
+                                        )}
+                                        {selectedEventId && (
+                                            <span className="text-xs text-[#FACC15] font-semibold">🏆 Evento selecionado</span>
+                                        )}
                                     </div>
-                                    <h3 className="text-base font-bold text-white">{t('face_search.no_results_title')}</h3>
-                                    <p className="text-xs text-neutral-400 max-w-sm mx-auto leading-relaxed">
-                                        {t('face_search.no_results_desc')}
-                                    </p>
+                                    <button
+                                        onClick={() => { setHasSearched(false); }}
+                                        className="bg-primary hover:bg-primary-dark text-white font-bold px-4 py-2 rounded-xl text-xs transition-all flex items-center gap-1.5 shadow-md cursor-pointer"
+                                    >
+                                        <RotateCcw size={14} />
+                                        {t('face_search.new_search')}
+                                    </button>
                                 </div>
-                            )}
-                        </div>
+
+                                {results.length > 0 ? (
+                                    <div className="space-y-8">
+                                        {groupedResults.map(({ photographer, photos }) => {
+                                            const pName = photographer?.name || 'Fotógrafo FotoClic';
+                                            const pSlug = photographer?.slug || photographer?.id;
+
+                                            return (
+                                                <div key={photographer?.id || 'unknown'} className="bg-neutral-900/60 rounded-3xl p-4 border border-neutral-800/80 space-y-4">
+                                                    {/* Photographer Header Card */}
+                                                    <div className="flex items-center justify-between bg-neutral-900 p-3 rounded-2xl border border-neutral-800">
+                                                        <div className="flex items-center gap-3">
+                                                            <img
+                                                                src={photographer?.avatar_url || getAvatarFallbackUrl(pName, 40)}
+                                                                alt={pName}
+                                                                className="w-10 h-10 rounded-full object-cover border border-neutral-700"
+                                                                onError={(e) => { e.currentTarget.src = getAvatarFallbackUrl(pName, 40); }}
+                                                            />
+                                                            <div>
+                                                                <p className="text-xs text-neutral-400 uppercase font-semibold tracking-wider">{t('face_search.photographer_label')}</p>
+                                                                <h4 className="text-sm font-bold text-white truncate max-w-[180px] sm:max-w-xs">{pName}</h4>
+                                                            </div>
+                                                        </div>
+
+                                                        {pSlug && (
+                                                            <button
+                                                                onClick={() => {
+                                                                    onClose();
+                                                                    onNavigate({ name: 'photographer-portfolio', photographerId: pSlug });
+                                                                }}
+                                                                className="bg-neutral-800 hover:bg-neutral-700 text-neutral-200 px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+                                                            >
+                                                                <Store size={14} />
+                                                                <span>{t('face_search.visit_store')}</span>
+                                                                <span className="bg-primary text-white text-[10px] font-extrabold px-1.5 py-0.5 rounded-full ml-1">
+                                                                    {photos.length}
+                                                                </span>
+                                                            </button>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Photos Grid */}
+                                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                                        {photos.map(photo => {
+                                                            const inCart = addedPhotoIds.has(photo.id);
+                                                            return (
+                                                                <div
+                                                                    key={photo.id}
+                                                                    className="group relative bg-neutral-950 rounded-2xl overflow-hidden border border-neutral-800 hover:border-primary transition-all cursor-pointer aspect-[3/4] shadow-md"
+                                                                    onClick={() => handleOpenPreview(photo)}
+                                                                >
+                                                                    <WatermarkedImage
+                                                                        src={getOptimizedImageUrl(photo.thumb_url || photo.preview_url, 400, 75)}
+                                                                        alt={photo.title}
+                                                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                                                        containWithBlur={true}
+                                                                    />
+
+                                                                    {/* In Cart Indicator */}
+                                                                    {inCart && (
+                                                                        <div className="absolute top-2 left-2 bg-emerald-600 text-white rounded-full p-1 shadow-lg z-10">
+                                                                            <Check size={12} strokeWidth={3} />
+                                                                        </div>
+                                                                    )}
+
+                                                                    {/* Overlay on hover */}
+                                                                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-2 gap-2 z-10">
+                                                                        <span className="text-xs font-bold text-white bg-primary px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1">
+                                                                            <Eye size={13} />
+                                                                            Ver Foto
+                                                                        </span>
+                                                                        <button
+                                                                            onClick={(e) => handleAddToCartItem(photo, e)}
+                                                                            className={`text-[11px] font-bold px-3 py-1 rounded-full shadow transition-all flex items-center gap-1 ${
+                                                                                inCart 
+                                                                                    ? 'bg-emerald-600 text-white' 
+                                                                                    : 'bg-white text-neutral-900 hover:bg-neutral-200'
+                                                                            }`}
+                                                                        >
+                                                                            {inCart ? <Check size={12} /> : <ShoppingCart size={12} />}
+                                                                            {inCart ? 'No Carrinho' : '+ Carrinho'}
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-12 px-4 space-y-3">
+                                        <div className="w-16 h-16 bg-neutral-900 rounded-full flex items-center justify-center mx-auto text-neutral-500 border border-neutral-800">
+                                            <Search size={28} />
+                                        </div>
+                                        <h3 className="text-base font-bold text-white">{t('face_search.no_results_title')}</h3>
+                                        <p className="text-xs text-neutral-400 max-w-sm mx-auto leading-relaxed">
+                                            {t('face_search.no_results_desc')}
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+                        )
                     )}
 
                 </div>
