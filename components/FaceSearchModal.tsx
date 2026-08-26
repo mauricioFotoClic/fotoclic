@@ -360,32 +360,41 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({
         return Object.values(groups);
     }, [results, photographersMap]);
 
+    const contentRef = useRef<HTMLDivElement>(null);
+
+    // Scroll to top when switching between grid and preview
+    useEffect(() => {
+        if (contentRef.current) {
+            contentRef.current.scrollTop = 0;
+        }
+    }, [previewIndex, hasSearched]);
+
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-3 sm:p-4 animate-in fade-in duration-200">
-            <div className="bg-[#18181B] text-white w-full max-w-xl rounded-3xl overflow-hidden shadow-2xl border border-neutral-800 flex flex-col relative max-h-[92vh]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-2 sm:p-4 animate-in fade-in duration-200">
+            <div className={`bg-[#18181B] text-white w-full ${previewIndex !== null ? 'max-w-4xl' : 'max-w-xl'} rounded-3xl overflow-hidden shadow-2xl border border-neutral-800 flex flex-col relative max-h-[94vh] transition-all duration-300`}>
 
                 {/* Header */}
-                <div className="p-5 pb-3 flex justify-between items-start border-b border-neutral-800/60 bg-[#18181B]">
+                <div className="p-4 sm:p-5 pb-3 flex justify-between items-center border-b border-neutral-800/60 bg-[#18181B]">
                     <div>
-                        <span className="text-xs font-extrabold uppercase tracking-widest text-primary block mb-1">
-                            {t('face_search.title')}
+                        <span className="text-xs font-extrabold uppercase tracking-widest text-primary block mb-0.5">
+                            {previewIndex !== null ? 'PRÉVIA DA FOTO' : t('face_search.title')}
                         </span>
-                        <h2 className="text-xl sm:text-2xl font-display font-bold text-white leading-snug">
-                            {t('face_search.subtitle')}
+                        <h2 className="text-lg sm:text-xl font-display font-bold text-white leading-snug">
+                            {previewIndex !== null ? `Foto ${previewIndex + 1} de ${results.length} encontradas` : t('face_search.subtitle')}
                         </h2>
                     </div>
                     <button
                         onClick={onClose}
-                        className="p-2 bg-neutral-800 hover:bg-neutral-700 rounded-full transition-all text-neutral-300 active:scale-95"
+                        className="p-2 bg-neutral-800 hover:bg-neutral-700 rounded-full transition-all text-neutral-300 active:scale-95 cursor-pointer"
                     >
                         <X size={20} />
                     </button>
                 </div>
 
                 {/* Body Content */}
-                <div className="flex-1 overflow-y-auto p-5 space-y-5">
+                <div ref={contentRef} className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-5">
 
                     {/* Mode 1: Search View (Form & Camera) */}
                     {!hasSearched && (
