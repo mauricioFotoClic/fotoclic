@@ -21,6 +21,30 @@ app.use(express.json({
     }
 }));
 
+// 🛡️ FOTOCLIC SENTINEL SHIELD - ACTIVE THREAT INTERCEPTOR
+const SQLI_REGEX = /(\b(UNION(\s+ALL)?|SELECT|INSERT|UPDATE|DELETE|DROP|ALTER|EXEC|EXECUTE)\b\s+.*?\b(FROM|INTO|TABLE|DATABASE|WHERE)\b)|('(\s*OR\s*|\s*AND\s*)'?[^']+'?=')|(--|\/\*|\*\/|;\s*$)/i;
+const SENSITIVE_PATHS_REGEX = /(\.env|\.git|wp-admin|wp-login|config\.php|phpmyadmin|administrator|\.aws|\.ssh)/i;
+
+app.use(async (req, res, next) => {
+    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
+    const path = req.originalUrl || req.url || '';
+
+    // 1. Detect Sensitive Path Scanner
+    if (SENSITIVE_PATHS_REGEX.test(path)) {
+        console.warn(`[Sentinel Shield] Blocked vulnerability scan from IP ${ip} on path ${path}`);
+        return res.status(403).json({ error: 'Access Denied by FotoClic Sentinel AI' });
+    }
+
+    // 2. Detect SQL Injection in Query or Body
+    const queryString = decodeURIComponent(req.url || '');
+    if (SQLI_REGEX.test(queryString)) {
+        console.warn(`[Sentinel Shield] Intercepted SQL Injection attempt from IP ${ip}`);
+        return res.status(403).json({ error: 'Malicious payload intercepted by FotoClic Sentinel AI' });
+    }
+
+    next();
+});
+
 // Helper to load Vercel API functions locally
 const apiDir = join(dirname(fileURLToPath(import.meta.url)), 'api');
 

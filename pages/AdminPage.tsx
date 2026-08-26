@@ -12,14 +12,13 @@ import AdminSales from '../components/admin/AdminSales';
 import AdminPayouts from '../components/admin/AdminPayouts';
 import AdminSettings from '../components/admin/AdminSettings';
 import AdminStorageRequests from '../components/admin/AdminStorageRequests';
-import AdminRekognitionStats from '../components/admin/AdminRekognitionStats';
-
 import AdminAppmax from '../components/admin/AdminAppmax';
 import AdminRemarketing from '../components/admin/AdminRemarketing';
+import { AdminSentinelSecurity } from '../components/admin/AdminSentinelSecurity';
 import { Page, User } from '../types';
 import api from '../services/api';
 
-type AdminView = 'dashboard' | 'photos' | 'photographers' | 'producers' | 'customers' | 'categories' | 'sales' | 'payouts' | 'settings' | 'storage-requests' | 'rekognition' | 'appmax' | 'remarketing';
+type AdminView = 'dashboard' | 'photos' | 'photographers' | 'producers' | 'customers' | 'categories' | 'sales' | 'payouts' | 'settings' | 'storage-requests' | 'rekognition' | 'appmax' | 'remarketing' | 'security';
 
 const KeepAliveView = React.memo(
     ({ active, children, index = 0 }: { active: boolean; children: React.ReactNode; index?: number }) => {
@@ -114,6 +113,10 @@ const AdminPage: React.FC<AdminPageProps> = ({ onNavigate, onImpersonate }) => {
 
                 <KeepAliveView active={view === 'appmax'} index={11}>
                     <AdminAppmax />
+                </KeepAliveView>
+
+                <KeepAliveView active={view === 'security'} index={13}>
+                    <AdminSentinelSecurity />
                 </KeepAliveView>
             </>
         );
