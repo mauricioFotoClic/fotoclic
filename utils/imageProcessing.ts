@@ -109,33 +109,41 @@ const drawToBlob = (
 
         if (addWatermark) {
             ctx.save();
-            const fontSize = Math.max(30, Math.round(width / 13.5));
-            ctx.font = `bold ${fontSize}px sans-serif`;
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.76)';
+            // Tamanho da fonte proporcional e balanceado (cobre a imagem sem cegar o rosto)
+            const fontSize = Math.max(22, Math.round(width / 22));
+            ctx.font = `bold ${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
 
-            // Contorno escuro para maior contraste
-            ctx.strokeStyle = 'rgba(0, 0, 0, 0.80)';
-            ctx.lineWidth = Math.max(2, Math.round(fontSize / 14));
+            // Contorno escuro para contraste universal em qualquer fundo
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.50)';
+            ctx.lineWidth = Math.max(1.5, Math.round(fontSize / 16));
 
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.90)';
-            ctx.shadowBlur = 10;
-            ctx.shadowOffsetX = 3;
-            ctx.shadowOffsetY = 3;
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.60)';
+            ctx.shadowBlur = 4;
+            ctx.shadowOffsetX = 1.5;
+            ctx.shadowOffsetY = 1.5;
 
             ctx.translate(width / 2, height / 2);
-            ctx.rotate(-45 * Math.PI / 180);
+            ctx.rotate(-30 * Math.PI / 180);
             ctx.translate(-width / 2, -height / 2);
 
-            const stepX = Math.round(width / 2.8);
-            const stepY = Math.round(height / 2.8);
+            // Medir largura real do texto para calcular espaçamento dinâmico e nunca sobrepor
+            const textMetrics = ctx.measureText(watermarkText);
+            const textWidth = Math.max(textMetrics.width, fontSize * watermarkText.length * 0.6);
+            const stepX = Math.round(textWidth * 1.45);
+            const stepY = Math.round(fontSize * 3.5);
 
-            for (let y = -height; y < height * 2; y += stepY) {
-                for (let x = -width; x < width * 2; x += stepX) {
-                    ctx.strokeText(watermarkText, x, y);
-                    ctx.fillText(watermarkText, x, y);
+            let row = 0;
+            for (let y = -height * 1.5; y < height * 2.5; y += stepY) {
+                const xOffset = (row % 2 === 1) ? stepX / 2 : 0;
+                for (let x = -width * 1.5; x < width * 2.5; x += stepX) {
+                    const posX = x + xOffset;
+                    ctx.strokeText(watermarkText, posX, y);
+                    ctx.fillText(watermarkText, posX, y);
                 }
+                row++;
             }
             ctx.restore();
         }
