@@ -224,49 +224,95 @@ async function handleSearchFaces(req, res, rekognition, COLLECTION_ID, supabase,
 
     const matchesMap = new Map(); // photoId -> match object
 
-    // 1. Motor Facial (Biometria)
-    let faceMatches = [];
-    try {
-        const faceResult = await rekognition.send(new SearchFacesByImageCommand({
-            CollectionId: COLLECTION_ID, 
-            Image: { Bytes: imageBuffer },
-            MaxFaces: 100, 
-            FaceMatchThreshold: 85,
-        }));
-        faceMatches = faceResult.FaceMatches || [];
-        for (const m of faceMatches) {
-            const pid = m.Face.ExternalImageId;
-            if (pid) {
-                matchesMap.set(pid, {
-                    photoId: pid,
-                    faceId: m.Face.FaceId,
-                    similarity: m.Similarity,
-                    confidence: m.Face.Confidence,
-                    matchType: 'face',
-                    matchReasons: ['🎯 Rosto Reconhecido'],
-                });
+    // 1. Verificar qualidade do rosto na foto de busca (DetectFaces)
+    let isFaceReliable = false;
+    let detectedFaces = [];
+    if (DetectFacesCommand) {
+        try {
+            const dfRes = await rekognition.send(new DetectFacesCommand({
+                Image: { Bytes: imageBuffer },
+                Attributes: ['ALL'],
+            }));
+            detectedFaces = dfRes.FaceDetails || [];
+            if (detectedFaces.length > 0) {
+                const primaryFace = detectedFaces[0];
+                const width = primaryFace.BoundingBox?.Width || 0;
+                const height = primaryFace.BoundingBox?.Height || 0;
+                const yaw = Math.abs(primaryFace.Pose?.Yaw || 0);
+                // Rosto precisa ter tamanho razoável (> 7% da foto) e não estar em perfil extremo (> 40 graus)
+                if (width >= 0.07 && height >= 0.07 && yaw <= 40 && primaryFace.Confidence >= 80) {
+                    isFaceReliable = true;
+                }
             }
+        } catch (dfErr) {
+            console.log('[Rekognition] DetectFaces check:', dfErr.message);
         }
-    } catch (faceErr) {
-        // Se a foto não tiver rosto claro, AWS lança InvalidParameterException; continuamos com o Motor Visual
-        console.log('[Rekognition] No face detected or face search info:', faceErr.message);
+    } else {
+        isFaceReliable = true;
     }
 
-    // 2. Motor Visual & OCR na foto enviada pelo usuário
+    // 2. Motor Facial (Biometria - apenas se o rosto for nítido/confiável)
+    let faceMatches = [];
+    if (isFaceReliable) {
+        try {
+            const faceResult = await rekognition.send(new SearchFacesByImageCommand({
+                CollectionId: COLLECTION_ID, 
+                Image: { Bytes: imageBuffer },
+                MaxFaces: 100, 
+                FaceMatchThreshold: 85,
+            }));
+            faceMatches = faceResult.FaceMatches || [];
+            for (const m of faceMatches) {
+                const pid = m.Face.ExternalImageId;
+                if (pid) {
+                    matchesMap.set(pid, {
+                        photoId: pid,
+                        faceId: m.Face.FaceId,
+                        similarity: m.Similarity,
+                        confidence: m.Face.Confidence,
+                        matchType: 'face',
+                        matchReasons: ['🎯 Rosto Reconhecido'],
+                    });
+                }
+            }
+        } catch (faceErr) {
+            console.log('[Rekognition] Face search info:', faceErr.message);
+        }
+    }
+
+    // 3. Filtrar correspondências faciais pelo eventId se fornecido
+    if (eventId && matchesMap.size > 0) {
+        const photoIdsToCheck = Array.from(matchesMap.keys());
+        const { data: validEventPhotos } = await supabase
+            .from('photos')
+            .select('id')
+            .eq('event_id', eventId)
+            .in('id', photoIdsToCheck);
+
+        const validIds = new Set((validEventPhotos || []).map(p => p.id));
+        for (const pid of photoIdsToCheck) {
+            if (!validIds.has(pid)) {
+                matchesMap.delete(pid);
+            }
+        }
+    }
+
+    // 4. Motor Visual & OCR na foto enviada pelo usuário
     let searchLabels = [];
     let searchNumbers = [];
 
-    // Extrair equipamentos (Prancha, Wetsuit, Bike, etc)
+    // Extrair equipamentos e contexto esportivo
     if (DetectLabelsCommand) {
         try {
             const labelRes = await rekognition.send(new DetectLabelsCommand({
                 Image: { Bytes: imageBuffer },
-                MaxLabels: 15,
-                MinConfidence: 65,
+                MaxLabels: 20,
+                MinConfidence: 55,
             }));
             const relevantSportsLabels = [
-                'Surfboard', 'Surfing', 'Wetsuit', 'Water Sports', 'Boardsport', 'Bicycle', 'Cycling', 
-                'Helmet', 'Vehicle', 'Sportswear', 'Lifejacket', 'Swimwear', 'Skateboard', 'Motorcycle'
+                'Surfboard', 'Surfing', 'Wetsuit', 'Water Sports', 'Boardsport', 'Sea Waves', 'Ocean',
+                'Bicycle', 'Cycling', 'Helmet', 'Vehicle', 'Sportswear', 'Lifejacket', 'Swimwear',
+                'Skateboard', 'Motorcycle', 'Running', 'Athletics'
             ];
             searchLabels = (labelRes.Labels || [])
                 .filter(l => relevantSportsLabels.some(r => l.Name.toLowerCase().includes(r.toLowerCase())))
@@ -295,10 +341,10 @@ async function handleSearchFaces(req, res, rekognition, COLLECTION_ID, supabase,
         }
     }
 
-    // 3. Cruzamento Híbrido no Banco de Dados (Fotos com a mesma Prancha/Equipamento ou Número)
+    // 5. Cruzamento Visual Inteligente no Banco de Dados
     if (searchNumbers.length > 0 || searchLabels.length > 0) {
         try {
-            let query = supabase.from('photos').select('id, visual_labels, detected_numbers');
+            let query = supabase.from('photos').select('id, event_id, visual_labels, detected_numbers');
             if (eventId) {
                 query = query.eq('event_id', eventId);
             }
@@ -308,32 +354,38 @@ async function handleSearchFaces(req, res, rekognition, COLLECTION_ID, supabase,
                 query = query.overlaps('detected_numbers', searchNumbers);
             }
 
-            const { data: visualPhotos } = await query.limit(60);
+            const { data: visualPhotos } = await query.limit(100);
 
             if (visualPhotos && visualPhotos.length > 0) {
                 for (const p of visualPhotos) {
                     const pid = p.id;
                     const existing = matchesMap.get(pid);
                     const matchedNums = (p.detected_numbers || []).filter(n => searchNumbers.includes(n));
+                    
+                    const photoLabels = (p.visual_labels || []).map(l => (typeof l === 'string' ? l : l.Name));
+                    const matchedLabels = searchLabels.filter(sl => photoLabels.includes(sl));
+
+                    if (matchedNums.length === 0 && matchedLabels.length === 0 && searchLabels.length > 0) {
+                        continue;
+                    }
 
                     if (existing) {
-                        // Foto tem tanto rosto quanto equipamento/número! Score máximo
-                        existing.similarity = Math.min(99.9, existing.similarity + 15);
+                        // Foto tem tanto rosto quanto equipamento/número!
+                        existing.similarity = Math.min(99.9, existing.similarity + 10);
                         existing.matchType = 'hybrid';
-                        if (matchedNums.length > 0) {
-                            existing.matchReasons.push(`🔢 Lycra #${matchedNums.join(', #')}`);
-                        }
-                    } else {
-                        // Foto de ação distante (sem rosto detectado, mas com número/prancha correspondente)
+                        if (matchedNums.length > 0) existing.matchReasons.push(`🔢 Lycra #${matchedNums.join(', #')}`);
+                        if (matchedLabels.length > 0) existing.matchReasons.push(`🏄 ${matchedLabels.slice(0, 2).join(', ')}`);
+                    } else if (matchedNums.length > 0 || matchedLabels.length > 0) {
+                        // Foto de ação (sem rosto claro, mas com mesmo esporte/equipamento/número)
                         const reasons = [];
-                        let score = 70;
+                        let score = 65;
                         if (matchedNums.length > 0) {
                             reasons.push(`🔢 Lycra #${matchedNums.join(', #')}`);
-                            score += 20;
+                            score += 25;
                         }
-                        if (searchLabels.length > 0) {
-                            reasons.push(`🏄 Equipamento / Prancha`);
-                            score += 5;
+                        if (matchedLabels.length > 0) {
+                            reasons.push(`🏄 ${matchedLabels.slice(0, 2).join(', ')}`);
+                            score += Math.min(20, matchedLabels.length * 7);
                         }
                         matchesMap.set(pid, {
                             photoId: pid,
