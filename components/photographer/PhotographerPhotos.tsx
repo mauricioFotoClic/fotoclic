@@ -1074,19 +1074,19 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                         <div>
                             <h3 className="font-bold text-neutral-800 text-lg">Estatísticas</h3>
                             <p className="text-sm text-neutral-500">
-                                Você já enviou <span className="font-semibold text-neutral-900">{stats.photos_count}</span> fotos.
+                                Você já enviou <span className="font-semibold text-neutral-900">{stats?.photos_count ?? 0}</span> fotos.
                             </p>
                         </div>
                         <div className="flex flex-col items-end gap-2">
                             <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm font-medium">
                                 <span className="text-green-600 bg-green-50 px-3 py-1 rounded-full border border-green-100">
-                                    {stats.approved_count} Aprovadas
+                                    {stats?.approved_count ?? 0} Aprovadas
                                 </span>
                                 <span className="text-yellow-600 bg-yellow-50 px-3 py-1 rounded-full border border-yellow-100">
-                                    {stats.pending_count} Pendentes
+                                    {stats?.pending_count ?? 0} Pendentes
                                 </span>
                                 <span className="text-red-600 bg-red-50 px-3 py-1 rounded-full border border-red-100">
-                                    {stats.rejected_count} Rejeitadas
+                                    {stats?.rejected_count ?? 0} Rejeitadas
                                 </span>
                             </div>
                         </div>
