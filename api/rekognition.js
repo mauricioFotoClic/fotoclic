@@ -231,7 +231,7 @@ async function handleSearchFaces(req, res, rekognition, COLLECTION_ID, supabase,
             CollectionId: COLLECTION_ID, 
             Image: { Bytes: imageBuffer },
             MaxFaces: 100, 
-            FaceMatchThreshold: 75,
+            FaceMatchThreshold: 85,
         }));
         faceMatches = faceResult.FaceMatches || [];
         for (const m of faceMatches) {
