@@ -342,20 +342,30 @@ async function handleSearchFaces(req, res, rekognition, COLLECTION_ID, supabase,
         }
     }
 
-    // 5. Cruzamento Visual Inteligente no Banco de Dados
+    // 5. Cruzamento Visual Inteligente no Banco de Dados (JSONB Contains & OCR Overlaps)
     if (searchNumbers.length > 0 || searchLabels.length > 0) {
         try {
-            let query = supabase.from('photos').select('id, event_id, visual_labels, detected_numbers');
-            if (eventId) {
-                query = query.eq('event_id', eventId);
-            }
+            const visualPhotosMap = new Map();
 
+            // A. Busca por Numerais de Lycra/Roupa
             if (searchNumbers.length > 0) {
-                query = query.overlaps('detected_numbers', searchNumbers);
+                let qNums = supabase.from('photos').select('id, event_id, visual_labels, detected_numbers');
+                if (eventId) qNums = qNums.eq('event_id', eventId);
+                qNums = qNums.overlaps('detected_numbers', searchNumbers);
+                const { data: numPhotos } = await qNums.limit(100);
+                (numPhotos || []).forEach(p => visualPhotosMap.set(p.id, p));
             }
 
-            const { data: visualPhotos, error: vErr } = await query.limit(200);
-            if (vErr) console.error('[Rekognition] visualPhotos DB error:', vErr);
+            // B. Busca por Etiquetas Visuais (Prancha, Wetsuit, Surfe, Ciclismo, etc)
+            for (const label of searchLabels.slice(0, 4)) {
+                let qLabels = supabase.from('photos').select('id, event_id, visual_labels, detected_numbers');
+                if (eventId) qLabels = qLabels.eq('event_id', eventId);
+                qLabels = qLabels.contains('visual_labels', JSON.stringify([{ Name: label }]));
+                const { data: lblPhotos } = await qLabels.limit(80);
+                (lblPhotos || []).forEach(p => visualPhotosMap.set(p.id, p));
+            }
+
+            const visualPhotos = Array.from(visualPhotosMap.values());
 
             if (visualPhotos && visualPhotos.length > 0) {
                 for (const p of visualPhotos) {
