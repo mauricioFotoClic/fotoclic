@@ -46,6 +46,8 @@ export default async function handler(req, res) {
             SearchFacesByImageCommand,
             DeleteFacesCommand,
             CreateCollectionCommand,
+            DetectLabelsCommand,
+            DetectTextCommand,
         } = await import('@aws-sdk/client-rekognition');
 
         const COLLECTION_ID = process.env.AWS_REKOGNITION_COLLECTION_ID || 'fotoclic-faces';
@@ -67,7 +69,7 @@ export default async function handler(req, res) {
         const supabase = createClient(supabaseUrl, supabaseKey);
 
         // Ações restritas exigem autenticação
-        if (action === 'indexFaces' || action === 'deleteFaces' || action === 'createCollection') {
+        if (action === 'indexFaces' || action === 'deleteFaces' || action === 'createCollection' || action === 'reindexVisualBatch') {
             const authHeader = req.headers.authorization || '';
             const userJwt = authHeader.replace('Bearer ', '').trim();
 
@@ -97,8 +99,8 @@ export default async function handler(req, res) {
             }
         }
 
-        if (action === 'indexFaces')      return await handleIndexFaces(req, res, rekognition, COLLECTION_ID, supabase, IndexFacesCommand);
-        if (action === 'searchFaces')     return await handleSearchFaces(req, res, rekognition, COLLECTION_ID, SearchFacesByImageCommand);
+        if (action === 'indexFaces')      return await handleIndexFaces(req, res, rekognition, COLLECTION_ID, supabase, IndexFacesCommand, DetectLabelsCommand, DetectTextCommand);
+        if (action === 'searchFaces')     return await handleSearchFaces(req, res, rekognition, COLLECTION_ID, supabase, SearchFacesByImageCommand, DetectLabelsCommand, DetectTextCommand);
         if (action === 'deleteFaces')     return await handleDeleteFaces(req, res, rekognition, COLLECTION_ID, DeleteFacesCommand);
         if (action === 'createCollection') return await handleCreateCollection(req, res, rekognition, COLLECTION_ID, CreateCollectionCommand);
         if (action === 'generate-description') return await handleGenerateDescription(req, res);
@@ -115,68 +117,253 @@ export default async function handler(req, res) {
     }
 }
 
-async function handleIndexFaces(req, res, rekognition, COLLECTION_ID, supabase, IndexFacesCommand) {
+async function handleIndexFaces(req, res, rekognition, COLLECTION_ID, supabase, IndexFacesCommand, DetectLabelsCommand, DetectTextCommand) {
     const { photoId, imageBase64 } = req.body;
     if (!photoId || !imageBase64) return res.status(400).json({ error: 'photoId and imageBase64 are required' });
 
     const base64Data   = imageBase64.replace(/^data:image\/\w+;base64,/, '');
     const imageBuffer  = Buffer.from(base64Data, 'base64');
 
-    const result       = await rekognition.send(new IndexFacesCommand({
-        CollectionId: COLLECTION_ID, Image: { Bytes: imageBuffer },
-        ExternalImageId: photoId, DetectionAttributes: [], MaxFaces: 20, QualityFilter: 'AUTO',
-    }));
-    const faceRecords  = result.FaceRecords || [];
-
-    if (faceRecords.length === 0) {
-        await supabase.from('photos').update({ is_face_indexed: true }).eq('id', photoId);
-        return res.json({ success: true, facesIndexed: 0 });
+    // 1. Indexação Biométrica Facial
+    let faceRecords = [];
+    try {
+        const faceResult = await rekognition.send(new IndexFacesCommand({
+            CollectionId: COLLECTION_ID, 
+            Image: { Bytes: imageBuffer },
+            ExternalImageId: photoId, 
+            DetectionAttributes: [], 
+            MaxFaces: 20, 
+            QualityFilter: 'AUTO',
+        }));
+        faceRecords = faceResult.FaceRecords || [];
+    } catch (faceErr) {
+        console.warn('[Rekognition] IndexFaces warning:', faceErr.message);
     }
 
-    await supabase.from('face_encodings').delete().eq('photo_id', photoId);
+    // 2. Extração Visual (Labels, Equipamentos, Cores para Surfe/Esportes)
+    let visualLabels = [];
+    if (DetectLabelsCommand) {
+        try {
+            const labelResult = await rekognition.send(new DetectLabelsCommand({
+                Image: { Bytes: imageBuffer },
+                MaxLabels: 20,
+                MinConfidence: 65,
+            }));
+            visualLabels = (labelResult.Labels || []).map(l => ({
+                Name: l.Name,
+                Confidence: Math.round(l.Confidence),
+                Categories: l.Categories?.map(c => c.Name) || [],
+            }));
+        } catch (labelErr) {
+            console.warn('[Rekognition] DetectLabels warning:', labelErr.message);
+        }
+    }
 
-    const { error } = await supabase.from('face_encodings').insert(
-        faceRecords.map((rec, idx) => ({
-            photo_id: photoId, face_index: idx,
-            rekognition_face_id: rec.Face.FaceId, model_version: 'rekognition-v1',
-        }))
-    );
-    if (error) throw error;
+    // 3. Extração OCR (Lycras de Competição, Numerais de Peito, etc)
+    let detectedNumbers = [];
+    if (DetectTextCommand) {
+        try {
+            const textResult = await rekognition.send(new DetectTextCommand({
+                Image: { Bytes: imageBuffer },
+            }));
+            const detectedDetections = textResult.TextDetections || [];
+            const numbersSet = new Set();
+            for (const item of detectedDetections) {
+                if (item.Type === 'LINE' || item.Type === 'WORD') {
+                    const text = (item.DetectedText || '').trim();
+                    // Extrair números (ex: "12", "07", "#45")
+                    const matches = text.match(/\b\d{1,4}\b/g);
+                    if (matches) {
+                        matches.forEach(m => numbersSet.add(m));
+                    }
+                }
+            }
+            detectedNumbers = Array.from(numbersSet);
+        } catch (textErr) {
+            console.warn('[Rekognition] DetectText warning:', textErr.message);
+        }
+    }
 
-    await supabase.from('photos').update({ is_face_indexed: true }).eq('id', photoId);
-    return res.json({ success: true, facesIndexed: faceRecords.length });
+    // Gravação das codificações faciais
+    if (faceRecords.length > 0) {
+        await supabase.from('face_encodings').delete().eq('photo_id', photoId);
+        await supabase.from('face_encodings').insert(
+            faceRecords.map((rec, idx) => ({
+                photo_id: photoId, 
+                face_index: idx,
+                rekognition_face_id: rec.Face.FaceId, 
+                model_version: 'rekognition-v1',
+            }))
+        );
+    }
+
+    // Atualização dos metadados da foto no Supabase
+    const updatePayload = {
+        is_face_indexed: true,
+        is_ai_indexed: true,
+    };
+    if (visualLabels.length > 0) updatePayload.visual_labels = visualLabels;
+    if (detectedNumbers.length > 0) updatePayload.detected_numbers = detectedNumbers;
+
+    await supabase.from('photos').update(updatePayload).eq('id', photoId);
+
+    return res.json({ 
+        success: true, 
+        facesIndexed: faceRecords.length,
+        visualLabelsCount: visualLabels.length,
+        detectedNumbers,
+    });
 }
 
-async function handleSearchFaces(req, res, rekognition, COLLECTION_ID, SearchFacesByImageCommand) {
-    const { imageBase64 } = req.body;
+async function handleSearchFaces(req, res, rekognition, COLLECTION_ID, supabase, SearchFacesByImageCommand, DetectLabelsCommand, DetectTextCommand) {
+    const { imageBase64, eventId } = req.body;
     if (!imageBase64) return res.status(400).json({ error: 'imageBase64 is required' });
 
     const base64Data  = imageBase64.replace(/^data:image\/\w+;base64,/, '');
     const imageBuffer = Buffer.from(base64Data, 'base64');
 
-    const result      = await rekognition.send(new SearchFacesByImageCommand({
-        CollectionId: COLLECTION_ID, Image: { Bytes: imageBuffer },
-        MaxFaces: 100, FaceMatchThreshold: 80,
-    }));
-    const faceMatches = result.FaceMatches || [];
+    const matchesMap = new Map(); // photoId -> match object
+
+    // 1. Motor Facial (Biometria)
+    let faceMatches = [];
+    try {
+        const faceResult = await rekognition.send(new SearchFacesByImageCommand({
+            CollectionId: COLLECTION_ID, 
+            Image: { Bytes: imageBuffer },
+            MaxFaces: 100, 
+            FaceMatchThreshold: 75,
+        }));
+        faceMatches = faceResult.FaceMatches || [];
+        for (const m of faceMatches) {
+            const pid = m.Face.ExternalImageId;
+            if (pid) {
+                matchesMap.set(pid, {
+                    photoId: pid,
+                    faceId: m.Face.FaceId,
+                    similarity: m.Similarity,
+                    confidence: m.Face.Confidence,
+                    matchType: 'face',
+                    matchReasons: ['🎯 Rosto Reconhecido'],
+                });
+            }
+        }
+    } catch (faceErr) {
+        // Se a foto não tiver rosto claro, AWS lança InvalidParameterException; continuamos com o Motor Visual
+        console.log('[Rekognition] No face detected or face search info:', faceErr.message);
+    }
+
+    // 2. Motor Visual & OCR na foto enviada pelo usuário
+    let searchLabels = [];
+    let searchNumbers = [];
+
+    // Extrair equipamentos (Prancha, Wetsuit, Bike, etc)
+    if (DetectLabelsCommand) {
+        try {
+            const labelRes = await rekognition.send(new DetectLabelsCommand({
+                Image: { Bytes: imageBuffer },
+                MaxLabels: 15,
+                MinConfidence: 65,
+            }));
+            const relevantSportsLabels = [
+                'Surfboard', 'Surfing', 'Wetsuit', 'Water Sports', 'Boardsport', 'Bicycle', 'Cycling', 
+                'Helmet', 'Vehicle', 'Sportswear', 'Lifejacket', 'Swimwear', 'Skateboard', 'Motorcycle'
+            ];
+            searchLabels = (labelRes.Labels || [])
+                .filter(l => relevantSportsLabels.some(r => l.Name.toLowerCase().includes(r.toLowerCase())))
+                .map(l => l.Name);
+        } catch (lErr) {
+            console.warn('[Rekognition] Search DetectLabels error:', lErr.message);
+        }
+    }
+
+    // Extrair numerais da lycra/roupa
+    if (DetectTextCommand) {
+        try {
+            const textRes = await rekognition.send(new DetectTextCommand({
+                Image: { Bytes: imageBuffer },
+            }));
+            const detected = textRes.TextDetections || [];
+            const nums = new Set();
+            for (const item of detected) {
+                const text = (item.DetectedText || '').trim();
+                const m = text.match(/\b\d{1,4}\b/g);
+                if (m) m.forEach(n => nums.add(n));
+            }
+            searchNumbers = Array.from(nums);
+        } catch (tErr) {
+            console.warn('[Rekognition] Search DetectText error:', tErr.message);
+        }
+    }
+
+    // 3. Cruzamento Híbrido no Banco de Dados (Fotos com a mesma Prancha/Equipamento ou Número)
+    if (searchNumbers.length > 0 || searchLabels.length > 0) {
+        try {
+            let query = supabase.from('photos').select('id, visual_labels, detected_numbers');
+            if (eventId) {
+                query = query.eq('event_id', eventId);
+            }
+            query = query.eq('is_approved', true);
+
+            if (searchNumbers.length > 0) {
+                query = query.overlaps('detected_numbers', searchNumbers);
+            }
+
+            const { data: visualPhotos } = await query.limit(60);
+
+            if (visualPhotos && visualPhotos.length > 0) {
+                for (const p of visualPhotos) {
+                    const pid = p.id;
+                    const existing = matchesMap.get(pid);
+                    const matchedNums = (p.detected_numbers || []).filter(n => searchNumbers.includes(n));
+
+                    if (existing) {
+                        // Foto tem tanto rosto quanto equipamento/número! Score máximo
+                        existing.similarity = Math.min(99.9, existing.similarity + 15);
+                        existing.matchType = 'hybrid';
+                        if (matchedNums.length > 0) {
+                            existing.matchReasons.push(`🔢 Lycra #${matchedNums.join(', #')}`);
+                        }
+                    } else {
+                        // Foto de ação distante (sem rosto detectado, mas com número/prancha correspondente)
+                        const reasons = [];
+                        let score = 70;
+                        if (matchedNums.length > 0) {
+                            reasons.push(`🔢 Lycra #${matchedNums.join(', #')}`);
+                            score += 20;
+                        }
+                        if (searchLabels.length > 0) {
+                            reasons.push(`🏄 Equipamento / Prancha`);
+                            score += 5;
+                        }
+                        matchesMap.set(pid, {
+                            photoId: pid,
+                            faceId: null,
+                            similarity: score,
+                            confidence: score,
+                            matchType: matchedNums.length > 0 ? 'number' : 'visual',
+                            matchReasons: reasons,
+                        });
+                    }
+                }
+            }
+        } catch (dbErr) {
+            console.warn('[Rekognition] Hybrid DB query error:', dbErr.message);
+        }
+    }
+
+    // Ordenar resultados pelo maior score de relevância
+    const sortedMatches = Array.from(matchesMap.values()).sort((a, b) => b.similarity - a.similarity);
 
     return res.json({
         success:    true,
-        photoIds:   [...new Set(faceMatches.map(m => m.Face.ExternalImageId))],
-        matches:    faceMatches.map(m => ({
-            photoId:    m.Face.ExternalImageId,
-            faceId:     m.Face.FaceId,
-            similarity: m.Similarity,
-            confidence: m.Face.Confidence,
-        })),
+        photoIds:   sortedMatches.map(m => m.photoId),
+        matches:    sortedMatches,
+        detectedInQuery: {
+            facesFound: faceMatches.length,
+            labels: searchLabels,
+            numbers: searchNumbers,
+        }
     });
-}
-
-async function handleDeleteFaces(req, res, rekognition, COLLECTION_ID, DeleteFacesCommand) {
-    const { faceIds } = req.body;
-    if (!faceIds?.length) return res.status(400).json({ error: 'faceIds array is required' });
-    await rekognition.send(new DeleteFacesCommand({ CollectionId: COLLECTION_ID, FaceIds: faceIds }));
-    return res.json({ success: true, deleted: faceIds.length });
 }
 
 async function handleCreateCollection(req, res, rekognition, COLLECTION_ID, CreateCollectionCommand) {

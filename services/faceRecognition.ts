@@ -67,14 +67,14 @@ export const faceRecognitionService = {
         return response.json();
     },
 
-    async searchByImage(imageDataUrl: string, eventId?: string): Promise<{ id: string; similarity: number }[]> {
+    async searchByImage(imageDataUrl: string, eventId?: string): Promise<{ id: string; similarity: number; matchType?: string; matchReasons?: string[] }[]> {
         // Convert to JPEG in browser in case user uploaded WebP/HEIC
         const jpegBase64 = await toJpegDataUrl(imageDataUrl);
 
         const response = await fetch(`${API_BASE}/api/rekognition`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'searchFaces', imageBase64: jpegBase64 }),
+            body: JSON.stringify({ action: 'searchFaces', imageBase64: jpegBase64, eventId }),
         });
 
         if (!response.ok) {
@@ -97,7 +97,12 @@ export const faceRecognitionService = {
 
         return (data.matches as any[])
             .filter((m: any) => photoIds.includes(m.photoId))
-            .map((m: any) => ({ id: m.photoId, similarity: m.similarity }));
+            .map((m: any) => ({ 
+                id: m.photoId, 
+                similarity: m.similarity,
+                matchType: m.matchType,
+                matchReasons: m.matchReasons,
+            }));
     },
 
     async deleteFaces(faceIds: string[]): Promise<void> {

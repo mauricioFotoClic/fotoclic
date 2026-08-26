@@ -46,6 +46,7 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({
     const [hasSearched, setHasSearched] = useState(false);
     const [previewIndex, setPreviewIndex] = useState<number | null>(null);
     const [addedPhotoIds, setAddedPhotoIds] = useState<Set<string>>(new Set());
+    const [matchMetadata, setMatchMetadata] = useState<Record<string, { similarity: number; matchType?: string; matchReasons?: string[] }>>({});
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
@@ -66,6 +67,7 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({
             setHasSearched(false);
             setPreviewIndex(null);
             setAddedPhotoIds(new Set());
+            setMatchMetadata({});
             setIsProcessing(false);
             if (initialEventId) setSelectedEventId(initialEventId);
 
@@ -280,13 +282,21 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({
 
             let photos: Photo[] = [];
 
-            // 1. Rekognition search (if specific event is selected, constrain search)
+            // 1. Rekognition hybrid search (if specific event is selected, constrain search)
             const targetEventId = selectedEventId || initialEventId;
             const matches = await faceRecognitionService.searchByImage(selectedImage, targetEventId);
 
             if (matches.length > 0) {
+                const metaMap: Record<string, { similarity: number; matchType?: string; matchReasons?: string[] }> = {};
+                matches.forEach(m => {
+                    metaMap[m.id] = { similarity: m.similarity, matchType: m.matchType, matchReasons: m.matchReasons };
+                });
+                setMatchMetadata(metaMap);
+
                 const matchedIds = matches.map(m => m.id);
-                photos = await api.getPhotosByIds(matchedIds);
+                const fetchedPhotos = await api.getPhotosByIds(matchedIds);
+                // Preserve AI relevance ordering
+                photos = matchedIds.map(id => fetchedPhotos.find(p => p.id === id)).filter(Boolean) as Photo[];
             } else {
                 // Fallback visual similarity
                 photos = await api.searchImageContext(selectedImage);
@@ -525,6 +535,15 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({
                                         {t('face_search.save_photo_future')}
                                     </span>
                                 </label>
+                                
+                                {/* Sports & Surfing AI Tip */}
+                                <div className="bg-primary/10 border border-primary/20 rounded-2xl p-3 flex items-start gap-2.5 text-xs text-neutral-300">
+                                    <span className="text-base shrink-0">🏄‍♂️</span>
+                                    <span className="leading-relaxed">
+                                        <strong className="text-primary font-bold">Dica para esportes (Surfe, Ciclismo, etc):</strong> Você pode enviar uma foto com sua prancha, capacete ou roupa da prova para a IA localizar suas fotos de longe na água ou pista!
+                                    </span>
+                                </div>
+
                                 <p className="text-[11px] text-neutral-500 px-2 leading-relaxed">
                                     🔒 Seus dados biométricos faciais são processados exclusivamente para localizar suas fotos esportivas e você pode remover a selfie salva a qualquer momento.
                                 </p>
@@ -686,6 +705,7 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({
                                                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                                                     {photos.map(photo => {
                                                         const inCart = addedPhotoIds.has(photo.id);
+                                                        const matchInfo = matchMetadata[photo.id];
                                                         return (
                                                             <div
                                                                 key={photo.id}
@@ -703,6 +723,13 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({
                                                                 {inCart && (
                                                                     <div className="absolute top-2 left-2 bg-emerald-600 text-white rounded-full p-1 shadow-lg z-10">
                                                                         <Check size={12} strokeWidth={3} />
+                                                                    </div>
+                                                                )}
+
+                                                                {/* AI Match Reason Badge */}
+                                                                {matchInfo?.matchReasons && matchInfo.matchReasons.length > 0 && (
+                                                                    <div className="absolute top-2 right-2 bg-black/80 backdrop-blur-md text-neutral-200 text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-white/20 z-10 shadow">
+                                                                        {matchInfo.matchReasons[0]}
                                                                     </div>
                                                                 )}
 
@@ -843,6 +870,15 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({
                                         <div className="min-w-0">
                                             <h4 className="text-sm font-bold text-white truncate">{pName}</h4>
                                             <p className="text-xs text-neutral-400 truncate">{currentPhoto.title || 'Foto de Evento'}</p>
+                                            {matchMetadata[currentPhoto.id]?.matchReasons && (
+                                                <div className="flex items-center gap-1 mt-1 flex-wrap">
+                                                    {matchMetadata[currentPhoto.id].matchReasons?.map((r, i) => (
+                                                        <span key={i} className="bg-primary/20 text-primary border border-primary/30 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                                                            {r}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
 
