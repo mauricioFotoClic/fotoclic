@@ -161,16 +161,17 @@ DROP POLICY IF EXISTS "users_select_policy" ON public.users;
 DROP POLICY IF EXISTS "Users can view own data and public photographers" ON public.users;
 
 -- POLÍTICA DE LEITURA (SELECT):
--- 1. O próprio usuário lê todos os seus dados (inclusive PIX/banco).
--- 2. Administradores leem todos os usuários.
--- 3. Visitantes e clientes leem apenas perfis públicos ativos (fotógrafos e produtores).
+-- 1. O próprio usuário lê todos os seus dados.
+-- 2. Visitantes e clientes leem perfis públicos ativos (fotógrafos e produtores).
+-- 3. Admins checam via token JWT diretamente sem subconsulta recursiva.
 CREATE POLICY "users_select_policy" ON public.users
 FOR SELECT TO anon, authenticated
 USING (
     auth.uid() = id
-    OR public.is_admin()
     OR (role = 'photographer' AND is_active = true)
     OR (role = 'producer' AND is_active = true)
+    OR (coalesce(auth.jwt() -> 'app_metadata' ->> 'role', '') = 'admin')
+    OR (coalesce(auth.jwt() -> 'user_metadata' ->> 'role', '') = 'admin')
 );
 
 -- POLÍTICA DE INSERÇÃO (INSERT):
@@ -187,11 +188,13 @@ CREATE POLICY "users_update_policy" ON public.users
 FOR UPDATE TO authenticated
 USING (
     auth.uid() = id
-    OR public.is_admin()
+    OR (coalesce(auth.jwt() -> 'app_metadata' ->> 'role', '') = 'admin')
+    OR (coalesce(auth.jwt() -> 'user_metadata' ->> 'role', '') = 'admin')
 )
 WITH CHECK (
     auth.uid() = id
-    OR public.is_admin()
+    OR (coalesce(auth.jwt() -> 'app_metadata' ->> 'role', '') = 'admin')
+    OR (coalesce(auth.jwt() -> 'user_metadata' ->> 'role', '') = 'admin')
 );
 
 -- POLÍTICA DE EXCLUSÃO (DELETE):
@@ -199,8 +202,11 @@ WITH CHECK (
 CREATE POLICY "users_delete_policy" ON public.users
 FOR DELETE TO authenticated
 USING (
-    public.is_admin()
+    (coalesce(auth.jwt() -> 'app_metadata' ->> 'role', '') = 'admin')
+    OR (coalesce(auth.jwt() -> 'user_metadata' ->> 'role', '') = 'admin')
 );
+
+NOTIFY pgrst, 'reload schema';
 
 
 -- ------------------------------------------------------------------------------
@@ -243,6 +249,7 @@ DROP POLICY IF EXISTS "payouts_select_policy" ON public.payouts;
 DROP POLICY IF EXISTS "payouts_insert_policy" ON public.payouts;
 DROP POLICY IF EXISTS "payouts_update_policy" ON public.payouts;
 DROP POLICY IF EXISTS "payouts_delete_policy" ON public.payouts;
+DROP POLICY IF EXISTS "payouts_admin_modify_policy" ON public.payouts;
 DROP POLICY IF EXISTS "Photographers can view their own payouts" ON public.payouts;
 DROP POLICY IF EXISTS "Admins can view all payouts" ON public.payouts;
 
