@@ -46,6 +46,7 @@ export default async function handler(req, res) {
             SearchFacesByImageCommand,
             DeleteFacesCommand,
             CreateCollectionCommand,
+            DetectFacesCommand,
             DetectLabelsCommand,
             DetectTextCommand,
         } = await import('@aws-sdk/client-rekognition');
@@ -100,7 +101,7 @@ export default async function handler(req, res) {
         }
 
         if (action === 'indexFaces')      return await handleIndexFaces(req, res, rekognition, COLLECTION_ID, supabase, IndexFacesCommand, DetectLabelsCommand, DetectTextCommand);
-        if (action === 'searchFaces')     return await handleSearchFaces(req, res, rekognition, COLLECTION_ID, supabase, SearchFacesByImageCommand, DetectLabelsCommand, DetectTextCommand);
+        if (action === 'searchFaces')     return await handleSearchFaces(req, res, rekognition, COLLECTION_ID, supabase, SearchFacesByImageCommand, DetectFacesCommand, DetectLabelsCommand, DetectTextCommand);
         if (action === 'deleteFaces')     return await handleDeleteFaces(req, res, rekognition, COLLECTION_ID, DeleteFacesCommand);
         if (action === 'createCollection') return await handleCreateCollection(req, res, rekognition, COLLECTION_ID, CreateCollectionCommand);
         if (action === 'generate-description') return await handleGenerateDescription(req, res);
@@ -215,7 +216,7 @@ async function handleIndexFaces(req, res, rekognition, COLLECTION_ID, supabase, 
     });
 }
 
-async function handleSearchFaces(req, res, rekognition, COLLECTION_ID, supabase, SearchFacesByImageCommand, DetectLabelsCommand, DetectTextCommand) {
+async function handleSearchFaces(req, res, rekognition, COLLECTION_ID, supabase, SearchFacesByImageCommand, DetectFacesCommand, DetectLabelsCommand, DetectTextCommand) {
     const { imageBase64, eventId } = req.body;
     if (!imageBase64) return res.status(400).json({ error: 'imageBase64 is required' });
 
@@ -348,13 +349,13 @@ async function handleSearchFaces(req, res, rekognition, COLLECTION_ID, supabase,
             if (eventId) {
                 query = query.eq('event_id', eventId);
             }
-            query = query.eq('is_approved', true);
 
             if (searchNumbers.length > 0) {
                 query = query.overlaps('detected_numbers', searchNumbers);
             }
 
-            const { data: visualPhotos } = await query.limit(100);
+            const { data: visualPhotos, error: vErr } = await query.limit(200);
+            if (vErr) console.error('[Rekognition] visualPhotos DB error:', vErr);
 
             if (visualPhotos && visualPhotos.length > 0) {
                 for (const p of visualPhotos) {
