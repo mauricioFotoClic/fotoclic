@@ -51,6 +51,27 @@ async function sendTelegramChatAction(chatId, action = 'typing') {
   }
 }
 
+// Helper para responder cliques em botões (Callback Queries)
+async function answerCallbackQuery(callbackQueryId, text = '', showAlert = false) {
+  if (!TELEGRAM_BOT_TOKEN) return null;
+  const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`;
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        callback_query_id: callbackQueryId,
+        text,
+        show_alert: showAlert
+      })
+    });
+    return await res.json();
+  } catch (err) {
+    console.error('[Telegram Callback Error]:', err);
+    return null;
+  }
+}
+
 // Configuração das Ferramentas (Tools) do Agente Gemini
 const agentTools = [
   {
@@ -152,6 +173,64 @@ export default async function handler(req, res) {
   }
 
   const update = req.body || {};
+
+  // 🔘 Tratar cliques em Botões Interativos (Callback Queries - Ex: Banir IP / Desbloquear IP)
+  if (update.callback_query) {
+    const cb = update.callback_query;
+    const cbId = cb.id;
+    const cbChatId = String(cb.message?.chat?.id || AUTHORIZED_CHAT_ID);
+    const cbData = cb.data || '';
+
+    console.log(`[Telegram Callback] Recebido callback: ${cbData} de ${cbChatId}`);
+
+    if (cbData.startsWith('ban_')) {
+      const ip = cbData.replace('ban_', '');
+      try {
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+        if (supabaseUrl && supabaseKey) {
+          const supabase = createClient(supabaseUrl, supabaseKey);
+          await supabase.from('banned_ips').upsert({
+            ip_address: ip,
+            reason: 'Bloqueado manualmente via Telegram Bot',
+            banned_by: 'Administrador (Telegram)',
+            is_active: true,
+            created_at: new Date().toISOString()
+          });
+        }
+      } catch (e) {
+        console.error('[Callback Ban Error]:', e);
+      }
+
+      await answerCallbackQuery(cbId, `IP ${ip} banido com sucesso!`, true);
+      await sendTelegramMessage(cbChatId, `🚫 *Sentinel AI - IP Bloqueado*\n\nO IP \`${ip}\` foi adicionado à lista negra e está neutralizado no FotoClic.`);
+      return res.status(200).json({ ok: true });
+    }
+
+    if (cbData.startsWith('unban_')) {
+      const ip = cbData.replace('unban_', '');
+      try {
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+        if (supabaseUrl && supabaseKey) {
+          const supabase = createClient(supabaseUrl, supabaseKey);
+          await supabase.from('banned_ips').update({ is_active: false }).eq('ip_address', ip);
+        }
+      } catch (e) {
+        console.error('[Callback Unban Error]:', e);
+      }
+
+      await answerCallbackQuery(cbId, `IP ${ip} liberado!`, false);
+      await sendTelegramMessage(cbChatId, `🔓 *Sentinel AI - IP Liberado*\n\nO IP \`${ip}\` foi desbloqueado com sucesso.`);
+      return res.status(200).json({ ok: true });
+    }
+
+    await answerCallbackQuery(cbId, 'Comando recebido!');
+    return res.status(200).json({ ok: true });
+  }
+
   const message = update.message || update.edited_message;
 
   if (!message || !message.chat) {
