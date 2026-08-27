@@ -95,6 +95,7 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
     const [eventFilter, setEventFilter] = useState<string>('all'); // New event filter
     const [isAnalysisModalOpen, setIsAnalysisModalOpen] = useState(false);
     const [photoToAnalyze, setPhotoToAnalyze] = useState<Photo | null>(null);
+    const [previewPhoto, setPreviewPhoto] = useState<Photo | null>(null);
 
     // State for Bulk Operations
     const [isBulkApproving, setIsBulkApproving] = useState(false);
@@ -620,13 +621,23 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
                         {photos.map((photo) => (
                             <div key={photo.id} className={`p-4 transition-colors ${photo.moderation_status === 'pending' ? 'bg-amber-50/40' : ''}`}>
                                 <div className="flex items-start gap-3">
-                                    <img
-                                        src={getOptimizedImageUrl(photo.thumb_url || photo.preview_url, 150, 75)}
-                                        alt={photo.title}
-                                        loading="lazy"
-                                        decoding="async"
-                                        className="w-20 h-14 object-cover rounded-md flex-shrink-0 border border-neutral-200"
-                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setPreviewPhoto(photo)}
+                                        className="cursor-pointer focus:outline-none flex-shrink-0 group relative"
+                                        title="Clique para visualizar a foto"
+                                    >
+                                        <img
+                                            src={getOptimizedImageUrl(photo.thumb_url || photo.preview_url, 150, 75)}
+                                            alt={photo.title}
+                                            loading="lazy"
+                                            decoding="async"
+                                            className="w-20 h-14 object-cover rounded-md border border-neutral-200 group-hover:opacity-90 transition-opacity"
+                                        />
+                                        <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 rounded-md transition-opacity flex items-center justify-center pointer-events-none">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                        </div>
+                                    </button>
                                     <div className="flex-1 min-w-0">
                                         <p className="font-medium text-neutral-800 text-sm truncate">{photo.title}</p>
                                         {photo.width && <p className="text-xs text-neutral-400 mt-0.5">{photo.width} × {photo.height} px</p>}
@@ -688,13 +699,23 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
                                 {photos.map((photo, index) => (
                                     <tr key={photo.id} className={`transition-colors hover:bg-neutral-50/60 ${index % 2 === 0 ? 'bg-white' : 'bg-neutral-50/30'} ${photo.moderation_status === 'pending' ? 'bg-amber-50/40 hover:bg-amber-50/70' : ''}`}>
                                         <td className="px-4 py-3 align-middle">
-                                            <img
-                                                src={getOptimizedImageUrl(photo.thumb_url || photo.preview_url, 150, 75)}
-                                                alt={photo.title}
-                                                loading="lazy"
-                                                decoding="async"
-                                                className="w-16 h-12 object-cover rounded-md shadow-xs border border-neutral-200"
-                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setPreviewPhoto(photo)}
+                                                className="group relative cursor-pointer focus:outline-none block"
+                                                title="Clique para visualizar a foto em tamanho médio"
+                                            >
+                                                <img
+                                                    src={getOptimizedImageUrl(photo.thumb_url || photo.preview_url, 150, 75)}
+                                                    alt={photo.title}
+                                                    loading="lazy"
+                                                    decoding="async"
+                                                    className="w-16 h-12 object-cover rounded-md shadow-xs border border-neutral-200 group-hover:scale-105 group-hover:ring-2 group-hover:ring-primary/50 transition-all duration-200"
+                                                />
+                                                <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 rounded-md transition-opacity flex items-center justify-center pointer-events-none">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                                </div>
+                                            </button>
                                         </td>
                                         <td className="px-4 py-3 align-middle">
                                             <div className="font-medium text-neutral-800 text-sm line-clamp-1">{photo.title}</div>
@@ -1082,6 +1103,47 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
                         </button>
                     </div>
                 </div>
+            </Modal>
+
+            {/* Modal de Visualização da Foto */}
+            <Modal
+                isOpen={!!previewPhoto}
+                onClose={() => setPreviewPhoto(null)}
+                title={previewPhoto?.title || 'Visualização da Foto'}
+                size="lg"
+            >
+                {previewPhoto && (
+                    <div className="flex flex-col items-center">
+                        <div className="w-full max-h-[65vh] flex items-center justify-center bg-neutral-900 rounded-xl overflow-hidden relative shadow-inner p-2">
+                            <img
+                                src={previewPhoto.preview_url || previewPhoto.thumb_url}
+                                alt={previewPhoto.title}
+                                className="max-h-[60vh] w-auto max-w-full object-contain rounded-lg select-none"
+                            />
+                        </div>
+                        <div className="w-full mt-4 flex items-center justify-between text-sm text-neutral-600 bg-neutral-50 px-4 py-3 rounded-xl border border-neutral-200 flex-wrap gap-2">
+                            <div className="flex items-center gap-2.5 flex-wrap text-xs sm:text-sm">
+                                {previewPhoto.width && previewPhoto.height && (
+                                    <span className="font-medium text-neutral-700 bg-white px-2.5 py-1 rounded-md border border-neutral-200 shadow-2xs">
+                                        📐 {previewPhoto.width} × {previewPhoto.height} px
+                                    </span>
+                                )}
+                                <span className="font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-md shadow-2xs">
+                                    {previewPhoto.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                </span>
+                                <span className={`px-2.5 py-1 font-semibold rounded-md border text-xs shadow-2xs ${previewPhoto.is_public ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'}`}>
+                                    {previewPhoto.is_public ? 'Pública' : 'Privada'}
+                                </span>
+                            </div>
+                            <button
+                                onClick={() => setPreviewPhoto(null)}
+                                className="px-4 py-1.5 bg-neutral-200 hover:bg-neutral-300 text-neutral-800 font-medium rounded-full text-xs transition-colors cursor-pointer"
+                            >
+                                Fechar
+                            </button>
+                        </div>
+                    </div>
+                )}
             </Modal>
         </div>
     );
