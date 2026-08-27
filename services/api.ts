@@ -1114,35 +1114,16 @@ export const api = {
 
     inflightPhotographersPromise = (async () => {
       try {
-        const [resUsers, resPhotos, resReviews] = await Promise.all([
-          supabase
-            .from("users")
-            .select(PUBLIC_USER_COLUMNS)
-            .eq("role", "photographer")
-            .eq("is_active", true),
-          supabase
-            .from("photos")
-            .select("photographer_id")
-            .eq("moderation_status", "approved")
-            .eq("is_public", true),
-          supabase
-            .from("reviews")
-            .select("photographer_id, rating"),
+        // 1. Try calling the optimized SQL RPC first
+        const { data: rpcData, error: rpcError } = await supabase.rpc("get_photographers_with_stats");
+
+        const [resReviews, resPendingPhotos, settingsRes] = await Promise.all([
+          supabase.from("reviews").select("photographer_id, rating"),
+          supabase.from("photos").select("photographer_id").eq("moderation_status", "pending"),
+          api.getCommissionSettings().catch(() => ({ defaultRate: 0.06, customRates: {} })),
         ]);
 
-        const usersData = resUsers.data || [];
         const reviewsData = resReviews.data || [];
-        const photosData = resPhotos.data || [];
-
-        // 1. Build photoCount map
-        const photoCountMap: Record<string, number> = {};
-        for (const p of photosData as { photographer_id: string }[]) {
-          if (p.photographer_id) {
-            photoCountMap[p.photographer_id] = (photoCountMap[p.photographer_id] || 0) + 1;
-          }
-        }
-
-        // 2. Build avgRating map from reviews
         const ratingMap: Record<string, { sum: number; count: number }> = {};
         for (const r of (reviewsData ?? []) as { photographer_id: string; rating: number }[]) {
           if (!ratingMap[r.photographer_id]) ratingMap[r.photographer_id] = { sum: 0, count: 0 };
@@ -1150,40 +1131,76 @@ export const api = {
           ratingMap[r.photographer_id].count += 1;
         }
 
-        // 3. Get Commission Settings
-        let settings = { defaultRate: 0.06, customRates: {} as Record<string, number> };
-        try {
-          settings = await api.getCommissionSettings();
-        } catch (e) {
-          console.warn("Could not load commission settings:", e);
+        const pendingMap: Record<string, number> = {};
+        for (const p of (resPendingPhotos.data || []) as { photographer_id: string }[]) {
+          if (p.photographer_id) {
+            pendingMap[p.photographer_id] = (pendingMap[p.photographer_id] || 0) + 1;
+          }
         }
 
-        // 4. Map result
-        const result: PhotographerWithStats[] = usersData.map((u: any) => {
+        const settings = settingsRes || { defaultRate: 0.06, customRates: {} };
+
+        if (!rpcError && Array.isArray(rpcData) && rpcData.length > 0) {
+          const result: PhotographerWithStats[] = rpcData.map((row: any) => {
+            const rawUser = row.user_data || {};
+            const user = mapUser(rawUser);
+            const photoCount = Number(row.photo_cnt || 0);
+            const salesCount = Number(row.sales_cnt || 0);
+            const commissionValue = Number(row.comm_val || 0);
+            const likesCount = Number(row.likes_cnt || 0);
+            const pendingCount = pendingMap[user.id] || 0;
+
+            let effectiveRate = settings.defaultRate;
+            if (settings.customRates && settings.customRates[user.id] !== undefined) {
+              effectiveRate = settings.customRates[user.id];
+            }
+
+            const rm = ratingMap[user.id];
+            const reviewCount = rm?.count ?? 0;
+            const avgRating = reviewCount > 0 ? rm.sum / reviewCount : 5.0;
+
+            return {
+              ...user,
+              photoCount,
+              salesCount,
+              commissionValue,
+              pendingCount,
+              approvedCount: photoCount,
+              rejectedCount: 0,
+              commissionRate: effectiveRate,
+              likesCount,
+              avgRating,
+              reviewCount,
+              approvalPercentage: 100,
+            };
+          });
+
+          photographersCache = { data: result, ts: Date.now() };
+          return result;
+        }
+
+        // Fallback if RPC fails or is unavailable
+        const { data: usersData } = await supabase
+          .from("users")
+          .select(PUBLIC_USER_COLUMNS)
+          .eq("role", "photographer")
+          .eq("is_active", true);
+
+        const result: PhotographerWithStats[] = (usersData || []).map((u: any) => {
           const user = mapUser(u);
-
-          let effectiveRate = settings.defaultRate;
-          if (settings.customRates && settings.customRates[user.id] !== undefined) {
-            effectiveRate = settings.customRates[user.id];
-          }
-
-          const rm = ratingMap[user.id];
-          const reviewCount = rm?.count ?? 0;
-          const avgRating = reviewCount > 0 ? rm.sum / reviewCount : 5.0;
-          const photoCount = photoCountMap[user.id] || 0;
-
+          const pendingCount = pendingMap[user.id] || 0;
           return {
             ...user,
-            photoCount,
+            photoCount: 0,
             salesCount: 0,
             commissionValue: 0,
-            pendingCount: 0,
-            approvedCount: photoCount,
+            pendingCount,
+            approvedCount: 0,
             rejectedCount: 0,
-            commissionRate: effectiveRate,
+            commissionRate: settings.defaultRate,
             likesCount: 0,
-            avgRating,
-            reviewCount,
+            avgRating: 5.0,
+            reviewCount: 0,
             approvalPercentage: 100,
           };
         });

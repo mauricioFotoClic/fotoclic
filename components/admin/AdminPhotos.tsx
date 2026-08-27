@@ -390,8 +390,8 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
     // Logic for grouping photographers (Use data from getPhotographers RPC!)
     const photographerGroups = useMemo(() => {
         return photographers
-            .filter(p => p.photoCount > 0)
-            .sort((a, b) => b.pendingCount - a.pendingCount || b.photoCount - a.photoCount);
+            .filter(p => (p.photoCount > 0 || (p.pendingCount && p.pendingCount > 0)))
+            .sort((a, b) => (b.pendingCount || 0) - (a.pendingCount || 0) || (b.photoCount || 0) - (a.photoCount || 0));
     }, [photographers]);
 
     // Group filtered photos by event (Moved to top level)
