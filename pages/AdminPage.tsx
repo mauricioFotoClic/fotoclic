@@ -12,6 +12,7 @@ import AdminSales from '../components/admin/AdminSales';
 import AdminPayouts from '../components/admin/AdminPayouts';
 import AdminSettings from '../components/admin/AdminSettings';
 import AdminStorageRequests from '../components/admin/AdminStorageRequests';
+import AdminRekognitionStats from '../components/admin/AdminRekognitionStats';
 import AdminAppmax from '../components/admin/AdminAppmax';
 import AdminRemarketing from '../components/admin/AdminRemarketing';
 import { AdminSentinelSecurity } from '../components/admin/AdminSentinelSecurity';
