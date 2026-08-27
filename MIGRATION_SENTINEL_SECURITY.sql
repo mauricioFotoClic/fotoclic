@@ -61,6 +61,11 @@ ON CONFLICT (id) DO UPDATE SET
 ALTER TABLE public.security_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.banned_ips ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.security_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.profiles ENABLE ROW LEVEL SECURITY;
+
+-- Bloquear acesso anônimo à tabela legada profiles
+DROP POLICY IF EXISTS "Users can only see their own profile" ON public.profiles;
+CREATE POLICY "Users can only see their own profile" ON public.profiles FOR ALL TO authenticated USING (auth.uid() = id);
 
 -- Políticas: Apenas Administradores Autenticados podem ler/gerenciar
 DROP POLICY IF EXISTS "Admins can view security logs" ON public.security_logs;

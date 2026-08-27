@@ -432,6 +432,37 @@ export default async function handler(req, res) {
     // 2. Ações Diretas da Aplicação (Webhooks Internos)
     const action = body.action;
 
+    // 🛡️ Sentinel AI - Inspeção de Injeção de Código em Formulários
+    const SQLI_PATTERN = /(\b(UNION(\s+ALL)?|SELECT|INSERT|UPDATE|DELETE|DROP|ALTER|EXEC|EXECUTE)\b\s+.*?\b(FROM|INTO|TABLE|DATABASE|WHERE)\b)|('(\s*OR\s*|\s*AND\s*)'?[^']+'?=')|(--|\/\*|\*\/|;\s*$)|(\b(OR|AND)\b\s+['"\d\(\)\w=]+\s*=\s*['"\d\(\)\w=]+)/i;
+    const XSS_PATTERN = /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>|javascript:|onerror\s*=|onload\s*=/i;
+    
+    const combinedInput = `${body.name || ''} ${body.email || ''} ${body.phone || ''} ${body.location || ''} ${body.company_name || ''}`;
+    if (SQLI_PATTERN.test(combinedInput) || XSS_PATTERN.test(combinedInput)) {
+      console.warn(`[Sentinel Webhook Shield] Injeção interceptada no payload de ${action}: ${combinedInput}`);
+      try {
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+        if (supabaseUrl && supabaseKey) {
+          const supabase = createClient(supabaseUrl, supabaseKey);
+          await supabase.from('security_logs').insert({
+            event_type: SQLI_PATTERN.test(combinedInput) ? 'sql_injection' : 'xss_attempt',
+            severity: 'high',
+            ip_address: req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '127.0.0.1',
+            endpoint: `/api/sentry-ai-webhook?action=${action}`,
+            request_method: req.method,
+            payload_summary: { body },
+            ai_diagnosis: 'Tentativa de injeção de parâmetros maliciosos nos campos de cadastro (nome/email/telefone).',
+            ai_remediation: 'O formulário rejeitou os caracteres maliciosos e a notificação foi abortada.',
+            action_taken: 'blocked_request'
+          });
+        }
+      } catch (err) {
+        console.error('[Sentinel Log Error]:', err.message);
+      }
+      return res.status(400).json({ error: 'Caracteres inválidos detectados pelo Sentinel AI.' });
+    }
+
     if (action === 'new_producer') {
       const success = await notifyNewProducerRegistration({
         id: body.id,
