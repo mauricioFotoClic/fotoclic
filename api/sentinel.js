@@ -88,10 +88,13 @@ async function sendTelegramAlert({ botToken, chatId, title, severity, eventType,
 async function generateAiDiagnosis(eventType, severity, payload, endpoint) {
     const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_KEY;
     if (geminiKey) {
-        try {
-            const genAI = new GoogleGenerativeAI(geminiKey);
-            const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-            const prompt = `Você é o Sentinel AI, o analista sênior de cibersegurança do FotoClic Marketplace.
+        const modelsToTry = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-pro'];
+        const genAI = new GoogleGenerativeAI(geminiKey.trim().replace(/^["']|["']$/g, ''));
+        
+        for (const modelName of modelsToTry) {
+            try {
+                const model = genAI.getGenerativeModel({ model: modelName });
+                const prompt = `Você é o Sentinel AI, o analista sênior de cibersegurança do FotoClic Marketplace.
 Analise a seguinte tentativa de ataque e retorne um JSON estrito com dois campos: "diagnosis" (explicação clara e direta em 2 frases sobre o que o hacker tentou fazer) e "remediation" (1 a 2 passos práticos para o administrador).
 
 Tipo de Evento: ${eventType}
@@ -102,16 +105,19 @@ Payload Detectado: ${JSON.stringify(payload)}
 Responda APENAS com o JSON:
 {"diagnosis": "...", "remediation": "..."}`;
 
-            const result = await model.generateContent(prompt);
-            const text = result.response.text();
-            const cleanJson = text.replace(/```json|```/g, '').trim();
-            const parsed = JSON.parse(cleanJson);
-            return {
-                diagnosis: parsed.diagnosis,
-                remediation: parsed.remediation,
-            };
-        } catch (e) {
-            console.warn('[Sentinel Gemini] Fallback heuristic:', e.message);
+                const result = await model.generateContent(prompt);
+                const text = result.response.text();
+                const cleanJson = text.replace(/```json|```/g, '').trim();
+                const parsed = JSON.parse(cleanJson);
+                if (parsed.diagnosis && parsed.remediation) {
+                    return {
+                        diagnosis: parsed.diagnosis,
+                        remediation: parsed.remediation,
+                    };
+                }
+            } catch (e) {
+                // Continue to next model candidate or fallback
+            }
         }
     }
 
