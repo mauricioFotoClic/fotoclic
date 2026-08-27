@@ -11,7 +11,11 @@ const getSupabase = () => {
 
 // Send Markdown Formatted Alert to Telegram
 async function sendTelegramAlert({ botToken, chatId, title, severity, eventType, ipAddress, endpoint, diagnosis, remediation, actionTaken, logId }) {
-    if (!botToken || !chatId) return false;
+    const finalToken = (botToken || process.env.TELEGRAM_BOT_TOKEN || '8854659202:AAHOiJHH5rjJ1PJPjuDx26UAYcyafm3BEzY').trim();
+    const finalChatId = (chatId || process.env.TELEGRAM_CHAT_ID || '5525056555').trim();
+    const groupId = (process.env.TELEGRAM_GROUP_ID || '-5372484924').trim();
+
+    if (!finalToken) return false;
 
     const severityEmojis = {
         low: '🟡 [BAIXO]',
@@ -61,12 +65,12 @@ async function sendTelegramAlert({ botToken, chatId, title, severity, eventType,
     };
 
     try {
-        const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+        const url = `https://api.telegram.org/bot${finalToken}/sendMessage`;
         const res = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                chat_id: chatId,
+                chat_id: finalChatId,
                 text: message,
                 parse_mode: 'Markdown',
                 reply_markup: inlineKeyboard,
@@ -389,14 +393,14 @@ export default async function handler(req, res) {
 
         // 8. TEST TELEGRAM ALERT
         if (action === 'testTelegram') {
-            const { botToken, chatId } = req.body;
+            const { botToken, chatId } = req.body || {};
             const success = await sendTelegramAlert({
                 botToken,
                 chatId,
                 title: 'Teste de Integração Sentinel AI',
                 severity: 'low',
                 eventType: 'sentinel_test_connection',
-                ipAddress: req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1',
+                ipAddress: req.headers?.['x-forwarded-for'] || req.socket?.remoteAddress || '127.0.0.1',
                 endpoint: '/admin/security-test',
                 diagnosis: 'Teste de conectividade bem-sucedido! O FotoClic Sentinel AI está pronto para vigiar e proteger seu sistema 24/7.',
                 remediation: 'Nenhuma ação necessária. Seu canal de alertas no Telegram está 100% operacional.',

@@ -50,10 +50,12 @@ CREATE TABLE IF NOT EXISTS public.security_settings (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- Inserir configuração padrão inicial caso não exista
-INSERT INTO public.security_settings (id, telegram_alerts_enabled, auto_ban_enabled, max_failed_logins, rate_limit_rpm, notification_min_severity)
-VALUES (1, true, true, 5, 120, 'medium')
-ON CONFLICT (id) DO NOTHING;
+-- Inserir configuração padrão com o Bot "FotoClic AI Assistant"
+INSERT INTO public.security_settings (id, telegram_bot_token, telegram_chat_id, telegram_alerts_enabled, auto_ban_enabled, max_failed_logins, rate_limit_rpm, notification_min_severity)
+VALUES (1, '8854659202:AAHOiJHH5rjJ1PJPjuDx26UAYcyafm3BEzY', '5525056555', true, true, 5, 120, 'medium')
+ON CONFLICT (id) DO UPDATE SET
+    telegram_bot_token = COALESCE(public.security_settings.telegram_bot_token, EXCLUDED.telegram_bot_token),
+    telegram_chat_id = COALESCE(public.security_settings.telegram_chat_id, EXCLUDED.telegram_chat_id);
 
 -- 4. Habilitar RLS (Segurança Zero-Trust)
 ALTER TABLE public.security_logs ENABLE ROW LEVEL SECURITY;
