@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { Photo, User } from '../types';
 import api from '../services/api';
 import Spinner from './Spinner';
@@ -33,18 +33,20 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
     const [localIndex, setLocalIndex] = useState<number>(initialIndex);
     const activeIndex = isGalleryMode ? (onNavigatePhoto ? initialIndex : localIndex) : 0;
 
-    // Current active photo
+    // Direct synchronous photo object (0ms delay)
     const currentPhotoFromList = isGalleryMode && photos[activeIndex] ? photos[activeIndex] : null;
-    const activePhotoId = currentPhotoFromList?.id || initialPhotoId || '';
+    const [singlePhoto, setSinglePhoto] = useState<Photo | null>(null);
+    const [loadingSingle, setLoadingSingle] = useState<boolean>(!currentPhotoFromList && Boolean(initialPhotoId));
 
-    const [photo, setPhoto] = useState<Photo | null>(currentPhotoFromList);
+    const photo = currentPhotoFromList || singlePhoto;
+    const activePhotoId = photo?.id || initialPhotoId || '';
+
     const [photographer, setPhotographer] = useState<User | null>(null);
-    const [loading, setLoading] = useState<boolean>(!currentPhotoFromList);
     const [photographerCache, setPhotographerCache] = useState<Record<string, User>>({});
 
     // Likes state
-    const [isLiked, setIsLiked] = useState<boolean>(false);
-    const [likesCount, setLikesCount] = useState<number>(0);
+    const [likedMap, setLikedMap] = useState<Record<string, boolean>>({});
+    const [likesCountMap, setLikesCountMap] = useState<Record<string, number>>({});
     const [animateLike, setAnimateLike] = useState<boolean>(false);
     const [localAddedToCart, setLocalAddedToCart] = useState<Record<string, boolean>>({});
 
@@ -54,15 +56,18 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
     const imgContainerRef = useRef<HTMLDivElement>(null);
     const thumbnailsRef = useRef<HTMLDivElement>(null);
 
-    // Sync active photo when index or list changes
-    useEffect(() => {
-        if (isGalleryMode && photos[activeIndex]) {
-            const p = photos[activeIndex];
-            setPhoto(p);
-            setLikesCount(p.likes || 0);
-            setIsLiked(Boolean(currentUser && p.liked_by_users && p.liked_by_users.includes(currentUser.id)));
-        }
-    }, [activeIndex, isGalleryMode, photos, currentUser]);
+    // Current like state computed synchronously
+    const isLiked = useMemo(() => {
+        if (!photo) return false;
+        if (likedMap[photo.id] !== undefined) return likedMap[photo.id];
+        return Boolean(currentUser && photo.liked_by_users && photo.liked_by_users.includes(currentUser.id));
+    }, [photo, likedMap, currentUser]);
+
+    const likesCount = useMemo(() => {
+        if (!photo) return 0;
+        if (likesCountMap[photo.id] !== undefined) return likesCountMap[photo.id];
+        return photo.likes || 0;
+    }, [photo, likesCountMap]);
 
     // Scroll active thumbnail into view
     useEffect(() => {
@@ -74,41 +79,24 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
         }
     }, [activeIndex]);
 
-    // Fetch photo details if not supplied in photos list
+    // If single photo mode, fetch its data
     useEffect(() => {
         let isMounted = true;
-
-        const loadPhotoDetails = async () => {
-            if (!activePhotoId) return;
-
-            // If we don't have the photo or need full data
-            if (!currentPhotoFromList) {
-                try {
-                    setLoading(true);
-                    const photoData = await api.getPhotoById(activePhotoId);
-                    if (isMounted && photoData) {
-                        setPhoto(photoData);
-                        setLikesCount(photoData.likes || 0);
-                        if (currentUser && photoData.liked_by_users && photoData.liked_by_users.includes(currentUser.id)) {
-                            setIsLiked(true);
-                        }
+        if (!currentPhotoFromList && initialPhotoId) {
+            setLoadingSingle(true);
+            api.getPhotoById(initialPhotoId)
+                .then(data => {
+                    if (isMounted && data) {
+                        setSinglePhoto(data);
                     }
-                } catch (error) {
-                    console.error("Failed to load photo details", error);
-                } finally {
-                    if (isMounted) setLoading(false);
-                }
-            } else {
-                setLoading(false);
-            }
-        };
-
-        loadPhotoDetails();
-
-        return () => {
-            isMounted = false;
-        };
-    }, [activePhotoId, currentPhotoFromList, currentUser]);
+                })
+                .catch(err => console.error("Failed to load photo", err))
+                .finally(() => {
+                    if (isMounted) setLoadingSingle(false);
+                });
+        }
+        return () => { isMounted = false; };
+    }, [initialPhotoId, currentPhotoFromList]);
 
     // Fetch photographer data with memory cache
     useEffect(() => {
@@ -125,38 +113,40 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
             return;
         }
 
-        const loadPhotographer = async () => {
-            try {
-                const photographerData = await api.getPhotographerById(targetPhotographerId);
+        api.getPhotographerById(targetPhotographerId)
+            .then(photographerData => {
                 if (isMounted && photographerData) {
                     setPhotographer(photographerData);
                     setPhotographerCache(prev => ({ ...prev, [targetPhotographerId]: photographerData }));
                 }
-            } catch (error) {
-                console.error("Failed to load photographer", error);
-            }
-        };
+            })
+            .catch(err => console.error("Failed to load photographer", err));
 
-        loadPhotographer();
-
-        return () => {
-            isMounted = false;
-        };
+        return () => { isMounted = false; };
     }, [photo?.photographer_id, photographerCache]);
 
-    // Preload next and prev images for lightning fast navigation
+    // Aggressive multi-photo Preloader for instant 0ms switching
     useEffect(() => {
         if (!isGalleryMode || photos.length <= 1) return;
 
-        const preloadIndexes = [activeIndex - 1, activeIndex + 1].filter(
-            idx => idx >= 0 && idx < photos.length
-        );
+        // Preload next 5 and prev 3 photos
+        const indicesToPreload = [
+            activeIndex + 1, activeIndex + 2, activeIndex + 3, activeIndex + 4, activeIndex + 5,
+            activeIndex - 1, activeIndex - 2, activeIndex - 3
+        ].filter(idx => idx >= 0 && idx < photos.length);
 
-        preloadIndexes.forEach(idx => {
+        indicesToPreload.forEach(idx => {
             const nextPhoto = photos[idx];
             if (nextPhoto && nextPhoto.preview_url) {
+                // High-res preview preload
                 const img = new Image();
-                img.src = getOptimizedImageUrl(nextPhoto.preview_url, 1400, 85);
+                img.src = getOptimizedImageUrl(nextPhoto.preview_url, 1200, 80);
+
+                // Thumbnail preload
+                if (nextPhoto.thumb_url) {
+                    const thumbImg = new Image();
+                    thumbImg.src = getOptimizedImageUrl(nextPhoto.thumb_url, 600, 75);
+                }
             }
         });
     }, [activeIndex, isGalleryMode, photos]);
@@ -208,7 +198,7 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
             script.onload = () => {
                 setTimeout(() => {
                     cleanupFn = initPlayer();
-                }, 400);
+                }, 300);
             };
             document.body.appendChild(script);
         } else {
@@ -221,7 +211,7 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
         };
     }, [photo]);
 
-    // Navigation functions
+    // Navigation functions (Instant update)
     const goToIndex = useCallback((newIndex: number) => {
         if (!isGalleryMode) return;
         if (newIndex < 0 || newIndex >= photos.length) return;
@@ -276,7 +266,7 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
     const handleTouchEnd = () => {
         if (touchStartX.current === null || touchEndX.current === null) return;
         const diffX = touchStartX.current - touchEndX.current;
-        const minSwipeDistance = 50;
+        const minSwipeDistance = 40;
 
         if (diffX > minSwipeDistance) {
             handleNext();
@@ -310,8 +300,10 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
         }
 
         const newStatus = !isLiked;
-        setIsLiked(newStatus);
-        setLikesCount(prev => (newStatus ? prev + 1 : Math.max(0, prev - 1)));
+        const newCount = newStatus ? likesCount + 1 : Math.max(0, likesCount - 1);
+
+        setLikedMap(prev => ({ ...prev, [photo.id]: newStatus }));
+        setLikesCountMap(prev => ({ ...prev, [photo.id]: newCount }));
 
         if (newStatus) {
             setAnimateLike(true);
@@ -322,8 +314,8 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
             await api.toggleLike(photo.id, currentUser.id);
         } catch (error) {
             // Revert on error
-            setIsLiked(!newStatus);
-            setLikesCount(prev => (newStatus ? Math.max(0, prev - 1) : prev + 1));
+            setLikedMap(prev => ({ ...prev, [photo.id]: !newStatus }));
+            setLikesCountMap(prev => ({ ...prev, [photo.id]: likesCount }));
             console.error("Failed to toggle like", error);
         }
     };
@@ -342,9 +334,13 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
 
     if (!activePhotoId && !photo) return null;
 
+    // Fast image URLs
+    const previewUrl = photo ? getOptimizedImageUrl(photo.preview_url, 1200, 80) : '';
+    const cachedThumbUrl = photo ? getOptimizedImageUrl(photo.thumb_url || photo.preview_url, 600, 75) : '';
+
     return (
         <div 
-            className="fixed inset-0 z-50 flex flex-col bg-neutral-950/95 backdrop-blur-md text-white select-none animate-fadeIn transition-opacity duration-200"
+            className="fixed inset-0 z-50 flex flex-col bg-neutral-950/95 backdrop-blur-md text-white select-none animate-fadeIn"
             onClick={onClose}
         >
             {/* ── Top Header Bar ────────────────────────────────────────── */}
@@ -368,7 +364,7 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
                     {photo && (
                         <button
                             onClick={handleToggleLike}
-                            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
+                            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-150 ${
                                 isLiked
                                     ? 'bg-red-500/20 text-red-400 border border-red-500/40 hover:bg-red-500/30'
                                     : 'bg-white/10 text-neutral-300 hover:bg-white/20 border border-white/10'
@@ -377,7 +373,7 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
                         >
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"
-                                className={`w-4 h-4 transition-transform duration-300 ${
+                                className={`w-4 h-4 transition-transform duration-200 ${
                                     isLiked ? 'fill-current text-red-500' : 'fill-none stroke-current'
                                 } ${animateLike ? 'scale-130' : 'scale-100'}`}
                                 viewBox="0 0 24 24"
@@ -417,7 +413,7 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
                         onClick={handlePrev}
                         disabled={activeIndex === 0}
                         aria-label="Foto anterior"
-                        className={`absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 z-30 w-11 h-11 sm:w-14 sm:h-14 rounded-full flex items-center justify-center transition-all duration-200 shadow-2xl backdrop-blur-md ${
+                        className={`absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 z-30 w-11 h-11 sm:w-14 sm:h-14 rounded-full flex items-center justify-center transition-all duration-150 shadow-2xl backdrop-blur-md ${
                             activeIndex === 0
                                 ? 'opacity-0 pointer-events-none'
                                 : 'bg-black/50 hover:bg-black/80 border border-white/20 text-white hover:scale-105 active:scale-95'
@@ -436,7 +432,7 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
                         onClick={handleNext}
                         disabled={activeIndex === photos.length - 1}
                         aria-label="Próxima foto"
-                        className={`absolute right-3 sm:right-6 lg:right-[380px] top-1/2 -translate-y-1/2 z-30 w-11 h-11 sm:w-14 sm:h-14 rounded-full flex items-center justify-center transition-all duration-200 shadow-2xl backdrop-blur-md ${
+                        className={`absolute right-3 sm:right-6 lg:right-[380px] top-1/2 -translate-y-1/2 z-30 w-11 h-11 sm:w-14 sm:h-14 rounded-full flex items-center justify-center transition-all duration-150 shadow-2xl backdrop-blur-md ${
                             activeIndex === photos.length - 1
                                 ? 'opacity-0 pointer-events-none'
                                 : 'bg-black/50 hover:bg-black/80 border border-white/20 text-white hover:scale-105 active:scale-95'
@@ -454,7 +450,7 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
                     ref={imgContainerRef}
                     className="flex-1 w-full h-full flex items-center justify-center overflow-hidden relative min-h-[280px]"
                 >
-                    {loading ? (
+                    {loadingSingle ? (
                         <div className="flex flex-col items-center justify-center p-8">
                             <Spinner size="lg" label="Carregando foto..." />
                         </div>
@@ -487,17 +483,19 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
                             </div>
                             <div className="p-2.5 bg-amber-950/70 border border-amber-500/30 text-amber-200 rounded-lg flex items-center space-x-2 text-xs shadow-sm">
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-amber-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                                 <span>O vídeo de prévia está sem áudio. O som original em alta definição estará disponível no download após a compra.</span>
                             </div>
                         </div>
                     ) : (
-                        <div className="relative max-w-full max-h-[70vh] lg:max-h-[82vh] flex items-center justify-center">
+                        <div key={photo.id} className="relative max-w-full max-h-[70vh] lg:max-h-[82vh] flex items-center justify-center">
                             <WatermarkedImage
-                                src={getOptimizedImageUrl(photo.preview_url, 1600, 88)}
+                                src={previewUrl}
+                                placeholderSrc={cachedThumbUrl}
+                                instant={true}
                                 alt={photo.title}
-                                className="w-auto h-auto max-w-full max-h-[65vh] lg:max-h-[78vh] object-contain rounded-lg shadow-2xl transition-transform duration-200"
+                                className="w-auto h-auto max-w-full max-h-[65vh] lg:max-h-[78vh] object-contain rounded-lg shadow-2xl"
                             />
                         </div>
                     )}
@@ -574,7 +572,7 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
                             <div className="space-y-2 pt-1">
                                 <button
                                     onClick={handleAddToCartClick}
-                                    className={`w-full py-3.5 px-4 rounded-xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition-all duration-200 shadow-lg cursor-pointer ${
+                                    className={`w-full py-3.5 px-4 rounded-xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition-all duration-150 shadow-lg cursor-pointer ${
                                         isCurrentPhotoInCart
                                             ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
                                             : 'bg-primary hover:bg-primary-dark text-white hover:shadow-primary/30 active:scale-98'
@@ -626,7 +624,7 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
                                     key={p.id}
                                     data-thumb-index={index}
                                     onClick={() => goToIndex(index)}
-                                    className={`relative flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden transition-all duration-200 cursor-pointer ${
+                                    className={`relative flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden transition-all duration-150 cursor-pointer ${
                                         isSelected 
                                             ? 'ring-2 ring-primary scale-110 opacity-100 shadow-md' 
                                             : 'opacity-50 hover:opacity-85 hover:scale-105'
