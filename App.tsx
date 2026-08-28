@@ -595,7 +595,7 @@ const MainApp: React.FC = () => {
             case 'category':
                 return <CategoryPage categoryId={currentPage.id} onNavigate={handleNavigate} onAddToCart={handleAddToCart} currentUser={currentUser} />;
             case 'event':
-                return <EventPage eventId={currentPage.id} onNavigate={handleNavigate} onAddToCart={handleAddToCart} currentUser={currentUser} />;
+                return <EventPage eventId={currentPage.id} onNavigate={handleNavigate} onAddToCart={handleAddToCart} cartItems={cartItems} currentUser={currentUser} />;
             case 'photo-detail':
                 return <PhotoDetailPage
                     photoId={currentPage.id}
@@ -730,7 +730,12 @@ const MainApp: React.FC = () => {
                     photoId={selectedPhotoId}
                     onClose={() => setSelectedPhotoId(null)}
                     onAddToCart={handleAddToCart}
-                    onBuy={handleBuyPhoto}
+                    onBuy={(id) => {
+                        handleAddToCart(id);
+                        handleNavigate({ name: 'cart' });
+                    }}
+                    cartItems={cartItems}
+                    currentUser={currentUser}
                 />
             )}
             <CookieBanner onNavigate={handleNavigate} />

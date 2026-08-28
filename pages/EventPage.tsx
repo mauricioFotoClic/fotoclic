@@ -3,6 +3,7 @@ import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { Photo, User, PhotoEvent, Page } from '../types';
 import api from '../services/api';
 import PhotoCard from '../components/PhotoCard';
+import PhotoDetailModal from '../components/PhotoDetailModal';
 import SEO from '../components/SEO';
 import FloatingShareButton from '../components/FloatingShareButton';
 import { getAvatarFallbackUrl } from '../utils/stringUtils';
@@ -30,13 +31,15 @@ interface EventPageProps {
   eventId: string;
   onNavigate: (page: Page) => void;
   onAddToCart: (photoId: string, imgElement?: HTMLImageElement) => void;
+  cartItems?: string[];
   currentUser?: User | null;
 }
 
-const EventPage: React.FC<EventPageProps> = ({ eventId, onNavigate, onAddToCart, currentUser }) => {
+const EventPage: React.FC<EventPageProps> = ({ eventId, onNavigate, onAddToCart, cartItems = [], currentUser }) => {
   const { showToast } = useToast();
   const [event, setEvent] = useState<PhotoEvent | null>(null);
   const [photos, setPhotos] = useState<Photo[]>([]);
+  const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
   const [photographer, setPhotographer] = useState<User | null>(null);
   const [photographers, setPhotographers] = useState<User[]>([]);
   const [loadingEvent, setLoadingEvent] = useState(true);
@@ -74,6 +77,34 @@ const EventPage: React.FC<EventPageProps> = ({ eventId, onNavigate, onAddToCart,
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
+
+  // Sincronização com o botão Voltar do navegador/celular
+  useEffect(() => {
+    const handlePopState = () => {
+      if (selectedPhotoIndex !== null) {
+        setSelectedPhotoIndex(null);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [selectedPhotoIndex]);
+
+  const handleOpenPhoto = (photo: Photo) => {
+    const idx = filteredPhotos.findIndex(p => p.id === photo.id);
+    if (idx !== -1) {
+      if (!window.history.state?.lightboxOpen) {
+        window.history.pushState({ lightboxOpen: true }, '');
+      }
+      setSelectedPhotoIndex(idx);
+    }
+  };
+
+  const handleCloseLightbox = () => {
+    if (window.history.state?.lightboxOpen) {
+      window.history.back();
+    }
+    setSelectedPhotoIndex(null);
+  };
 
   const eventUrl = typeof window !== 'undefined' ? `${window.location.origin}/evento/${eventId}` : '';
 
@@ -477,6 +508,7 @@ const EventPage: React.FC<EventPageProps> = ({ eventId, onNavigate, onAddToCart,
                   photographer={getPhotographerForPhoto(photo.photographer_id)}
                   onNavigate={onNavigate}
                   onAddToCart={onAddToCart}
+                  onSelectPhoto={handleOpenPhoto}
                   currentUser={currentUser}
                 />
               ))}
@@ -625,6 +657,23 @@ const EventPage: React.FC<EventPageProps> = ({ eventId, onNavigate, onAddToCart,
             title={event.name}
             text={`Confira as fotos do evento ${event.name} no FotoClic`}
             url={window.location.href}
+        />
+      )}
+
+      {/* ── Modal Lightbox de Galeria de Fotos ────────────────────────────── */}
+      {selectedPhotoIndex !== null && selectedPhotoIndex >= 0 && selectedPhotoIndex < filteredPhotos.length && (
+        <PhotoDetailModal
+          photos={filteredPhotos}
+          currentIndex={selectedPhotoIndex}
+          onNavigatePhoto={(newIdx) => setSelectedPhotoIndex(newIdx)}
+          onClose={handleCloseLightbox}
+          onAddToCart={onAddToCart}
+          onBuy={(photoId) => {
+            onAddToCart(photoId);
+            onNavigate({ name: 'cart' });
+          }}
+          cartItems={cartItems}
+          currentUser={currentUser}
         />
       )}
     </div>

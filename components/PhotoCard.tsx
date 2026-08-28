@@ -11,6 +11,7 @@ interface PhotoCardProps {
     photographer?: User;
     onNavigate?: (page: Page) => void;
     onAddToCart?: (photoId: string, imgElement?: HTMLImageElement) => void;
+    onSelectPhoto?: (photo: Photo) => void;
     currentUser?: User | null;
     loading?: "lazy" | "eager";
 }
@@ -30,7 +31,7 @@ const HeartIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
 );
 
 
-const PhotoCard: React.FC<PhotoCardProps> = ({ photo, photographer, onNavigate, onAddToCart, currentUser, loading }) => {
+const PhotoCard: React.FC<PhotoCardProps> = ({ photo, photographer, onNavigate, onAddToCart, onSelectPhoto, currentUser, loading }) => {
     const [isVisible, setIsVisible] = useState(false);
     const [isLiked, setIsLiked] = useState(false);
     const [likesCount, setLikesCount] = useState(photo.likes);
@@ -47,7 +48,9 @@ const PhotoCard: React.FC<PhotoCardProps> = ({ photo, photographer, onNavigate, 
 
     const handleDetailsClick = (e: React.MouseEvent) => {
         e.preventDefault();
-        if (onNavigate) {
+        if (onSelectPhoto) {
+            onSelectPhoto(photo);
+        } else if (onNavigate) {
             onNavigate({ name: 'photo-detail', id: photo.id });
         }
     };
