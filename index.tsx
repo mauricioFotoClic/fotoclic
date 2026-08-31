@@ -24,6 +24,35 @@ if (SENTRY_DSN) {
     replaysSessionSampleRate: 0.1,
     replaysOnErrorSampleRate: 1.0, // 100% de gravação visual quando houver erro
     environment: import.meta.env.MODE || 'production',
+
+    // 🛡️ Filtro de Ruídos: Ignorar erros conhecidos de WebViews do Android (Instagram/Facebook/TikTok) e extensões
+    ignoreErrors: [
+      'Error invoking postMessage: Java object is gone',
+      'Error invoking postMessage: Java exception was raised during method invocation',
+      'Java object is gone',
+      'Java exception was raised during method invocation',
+      'ResizeObserver loop limit exceeded',
+      'ResizeObserver loop completed with undelivered notifications',
+      'Non-Error promise rejection captured',
+      'Network request failed',
+    ],
+    denyUrls: [
+      // Extensões de navegadores
+      /extensions\//i,
+      /^chrome:\/\//i,
+      /^chrome-extension:\/\//i,
+      /^moz-extension:\/\//i,
+    ],
+    beforeSend(event, hint) {
+      const errorMsg = hint?.originalException?.toString?.() || event?.message || '';
+      if (
+        /postMessage/i.test(errorMsg) &&
+        (/Java object is gone/i.test(errorMsg) || /Java exception/i.test(errorMsg))
+      ) {
+        return null; // Descarta o evento silenciosamente
+      }
+      return event;
+    },
   });
 }
 

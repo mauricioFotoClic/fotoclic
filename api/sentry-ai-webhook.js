@@ -543,6 +543,17 @@ export default async function handler(req, res) {
     }
     const errorTitle = String(rawTitle);
 
+    // 🛡️ Ignorar ruídos de terceiros (WebViews do Android, extensões do navegador, etc.)
+    if (
+      /Java object is gone/i.test(errorTitle) ||
+      /Java exception was raised/i.test(errorTitle) ||
+      /ResizeObserver loop/i.test(errorTitle) ||
+      /chrome-extension/i.test(errorTitle)
+    ) {
+      console.log(`[Sentry Webhook Filter] Ruído de WebView ignorado: ${errorTitle}`);
+      return res.status(200).json({ ok: true, message: 'Ruído de WebView ignorado com sucesso.' });
+    }
+
     const errorDetails = typeof issue.culprit === 'string' ? issue.culprit : (typeof event.culprit === 'string' ? event.culprit : '');
     const filename = typeof event.location === 'string' ? event.location : (issue.metadata?.filename || 'FotoClic Application');
     const stacktrace = typeof event.entries === 'object' ? JSON.stringify(event.entries) : (event.stacktrace || '');
