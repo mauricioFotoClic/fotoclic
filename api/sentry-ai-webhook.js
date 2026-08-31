@@ -6,6 +6,7 @@ import {
   notifyNewProducerRegistration,
   notifyNewSaleToTelegram,
   notifyPayoutRequestToTelegram,
+  notifyRegistrationFailure,
   sendTelegramMenu
 } from '../lib/telegram-ai-service.js';
 import { sendLocawebEmail } from '../lib/sale-notifications.js';
@@ -516,6 +517,18 @@ export default async function handler(req, res) {
         pixKey: body.pixKey,
         pixKeyType: body.pixKeyType,
         amount: body.amount
+      });
+      return res.status(200).json({ success });
+    }
+
+    if (action === 'registration_failed') {
+      const success = await notifyRegistrationFailure({
+        role: body.role,
+        name: body.name,
+        email: body.email,
+        phone: body.phone,
+        errorMessage: body.errorMessage || body.error,
+        stack: body.stack
       });
       return res.status(200).json({ success });
     }

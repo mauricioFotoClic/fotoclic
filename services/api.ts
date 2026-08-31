@@ -2261,107 +2261,135 @@ export const api = {
     password?: string;
     phone?: string;
   }): Promise<RegisterResponse | undefined> => {
-    // 1. Create Auth User
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email: data.email,
-      password: data.password || "temp-pass-123", // Handle nullable password edge case
-    });
-
-    if (authError) throw authError;
-    if (!authData.user)
-      throw new Error("Falha ao criar usuário de autenticação.");
-
-    // 2. Create Public Profile with SAME ID
-    // NOTE: password is managed by Supabase Auth (signUp above).
-    // Do NOT insert password into the public users table — the column does not exist.
-    const { password: _pw, ...dataWithoutPassword } = data as any;
-    const isPhotographer = (data.role as any) === UserRole.PHOTOGRAPHER || (data.role as any) === 'photographer';
-    const isProducer = (data.role as any) === UserRole.PRODUCER || (data.role as any) === 'producer';
-    const userData: any = {
-      id: authData.user.id, // CRITICAL: Sync IDs
-      ...dataWithoutPassword,
-      name: formatNameAsTitleCase(data.name),
-      is_active: isProducer ? false : true, // Produtores entram pendentes para moderação do admin
-    };
-
-    const { data: newUser, error } = await supabase
-      .from("users")
-      .insert(userData)
-      .select()
-      .single();
-
-    if (error) {
-      throw error;
-    }
-
-    // Disparar notificações no Telegram
+    let authData: any = null;
     try {
-      if (isProducer) {
-        fetch('/api/sentry-ai-webhook', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'new_producer',
-            id: newUser.id,
-            name: newUser.name,
-            email: newUser.email,
-            phone: data.phone,
-            company_name: (data as any).company_name
-          })
-        }).catch(() => {});
+      // 1. Create Auth User
+      const resAuth = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password || "temp-pass-123", // Handle nullable password edge case
+      });
 
-        // E-mail para o Produtor (confirmação em moderação) e para o Admin
-        import("./emailService").then(({ emailService }) => {
-          emailService.sendProducerPendingModerationEmail(newUser.email, newUser.name);
-          emailService.sendNewProducerAdminNotification(newUser.name, newUser.email, (data as any).company_name);
-        }).catch(e => console.warn("Failed to send producer registration emails", e));
-      } else if (isPhotographer) {
-        // Vincular automaticamente convites pendentes de produtores enviados para este e-mail
-        supabase
-          .from("event_collaborators")
-          .update({ photographer_id: newUser.id })
-          .eq("invited_email", newUser.email.trim().toLowerCase())
-          .then(() => {})
-          .catch((e) => console.warn("Notice: Failed to link invited collaborators on signup:", e));
+      if (resAuth.error) throw resAuth.error;
+      if (!resAuth.data.user)
+        throw new Error("Falha ao criar usuário de autenticação.");
 
-        fetch('/api/sentry-ai-webhook', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'new_photographer',
-            id: newUser.id,
-            name: newUser.name,
-            email: newUser.email,
-            phone: data.phone,
-            location: newUser.location
-          })
-        }).catch(() => {});
+      authData = resAuth.data;
 
-        // E-mail para admin
-        import("./emailService").then(({ emailService }) => {
-          emailService.sendNewPhotographerNotification(data.name, data.email);
-        });
-      } else {
-        fetch('/api/sentry-ai-webhook', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'new_customer',
-            id: newUser.id,
-            name: newUser.name,
-            email: newUser.email,
-            phone: data.phone
-          })
-        }).catch(() => {});
+      // 2. Create Public Profile with SAME ID
+      // NOTE: password is managed by Supabase Auth (signUp above).
+      // Do NOT insert password into the public users table — the column does not exist.
+      const { password: _pw, ...dataWithoutPassword } = data as any;
+      const isPhotographer = (data.role as any) === UserRole.PHOTOGRAPHER || (data.role as any) === 'photographer';
+      const isProducer = (data.role as any) === UserRole.PRODUCER || (data.role as any) === 'producer';
+      const userData: any = {
+        id: authData.user.id, // CRITICAL: Sync IDs
+        ...dataWithoutPassword,
+        name: formatNameAsTitleCase(data.name),
+        is_active: isProducer ? false : true, // Produtores entram pendentes para moderação do admin
+      };
+
+      const { data: newUser, error } = await supabase
+        .from("users")
+        .insert(userData)
+        .select()
+        .single();
+
+      if (error) {
+        throw error;
       }
-    } catch (notifyErr) {
-      console.warn("[Register Notification Error]:", notifyErr);
-    }
 
-    return {
-      user: mapUser(newUser),
-      session: authData.session,
-    };
+      // Disparar notificações no Telegram
+      try {
+        if (isProducer) {
+          fetch('/api/sentry-ai-webhook', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'new_producer',
+              id: newUser.id,
+              name: newUser.name,
+              email: newUser.email,
+              phone: data.phone,
+              company_name: (data as any).company_name
+            })
+          }).catch(() => {});
+
+          // E-mail para o Produtor (confirmação em moderação) e para o Admin
+          import("./emailService").then(({ emailService }) => {
+            emailService.sendProducerPendingModerationEmail(newUser.email, newUser.name);
+            emailService.sendNewProducerAdminNotification(newUser.name, newUser.email, (data as any).company_name);
+          }).catch(e => console.warn("Failed to send producer registration emails", e));
+        } else if (isPhotographer) {
+          // Vincular automaticamente convites pendentes de produtores enviados para este e-mail
+          supabase
+            .from("event_collaborators")
+            .update({ photographer_id: newUser.id })
+            .eq("invited_email", newUser.email.trim().toLowerCase())
+            .then(
+              () => {},
+              (e: any) => console.warn("Notice: Failed to link invited collaborators on signup:", e)
+            );
+
+          void fetch('/api/sentry-ai-webhook', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'new_photographer',
+              id: newUser.id,
+              name: newUser.name,
+              email: newUser.email,
+              phone: data.phone,
+              location: newUser.location
+            })
+          });
+
+          // E-mail para admin
+          import("./emailService").then(({ emailService }) => {
+            emailService.sendNewPhotographerNotification(data.name, data.email);
+          });
+        } else {
+          void fetch('/api/sentry-ai-webhook', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'new_customer',
+              id: newUser.id,
+              name: newUser.name,
+              email: newUser.email,
+              phone: data.phone
+            })
+          });
+        }
+      } catch (notifyErr) {
+        console.warn("[Register Notification Error]:", notifyErr);
+      }
+
+      return {
+        user: mapUser(newUser),
+        session: authData.session,
+      };
+    } catch (err: any) {
+      // Notificar o Bot de Monitoramento imediatamente sobre a falha de cadastro
+      try {
+        void fetch('/api/sentry-ai-webhook', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'registration_failed',
+            role: data.role,
+            name: data.name,
+            email: data.email,
+            phone: data.phone,
+            errorMessage: err?.message || String(err),
+            stack: err?.stack || ''
+          })
+        });
+      } catch (e) {
+        console.warn('[Registration Failure Report Error]:', e);
+      }
+
+      throw err;
+    }
   },
 
   updateUserLiabilityWaiver: async (userId: string): Promise<boolean> => {
