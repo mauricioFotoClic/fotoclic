@@ -1,6 +1,17 @@
 import { createClient } from '@supabase/supabase-js';
+import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import appmax from '../lib/appmax-client.js';
 import { sendSaleNotifications } from '../lib/sale-notifications.js';
+
+const s3Client = new S3Client({
+  region: process.env.AWS_REGION || 'us-east-1',
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  },
+});
+const S3_BUCKET = process.env.AWS_S3_BUCKET || 'fotoclic-media-storage';
 
 export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Credentials', true);
@@ -163,7 +174,23 @@ export default async function handler(req, res) {
             return res.status(200).json({ url: fallbackUrl });
         }
 
-        // 5. Gerar signed URL do bucket privado do Supabase (válida 1 hora) para fotos
+        // 5. Se o arquivo estiver no Amazon S3 (pasta originals/ ou s3 Key)
+        if (photo.file_url && (photo.file_url.startsWith('originals/') || photo.file_url.includes('s3.amazonaws.com') || photo.file_url.startsWith('s3://'))) {
+            try {
+                let cleanKey = photo.file_url.replace(/^https?:\/\/[^\/]+\//, '').replace(/^s3:\/\/[^\/]+\//, '');
+                const getCmd = new GetObjectCommand({
+                    Bucket: S3_BUCKET,
+                    Key: cleanKey,
+                });
+                const s3SignedUrl = await getSignedUrl(s3Client, getCmd, { expiresIn: 7200 });
+                console.log(`[DownloadURL] Link AWS S3 gerado: user=${userId} photo=${photoId}`);
+                return res.status(200).json({ url: s3SignedUrl });
+            } catch (s3DownloadErr) {
+                console.warn('[DownloadURL] Falha ao gerar link do S3, tentando Supabase fallback:', s3DownloadErr.message);
+            }
+        }
+
+        // 6. Gerar signed URL do bucket privado do Supabase (para fotos do acervo legado)
         const { data: signedData, error: signedError } = await adminClient.storage
             .from('photos-original')
             .createSignedUrl(photo.file_url, 3600);
@@ -173,7 +200,7 @@ export default async function handler(req, res) {
             return res.status(500).json({ error: 'Não foi possível gerar o link de download.' });
         }
 
-        console.log(`[DownloadURL] Link gerado: user=${userId} photo=${photoId}`);
+        console.log(`[DownloadURL] Link Supabase gerado: user=${userId} photo=${photoId}`);
         return res.status(200).json({ url: signedData.signedUrl });
 
     } catch (error) {

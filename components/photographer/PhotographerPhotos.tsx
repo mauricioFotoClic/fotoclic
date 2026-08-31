@@ -14,6 +14,7 @@ import BatchUploadForm from './BatchUploadForm';
 
 import { faceRecognitionService } from '../../services/faceRecognition';
 import { processImageForUpload, processImageFast } from '../../utils/imageProcessing';
+import { s3Service } from '../../services/s3Service';
 
 import { useToast } from '../../contexts/ToastContext';
 import { useConfirm } from '../../contexts/ConfirmContext';
@@ -407,28 +408,47 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                     const { thumbBlob, previewBlob, width, height } = await processImageFast(file);
 
                     const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`; 
-                    const filePath = `${user.id}/${selectedEvent.id}/${fileName}`;
+                    let previewUrl = '';
+                    let thumbUrl = '';
+                    let fileUrl = '';
 
-                    const [prevRes, thumbRes] = await Promise.all([
-                        api.supabase.storage.from('photos-preview').upload(`${filePath}-preview.webp`, previewBlob, { upsert: true }),
-                        api.supabase.storage.from('photos-preview').upload(`${filePath}-thumb.webp`, thumbBlob, { upsert: true })
-                    ]);
-
-                    if (prevRes.error) throw prevRes.error;
-                    if (thumbRes.error) throw thumbRes.error;
-
-                    // Upload original photo to private bucket if authenticated session exists
+                    // ⚡ Tentativa 1: Upload Direto para AWS S3 de Alta Velocidade
                     try {
-                        const { data: { user: authUser } } = await api.supabase.auth.getUser();
-                        if (authUser) {
-                            await api.supabase.storage.from('photos-original').upload(`${filePath}-original.${fileExt}`, file, { upsert: true });
-                        }
-                    } catch (e) {
-                        // Silently ignore private bucket upload restrictions for custom sessions
-                    }
+                        const [prevS3, thumbS3, origS3] = await Promise.all([
+                            s3Service.uploadDirect(previewBlob, 'previews', user.id, selectedEvent.id, `${fileName}-preview.webp`),
+                            s3Service.uploadDirect(thumbBlob, 'thumbs', user.id, selectedEvent.id, `${fileName}-thumb.webp`),
+                            s3Service.uploadDirect(file, 'originals', user.id, selectedEvent.id, `${fileName}-original.${fileExt}`)
+                        ]);
 
-                    const { data: prevUrlData } = api.supabase.storage.from('photos-preview').getPublicUrl(`${filePath}-preview.webp`);
-                    const { data: thumbUrlData } = api.supabase.storage.from('photos-preview').getPublicUrl(`${filePath}-thumb.webp`);
+                        previewUrl = prevS3.publicUrl;
+                        thumbUrl = thumbS3.publicUrl;
+                        fileUrl = origS3.s3Key;
+                    } catch (s3Err) {
+                        console.warn("[Upload Flash] Fallback para Supabase Storage devido a:", s3Err);
+
+                        // 🛡️ Fallback de Segurança 2: Supabase Storage
+                        const filePath = `${user.id}/${selectedEvent.id}/${fileName}`;
+                        const [prevRes, thumbRes] = await Promise.all([
+                            api.supabase.storage.from('photos-preview').upload(`${filePath}-preview.webp`, previewBlob, { upsert: true }),
+                            api.supabase.storage.from('photos-preview').upload(`${filePath}-thumb.webp`, thumbBlob, { upsert: true })
+                        ]);
+
+                        if (prevRes.error) throw prevRes.error;
+                        if (thumbRes.error) throw thumbRes.error;
+
+                        try {
+                            const { data: { user: authUser } } = await api.supabase.auth.getUser();
+                            if (authUser) {
+                                await api.supabase.storage.from('photos-original').upload(`${filePath}-original.${fileExt}`, file, { upsert: true });
+                            }
+                        } catch (e) {}
+
+                        const { data: prevUrlData } = api.supabase.storage.from('photos-preview').getPublicUrl(`${filePath}-preview.webp`);
+                        const { data: thumbUrlData } = api.supabase.storage.from('photos-preview').getPublicUrl(`${filePath}-thumb.webp`);
+                        previewUrl = prevUrlData.publicUrl;
+                        thumbUrl = thumbUrlData.publicUrl;
+                        fileUrl = `${filePath}-original.${fileExt}`;
+                    }
 
                     const newPhoto = await api.createPhoto({
                         photographer_id: user.id,
@@ -436,9 +456,9 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                         title: title,
                         description: `ORIGINAL_FILENAME:${file.name}`,
                         price: metadata.price,
-                        preview_url: prevUrlData.publicUrl,
-                        file_url: `${filePath}-original.${fileExt}`,
-                        thumb_url: thumbUrlData.publicUrl,
+                        preview_url: previewUrl,
+                        file_url: fileUrl,
+                        thumb_url: thumbUrl,
                         resolution: '4K',
                         width: width,
                         height: height,
@@ -477,8 +497,8 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
             }
         };
 
-        // Execution with concurrency limit (5 files simultaneously)
-        const CONCURRENCY = 5;
+        // Execution with concurrency limit (10 files simultaneously)
+        const CONCURRENCY = 10;
         const fileEntries = Array.from(files.entries());
         const executeTasks = async () => {
             const workers = [];
