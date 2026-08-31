@@ -42,6 +42,49 @@ export default async function handler(req, res) {
     try {
         const { photoId, action } = req.body || {};
 
+        // Rota para geração de Presigned Upload URLs do S3 (Flash Upload)
+        if (action === 'getUploadUrl' || action === 's3-upload-url' || req.query.action === 'getUploadUrl') {
+            const { fileName, fileType, folder = 'previews', photographerId, eventId } = req.body || {};
+            if (!fileName || !photographerId || !eventId) {
+                return res.status(400).json({ error: 'Parâmetros obrigatórios ausentes (fileName, photographerId, eventId).' });
+            }
+            const { S3Client, PutObjectCommand } = await import('@aws-sdk/client-s3');
+            const { getSignedUrl } = await import('@aws-sdk/s3-request-presigner');
+            const BUCKET_NAME = process.env.AWS_S3_BUCKET || 'fotoclic-media-storage';
+            const REGION = process.env.AWS_REGION || 'us-east-1';
+
+            const s3Client = new S3Client({
+                region: REGION,
+                credentials: {
+                    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+                    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+                },
+            });
+
+            const cleanPhotographerId = String(photographerId).replace(/[^a-zA-Z0-9_-]/g, '');
+            const cleanEventId = String(eventId).replace(/[^a-zA-Z0-9_-]/g, '');
+            const cleanFileName = String(fileName).replace(/[^a-zA-Z0-9._-]/g, '');
+
+            const key = `${folder}/${cleanPhotographerId}/${cleanEventId}/${cleanFileName}`;
+
+            const putCommand = new PutObjectCommand({
+                Bucket: BUCKET_NAME,
+                Key: key,
+                ContentType: fileType || 'image/jpeg',
+            });
+
+            const uploadUrl = await getSignedUrl(s3Client, putCommand, { expiresIn: 900 });
+            const publicUrl = `https://${BUCKET_NAME}.s3.${REGION}.amazonaws.com/${key}`;
+
+            return res.status(200).json({
+                uploadUrl,
+                publicUrl,
+                s3Key: key,
+                bucket: BUCKET_NAME,
+                region: REGION
+            });
+        }
+
         // Rota para buscar compras do usuário autenticado com fotos e fotógrafos
         if (action === 'get-purchases' || req.query.action === 'get-purchases') {
             return await handleGetPurchases(req, res, userJwt, supabaseUrl, serviceKey);

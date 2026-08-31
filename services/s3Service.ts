@@ -20,8 +20,8 @@ export const s3Service = {
     fileName: string
   ): Promise<S3UploadResult> {
     const apiUrl = typeof window !== 'undefined' 
-      ? `${window.location.protocol}//${window.location.host}/api/s3-upload-url`
-      : '/api/s3-upload-url';
+      ? `${window.location.protocol}//${window.location.host}/api/get-download-url`
+      : '/api/get-download-url';
 
     // 1. Solicita a URL pré-assinada de upload para a AWS
     const res = await fetch(apiUrl, {
@@ -65,8 +65,8 @@ export const s3Service = {
    */
   async getSecureDownloadUrl(s3Key: string, photographerId: string, eventId: string): Promise<string> {
     const apiUrl = typeof window !== 'undefined' 
-      ? `${window.location.protocol}//${window.location.host}/api/s3-upload-url`
-      : '/api/s3-upload-url';
+      ? `${window.location.protocol}//${window.location.host}/api/get-download-url`
+      : '/api/get-download-url';
 
     const fileName = s3Key.split('/').pop() || 'photo.jpg';
 
