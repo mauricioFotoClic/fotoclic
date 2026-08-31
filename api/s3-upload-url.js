@@ -1,17 +1,3 @@
-import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-
-const s3Client = new S3Client({
-  region: process.env.AWS_REGION || 'us-east-1',
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  },
-});
-
-const BUCKET_NAME = process.env.AWS_S3_BUCKET || 'fotoclic-media-storage';
-const REGION = process.env.AWS_REGION || 'us-east-1';
-
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -26,6 +12,20 @@ export default async function handler(req, res) {
   }
 
   try {
+    const { S3Client, PutObjectCommand, GetObjectCommand } = await import('@aws-sdk/client-s3');
+    const { getSignedUrl } = await import('@aws-sdk/s3-request-presigner');
+
+    const BUCKET_NAME = process.env.AWS_S3_BUCKET || 'fotoclic-media-storage';
+    const REGION = process.env.AWS_REGION || 'us-east-1';
+
+    const s3Client = new S3Client({
+      region: REGION,
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+      },
+    });
+
     const { 
       fileName, 
       fileType, 
@@ -33,7 +33,7 @@ export default async function handler(req, res) {
       photographerId, 
       eventId,
       action = 'getUploadUrl' // 'getUploadUrl' | 'getDownloadUrl'
-    } = req.body;
+    } = req.body || {};
 
     if (!fileName || !photographerId || !eventId) {
       return res.status(400).json({ error: 'Parâmetros obrigatórios ausentes (fileName, photographerId, eventId).' });

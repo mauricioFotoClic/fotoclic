@@ -1,17 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
-import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import appmax from '../lib/appmax-client.js';
 import { sendSaleNotifications } from '../lib/sale-notifications.js';
-
-const s3Client = new S3Client({
-  region: process.env.AWS_REGION || 'us-east-1',
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  },
-});
-const S3_BUCKET = process.env.AWS_S3_BUCKET || 'fotoclic-media-storage';
 
 export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Credentials', true);
@@ -177,6 +166,17 @@ export default async function handler(req, res) {
         // 5. Se o arquivo estiver no Amazon S3 (pasta originals/ ou s3 Key)
         if (photo.file_url && (photo.file_url.startsWith('originals/') || photo.file_url.includes('s3.amazonaws.com') || photo.file_url.startsWith('s3://'))) {
             try {
+                const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
+                const { getSignedUrl } = await import('@aws-sdk/s3-request-presigner');
+                const S3_BUCKET = process.env.AWS_S3_BUCKET || 'fotoclic-media-storage';
+                const s3Client = new S3Client({
+                    region: process.env.AWS_REGION || 'us-east-1',
+                    credentials: {
+                        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+                        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+                    },
+                });
+
                 let cleanKey = photo.file_url.replace(/^https?:\/\/[^\/]+\//, '').replace(/^s3:\/\/[^\/]+\//, '');
                 const getCmd = new GetObjectCommand({
                     Bucket: S3_BUCKET,
