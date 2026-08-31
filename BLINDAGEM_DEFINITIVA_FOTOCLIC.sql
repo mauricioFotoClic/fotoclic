@@ -107,12 +107,12 @@ BEGIN
     -- NO INSERT (Novo cadastro):
     IF TG_OP = 'INSERT' THEN
         -- Se um usuário comum tentar enviar 'admin', força para 'customer' (ou mantém se for 'photographer'/'producer')
-        IF NEW.role = 'admin' AND NOT is_caller_admin THEN
+        IF NEW.role::text = 'admin' AND NOT is_caller_admin THEN
             NEW.role := 'customer';
         END IF;
 
         -- Garante que o role nunca seja nulo
-        IF NEW.role IS NULL OR trim(NEW.role) = '' THEN
+        IF NEW.role IS NULL OR trim(NEW.role::text) = '' THEN
             NEW.role := 'customer';
         END IF;
 
@@ -122,7 +122,7 @@ BEGIN
     -- NO UPDATE (Edição de perfil):
     IF TG_OP = 'UPDATE' THEN
         -- Se o papel foi alterado para 'admin' ou modificado sem ser admin, bloqueia
-        IF (NEW.role <> OLD.role) AND NOT is_caller_admin THEN
+        IF (NEW.role::text <> OLD.role::text) AND NOT is_caller_admin THEN
             -- Mantém o papel original intacto
             NEW.role := OLD.role;
         END IF;
