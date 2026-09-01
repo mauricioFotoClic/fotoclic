@@ -31,14 +31,6 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: 'Erro de configuração do servidor.' });
     }
 
-    // --- Extrair JWT do usuário autenticado ---
-    const authHeader = req.headers.authorization || '';
-    const userJwt = authHeader.replace('Bearer ', '').trim();
-
-    if (!userJwt) {
-        return res.status(401).json({ error: 'Não autenticado.' });
-    }
-
     try {
         const { photoId, action } = req.body || {};
 
@@ -83,6 +75,14 @@ export default async function handler(req, res) {
                 bucket: BUCKET_NAME,
                 region: REGION
             });
+        }
+
+        // --- Extrair JWT do usuário autenticado para operações de compra/download ---
+        const authHeader = req.headers.authorization || '';
+        const userJwt = authHeader.replace('Bearer ', '').trim();
+
+        if (!userJwt) {
+            return res.status(401).json({ error: 'Não autenticado.' });
         }
 
         // Rota para buscar compras do usuário autenticado com fotos e fotógrafos

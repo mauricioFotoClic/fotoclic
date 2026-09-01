@@ -23,10 +23,20 @@ export const s3Service = {
       ? `${window.location.protocol}//${window.location.host}/api/get-download-url`
       : '/api/get-download-url';
 
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    try {
+      const rawSession = localStorage.getItem('supabase.auth.token') || localStorage.getItem('sb-' + window.location.hostname.split('.')[0] + '-auth-token');
+      if (rawSession) {
+        const parsed = JSON.parse(rawSession);
+        const token = parsed?.currentSession?.access_token || parsed?.access_token;
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+      }
+    } catch (_) {}
+
     // 1. Solicita a URL pré-assinada de upload para a AWS
     const res = await fetch(apiUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({
         fileName,
         fileType: file.type || 'image/jpeg',
