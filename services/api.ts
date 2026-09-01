@@ -1473,7 +1473,11 @@ export const api = {
     }
 
     // Invalidate event cache
-    delete inMemoryCache.photographerEventsCache[photographerId];
+    Object.keys(inMemoryCache.photographerEventsCache).forEach(k => {
+      if (k.startsWith(photographerId)) {
+        delete inMemoryCache.photographerEventsCache[k];
+      }
+    });
     inMemoryCache.allEvents = { data: null, ts: 0 };
 
     return data as PhotoEvent;
