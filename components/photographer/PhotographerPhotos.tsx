@@ -536,6 +536,12 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
             console.error("Batch upload overall failure:", err);
             showToast("Erro durante o processamento do lote de arquivos.", "error");
         } finally {
+            if (selectedEvent) {
+                try {
+                    const evPhotos = await api.getPhotographerPhotosByEventId(selectedEvent.id);
+                    setPhotos(evPhotos);
+                } catch (_) {}
+            }
             fetchData();
         }
 
