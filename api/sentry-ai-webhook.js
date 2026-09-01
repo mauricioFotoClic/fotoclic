@@ -496,6 +496,22 @@ export default async function handler(req, res) {
       return res.status(200).json({ success });
     }
 
+    if (action === 'get_email_role') {
+      const email = (body.email || '').trim().toLowerCase();
+      if (!email) return res.status(400).json({ error: 'Email missing' });
+      try {
+        const { data: userProfile } = await supabase
+          .from('users')
+          .select('role, name')
+          .eq('email', email)
+          .maybeSingle();
+
+        return res.status(200).json({ role: userProfile?.role || null, name: userProfile?.name || null });
+      } catch (e) {
+        return res.status(200).json({ role: null, name: null });
+      }
+    }
+
     if (action === 'new_sale') {
       const success = await notifyNewSaleToTelegram({
         orderId: body.orderId,

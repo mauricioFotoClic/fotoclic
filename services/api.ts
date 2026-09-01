@@ -2446,9 +2446,37 @@ export const api = {
       }
 
       if (isDuplicate) {
-        const friendlyError: any = new Error("Este e-mail já possui cadastro no FotoClic. Faça login na sua conta ou recupere sua senha.");
+        let existingRoleLabel = '';
+        try {
+          const resRole = await fetch('/api/sentry-ai-webhook', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'get_email_role',
+              email: cleanEmail
+            })
+          });
+          if (resRole.ok) {
+            const roleData = await resRole.json();
+            if (roleData?.role) {
+              const roleLabels: Record<string, string> = {
+                customer: 'Cliente (Comprador)',
+                photographer: 'Fotógrafo',
+                producer: 'Produtor de Eventos',
+                admin: 'Administrador'
+              };
+              existingRoleLabel = roleLabels[roleData.role] || roleData.role;
+            }
+          }
+        } catch (e) {
+          console.warn('[Get Email Role Error]:', e);
+        }
+
+        const roleText = existingRoleLabel ? ` como ${existingRoleLabel}` : '';
+        const friendlyError: any = new Error(`Este e-mail já possui cadastro no FotoClic${roleText}. Faça login na sua conta ou recupere sua senha.`);
         friendlyError.code = 'user_already_exists';
         friendlyError.isDuplicateEmail = true;
+        friendlyError.existingRole = existingRoleLabel;
         throw friendlyError;
       }
 

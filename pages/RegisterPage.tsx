@@ -120,7 +120,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onLoginSuccess 
                 errMsg.toLowerCase().includes('já possui cadastro') ||
                 errMsg.toLowerCase().includes('já está cadastrado')
             ) {
-                setError(t('auth.email_exists_error'));
+                setError(errMsg.includes('já possui cadastro') ? errMsg : t('auth.email_exists_error'));
             } else {
                 setError(errMsg || t('auth.generic_reg_error'));
             }
