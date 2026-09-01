@@ -522,6 +522,12 @@ export default async function handler(req, res) {
     }
 
     if (action === 'registration_failed') {
+      const errMsg = String(body.errorMessage || body.error || '');
+      if (/user already registered|already exists|já possui cadastro|já está cadastrado/i.test(errMsg)) {
+        console.log(`[Registration Alert Ignored] E-mail já cadastrado (validação esperada): ${body.email}`);
+        return res.status(200).json({ success: true, message: 'Tentativa com e-mail já existente - alerta suprimido.' });
+      }
+
       const success = await notifyRegistrationFailure({
         role: body.role,
         name: body.name,

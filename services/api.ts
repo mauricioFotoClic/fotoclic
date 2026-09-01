@@ -2266,16 +2266,42 @@ export const api = {
     phone?: string;
   }): Promise<RegisterResponse | undefined> => {
     let authData: any = null;
+    const cleanEmail = (data.email || '').trim().toLowerCase();
+
     try {
       // 1. Create Auth User
       const resAuth = await supabase.auth.signUp({
-        email: data.email,
+        email: cleanEmail,
         password: data.password || "temp-pass-123", // Handle nullable password edge case
       });
 
-      if (resAuth.error) throw resAuth.error;
-      if (!resAuth.data.user)
+      if (resAuth.error) {
+        const errMsg = (resAuth.error.message || '').toLowerCase();
+        if (
+          errMsg.includes('already registered') ||
+          errMsg.includes('already exists') ||
+          errMsg.includes('user already exists') ||
+          (resAuth.error as any).code === 'user_already_exists'
+        ) {
+          const customError: any = new Error("Este e-mail já possui cadastro no FotoClic. Faça login na sua conta ou utilize a recuperação de senha.");
+          customError.code = 'user_already_exists';
+          customError.isDuplicateEmail = true;
+          throw customError;
+        }
+        throw resAuth.error;
+      }
+
+      // Tratamento para projetos Supabase com proteção de enumeração (identities vazias se já existir)
+      if (resAuth.data?.user && Array.isArray(resAuth.data.user.identities) && resAuth.data.user.identities.length === 0) {
+        const customError: any = new Error("Este e-mail já possui cadastro no FotoClic. Faça login na sua conta ou utilize a recuperação de senha.");
+        customError.code = 'user_already_exists';
+        customError.isDuplicateEmail = true;
+        throw customError;
+      }
+
+      if (!resAuth.data?.user) {
         throw new Error("Falha ao criar usuário de autenticação.");
+      }
 
       authData = resAuth.data;
 
@@ -2288,6 +2314,7 @@ export const api = {
       const userData: any = {
         id: authData.user.id, // CRITICAL: Sync IDs
         ...dataWithoutPassword,
+        email: cleanEmail,
         name: formatNameAsTitleCase(data.name),
         is_active: isProducer ? false : true, // Produtores entram pendentes para moderação do admin
       };
@@ -2299,6 +2326,19 @@ export const api = {
         .single();
 
       if (error) {
+        const errMsg = (error.message || '').toLowerCase();
+        if (
+          error.code === '23505' ||
+          errMsg.includes('duplicate key') ||
+          errMsg.includes('unique constraint') ||
+          errMsg.includes('already registered') ||
+          errMsg.includes('already exists')
+        ) {
+          const customError: any = new Error("Este e-mail já possui cadastro no FotoClic. Faça login na sua conta ou utilize a recuperação de senha.");
+          customError.code = 'user_already_exists';
+          customError.isDuplicateEmail = true;
+          throw customError;
+        }
         throw error;
       }
 
@@ -2373,23 +2413,43 @@ export const api = {
         session: authData.session,
       };
     } catch (err: any) {
-      // Notificar o Bot de Monitoramento imediatamente sobre a falha de cadastro
-      try {
-        void fetch('/api/sentry-ai-webhook', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'registration_failed',
-            role: data.role,
-            name: data.name,
-            email: data.email,
-            phone: data.phone,
-            errorMessage: err?.message || String(err),
-            stack: err?.stack || ''
-          })
-        });
-      } catch (e) {
-        console.warn('[Registration Failure Report Error]:', e);
+      const errMsg = (err?.message || String(err)).toLowerCase();
+      const isDuplicate = 
+        err?.isDuplicateEmail || 
+        err?.code === 'user_already_exists' || 
+        errMsg.includes('already registered') || 
+        errMsg.includes('already exists') || 
+        errMsg.includes('já possui cadastro') || 
+        errMsg.includes('já está cadastrado') ||
+        err?.code === '23505';
+
+      // Notificar o Bot de Monitoramento SOMENTE para erros inesperados/técnicos
+      // (Tentativa com e-mail já existente é uma validação esperada de formulário e não falha técnica)
+      if (!isDuplicate) {
+        try {
+          void fetch('/api/sentry-ai-webhook', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'registration_failed',
+              role: data.role,
+              name: data.name,
+              email: cleanEmail || data.email,
+              phone: data.phone,
+              errorMessage: err?.message || String(err),
+              stack: err?.stack || ''
+            })
+          });
+        } catch (e) {
+          console.warn('[Registration Failure Report Error]:', e);
+        }
+      }
+
+      if (isDuplicate) {
+        const friendlyError: any = new Error("Este e-mail já possui cadastro no FotoClic. Faça login na sua conta ou recupere sua senha.");
+        friendlyError.code = 'user_already_exists';
+        friendlyError.isDuplicateEmail = true;
+        throw friendlyError;
       }
 
       throw err;

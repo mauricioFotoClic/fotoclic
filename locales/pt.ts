@@ -98,7 +98,7 @@ export const pt = {
         reset_link_sent: "E-mail de recuperação enviado! Verifique sua caixa de entrada.",
         enter_email_error: "Por favor, digite seu e-mail.",
         invalid_login_error: "E-mail não encontrado ou senha inválida.",
-        email_exists_error: "Este e-mail já está cadastrado.",
+        email_exists_error: "Este e-mail já possui cadastro no FotoClic. Faça login na sua conta ou recupere sua senha.",
         generic_error: "Ocorreu um erro ao tentar entrar. Tente novamente.",
         generic_reg_error: "Ocorreu um erro ao criar a conta. Tente novamente.",
     },

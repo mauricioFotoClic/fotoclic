@@ -100,7 +100,7 @@ export const en: TranslationKeys = {
         reset_link_sent: "Recovery email sent! Check your inbox.",
         enter_email_error: "Please enter your email.",
         invalid_login_error: "Email not found or invalid password.",
-        email_exists_error: "This email is already registered.",
+        email_exists_error: "This email is already registered. Please log in or reset your password.",
         generic_error: "An error occurred while signing in. Please try again.",
         generic_reg_error: "An error occurred while creating the account. Please try again.",
     },

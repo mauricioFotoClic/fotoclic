@@ -153,7 +153,19 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginS
             }
         } catch (err: any) {
             console.error("Registration error:", err);
-            setError(err.message || t('auth.generic_reg_error'));
+            const errMsg = err?.message || '';
+            if (
+                err?.code === 'user_already_exists' ||
+                err?.isDuplicateEmail ||
+                errMsg.toLowerCase().includes('already registered') ||
+                errMsg.toLowerCase().includes('already exists') ||
+                errMsg.toLowerCase().includes('já possui cadastro') ||
+                errMsg.toLowerCase().includes('já está cadastrado')
+            ) {
+                setError(t('auth.email_exists_error'));
+            } else {
+                setError(errMsg || t('auth.generic_reg_error'));
+            }
         } finally {
             setLoading(false);
         }
@@ -481,11 +493,40 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginS
                     )}
 
                     {error && (
-                        <div className="text-red-600 text-xs text-center bg-red-50 p-2 rounded-lg border border-red-100 flex items-center justify-center animate-pulse">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 mr-1.5" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                            </svg>
-                            {error}
+                        <div className={`p-3 rounded-xl border text-xs transition-all duration-200 ${
+                            error.includes('já possui cadastro') || error.includes('já está cadastrado') || error.includes('already registered')
+                                ? 'bg-amber-50 border-amber-200 text-amber-900 shadow-sm'
+                                : 'bg-red-50 border-red-100 text-red-600'
+                        }`}>
+                            <div className="flex items-start gap-2.5">
+                                <ShieldAlert size={16} className={`shrink-0 mt-0.5 ${
+                                    error.includes('já possui cadastro') || error.includes('já está cadastrado') || error.includes('already registered')
+                                        ? 'text-amber-600'
+                                        : 'text-red-500'
+                                }`} />
+                                <div className="flex-1">
+                                    <span className="font-bold block mb-0.5 text-gray-900">
+                                        {error.includes('já possui cadastro') || error.includes('já está cadastrado') || error.includes('already registered')
+                                            ? 'E-mail já cadastrado!'
+                                            : 'Erro no cadastro'}
+                                    </span>
+                                    <p className="text-gray-700 leading-snug">{error}</p>
+                                    {(error.includes('já possui cadastro') || error.includes('já está cadastrado') || error.includes('already registered')) && (
+                                        <div className="mt-2 flex items-center gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    onClose();
+                                                    onNavigate({ name: 'login' });
+                                                }}
+                                                className="inline-flex items-center justify-center px-3 py-1 text-xs font-bold rounded-lg bg-primary text-white hover:bg-primary-dark shadow-sm transition-all cursor-pointer"
+                                            >
+                                                Fazer Login
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         </div>
                     )}
 
