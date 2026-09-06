@@ -578,14 +578,18 @@ const MainApp: React.FC = () => {
                 return currentUser?.role === UserRole.ADMIN ? <AdminPage onNavigate={handleNavigate} onImpersonate={impersonateUser} /> : <HomePage onNavigate={handleNavigate} onAddToCart={handleAddToCart} currentUser={currentUser} />;
             case 'photographer':
                 if (isSessionLoading) return <Spinner size="lg" fullHeight={true} label="Autenticando sessão..." />;
-                return currentUser?.role === UserRole.PHOTOGRAPHER ? <PhotographerPage user={currentUser} onLogout={handleLogout} onNavigate={handleNavigate} showToast={showToast} /> : <HomePage onNavigate={handleNavigate} onAddToCart={handleAddToCart} currentUser={currentUser} />;
+                return (currentUser?.role === UserRole.PHOTOGRAPHER || currentUser?.role === UserRole.PRODUCER || currentUser?.role === UserRole.ADMIN) 
+                    ? <PhotographerPage user={currentUser} onLogout={handleLogout} onNavigate={handleNavigate} showToast={showToast} /> 
+                    : <HomePage onNavigate={handleNavigate} onAddToCart={handleAddToCart} currentUser={currentUser} />;
             case 'producer':
                 if (isSessionLoading) return <Spinner size="lg" fullHeight={true} label="Autenticando sessão..." />;
                 if (!currentUser) return <HomePage onNavigate={handleNavigate} onAddToCart={handleAddToCart} currentUser={currentUser} />;
                 if (currentUser.role === UserRole.PRODUCER && currentUser.is_active === false) {
                     return <PendingApprovalPage onNavigate={handleNavigate} />;
                 }
-                return (currentUser.role === UserRole.PRODUCER || currentUser.role === UserRole.ADMIN) ? <ProducerDashboardPage currentUser={currentUser} onNavigate={handleNavigate} /> : <HomePage onNavigate={handleNavigate} onAddToCart={handleAddToCart} currentUser={currentUser} />;
+                return (currentUser.role === UserRole.PRODUCER || currentUser.role === UserRole.PHOTOGRAPHER || currentUser.role === UserRole.ADMIN) 
+                    ? <ProducerDashboardPage currentUser={currentUser} onNavigate={handleNavigate} /> 
+                    : <HomePage onNavigate={handleNavigate} onAddToCart={handleAddToCart} currentUser={currentUser} />;
             case 'customer-dashboard':
                 if (isSessionLoading) return <Spinner size="lg" fullHeight={true} label="Autenticando sessão..." />;
                 return <CustomerDashboardPage onNavigate={handleNavigate} currentUser={currentUser} />;

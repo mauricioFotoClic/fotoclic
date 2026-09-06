@@ -1,6 +1,6 @@
 
 import React from 'react';
-import type { User } from '../../types';
+import type { User, Page } from '../../types';
 import { useToast } from '../../contexts/ToastContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import LanguageSelector from '../LanguageSelector';
@@ -13,6 +13,7 @@ interface PhotographerSidebarProps {
     activeView: PhotographerView;
     setView: (view: PhotographerView) => void;
     onLogout: () => void;
+    onNavigate?: (page: Page) => void;
     isOpen: boolean;
     onClose: () => void;
     abandonedCartsCount?: number;
@@ -71,9 +72,9 @@ const LogOutIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" heig
 const CartIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>;
 const PercentIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="5" x2="5" y2="19"></line><circle cx="6.5" cy="6.5" r="2.5"></circle><circle cx="17.5" cy="17.5" r="2.5"></circle></svg>;
 const QrCodeIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><rect x="7" y="7" width="3" height="3"></rect><rect x="14" y="7" width="3" height="3"></rect><rect x="7" y="14" width="3" height="3"></rect><rect x="14" y="14" width="3" height="3"></rect></svg>;
-import { X } from 'lucide-react';
+import { X, Building2, ArrowRight } from 'lucide-react';
 
-const PhotographerSidebar: React.FC<PhotographerSidebarProps> = ({ user, activeView, setView, onLogout, isOpen, onClose, abandonedCartsCount }) => {
+const PhotographerSidebar: React.FC<PhotographerSidebarProps> = ({ user, activeView, setView, onLogout, onNavigate, isOpen, onClose, abandonedCartsCount }) => {
     const { t } = useLanguage();
 
     return (
@@ -156,6 +157,36 @@ const PhotographerSidebar: React.FC<PhotographerSidebarProps> = ({ user, activeV
 
                         <SectionLabel label="Conta" />
                         <NavLink label={t('photographer.sidebar_profile')} isActive={activeView === 'profile'} onClick={() => { setView('profile'); onClose(); }} icon={<UserIcon />} />
+
+                        {/* Producer Mode Switcher Banner */}
+                        {onNavigate && (
+                            <div className="mt-6 mb-2 p-3 bg-gradient-to-br from-amber-50 to-amber-100/60 border border-amber-200/80 rounded-xl shadow-xs">
+                                <div className="flex items-center gap-2 mb-1.5">
+                                    <span className="p-1.5 bg-amber-500 text-white rounded-lg shadow-xs flex-shrink-0">
+                                        <Building2 size={16} />
+                                    </span>
+                                    <div>
+                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                            <span className="text-xs font-bold text-neutral-900">Modo Produtor</span>
+                                            <span className="text-[9px] uppercase tracking-wider font-extrabold bg-amber-500 text-white px-1.5 py-0.5 rounded-full">Incluso</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <p className="text-[11px] text-neutral-600 leading-tight mb-2.5">
+                                    Você também é Produtor! Crie eventos e monte equipes com até <strong>100 fotógrafos</strong>.
+                                </p>
+                                <button
+                                    onClick={() => {
+                                        onClose();
+                                        onNavigate({ name: 'producer' });
+                                    }}
+                                    className="w-full flex items-center justify-center gap-1.5 py-2 px-3 text-xs font-bold text-amber-900 bg-amber-200 hover:bg-amber-300 active:scale-[0.98] rounded-lg transition-all shadow-xs cursor-pointer"
+                                >
+                                    <span>Painel do Produtor</span>
+                                    <ArrowRight size={13} />
+                                </button>
+                            </div>
+                        )}
                     </nav>
                 </div>
 

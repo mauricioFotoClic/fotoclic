@@ -286,8 +286,8 @@ const ProducerDashboardPage: React.FC<ProducerDashboardPageProps> = ({ currentUs
             return;
         }
 
-        if (collaborators.length >= 10) {
-            showToast("Limite máximo de 10 fotógrafos por evento atingido", "error");
+        if (collaborators.length >= 100) {
+            showToast("Limite máximo de 100 fotógrafos por evento atingido", "error");
             return;
         }
 
@@ -386,6 +386,14 @@ const ProducerDashboardPage: React.FC<ProducerDashboardPageProps> = ({ currentUs
 
                         <div className="flex flex-wrap items-center gap-3">
                             <button
+                                onClick={() => onNavigate({ name: 'photographer' })}
+                                className="px-4 py-3 rounded-xl font-bold text-xs bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-all flex items-center gap-2 cursor-pointer backdrop-blur-sm shadow-xs"
+                                title="Alternar para a Área do Fotógrafo"
+                            >
+                                <Camera size={16} className="text-amber-400" />
+                                <span>Área do Fotógrafo</span>
+                            </button>
+                            <button
                                 onClick={handleOpenCreateModal}
                                 className="px-5 py-3 rounded-xl font-bold text-sm bg-gradient-to-r from-primary to-primary-dark text-white hover:shadow-lg transition-all flex items-center gap-2 cursor-pointer"
                             >
@@ -403,7 +411,7 @@ const ProducerDashboardPage: React.FC<ProducerDashboardPageProps> = ({ currentUs
                         </div>
                         <div className="bg-white/5 backdrop-blur-sm p-3.5 rounded-2xl border border-white/10">
                             <div className="text-xs text-neutral-400">Fotógrafos Conectados</div>
-                            <div className="text-xl font-bold text-amber-400 mt-0.5">{collaborators.length} / 10</div>
+                            <div className="text-xl font-bold text-amber-400 mt-0.5">{collaborators.length} / 100</div>
                         </div>
                         <div className="bg-white/5 backdrop-blur-sm p-3.5 rounded-2xl border border-white/10">
                             <div className="text-xs text-neutral-400">Taxa de Coordenação</div>
@@ -447,7 +455,7 @@ const ProducerDashboardPage: React.FC<ProducerDashboardPageProps> = ({ currentUs
                         }`}
                     >
                         <Users size={18} />
-                        Equipe de Fotógrafos ({collaborators.length}/10)
+                        Equipe de Fotógrafos ({collaborators.length}/100)
                     </button>
 
                     <button
@@ -555,7 +563,7 @@ const ProducerDashboardPage: React.FC<ProducerDashboardPageProps> = ({ currentUs
                                                     className="text-xs font-bold text-primary hover:text-primary-dark flex items-center gap-1 cursor-pointer truncate"
                                                 >
                                                     <Users size={14} className="shrink-0" />
-                                                    <span className="truncate">Gerenciar Equipe (até 10)</span> ➔
+                                                    <span className="truncate">Gerenciar Equipe (até 100)</span> ➔
                                                 </button>
 
                                                 <div className="flex items-center gap-1 shrink-0">
@@ -583,7 +591,7 @@ const ProducerDashboardPage: React.FC<ProducerDashboardPageProps> = ({ currentUs
                     </div>
                 )}
 
-                {/* ABA 2: EQUIPE DE FOTÓGRAFOS (ATÉ 10 POR EVENTO) */}
+                {/* ABA 2: EQUIPE DE FOTÓGRAFOS (ATÉ 100 POR EVENTO) */}
                 {activeTab === 'team' && (
                     <div className="space-y-6">
                         {/* Seletor de Evento Ativo */}
@@ -608,7 +616,7 @@ const ProducerDashboardPage: React.FC<ProducerDashboardPageProps> = ({ currentUs
                             <div className="flex items-center gap-3 w-full sm:w-auto">
                                 <div className="text-right hidden sm:block">
                                     <div className="text-xs text-gray-400">Vagas da Equipe</div>
-                                    <div className="font-bold text-sm text-gray-800">{collaborators.length} de 10 preenchidas</div>
+                                    <div className="font-bold text-sm text-gray-800">{collaborators.length} de 100 preenchidas</div>
                                 </div>
                                 <button
                                     onClick={() => {
@@ -616,7 +624,7 @@ const ProducerDashboardPage: React.FC<ProducerDashboardPageProps> = ({ currentUs
                                         setInviteCommission(defaultComm);
                                         setIsInviteModalOpen(true);
                                     }}
-                                    disabled={collaborators.length >= 10 || !selectedEventId}
+                                    disabled={collaborators.length >= 100 || !selectedEventId}
                                     className="w-full sm:w-auto px-5 py-2.5 rounded-xl font-bold text-sm bg-gradient-to-r from-primary to-primary-dark text-white hover:shadow transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
                                 >
                                     <UserPlus size={16} />
@@ -633,7 +641,7 @@ const ProducerDashboardPage: React.FC<ProducerDashboardPageProps> = ({ currentUs
                                     Fotógrafos Convocados para {selectedEvent?.name}
                                 </h3>
                                 <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-50 text-blue-700">
-                                    {10 - collaborators.length} vagas disponíveis
+                                    {100 - collaborators.length} vagas disponíveis
                                 </span>
                             </div>
 

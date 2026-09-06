@@ -274,6 +274,7 @@ const PhotographerPage: React.FC<PhotographerPageProps> = ({ user: initialUser, 
                         setView={handleSetView}
                         user={currentUser}
                         onLogout={onLogout}
+                        onNavigate={onNavigate}
                         isOpen={isSidebarOpen}
                         onClose={() => setIsSidebarOpen(false)}
                         abandonedCartsCount={abandonedCartsCount}

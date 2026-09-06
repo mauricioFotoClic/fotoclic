@@ -315,7 +315,7 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginS
                             </div>
                             <div className="font-bold text-xs sm:text-sm text-gray-900 leading-tight">Produtor</div>
                             <div className="text-[10px] text-gray-500 mt-0.5 hidden sm:block line-clamp-1">
-                                Eventos e equipe (até 10)
+                                Eventos e equipe (até 100)
                             </div>
                             <span className="mt-1.5 text-[9px] font-semibold px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200/60">
                                 Coordenação

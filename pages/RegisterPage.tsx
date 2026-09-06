@@ -242,7 +242,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onLoginSuccess 
                                 </div>
                                 <div className="font-bold text-sm text-gray-900 leading-tight">Produtor</div>
                                 <div className="text-[11px] text-gray-500 mt-0.5 leading-snug">
-                                    Eventos e equipe (até 10)
+                                    Eventos e equipe (até 100)
                                 </div>
                                 <span className="mt-2 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200/60">
                                     Coordenação
