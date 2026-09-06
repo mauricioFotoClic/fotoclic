@@ -333,7 +333,9 @@ const MainApp: React.FC = () => {
 
             // Trap logic for panels
             const state = currentPageRef.current;
-            if ((state.name === 'admin' || state.name === 'photographer' || state.name === 'producer') && newPage.name !== state.name) {
+            const isPanelState = state.name === 'admin' || state.name === 'photographer' || state.name === 'producer';
+            const isNewPagePanel = newPage.name === 'admin' || newPage.name === 'photographer' || newPage.name === 'producer';
+            if (isPanelState && !isNewPagePanel) {
                 window.history.pushState(null, '', getUrlFromPage(state));
                 showToast("Use o botão Sair do menu para sair do painel.", "info");
                 return;
@@ -456,11 +458,13 @@ const MainApp: React.FC = () => {
         if (page.name === 'admin' && activeUser?.role !== UserRole.ADMIN) {
             return;
         }
-        if (page.name === 'photographer' && activeUser?.role !== UserRole.PHOTOGRAPHER) {
-            return;
+        if (page.name === 'photographer') {
+            if (activeUser?.role !== UserRole.PHOTOGRAPHER && activeUser?.role !== UserRole.PRODUCER && activeUser?.role !== UserRole.ADMIN) {
+                return;
+            }
         }
         if (page.name === 'producer') {
-            if (activeUser?.role !== UserRole.PRODUCER && activeUser?.role !== UserRole.ADMIN) {
+            if (activeUser?.role !== UserRole.PRODUCER && activeUser?.role !== UserRole.PHOTOGRAPHER && activeUser?.role !== UserRole.ADMIN) {
                 return;
             }
             if (activeUser?.role === UserRole.PRODUCER && activeUser?.is_active === false) {
