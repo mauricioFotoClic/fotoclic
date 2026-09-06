@@ -25,7 +25,7 @@ if (SENTRY_DSN) {
     replaysOnErrorSampleRate: 1.0, // 100% de gravação visual quando houver erro
     environment: import.meta.env.MODE || 'production',
 
-    // 🛡️ Filtro de Ruídos: Ignorar erros conhecidos de WebViews do Android (Instagram/Facebook/TikTok) e extensões
+    // 🛡️ Filtro de Ruídos: Ignorar erros conhecidos de WebViews de clientes, cache pós-deploy e limites de navegador
     ignoreErrors: [
       'Error invoking postMessage: Java object is gone',
       'Error invoking postMessage: Java exception was raised during method invocation',
@@ -35,6 +35,15 @@ if (SENTRY_DSN) {
       'ResizeObserver loop completed with undelivered notifications',
       'Non-Error promise rejection captured',
       'Network request failed',
+      'Failed to fetch dynamically imported module',
+      'Importing a module script failed',
+      'error loading dynamically imported module',
+      "'text/html' is not a valid JavaScript MIME type",
+      'text/html is not a valid JavaScript MIME type',
+      'The quota has been exceeded',
+      'QuotaExceededError',
+      'NS_ERROR_DOM_QUOTA_REACHED',
+      'Load failed',
     ],
     denyUrls: [
       // Extensões de navegadores
@@ -44,13 +53,35 @@ if (SENTRY_DSN) {
       /^moz-extension:\/\//i,
     ],
     beforeSend(event, hint) {
-      const errorMsg = hint?.originalException?.toString?.() || event?.message || '';
+      const errorMsg = (hint?.originalException?.toString?.() || event?.message || '').toLowerCase();
+      
+      // 1. Descartar erros de WebViews do Android (Instagram / Facebook / TikTok / WhatsApp)
       if (
-        /postMessage/i.test(errorMsg) &&
-        (/Java object is gone/i.test(errorMsg) || /Java exception/i.test(errorMsg))
+        errorMsg.includes('postmessage') ||
+        errorMsg.includes('java object is gone') ||
+        errorMsg.includes('java exception')
       ) {
-        return null; // Descarta o evento silenciosamente
+        return null;
       }
+
+      // 2. Descartar erros de chunk transitório pós-deploy (Vite dynamic imports)
+      if (
+        errorMsg.includes('text/html') ||
+        errorMsg.includes('dynamically imported module') ||
+        errorMsg.includes('module script failed')
+      ) {
+        return null;
+      }
+
+      // 3. Descartar erro de cota de armazenamento local cheia no aparelho do usuário
+      if (
+        errorMsg.includes('quota') ||
+        errorMsg.includes('quotaexceedederror') ||
+        errorMsg.includes('ns_error_dom_quota_reached')
+      ) {
+        return null;
+      }
+
       return event;
     },
   });
