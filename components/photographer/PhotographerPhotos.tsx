@@ -248,6 +248,9 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
             const updated = await api.updateEvent(editingEvent.id, data);
             if (updated) {
                 setEvents(prev => prev.map(ev => ev.id === updated.id ? updated : ev));
+                if (selectedEvent && selectedEvent.id === updated.id) {
+                    setSelectedEvent(updated);
+                }
                 setIsEditEventModalOpen(false);
                 setEditingEvent(null);
                 showToast("Evento atualizado com sucesso!", "success");
@@ -882,11 +885,26 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                         </button>
                     )}
                     <div>
-                        <h1 className="text-3xl font-display font-bold text-primary-dark">
-                            {view === 'events' ? 'Meus Eventos' : selectedEvent?.name}
-                        </h1>
+                        <div className="flex items-center gap-2.5 flex-wrap">
+                            <h1 className="text-2xl sm:text-3xl font-display font-bold text-primary-dark">
+                                {view === 'events' ? 'Meus Eventos' : selectedEvent?.name}
+                            </h1>
+                            {view === 'photos' && selectedEvent && (
+                                selectedEvent.is_photos_private ? (
+                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300 shadow-xs" title="Fotos ocultas: disponíveis somente por busca facial">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                                        Fotos Ocultas (Apenas Busca Facial)
+                                    </span>
+                                ) : (
+                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-900 border border-emerald-300 shadow-xs" title="Galeria pública: fotos abertas para todos">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                                        Galeria Pública
+                                    </span>
+                                )
+                            )}
+                        </div>
                         {view === 'photos' && selectedEvent && (
-                            <p className="text-neutral-500 text-sm">{getCategoryName(selectedEvent.category_id)} • {formatEventDate(selectedEvent.event_date)}</p>
+                            <p className="text-neutral-500 text-sm mt-0.5">{getCategoryName(selectedEvent.category_id)} • {formatEventDate(selectedEvent.event_date)}</p>
                         )}
                     </div>
                 </div>
@@ -901,6 +919,18 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                         </button>
                     ) : (
                         <div className="flex gap-2 flex-wrap sm:flex-nowrap">
+                            <button
+                                onClick={() => {
+                                    if (!selectedEvent) return;
+                                    setEditingEvent(selectedEvent);
+                                    setIsEditEventModalOpen(true);
+                                }}
+                                className="px-3.5 py-2 text-sm font-medium text-neutral-700 bg-white border border-neutral-300 rounded-full hover:bg-neutral-50 hover:text-neutral-900 transition-colors shadow-sm flex items-center gap-1.5"
+                                title="Editar detalhes e visibilidade do evento"
+                            >
+                                <EditIcon />
+                                <span>Editar</span>
+                            </button>
                             <button
                                 onClick={() => {
                                     if (!selectedEvent) return;
@@ -1000,6 +1030,21 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                                             )}
                                         </div>
 
+                                        {/* Badge de Visibilidade no Card */}
+                                        <div className="absolute top-2 left-2 z-10 pointer-events-none">
+                                            {event.is_photos_private ? (
+                                                <span className="px-2.5 py-1 bg-amber-950/85 backdrop-blur-md text-amber-200 border border-amber-500/50 text-[11px] font-bold rounded-full shadow flex items-center gap-1.5" title="Fotos ocultas: clientes só encontram via Reconhecimento Facial">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                                                    Fotos Ocultas (Facial)
+                                                </span>
+                                            ) : (
+                                                <span className="px-2.5 py-1 bg-neutral-900/80 backdrop-blur-md text-emerald-300 border border-emerald-500/40 text-[11px] font-bold rounded-full shadow flex items-center gap-1.5" title="Galeria pública visível para todos">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                                                    Galeria Pública
+                                                </span>
+                                            )}
+                                        </div>
+
                                         {/* Área de Ações: Absoluta e isolada do clique pai */}
                                         <div className="absolute top-2 right-2 flex gap-2 z-10">
                                             {(event as any).is_team_event ? (
@@ -1096,26 +1141,55 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
             ) : (
                 // --- PHOTOGRAPHER FILTERED LIST VIEW (Existing Logic) ---
                 <div>
-                    <div className="bg-white p-4 rounded-xl shadow-sm border border-neutral-100 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div>
-                            <h3 className="font-bold text-neutral-800 text-lg">Estatísticas</h3>
-                            <p className="text-sm text-neutral-500">
-                                Você já enviou <span className="font-semibold text-neutral-900">{stats.photos_count}</span> fotos.
-                            </p>
-                        </div>
-                        <div className="flex flex-col items-end gap-2">
-                            <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm font-medium">
-                                <span className="text-green-600 bg-green-50 px-3 py-1 rounded-full border border-green-100">
-                                    {stats.approved_count} Aprovadas
-                                </span>
-                                <span className="text-yellow-600 bg-yellow-50 px-3 py-1 rounded-full border border-yellow-100">
-                                    {stats.pending_count} Pendentes
-                                </span>
-                                <span className="text-red-600 bg-red-50 px-3 py-1 rounded-full border border-red-100">
-                                    {stats.rejected_count} Rejeitadas
-                                </span>
+                    <div className="bg-white p-4 rounded-xl shadow-sm border border-neutral-100 mb-6">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div>
+                                <h3 className="font-bold text-neutral-800 text-lg">Estatísticas</h3>
+                                <p className="text-sm text-neutral-500">
+                                    Você já enviou <span className="font-semibold text-neutral-900">{stats.photos_count}</span> fotos.
+                                </p>
+                            </div>
+                            <div className="flex flex-col items-end gap-2">
+                                <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm font-medium">
+                                    <span className="text-green-600 bg-green-50 px-3 py-1 rounded-full border border-green-100">
+                                        {stats.approved_count} Aprovadas
+                                    </span>
+                                    <span className="text-yellow-600 bg-yellow-50 px-3 py-1 rounded-full border border-yellow-100">
+                                        {stats.pending_count} Pendentes
+                                    </span>
+                                    <span className="text-red-600 bg-red-50 px-3 py-1 rounded-full border border-red-100">
+                                        {stats.rejected_count} Rejeitadas
+                                    </span>
+                                </div>
                             </div>
                         </div>
+
+                        {/* Banner Informativo de Visibilidade do Evento */}
+                        {selectedEvent?.is_photos_private ? (
+                            <div className="mt-4 p-3 bg-amber-50/90 border border-amber-200/90 rounded-xl flex items-start gap-2.5 text-xs text-amber-900">
+                                <span className="p-1 bg-amber-100 text-amber-800 rounded-lg shrink-0 mt-0.5">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                                </span>
+                                <div>
+                                    <strong className="font-bold block text-amber-950 text-sm">🔒 Modo Fotos Ocultas Ativo</strong>
+                                    <span className="text-amber-800/90 leading-relaxed">
+                                        As fotos deste evento <strong>não são exibidas abertamente na galeria pública</strong>. Seus clientes só encontrarão as fotos que pertencerem a eles ao fazer o <strong>Reconhecimento Facial</strong> (selfie ou envio de foto).
+                                    </span>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="mt-4 p-3 bg-emerald-50/70 border border-emerald-200/80 rounded-xl flex items-start gap-2.5 text-xs text-emerald-900">
+                                <span className="p-1 bg-emerald-100 text-emerald-800 rounded-lg shrink-0 mt-0.5">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                                </span>
+                                <div>
+                                    <strong className="font-bold block text-emerald-950 text-sm">🌐 Modo Galeria Pública Ativo</strong>
+                                    <span className="text-emerald-800/90 leading-relaxed">
+                                        Todas as fotos aprovadas estão <strong>visíveis na página do evento para qualquer visitante navegar</strong>, além da busca inteligente por Reconhecimento Facial.
+                                    </span>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Filters & Bulk Action Bar */}

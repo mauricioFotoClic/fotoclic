@@ -9,7 +9,7 @@ import {
     Trophy, Plus, Users, Calendar, DollarSign, 
     CheckCircle2, Clock, Trash2, Mail, ExternalLink, 
     Wallet, ShieldCheck, MapPin, Sparkles, Building2, UserPlus, Sliders,
-    Camera, Image as ImageIcon, UploadCloud, X, Pencil
+    Camera, Image as ImageIcon, UploadCloud, X, Pencil, Lock, Globe
 } from 'lucide-react';
 
 interface ProducerDashboardPageProps {
@@ -508,6 +508,19 @@ const ProducerDashboardPage: React.FC<ProducerDashboardPageProps> = ({ currentUs
                                                     <Calendar size={36} />
                                                 </div>
                                             )}
+                                            <div className="absolute top-3 left-3 z-10">
+                                                {event.is_photos_private ? (
+                                                    <span className="px-2.5 py-1 bg-amber-950/85 backdrop-blur-md text-amber-200 border border-amber-500/50 text-[11px] font-bold rounded-full shadow flex items-center gap-1">
+                                                        <Lock size={11} className="text-amber-400" />
+                                                        Fotos Ocultas (Facial)
+                                                    </span>
+                                                ) : (
+                                                    <span className="px-2.5 py-1 bg-black/75 backdrop-blur-md text-emerald-300 border border-emerald-500/40 text-[11px] font-bold rounded-full shadow flex items-center gap-1">
+                                                        <Globe size={11} className="text-emerald-400" />
+                                                        Galeria Pública
+                                                    </span>
+                                                )}
+                                            </div>
                                             <div className="absolute top-3 right-3 bg-black/70 backdrop-blur-md text-white text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
                                                 <Sliders size={12} className="text-amber-400" />
                                                 {event.producer_commission_percent || 15}% Comissão
