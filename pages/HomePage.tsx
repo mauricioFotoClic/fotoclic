@@ -645,7 +645,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
             <div className="w-20 h-1 bg-gradient-to-r from-primary to-secondary rounded-full mt-4" />
           </div>
 
-          {(loadingEvents || loadingPhotogs) ? (
+          {loadingEvents ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
               {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
                 <div key={i} className="rounded-2xl overflow-hidden border border-neutral-100 shadow-sm animate-pulse">

@@ -1323,18 +1323,24 @@ export const api = {
         error = fallbackRes.error;
       }
 
-      const inactiveIds = await api.getInactivePhotographerIds();
-
       if (error) {
         console.error("Error fetching all events:", error);
         inMemoryCache.allEvents = { data: inMemoryCache.allEvents.data || [], ts: now - CACHE_TTL + 15000 };
         return inMemoryCache.allEvents.data || [];
       }
 
-      const validEvents = (data || []).filter((e: any) => {
-        if (e.photographer_id && inactiveIds.has(e.photographer_id)) return false;
-        return !e.photographer || e.photographer.is_active !== false;
-      });
+      if (!data || data.length === 0) {
+        inMemoryCache.allEvents = { data: [], ts: now };
+        return [];
+      }
+
+      let validEvents: any[] = [];
+      if (data[0]?.photographer !== undefined) {
+        validEvents = data.filter((e: any) => !e.photographer || e.photographer.is_active !== false);
+      } else {
+        const inactiveIds = await api.getInactivePhotographerIds();
+        validEvents = data.filter((e: any) => !e.photographer_id || !inactiveIds.has(e.photographer_id));
+      }
 
       const result = validEvents as unknown as PhotoEvent[];
       inMemoryCache.allEvents = { data: result, ts: now };
