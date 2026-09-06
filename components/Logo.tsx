@@ -37,7 +37,7 @@ const Logo: React.FC<LogoProps> = ({
 
     // Fallback SVG (Fiel à original)
     const textColor = isWhiteVariant ? '#FFFFFF' : '#000000';
-    const primaryColor = '#f97316';
+    const primaryColor = '#20C933';
 
     return (
         <div className={`flex items-center gap-2 ${className}`}>

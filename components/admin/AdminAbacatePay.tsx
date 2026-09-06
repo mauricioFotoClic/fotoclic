@@ -657,7 +657,7 @@ const AdminAbacatePay: React.FC = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 <div className="bg-neutral-900 p-6 rounded-2xl border border-neutral-800 shadow-lg relative overflow-hidden group">
                     <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+                        <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#20C933" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
                             <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>
                         </svg>
                     </div>
@@ -666,9 +666,9 @@ const AdminAbacatePay: React.FC = () => {
                     <p className="text-white/30 text-[10px] mt-2 italic">Total acumulado de comissões sobre as vendas pagas</p>
                 </div>
 
-                <div className="bg-orange-50 p-6 rounded-2xl border border-orange-200 shadow-sm relative overflow-hidden group">
+                <div className="bg-emerald-50 p-6 rounded-2xl border border-emerald-200 shadow-sm relative overflow-hidden group">
                     <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+                        <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#20C933" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
                         </svg>
                     </div>

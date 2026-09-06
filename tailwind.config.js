@@ -14,8 +14,8 @@ export default {
         'display': ['Poppins', 'sans-serif'],
       },
       colors: {
-        primary: '#f97316', // Laranja FotoClic (exato solicitado)
-        'primary-dark': '#ea580c',
+        primary: '#20C933', // Verde FotoClic (#20C933 / RGB 32, 201, 51)
+        'primary-dark': '#18a82a',
         secondary: '#000000', // Preto
         'secondary-light': '#1A1A1A',
         neutral: {

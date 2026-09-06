@@ -64,7 +64,7 @@ export const emailService = {
       'svalmauricio@gmail.com',
       '🎪 Novo Produtor de Eventos Aguardando Moderação - FotoClic',
       `<div style="font-family: sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
-        <div style="background: linear-gradient(135deg, #ea580c 0%, #f97316 100%); padding: 24px; text-align: center;">
+        <div style="background: linear-gradient(135deg, #18a82a 0%, #20C933 100%); padding: 24px; text-align: center;">
           <h1 style="color: white; margin: 0; font-size: 22px; font-weight: bold;">🎪 Novo Produtor de Eventos Cadastrado!</h1>
         </div>
         <div style="padding: 28px 24px; background-color: #ffffff;">
@@ -80,7 +80,7 @@ export const emailService = {
           <p style="font-size: 15px; color: #475569; font-weight: 600;">Modere este cadastro pelo Painel Admin ou Telegram:</p>
           
           <div style="margin: 24px 0; text-align: center;">
-            <a href="${siteUrl}/admin#producers" style="background-color: #ea580c; color: white; padding: 12px 22px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; margin-right: 10px; margin-bottom: 8px;">
+            <a href="${siteUrl}/admin#producers" style="background-color: #20C933; color: white; padding: 12px 22px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; margin-right: 10px; margin-bottom: 8px;">
               💻 Moderar no Painel Admin
             </a>
             <a href="https://t.me/fotoclic_ai_bot" style="background-color: #0088cc; color: white; padding: 12px 22px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; margin-bottom: 8px;">
@@ -100,7 +100,7 @@ export const emailService = {
       producerEmail,
       '⏳ Seu cadastro de Produtor foi recebido e está em moderação - FotoClic',
       `<div style="font-family: sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
-        <div style="background: linear-gradient(135deg, #ea580c 0%, #f97316 100%); padding: 24px; text-align: center;">
+        <div style="background: linear-gradient(135deg, #18a82a 0%, #20C933 100%); padding: 24px; text-align: center;">
           <h1 style="color: white; margin: 0; font-size: 22px; font-weight: bold;">FotoClic &bull; Bem-vindo!</h1>
         </div>
         <div style="padding: 28px 24px; background-color: #ffffff;">
@@ -139,7 +139,7 @@ export const emailService = {
       producerEmail,
       '🎉 Parabéns! Seu cadastro de Produtor no FotoClic foi Aprovado!',
       `<div style="font-family: sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
-        <div style="background: linear-gradient(135deg, #16a34a 0%, #22c55e 100%); padding: 26px; text-align: center;">
+        <div style="background: linear-gradient(135deg, #18a82a 0%, #20C933 100%); padding: 26px; text-align: center;">
           <h1 style="color: white; margin: 0; font-size: 24px; font-weight: bold;">🎉 Cadastro Aprovado!</h1>
           <p style="color: #f0fdf4; margin: 6px 0 0 0; font-size: 14px;">Seu Painel de Produtor de Eventos está liberado</p>
         </div>
@@ -150,7 +150,7 @@ export const emailService = {
           </p>
           
           <div style="text-align: center; margin: 28px 0;">
-            <a href="https://www.fotoclic.com.br/produtor" style="background-color: #ea580c; color: white; padding: 14px 28px; text-decoration: none; border-radius: 10px; font-weight: bold; font-size: 15px; display: inline-block; box-shadow: 0 4px 10px rgba(234, 88, 12, 0.3);">
+            <a href="https://www.fotoclic.com.br/produtor" style="background-color: #20C933; color: white; padding: 14px 28px; text-decoration: none; border-radius: 10px; font-weight: bold; font-size: 15px; display: inline-block; box-shadow: 0 4px 10px rgba(32, 201, 51, 0.3);">
               🚀 Acessar Painel do Produtor
             </a>
           </div>

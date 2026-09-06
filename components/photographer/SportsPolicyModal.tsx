@@ -105,7 +105,7 @@ const SportsPolicyModal: React.FC<SportsPolicyModalProps> = ({
             className={`w-full sm:w-auto px-8 py-3.5 rounded-full font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 shadow-lg ${
               countdown > 0 || isSubmitting
                 ? 'bg-neutral-200 text-neutral-400 cursor-not-allowed shadow-none'
-                : 'bg-primary text-white hover:bg-orange-600 active:scale-95 hover:shadow-xl'
+                : 'bg-primary text-white hover:bg-primary-dark active:scale-95 hover:shadow-xl'
             }`}
           >
             {isSubmitting ? (
