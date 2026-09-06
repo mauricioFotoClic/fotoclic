@@ -298,7 +298,9 @@ export default async function handler(req, res) {
       // --- DISPARO DE E-MAILS DE CONFIRMAÇÃO ---
       // Disparar apenas se houver fotos e vendas registradas com sucesso
       if (photos.length > 0 && insertedCount > 0) {
-        const totalAmountFormatted = `R$ ${(Number(orderData.total || 0) / 100).toFixed(2).replace('.', ',')}`;
+        const rawTotal = Number(orderData.total || orderData.total_amount || 0);
+        const totalAmountNum = rawTotal > 0 ? rawTotal : (billingRecord?.metadata?.total || photos.reduce((s, p) => s + (Number(p.price) || 0), 0));
+        const totalAmountFormatted = `R$ ${totalAmountNum.toFixed(2).replace('.', ',')}`;
         const siteUrl = process.env.VITE_SITE_URL || 'https://www.fotoclic.com.br';
         const methodFormatted = (orderData.payment_method || 'PIX').toUpperCase();
 
@@ -452,7 +454,8 @@ export default async function handler(req, res) {
       // --- DISPARO DE NOTIFICAÇÃO EM TEMPO REAL NO TELEGRAM ---
       try {
         const uniquePhotogNames = [...new Set(Object.values(photographerMap).map(p => p.name).filter(Boolean))];
-        const totalAmountNum = (Number(orderData.total || 0) / 100) || photos.reduce((s, p) => s + (Number(p.price) || 0), 0);
+        const rawTotalTg = Number(orderData.total || orderData.total_amount || 0);
+        const totalAmountNum = rawTotalTg > 0 ? rawTotalTg : (billingRecord?.metadata?.total || photos.reduce((s, p) => s + (Number(p.price) || 0), 0));
         await notifyNewSaleToTelegram({
           orderId,
           buyerName,
