@@ -35,8 +35,10 @@ const CustomerDashboardPage: React.FC<CustomerDashboardPageProps> = ({ onNavigat
                     await fetch('/api/get-download-url?action=sync-purchases', {
                         method: 'POST',
                         headers: {
-                            'Authorization': `Bearer ${session.access_token}`
-                        }
+                            'Authorization': `Bearer ${session.access_token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ targetUserId: currentUser.id })
                     }).catch(err => console.warn("Sync failed, but continuing...", err));
                 }
 

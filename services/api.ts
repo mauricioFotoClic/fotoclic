@@ -2555,6 +2555,7 @@ export const api = {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${jwt}`,
           },
+          body: JSON.stringify({ targetUserId: userId }),
         });
         if (res.ok) {
           const json = await res.json();
@@ -2623,7 +2624,7 @@ export const api = {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${jwt}`,
         },
-        body: JSON.stringify({ photoId }),
+        body: JSON.stringify({ photoId, targetUserId: _userId }),
       });
 
       const data = await res.json();

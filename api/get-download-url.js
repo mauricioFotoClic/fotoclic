@@ -117,6 +117,15 @@ export default async function handler(req, res) {
 
         const userId = user.id;
 
+        // Verificar se o usuário solicitante é administrador
+        const { data: userProfile } = await adminClient
+            .from('users')
+            .select('role, email')
+            .eq('id', userId)
+            .maybeSingle();
+
+        const isAdmin = userProfile?.role === 'admin' || user.email === 'svalmauricio@gmail.com';
+
         // 2. Buscar dados da foto (file_url e photographer_id)
         const { data: photo, error: photoError } = await adminClient
             .from('photos')
@@ -128,10 +137,10 @@ export default async function handler(req, res) {
             return res.status(404).json({ error: 'Foto não encontrada.' });
         }
 
-        // 3. Verificar permissão: dono da foto OU comprador
+        // 3. Verificar permissão: dono da foto OU admin OU comprador
         const isOwner = photo.photographer_id === userId;
 
-        if (!isOwner) {
+        if (!isOwner && !isAdmin) {
             const { data: sale } = await adminClient
                 .from('sales')
                 .select('id')
@@ -258,11 +267,37 @@ async function handleSyncPurchases(req, res, userJwt, supabaseUrl, serviceKey) {
         const { data: { user }, error: authError } = await supabase.auth.getUser(userJwt);
         if (authError || !user) return res.status(401).json({ error: 'Sessão inválida.' });
 
+        // Identificar se o solicitante é administrador e se há targetUserId (Modo Vistoria)
+        const { data: userProfile } = await supabase
+            .from('users')
+            .select('role, email')
+            .eq('id', user.id)
+            .maybeSingle();
+
+        const isAdmin = userProfile?.role === 'admin' || user.email === 'svalmauricio@gmail.com';
+        const { targetUserId } = req.body || {};
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+        let effectiveUserId = user.id;
+        let effectiveUserEmail = user.email;
+
+        if (isAdmin && targetUserId && uuidRegex.test(targetUserId)) {
+            effectiveUserId = targetUserId;
+            const { data: targetProfile } = await supabase
+                .from('users')
+                .select('email')
+                .eq('id', targetUserId)
+                .maybeSingle();
+            if (targetProfile?.email) {
+                effectiveUserEmail = targetProfile.email;
+            }
+        }
+
         const { data: pendingBillings } = await supabase
             .from('abacate_pay_billings')
             .select('*')
             .eq('status', 'PENDING')
-            .or(`metadata->>userId.eq.${user.id},customer_email.eq.${user.email}`);
+            .or(`metadata->>userId.eq.${effectiveUserId},customer_email.eq.${effectiveUserEmail}`);
 
         if (pendingBillings && pendingBillings.length > 0) {
             try {
@@ -303,7 +338,7 @@ async function handleSyncPurchases(req, res, userJwt, supabaseUrl, serviceKey) {
             .from('abacate_pay_billings')
             .select('*')
             .eq('status', 'PAID')
-            .or(`metadata->>userId.eq.${user.id},customer_email.eq.${user.email}`);
+            .or(`metadata->>userId.eq.${effectiveUserId},customer_email.eq.${effectiveUserEmail}`);
 
         if (!billings || billings.length === 0) {
             return res.status(200).json({ message: 'Tudo sincronizado.', count: 0 });
@@ -312,7 +347,7 @@ async function handleSyncPurchases(req, res, userJwt, supabaseUrl, serviceKey) {
         const { data: existingSales } = await supabase
             .from('sales')
             .select('billing_id')
-            .eq('buyer_id', user.id);
+            .eq('buyer_id', effectiveUserId);
 
         const saleBillingIds = new Set((existingSales || []).map(s => s.billing_id));
         const orphans = billings.filter(b => !saleBillingIds.has(b.billing_id));
@@ -339,7 +374,7 @@ async function handleSyncPurchases(req, res, userJwt, supabaseUrl, serviceKey) {
 
                         await supabase.from('sales').insert({
                             photo_id: photo.id,
-                            buyer_id: user.id,
+                            buyer_id: effectiveUserId,
                             buyer_name: billing.customer_name || user.user_metadata?.name || 'Cliente',
                             price: photo.price,
                             commission: commVal,
@@ -367,13 +402,39 @@ async function handleGetPurchases(req, res, userJwt, supabaseUrl, serviceKey) {
         const { data: { user }, error: authError } = await supabase.auth.getUser(userJwt);
         if (authError || !user) return res.status(401).json({ error: 'Sessão inválida.' });
 
+        // Identificar se o solicitante é administrador e se há targetUserId (Modo Vistoria)
+        const { data: userProfile } = await supabase
+            .from('users')
+            .select('role, email')
+            .eq('id', user.id)
+            .maybeSingle();
+
+        const isAdmin = userProfile?.role === 'admin' || user.email === 'svalmauricio@gmail.com';
+        const { targetUserId } = req.body || {};
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+        let effectiveUserId = user.id;
+        let effectiveUserEmail = user.email;
+
+        if (isAdmin && targetUserId && uuidRegex.test(targetUserId)) {
+            effectiveUserId = targetUserId;
+            const { data: targetProfile } = await supabase
+                .from('users')
+                .select('email')
+                .eq('id', targetUserId)
+                .maybeSingle();
+            if (targetProfile?.email) {
+                effectiveUserEmail = targetProfile.email;
+            }
+        }
+
         // 1. Tentar sincronizar pedidos pendentes em tempo real
         try {
             const { data: pendingBillings } = await supabase
                 .from('abacate_pay_billings')
                 .select('*')
                 .eq('status', 'PENDING')
-                .or(`metadata->>userId.eq.${user.id},customer_email.eq.${user.email}`);
+                .or(`metadata->>userId.eq.${effectiveUserId},customer_email.eq.${effectiveUserEmail}`);
 
             if (pendingBillings && pendingBillings.length > 0) {
                 const token = await appmax.getAccessToken().catch(() => null);
@@ -405,7 +466,7 @@ async function handleGetPurchases(req, res, userJwt, supabaseUrl, serviceKey) {
                                     for (const photo of photos) {
                                         await supabase.from('sales').insert({
                                             photo_id: photo.id,
-                                            buyer_id: user.id,
+                                            buyer_id: effectiveUserId,
                                             buyer_name: pending.customer_name || user.user_metadata?.name || 'Cliente',
                                             price: photo.price,
                                             commission: Number((photo.price * 0.06).toFixed(2)),
@@ -421,7 +482,7 @@ async function handleGetPurchases(req, res, userJwt, supabaseUrl, serviceKey) {
                                     await sendSaleNotifications({
                                         orderId: pending.billing_id,
                                         buyerName: pending.customer_name || user.user_metadata?.name || 'Cliente',
-                                        customerEmail: pending.customer_email || user.email,
+                                        customerEmail: pending.customer_email || effectiveUserEmail,
                                         totalAmount: Number(pending.amount) / 100 || photos.reduce((acc, p) => acc + (Number(p.price) || 0), 0),
                                         photos: photos,
                                         supabase: supabase
@@ -442,7 +503,7 @@ async function handleGetPurchases(req, res, userJwt, supabaseUrl, serviceKey) {
         const { data: sales, error: sErr } = await supabase
             .from('sales')
             .select('*, photo:photos(*, photographer:users!photos_photographer_id_fkey(name))')
-            .eq('buyer_id', user.id)
+            .eq('buyer_id', effectiveUserId)
             .neq('status', 'refunded')
             .order('sale_date', { ascending: false });
 
