@@ -149,6 +149,7 @@ const inMemoryCache: {
   inactivePhotographers: { data: Set<string> | null, ts: number },
   allPhotographers: { data: PhotographerWithStats[] | null, ts: number },
   allEvents: { data: PhotoEvent[] | null, ts: number },
+  privateEvents: { data: Set<string> | null, ts: number },
   userCache: Record<string, { data: User, ts: number }>,
   photographerPhotosCache: Record<string, { data: Photo[], ts: number }>,
   photographerEventsCache: Record<string, { data: PhotoEvent[], ts: number }>
@@ -160,6 +161,7 @@ const inMemoryCache: {
   inactivePhotographers: { data: null as Set<string> | null, ts: 0 },
   allPhotographers: { data: null, ts: 0 },
   allEvents: { data: null, ts: 0 },
+  privateEvents: { data: null as Set<string> | null, ts: 0 },
   userCache: {},
   photographerPhotosCache: {},
   photographerEventsCache: {}
@@ -190,6 +192,30 @@ export const api = {
     }
   },
 
+  getPrivateEventIds: async (): Promise<Set<string>> => {
+    const now = Date.now();
+    if (inMemoryCache.privateEvents?.data && (now - inMemoryCache.privateEvents.ts < CACHE_TTL)) {
+      return inMemoryCache.privateEvents.data;
+    }
+    try {
+      const { data, error } = await supabase
+        .from("events")
+        .select("id")
+        .eq("is_photos_private", true);
+
+      if (error) throw error;
+      const set = new Set<string>();
+      (data || []).forEach((e: any) => {
+        if (e && e.id) set.add(e.id);
+      });
+      inMemoryCache.privateEvents = { data: set, ts: now };
+      return set;
+    } catch (e) {
+      console.error("Error fetching private event IDs:", e);
+      return inMemoryCache.privateEvents?.data || new Set();
+    }
+  },
+
   // --- PHOTOS ---
   getFeaturedPhotos: async (): Promise<Photo[]> => {
     const now = Date.now();
@@ -197,11 +223,12 @@ export const api = {
     // Cache the pool of photos (expensive DB query), but always re-shuffle on delivery
     if (!inMemoryCache.featured.data || (now - inMemoryCache.featured.ts >= CACHE_TTL)) {
       try {
-        // 1. Fetch featured event IDs (events with is_featured = true)
+        // 1. Fetch featured event IDs (events with is_featured = true and NOT private)
         const { data: featuredEvents } = await supabase
           .from("events")
           .select("id")
-          .eq("is_featured", true);
+          .eq("is_featured", true)
+          .or("is_photos_private.is.null,is_photos_private.eq.false");
 
         const featuredEventIds = (featuredEvents || []).map((e: any) => e.id);
 
@@ -227,11 +254,14 @@ export const api = {
           return [];
         }
 
-        const inactiveIds = await api.getInactivePhotographerIds();
+        const [inactiveIds, privateEventIds] = await Promise.all([
+          api.getInactivePhotographerIds(),
+          api.getPrivateEventIds(),
+        ]);
 
-        // Cache the full pool (not shuffled), excluding inactive photographers
+        // Cache the full pool (not shuffled), excluding inactive photographers and private events
         const pool = (data || [])
-          .filter((p: any) => !inactiveIds.has(p.photographer_id))
+          .filter((p: any) => !inactiveIds.has(p.photographer_id) && (!p.event_id || !privateEventIds.has(p.event_id)))
           .map(mapPhoto);
         inMemoryCache.featured = { data: pool, ts: now };
       } catch (e) {
@@ -332,9 +362,15 @@ export const api = {
       return [];
     }
 
-    const inactiveIds = await api.getInactivePhotographerIds();
+    const [inactiveIds, privateEventIds] = await Promise.all([
+      api.getInactivePhotographerIds(),
+      api.getPrivateEventIds(),
+    ]);
     return (data || [])
-      .filter((p: any) => !inactiveIds.has(p.photographer_id))
+      .filter((p: any) => 
+        !inactiveIds.has(p.photographer_id) &&
+        (!p.event_id || !privateEventIds.has(p.event_id))
+      )
       .map(mapPhoto);
   },
 
@@ -364,8 +400,14 @@ export const api = {
     }
     let resultData = data || [];
     if (onlyPublic) {
-      const inactiveIds = await api.getInactivePhotographerIds();
-      resultData = resultData.filter((p: any) => !inactiveIds.has(p.photographer_id));
+      const [inactiveIds, privateEventIds] = await Promise.all([
+        api.getInactivePhotographerIds(),
+        api.getPrivateEventIds(),
+      ]);
+      resultData = resultData.filter((p: any) => 
+        !inactiveIds.has(p.photographer_id) &&
+        (!p.event_id || !privateEventIds.has(p.event_id))
+      );
     }
     if (shuffle) resultData = shuffleArray(resultData);
     return resultData.map(mapPhoto);
@@ -378,19 +420,26 @@ export const api = {
       return inMemoryCache.recent.data;
     }
 
-    const inactiveIds = await api.getInactivePhotographerIds();
+    const [inactiveIds, privateEventIds] = await Promise.all([
+      api.getInactivePhotographerIds(),
+      api.getPrivateEventIds(),
+    ]);
 
     const { data } = await supabase
       .from("photos")
       .select(
-        "id, photographer_id, category_id, title, preview_url, thumb_url, price, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags, sales_count",
+        "id, photographer_id, category_id, title, preview_url, thumb_url, price, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags, sales_count, event_id",
       )
       .eq("moderation_status", "approved")
       .eq("is_public", true)
       .order("created_at", { ascending: false })
-      .limit(limit * 3);
+      .limit(limit * 5);
 
-    const filtered = (data || []).filter((p: any) => p.photographer_id && !inactiveIds.has(p.photographer_id));
+    const filtered = (data || []).filter((p: any) => 
+      p.photographer_id && 
+      !inactiveIds.has(p.photographer_id) &&
+      (!p.event_id || !privateEventIds.has(p.event_id))
+    );
     const result = filtered.slice(0, limit).map(mapPhoto);
 
     if (limit === 8) {
@@ -407,7 +456,7 @@ export const api = {
     const { data, error } = await supabase
       .from("photos")
       .select(
-        "id, photographer_id, category_id, title, preview_url, thumb_url, price, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags, sales_count",
+        "id, photographer_id, category_id, title, preview_url, thumb_url, price, width, height, is_public, created_at, moderation_status, is_featured, likes_count, tags, sales_count, event_id",
       )
       .eq("category_id", categoryId)
       .eq("moderation_status", "approved")
@@ -415,8 +464,14 @@ export const api = {
       .limit(limit);
     if (error) throw error;
     
-    const inactiveIds = await api.getInactivePhotographerIds();
-    let resultData = (data || []).filter((p: any) => !inactiveIds.has(p.photographer_id));
+    const [inactiveIds, privateEventIds] = await Promise.all([
+      api.getInactivePhotographerIds(),
+      api.getPrivateEventIds(),
+    ]);
+    let resultData = (data || []).filter((p: any) => 
+      !inactiveIds.has(p.photographer_id) &&
+      (!p.event_id || !privateEventIds.has(p.event_id))
+    );
     if (shuffle) resultData = shuffleArray(resultData);
     return resultData.map(mapPhoto);
   },
@@ -1749,13 +1804,28 @@ export const api = {
       }
     }
 
+    // 3. Se a privacidade do evento foi alterada, sincroniza is_public de todas as fotos do evento
+    if (updates.is_photos_private !== undefined) {
+      try {
+        if (updates.is_photos_private) {
+          // Evento privado: todas as fotos ficam ocultas da galeria pública
+          await supabase.from("photos").update({ is_public: false }).eq("event_id", id);
+        } else {
+          // Evento público: fotos aprovadas voltam a ser públicas
+          await supabase.from("photos").update({ is_public: true }).eq("event_id", id).eq("moderation_status", "approved");
+        }
+      } catch (privacyErr) {
+        console.error("Error syncing photos privacy:", privacyErr);
+      }
+    }
+
     if (updatedEvent && updatedEvent.photographer_id) {
       delete inMemoryCache.photographerEventsCache[updatedEvent.photographer_id];
-      if (updates.name || updates.category_id) {
-        delete inMemoryCache.photographerPhotosCache[updatedEvent.photographer_id];
-      }
+      delete inMemoryCache.photographerPhotosCache[updatedEvent.photographer_id];
       inMemoryCache.allEvents = { data: null, ts: 0 };
       inMemoryCache.featured = { data: null, ts: 0 };
+      inMemoryCache.recent = { data: null, ts: 0 };
+      inMemoryCache.privateEvents = { data: null, ts: 0 };
     }
 
     return updatedEvent as PhotoEvent;

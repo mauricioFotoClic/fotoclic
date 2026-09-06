@@ -466,7 +466,7 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                         width: width,
                         height: height,
                         tags: metadata.tags,
-                        is_public: metadata.is_public,
+                        is_public: selectedEvent.is_photos_private ? false : metadata.is_public,
                         is_featured: false,
                         event_id: selectedEvent.id,
                         file_size_bytes: file.size,
