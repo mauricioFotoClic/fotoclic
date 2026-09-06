@@ -23,7 +23,8 @@ const CreateEventForm: React.FC<CreateEventFormProps> = ({ onSubmit, onCancel, c
             return `${year}-${month}-${day}`;
         })(),
         cover_photo_url: initialData?.cover_photo_url || '',
-        allow_discounts: initialData ? (initialData.allow_discounts !== false) : true
+        allow_discounts: initialData ? (initialData.allow_discounts !== false) : true,
+        is_photos_private: initialData ? (initialData.is_photos_private === true) : false
     });
 
     const [loading, setLoading] = useState(false);
@@ -112,6 +113,69 @@ const CreateEventForm: React.FC<CreateEventFormProps> = ({ onSubmit, onCancel, c
                     rows={3}
                     placeholder="Detalhes opcionais sobre o evento..."
                 />
+            </div>
+
+            {/* Configuração de Privacidade e Visibilidade das Fotos */}
+            <div className="bg-neutral-50 p-4 rounded-xl border border-neutral-200/80 shadow-sm space-y-3">
+                <div>
+                    <label className="block text-sm font-bold text-neutral-800">
+                        Privacidade da Galeria de Fotos
+                    </label>
+                    <p className="text-xs text-neutral-500 mt-0.5">
+                        Defina como o público poderá visualizar e encontrar as fotos deste evento.
+                    </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    {/* Opção 1: Pública */}
+                    <div
+                        onClick={() => setFormData(prev => ({ ...prev, is_photos_private: false }))}
+                        className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all ${
+                            !formData.is_photos_private
+                                ? 'bg-primary/5 border-primary shadow-sm'
+                                : 'bg-white border-neutral-200 hover:border-neutral-300'
+                        }`}
+                    >
+                        <div className="flex items-center gap-2.5 mb-1.5">
+                            <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                                !formData.is_photos_private ? 'border-primary bg-primary' : 'border-neutral-400 bg-white'
+                            }`}>
+                                {!formData.is_photos_private && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                            </div>
+                            <span className="text-sm font-bold text-neutral-800 flex items-center gap-1.5">
+                                🌐 Galeria Pública
+                                <span className="text-[10px] font-semibold bg-neutral-200 text-neutral-700 px-1.5 py-0.2 rounded">Padrão</span>
+                            </span>
+                        </div>
+                        <p className="text-xs text-neutral-600 pl-6.5 leading-relaxed">
+                            Todas as fotos ficam visíveis no site para qualquer visitante navegar e buscar.
+                        </p>
+                    </div>
+
+                    {/* Opção 2: Oculta / Reconhecimento Facial */}
+                    <div
+                        onClick={() => setFormData(prev => ({ ...prev, is_photos_private: true }))}
+                        className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all ${
+                            formData.is_photos_private
+                                ? 'bg-primary/5 border-primary shadow-sm'
+                                : 'bg-white border-neutral-200 hover:border-neutral-300'
+                        }`}
+                    >
+                        <div className="flex items-center gap-2.5 mb-1.5">
+                            <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                                formData.is_photos_private ? 'border-primary bg-primary' : 'border-neutral-400 bg-white'
+                            }`}>
+                                {formData.is_photos_private && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                            </div>
+                            <span className="text-sm font-bold text-neutral-800 flex items-center gap-1.5">
+                                🔒 Apenas Reconhecimento Facial
+                            </span>
+                        </div>
+                        <p className="text-xs text-neutral-600 pl-6.5 leading-relaxed">
+                            O evento fica visível, mas as fotos ficam ocultas e <strong>só são reveladas por selfie</strong>.
+                        </p>
+                    </div>
+                </div>
             </div>
 
             <div className="flex items-center bg-neutral-50 p-3.5 rounded-xl border border-neutral-200/60 shadow-sm transition-all hover:bg-neutral-100/30">

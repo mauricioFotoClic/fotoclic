@@ -43,7 +43,8 @@ const ProducerDashboardPage: React.FC<ProducerDashboardPageProps> = ({ currentUs
         location: '',
         event_date: new Date().toISOString().split('T')[0],
         cover_photo_url: '',
-        producer_commission_percent: 15
+        producer_commission_percent: 15,
+        is_photos_private: false
     });
     const [savingEvent, setSavingEvent] = useState(false);
 
@@ -169,7 +170,8 @@ const ProducerDashboardPage: React.FC<ProducerDashboardPageProps> = ({ currentUs
             location: '',
             event_date: new Date().toISOString().split('T')[0],
             cover_photo_url: '',
-            producer_commission_percent: 15
+            producer_commission_percent: 15,
+            is_photos_private: false
         });
         setIsEventModalOpen(true);
     };
@@ -183,7 +185,8 @@ const ProducerDashboardPage: React.FC<ProducerDashboardPageProps> = ({ currentUs
             location: event.location || '',
             event_date: event.event_date ? new Date(event.event_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
             cover_photo_url: event.cover_photo_url || '',
-            producer_commission_percent: event.producer_commission_percent != null ? Number(event.producer_commission_percent) : 15
+            producer_commission_percent: event.producer_commission_percent != null ? Number(event.producer_commission_percent) : 15,
+            is_photos_private: Boolean(event.is_photos_private)
         });
         setIsEventModalOpen(true);
     };
@@ -229,7 +232,8 @@ const ProducerDashboardPage: React.FC<ProducerDashboardPageProps> = ({ currentUs
                     location: eventFormData.location,
                     event_date: eventFormData.event_date,
                     cover_photo_url: eventFormData.cover_photo_url,
-                    producer_commission_percent: Number(eventFormData.producer_commission_percent)
+                    producer_commission_percent: Number(eventFormData.producer_commission_percent),
+                    is_photos_private: eventFormData.is_photos_private
                 } as any);
 
                 showToast("Evento atualizado com sucesso!", "success");
@@ -246,7 +250,8 @@ const ProducerDashboardPage: React.FC<ProducerDashboardPageProps> = ({ currentUs
                     cover_photo_url: eventFormData.cover_photo_url,
                     photographer_id: currentUser.id,
                     producer_id: currentUser.id,
-                    producer_commission_percent: Number(eventFormData.producer_commission_percent)
+                    producer_commission_percent: Number(eventFormData.producer_commission_percent),
+                    is_photos_private: eventFormData.is_photos_private
                 } as any);
 
                 showToast("Evento criado com sucesso! Agora você pode convidar sua equipe.", "success");
@@ -258,7 +263,8 @@ const ProducerDashboardPage: React.FC<ProducerDashboardPageProps> = ({ currentUs
                     location: '',
                     event_date: new Date().toISOString().split('T')[0],
                     cover_photo_url: '',
-                    producer_commission_percent: 15
+                    producer_commission_percent: 15,
+                    is_photos_private: false
                 });
                 fetchData();
                 if (newEvent?.id) {
@@ -919,6 +925,58 @@ const ProducerDashboardPage: React.FC<ProducerDashboardPageProps> = ({ currentUs
                                 </button>
                             </div>
                         )}
+                    </div>
+
+                    {/* Configuração de Privacidade da Galeria */}
+                    <div className="p-4 bg-neutral-50 border border-neutral-200/80 rounded-2xl space-y-2.5">
+                        <div>
+                            <span className="text-xs font-bold text-gray-800 uppercase tracking-wider block">
+                                Privacidade da Galeria de Fotos
+                            </span>
+                            <p className="text-[11px] text-gray-500 mt-0.5">
+                                Escolha se as fotos deste evento serão públicas ou apenas via reconhecimento facial.
+                            </p>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                            <div
+                                onClick={() => setEventFormData(prev => ({ ...prev, is_photos_private: false }))}
+                                className={`p-3 rounded-xl border-2 cursor-pointer transition-all ${
+                                    !eventFormData.is_photos_private
+                                        ? 'bg-primary/5 border-primary'
+                                        : 'bg-white border-neutral-200 hover:border-neutral-300'
+                                }`}
+                            >
+                                <div className="flex items-center gap-2 mb-1">
+                                    <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${
+                                        !eventFormData.is_photos_private ? 'border-primary bg-primary' : 'border-neutral-400 bg-white'
+                                    }`}>
+                                        {!eventFormData.is_photos_private && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                                    </div>
+                                    <span className="text-xs font-bold text-gray-800">🌐 Galeria Pública</span>
+                                </div>
+                                <p className="text-[10px] text-gray-500 pl-5.5">Fotos visíveis no site para todos.</p>
+                            </div>
+
+                            <div
+                                onClick={() => setEventFormData(prev => ({ ...prev, is_photos_private: true }))}
+                                className={`p-3 rounded-xl border-2 cursor-pointer transition-all ${
+                                    eventFormData.is_photos_private
+                                        ? 'bg-primary/5 border-primary'
+                                        : 'bg-white border-neutral-200 hover:border-neutral-300'
+                                }`}
+                            >
+                                <div className="flex items-center gap-2 mb-1">
+                                    <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${
+                                        eventFormData.is_photos_private ? 'border-primary bg-primary' : 'border-neutral-400 bg-white'
+                                    }`}>
+                                        {eventFormData.is_photos_private && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                                    </div>
+                                    <span className="text-xs font-bold text-gray-800">🔒 Apenas Busca Facial</span>
+                                </div>
+                                <p className="text-[10px] text-gray-500 pl-5.5">Fotos ocultas, busca somente por selfie.</p>
+                            </div>
+                        </div>
                     </div>
 
                     {/* Slider de Comissão do Produtor */}

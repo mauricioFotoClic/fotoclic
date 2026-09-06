@@ -364,10 +364,22 @@ const EventPage: React.FC<EventPageProps> = ({ eventId, onNavigate, onAddToCart,
           {!loadingPhotos && (
             <div className="flex justify-center mb-2">
               <span className="flex items-center gap-1.5 text-sm text-neutral-500">
-                <svg className="w-4 h-4 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                {photos.length} foto{photos.length !== 1 ? 's' : ''}
+                {event.is_photos_private ? (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-xs font-bold">
+                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                    </svg>
+                    Galeria Oculta (Apenas Busca Facial)
+                  </span>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    {photos.length} foto{photos.length !== 1 ? 's' : ''}
+                  </>
+                )}
               </span>
             </div>
           )}
@@ -376,8 +388,8 @@ const EventPage: React.FC<EventPageProps> = ({ eventId, onNavigate, onAddToCart,
             <p className="text-center text-neutral-500 text-sm max-w-lg mx-auto mt-2">{event.description}</p>
           )}
 
-          {/* Banner de Reconhecimento Facial — full width, centralizado */}
-          {!loadingPhotos && photos.length > 0 && (
+          {/* Banner de Reconhecimento Facial — full width, centralizado (quando galeria pública) */}
+          {!loadingPhotos && !event.is_photos_private && photos.length > 0 && (
             <div
               onClick={() => setIsFaceSearchOpen(true)}
               className="mt-6 group cursor-pointer"
@@ -418,111 +430,202 @@ const EventPage: React.FC<EventPageProps> = ({ eventId, onNavigate, onAddToCart,
         </div>
       </section>
 
-      {/* ── Galeria de Fotos ──────────────────────────────────────────────── */}
-      <section className="py-12">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Seletor de Pastas/Dias (Modern Grid) */}
-          {!loadingPhotos && folders.length > 0 && (
-            <div className="mb-8 bg-neutral-50/50 p-6 rounded-2xl border border-neutral-200/60">
-              <div className="mb-4">
-                <h3 className="text-base font-bold text-neutral-800">Pastas deste Evento</h3>
-                <p className="text-xs text-neutral-500">Selecione uma pasta para filtrar as fotos abaixo</p>
-              </div>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                {/* Todas as fotos */}
-                <button
-                  onClick={() => setSelectedFolder('all')}
-                  className={`flex items-center justify-between p-3.5 px-4 rounded-xl text-sm font-bold transition-all duration-200 border shadow-sm ${
-                    selectedFolder === 'all'
-                      ? 'bg-primary/5 border-primary text-primary shadow-primary/5'
-                      : 'bg-white border-neutral-200 text-neutral-700 hover:bg-neutral-50 hover:border-neutral-300'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={selectedFolder === 'all' ? 'text-primary' : 'text-neutral-400'}>
-                      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+      {/* ── Galeria de Fotos / Hub de Privacidade ───────────────────────── */}
+      {(() => {
+        const isOwnerOrAdmin = Boolean(
+          currentUser && (
+            currentUser.id === event.photographer_id ||
+            currentUser.role === 'admin' ||
+            currentUser.email === 'svalmauricio@gmail.com'
+          )
+        );
+        const isPrivateGallery = Boolean(event.is_photos_private && !isOwnerOrAdmin);
+
+        return (
+          <section className="py-12">
+            <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+              {/* Aviso para Organizador / Admin quando o evento tiver fotos privadas */}
+              {isOwnerOrAdmin && event.is_photos_private && (
+                <div className="mb-8 p-4.5 bg-amber-50/90 border border-amber-200/90 rounded-2xl flex items-center gap-3.5 shadow-sm text-amber-900">
+                  <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center shrink-0 text-amber-700">
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                     </svg>
-                    <span className="uppercase tracking-wide">TODAS AS FOTOS</span>
                   </div>
-                  <span className={`text-[11px] font-extrabold px-2 py-0.5 rounded-full ${
-                    selectedFolder === 'all' ? 'bg-primary/10 text-primary' : 'bg-neutral-100 text-neutral-500'
-                  }`}>
-                    {photos.length}
-                  </span>
-                </button>
+                  <div className="text-xs sm:text-sm">
+                    <strong>Modo Organizador / Admin:</strong> Este evento está configurado com <strong>Fotos Ocultas</strong> (apenas busca facial). Visitantes comuns não veem a galeria aberta. Como você é o organizador/administrador, você tem visualização completa de todas as fotos.
+                  </div>
+                </div>
+              )}
 
-                {/* Pastas individuais */}
-                {folders.map(folder => {
-                  const count = photos.filter(p => p.sub_group === folder).length;
-                  const isSelected = selectedFolder === folder;
-                  return (
+              {/* Hub de Privacidade e Reconhecimento Facial (Para Visitantes) */}
+              {isPrivateGallery ? (
+                <div className="max-w-3xl mx-auto py-8 text-center">
+                  <div className="bg-white rounded-3xl border border-neutral-200/80 shadow-xl p-8 sm:p-12 relative overflow-hidden">
+                    {/* Background glow decoration */}
+                    <div className="absolute -top-24 -right-24 w-48 h-48 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+                    <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+
+                    {/* Shield / Privacy Icon */}
+                    <div className="mx-auto w-20 h-20 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-6 shadow-inner text-primary">
+                      <svg className="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                        <path d="M9 12a3 3 0 1 0 6 0" />
+                        <path d="M9 10h.01" />
+                        <path d="M15 10h.01" />
+                      </svg>
+                    </div>
+
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase tracking-wider mb-4">
+                      <span>🔒 Galeria Privada</span>
+                    </div>
+
+                    <h2 className="text-2xl sm:text-3xl font-display font-extrabold text-neutral-900 mb-3">
+                      Encontre Suas Fotos por Reconhecimento Facial
+                    </h2>
+
+                    <p className="text-neutral-600 text-sm sm:text-base leading-relaxed max-w-xl mx-auto mb-8">
+                      Para garantir a privacidade e segurança de todos os participantes, as fotos deste evento não ficam expostas na galeria pública. Envie uma selfie e nossa IA encontrará instantaneamente <strong>apenas as fotos em que você aparece</strong>.
+                    </p>
+
+                    {/* CTA Principal de Busca Facial */}
                     <button
-                      key={folder}
-                      onClick={() => setSelectedFolder(folder)}
-                      className={`flex items-center justify-between p-3.5 px-4 rounded-xl text-sm font-bold transition-all duration-200 border shadow-sm ${
-                        isSelected
-                          ? 'bg-primary/5 border-primary text-primary shadow-primary/5'
-                          : 'bg-white border-neutral-200 text-neutral-700 hover:bg-neutral-50 hover:border-neutral-300'
-                      }`}
+                      onClick={() => setIsFaceSearchOpen(true)}
+                      className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-primary text-white font-bold text-base rounded-2xl shadow-lg shadow-primary/25 hover:bg-primary/90 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 cursor-pointer w-full sm:w-auto"
                     >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={isSelected ? 'text-primary' : 'text-neutral-400'}>
-                          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
-                        </svg>
-                        <span className="uppercase tracking-wide truncate" title={folder}>{folder}</span>
-                      </div>
-                      <span className={`text-[11px] font-extrabold px-2 py-0.5 rounded-full shrink-0 ${
-                        isSelected ? 'bg-primary/10 text-primary' : 'bg-neutral-100 text-neutral-500'
-                      }`}>
-                        {count}
-                      </span>
+                      <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                        <circle cx="12" cy="13" r="4" />
+                      </svg>
+                      <span>Tirar Selfie / Encontrar Minhas Fotos</span>
                     </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
 
-          {loadingPhotos ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-              {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
-                <div key={i} className="h-72 bg-white shadow-sm rounded-2xl animate-pulse flex flex-col overflow-hidden border border-neutral-100">
-                  <div className="h-48 bg-neutral-200" />
-                  <div className="flex-1 p-4 flex flex-col justify-between">
-                    <div className="h-5 bg-neutral-200 w-3/4 rounded mb-4" />
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full bg-neutral-200" />
-                      <div className="h-3 bg-neutral-200 w-1/2 rounded" />
+                    {/* 3 Passos explicativos */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-12 pt-8 border-t border-neutral-100 text-left">
+                      <div className="p-3.5 bg-neutral-50 rounded-xl border border-neutral-100">
+                        <span className="text-xs font-bold text-primary block mb-1">Passo 1</span>
+                        <p className="text-xs text-neutral-700 font-medium">Tire uma selfie ou envie uma foto nítida do seu rosto.</p>
+                      </div>
+                      <div className="p-3.5 bg-neutral-50 rounded-xl border border-neutral-100">
+                        <span className="text-xs font-bold text-primary block mb-1">Passo 2</span>
+                        <p className="text-xs text-neutral-700 font-medium">A IA analisa a galeria do evento em poucos segundos.</p>
+                      </div>
+                      <div className="p-3.5 bg-neutral-50 rounded-xl border border-neutral-100">
+                        <span className="text-xs font-bold text-primary block mb-1">Passo 3</span>
+                        <p className="text-xs text-neutral-700 font-medium">Visualize e adquira somente as fotos em que você aparece.</p>
+                      </div>
                     </div>
                   </div>
                 </div>
-              ))}
+              ) : (
+                <>
+                  {/* Seletor de Pastas/Dias (Modern Grid) */}
+                  {!loadingPhotos && folders.length > 0 && (
+                    <div className="mb-8 bg-neutral-50/50 p-6 rounded-2xl border border-neutral-200/60">
+                      <div className="mb-4">
+                        <h3 className="text-base font-bold text-neutral-800">Pastas deste Evento</h3>
+                        <p className="text-xs text-neutral-500">Selecione uma pasta para filtrar as fotos abaixo</p>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                        {/* Todas as fotos */}
+                        <button
+                          onClick={() => setSelectedFolder('all')}
+                          className={`flex items-center justify-between p-3.5 px-4 rounded-xl text-sm font-bold transition-all duration-200 border shadow-sm ${
+                            selectedFolder === 'all'
+                              ? 'bg-primary/5 border-primary text-primary shadow-primary/5'
+                              : 'bg-white border-neutral-200 text-neutral-700 hover:bg-neutral-50 hover:border-neutral-300'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={selectedFolder === 'all' ? 'text-primary' : 'text-neutral-400'}>
+                              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                            </svg>
+                            <span className="uppercase tracking-wide">TODAS AS FOTOS</span>
+                          </div>
+                          <span className={`text-[11px] font-extrabold px-2 py-0.5 rounded-full ${
+                            selectedFolder === 'all' ? 'bg-primary/10 text-primary' : 'bg-neutral-100 text-neutral-500'
+                          }`}>
+                            {photos.length}
+                          </span>
+                        </button>
+
+                        {/* Pastas individuais */}
+                        {folders.map(folder => {
+                          const count = photos.filter(p => p.sub_group === folder).length;
+                          const isSelected = selectedFolder === folder;
+                          return (
+                            <button
+                              key={folder}
+                              onClick={() => setSelectedFolder(folder)}
+                              className={`flex items-center justify-between p-3.5 px-4 rounded-xl text-sm font-bold transition-all duration-200 border shadow-sm ${
+                                isSelected
+                                  ? 'bg-primary/5 border-primary text-primary shadow-primary/5'
+                                  : 'bg-white border-neutral-200 text-neutral-700 hover:bg-neutral-50 hover:border-neutral-300'
+                              }`}
+                            >
+                              <div className="flex items-center gap-3 min-w-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={isSelected ? 'text-primary' : 'text-neutral-400'}>
+                                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                                </svg>
+                                <span className="uppercase tracking-wide truncate" title={folder}>{folder}</span>
+                              </div>
+                              <span className={`text-[11px] font-extrabold px-2 py-0.5 rounded-full shrink-0 ${
+                                isSelected ? 'bg-primary/10 text-primary' : 'bg-neutral-100 text-neutral-500'
+                              }`}>
+                                {count}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {loadingPhotos ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+                      {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+                        <div key={i} className="h-72 bg-white shadow-sm rounded-2xl animate-pulse flex flex-col overflow-hidden border border-neutral-100">
+                          <div className="h-48 bg-neutral-200" />
+                          <div className="flex-1 p-4 flex flex-col justify-between">
+                            <div className="h-5 bg-neutral-200 w-3/4 rounded mb-4" />
+                            <div className="flex items-center gap-2">
+                              <div className="w-6 h-6 rounded-full bg-neutral-200" />
+                              <div className="h-3 bg-neutral-200 w-1/2 rounded" />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : filteredPhotos.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+                      {filteredPhotos.map(photo => (
+                        <PhotoCard
+                          key={photo.id}
+                          photo={photo}
+                          photographer={getPhotographerForPhoto(photo.photographer_id)}
+                          onNavigate={onNavigate}
+                          onAddToCart={onAddToCart}
+                          onSelectPhoto={handleOpenPhoto}
+                          currentUser={currentUser}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-20">
+                      <svg className="w-16 h-16 text-neutral-200 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      <p className="text-neutral-500">Nenhuma foto encontrada com os filtros selecionados.</p>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
-          ) : filteredPhotos.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-              {filteredPhotos.map(photo => (
-                <PhotoCard
-                  key={photo.id}
-                  photo={photo}
-                  photographer={getPhotographerForPhoto(photo.photographer_id)}
-                  onNavigate={onNavigate}
-                  onAddToCart={onAddToCart}
-                  onSelectPhoto={handleOpenPhoto}
-                  currentUser={currentUser}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-20">
-              <svg className="w-16 h-16 text-neutral-200 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              <p className="text-neutral-500">Nenhuma foto encontrada com os filtros selecionados.</p>
-            </div>
-          )}
-        </div>
-      </section>
+          </section>
+        );
+      })()}
 
       {/* ── Modal de Compartilhamento ─────────────────────────────────────── */}
       {showShareModal && (

@@ -1307,7 +1307,7 @@ export const api = {
     try {
       let { data, error } = await supabase
         .from("events")
-        .select("id, name, event_date, location, cover_photo_url, photographer_id, category_id, is_featured, created_at, photographer:users!photographer_id(name, avatar_url, is_active)")
+        .select("id, name, event_date, location, cover_photo_url, photographer_id, category_id, is_featured, is_photos_private, created_at, photographer:users!photographer_id(name, avatar_url, is_active)")
         .order("event_date", { ascending: false })
         .limit(200);
 
@@ -1315,7 +1315,7 @@ export const api = {
         console.warn("Retrying getAllPublicEvents without join due to error:", error.message);
         const fallbackRes = await supabase
           .from("events")
-          .select("id, name, event_date, location, cover_photo_url, photographer_id, category_id, is_featured, created_at")
+          .select("id, name, event_date, location, cover_photo_url, photographer_id, category_id, is_featured, is_photos_private, created_at")
           .order("event_date", { ascending: false })
           .limit(200);
 

@@ -163,6 +163,7 @@ export interface PhotoEvent {
   created_at: string;
   allow_discounts?: boolean;
   is_featured?: boolean;
+  is_photos_private?: boolean; // false = público (padrão), true = oculto (apenas busca facial)
   photographer?: {
     name: string;
     avatar_url?: string;
