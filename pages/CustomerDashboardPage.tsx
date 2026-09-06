@@ -60,7 +60,7 @@ const CustomerDashboardPage: React.FC<CustomerDashboardPageProps> = ({ onNavigat
             const signedUrl = await api.getSecureDownloadUrl(photo.id, currentUser.id);
 
             if (!signedUrl) {
-                alert("Erro ao gerar link seguro. Verifique se você realmente comprou esta foto.");
+                alert("Não foi possível gerar o link de download no momento. Por favor, tente novamente em instantes.");
                 return;
             }
 
@@ -70,23 +70,35 @@ const CustomerDashboardPage: React.FC<CustomerDashboardPageProps> = ({ onNavigat
                 const link = document.createElement('a');
                 link.href = signedUrl;
                 link.setAttribute('download', `${fileName}.mp4`);
+                link.target = '_blank';
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
             } else {
-                const response = await fetch(signedUrl);
-                if (!response.ok) throw new Error('Falha ao baixar o arquivo.');
-                const blob = await response.blob();
+                try {
+                    const response = await fetch(signedUrl);
+                    if (!response.ok) throw new Error('Falha ao baixar o arquivo.');
+                    const blob = await response.blob();
 
-                const ext = blob.type.includes('png') ? 'png' : blob.type.includes('webp') ? 'webp' : 'jpg';
-                const objectUrl = URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.href = objectUrl;
-                link.setAttribute('download', `${fileName}.${ext}`);
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                URL.revokeObjectURL(objectUrl);
+                    const ext = blob.type.includes('png') ? 'png' : blob.type.includes('webp') ? 'webp' : 'jpg';
+                    const objectUrl = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = objectUrl;
+                    link.setAttribute('download', `${fileName}.${ext}`);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(objectUrl);
+                } catch (fetchErr) {
+                    console.warn("Direct blob download failed, opening direct URL:", fetchErr);
+                    const link = document.createElement('a');
+                    link.href = signedUrl;
+                    link.target = '_blank';
+                    link.setAttribute('download', `${fileName}.jpg`);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
             }
         } catch (error) {
             console.error("Download failed:", error);

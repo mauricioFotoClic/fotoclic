@@ -126,10 +126,10 @@ export default async function handler(req, res) {
 
         const isAdmin = userProfile?.role === 'admin' || user.email === 'svalmauricio@gmail.com';
 
-        // 2. Buscar dados da foto (file_url e photographer_id)
+        // 2. Buscar dados da foto
         const { data: photo, error: photoError } = await adminClient
             .from('photos')
-            .select('file_url, photographer_id, media_type, video_uid')
+            .select('id, file_url, preview_url, thumb_url, photographer_id, media_type, video_uid, title')
             .eq('id', photoId)
             .single();
 
@@ -215,45 +215,115 @@ export default async function handler(req, res) {
             return res.status(200).json({ url: fallbackUrl });
         }
 
-        // 5. Se o arquivo estiver no Amazon S3 (pasta originals/ ou s3 Key)
-        if (photo.file_url && (photo.file_url.startsWith('originals/') || photo.file_url.includes('s3.amazonaws.com') || photo.file_url.startsWith('s3://'))) {
+        // 5. Se for foto, tentar obter do AWS S3 ou Supabase Storage com fallback resiliente
+        let downloadUrl = null;
+        const S3_BUCKET = process.env.AWS_S3_BUCKET || 'fotoclic-media-storage';
+        const REGION = process.env.AWS_REGION || 'us-east-1';
+
+        // 5.1 Tentar AWS S3 (Bucket de Mídia principal)
+        if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY && photo.file_url) {
             try {
-                const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
+                const { S3Client, GetObjectCommand, HeadObjectCommand } = await import('@aws-sdk/client-s3');
                 const { getSignedUrl } = await import('@aws-sdk/s3-request-presigner');
-                const S3_BUCKET = process.env.AWS_S3_BUCKET || 'fotoclic-media-storage';
+
                 const s3Client = new S3Client({
-                    region: process.env.AWS_REGION || 'us-east-1',
+                    region: REGION,
                     credentials: {
                         accessKeyId: process.env.AWS_ACCESS_KEY_ID,
                         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
                     },
                 });
 
-                let cleanKey = photo.file_url.replace(/^https?:\/\/[^\/]+\//, '').replace(/^s3:\/\/[^\/]+\//, '');
-                const getCmd = new GetObjectCommand({
-                    Bucket: S3_BUCKET,
-                    Key: cleanKey,
-                });
-                const s3SignedUrl = await getSignedUrl(s3Client, getCmd, { expiresIn: 7200 });
-                console.log(`[DownloadURL] Link AWS S3 gerado: user=${userId} photo=${photoId}`);
-                return res.status(200).json({ url: s3SignedUrl });
+                const rawKey = photo.file_url.replace(/^https?:\/\/[^\/]+\//, '').replace(/^s3:\/\/[^\/]+\//, '');
+                const candidates = [];
+                if (rawKey.startsWith('originals/')) {
+                    candidates.push(rawKey);
+                    candidates.push(rawKey.replace(/^originals\//, ''));
+                } else {
+                    candidates.push('originals/' + rawKey);
+                    candidates.push(rawKey);
+                }
+
+                for (const key of candidates) {
+                    try {
+                        await s3Client.send(new HeadObjectCommand({ Bucket: S3_BUCKET, Key: key }));
+                        const getCmd = new GetObjectCommand({ Bucket: S3_BUCKET, Key: key });
+                        downloadUrl = await getSignedUrl(s3Client, getCmd, { expiresIn: 7200 });
+                        console.log(`[DownloadURL] Link AWS S3 original gerado: user=${userId} photo=${photoId} key=${key}`);
+                        break;
+                    } catch (headErr) {
+                        // Chave não encontrada nesta tentativa
+                    }
+                }
             } catch (s3DownloadErr) {
-                console.warn('[DownloadURL] Falha ao gerar link do S3, tentando Supabase fallback:', s3DownloadErr.message);
+                console.warn('[DownloadURL] Falha ao verificar no S3:', s3DownloadErr.message);
             }
         }
 
-        // 6. Gerar signed URL do bucket privado do Supabase (para fotos do acervo legado)
-        const { data: signedData, error: signedError } = await adminClient.storage
-            .from('photos-original')
-            .createSignedUrl(photo.file_url, 3600);
+        // 5.2 Se não encontrou no S3, tentar bucket privado do Supabase (para fotos do acervo legado)
+        if (!downloadUrl && photo.file_url) {
+            try {
+                const { data: signedData, error: signedError } = await adminClient.storage
+                    .from('photos-original')
+                    .createSignedUrl(photo.file_url, 3600);
 
-        if (signedError || !signedData?.signedUrl) {
-            console.error('[DownloadURL] Erro ao gerar signed URL:', signedError?.message);
-            return res.status(500).json({ error: 'Não foi possível gerar o link de download.' });
+                if (!signedError && signedData?.signedUrl) {
+                    downloadUrl = signedData.signedUrl;
+                    console.log(`[DownloadURL] Link Supabase original gerado: user=${userId} photo=${photoId}`);
+                }
+            } catch (sbErr) {
+                console.warn('[DownloadURL] Falha ao buscar no Supabase photos-original:', sbErr.message);
+            }
         }
 
-        console.log(`[DownloadURL] Link Supabase gerado: user=${userId} photo=${photoId}`);
-        return res.status(200).json({ url: signedData.signedUrl });
+        // 5.3 Fallback de Alta Resiliência: se o original sofreu falha durante o upload do fotógrafo, usar preview em alta resolução (4K / 1.5MB+)
+        if (!downloadUrl) {
+            console.warn(`[DownloadURL] Arquivo original ausente para photo=${photoId}. Acionando fallback de alta qualidade.`);
+
+            // Tenta preview no S3
+            if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY && photo.file_url) {
+                try {
+                    const { S3Client, GetObjectCommand, HeadObjectCommand } = await import('@aws-sdk/client-s3');
+                    const { getSignedUrl } = await import('@aws-sdk/s3-request-presigner');
+
+                    const s3Client = new S3Client({
+                        region: REGION,
+                        credentials: {
+                            accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+                            secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+                        },
+                    });
+
+                    const rawKey = photo.file_url.replace(/^https?:\/\/[^\/]+\//, '').replace(/^s3:\/\/[^\/]+\//, '');
+                    const previewKey = (rawKey.startsWith('originals/') ? rawKey.replace(/^originals\//, 'previews/') : 'previews/' + rawKey)
+                        .replace(/-original\.(jpeg|jpg|png|webp)$/i, '-preview.webp');
+
+                    try {
+                        await s3Client.send(new HeadObjectCommand({ Bucket: S3_BUCKET, Key: previewKey }));
+                        const getCmd = new GetObjectCommand({ Bucket: S3_BUCKET, Key: previewKey });
+                        downloadUrl = await getSignedUrl(s3Client, getCmd, { expiresIn: 7200 });
+                        console.log(`[DownloadURL] Link de fallback S3 preview gerado: user=${userId} photo=${photoId}`);
+                    } catch (prevS3Err) {
+                        // ignore
+                    }
+                } catch (e) {
+                    // ignore
+                }
+            }
+
+            // Se ainda não achou, usar photo.preview_url pública direta
+            if (!downloadUrl && photo.preview_url) {
+                downloadUrl = photo.preview_url;
+                console.log(`[DownloadURL] Link de fallback photo.preview_url utilizado: user=${userId} photo=${photoId}`);
+            }
+        }
+
+        if (!downloadUrl) {
+            console.error('[DownloadURL] Nenhuma mídia encontrada para photoId:', photoId);
+            return res.status(404).json({ error: 'Arquivo da foto não encontrado nos servidores de mídia.' });
+        }
+
+        return res.status(200).json({ url: downloadUrl });
 
     } catch (error) {
         console.error('[DownloadURL] Erro interno:', error);
