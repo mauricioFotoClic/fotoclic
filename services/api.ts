@@ -1298,7 +1298,7 @@ export const api = {
   },
 
   // --- EVENTS ---
-  getAllPublicEvents: async (): Promise<PhotoEvent[]> => {
+  getAllPublicEvents: async (limit = 24): Promise<PhotoEvent[]> => {
     const now = Date.now();
     if (inMemoryCache.allEvents.data && (now - inMemoryCache.allEvents.ts < CACHE_TTL)) {
       return inMemoryCache.allEvents.data;
@@ -1309,7 +1309,7 @@ export const api = {
         .from("events")
         .select("id, name, event_date, location, cover_photo_url, photographer_id, category_id, is_featured, is_photos_private, created_at, photographer:users!photographer_id(name, avatar_url, is_active)")
         .order("event_date", { ascending: false })
-        .limit(200);
+        .limit(limit);
 
       if (error) {
         console.warn("Retrying getAllPublicEvents without join due to error:", error.message);
@@ -1317,7 +1317,7 @@ export const api = {
           .from("events")
           .select("id, name, event_date, location, cover_photo_url, photographer_id, category_id, is_featured, is_photos_private, created_at")
           .order("event_date", { ascending: false })
-          .limit(200);
+          .limit(limit);
 
         data = fallbackRes.data as any;
         error = fallbackRes.error;

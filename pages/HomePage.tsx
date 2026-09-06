@@ -145,7 +145,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
       setLoadingPhotogs(false);
     }).catch(() => setLoadingPhotogs(false));
 
-    api.getAllPublicEvents().then(events => {
+    api.getAllPublicEvents(12).then(events => {
       setRecentEvents(events);
       setLoadingEvents(false);
     }).catch(() => setLoadingEvents(false));
