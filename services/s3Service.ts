@@ -54,17 +54,38 @@ export const s3Service = {
 
     const { uploadUrl, publicUrl, s3Key } = await res.json();
 
-    // 2. Realiza o envio DIRETO do navegador para a AWS S3 (Alta Performance)
-    const s3UploadRes = await fetch(uploadUrl, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': file.type || 'image/jpeg'
-      },
-      body: file
-    });
+    // 2. Realiza o envio DIRETO do navegador para a AWS S3 com Retentativas Automáticas (Alta Performance e Resiliência)
+    let s3UploadRes: Response | null = null;
+    let lastError: any = null;
+    const maxRetries = 3;
 
-    if (!s3UploadRes.ok) {
-      throw new Error(`Falha ao transferir arquivo para a AWS S3 (${s3UploadRes.status})`);
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        s3UploadRes = await fetch(uploadUrl, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': file.type || 'image/jpeg'
+          },
+          body: file
+        });
+
+        if (s3UploadRes.ok) {
+          break;
+        } else {
+          lastError = new Error(`Falha ao transferir arquivo para a AWS S3 (Tentativa ${attempt}/${maxRetries} - Status ${s3UploadRes.status})`);
+        }
+      } catch (networkErr: any) {
+        lastError = networkErr;
+      }
+
+      if (attempt < maxRetries) {
+        // Aguardar backoff exponencial antes de tentar novamente (500ms, 1000ms)
+        await new Promise(r => setTimeout(r, attempt * 500));
+      }
+    }
+
+    if (!s3UploadRes || !s3UploadRes.ok) {
+      throw lastError || new Error(`Falha definitiva ao transferir arquivo para a AWS S3 após ${maxRetries} tentativas.`);
     }
 
     return { publicUrl, s3Key };

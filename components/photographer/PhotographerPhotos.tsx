@@ -439,18 +439,20 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                         if (prevRes.error) throw prevRes.error;
                         if (thumbRes.error) throw thumbRes.error;
 
-                        try {
-                            const { data: { user: authUser } } = await api.supabase.auth.getUser();
-                            if (authUser) {
-                                await api.supabase.storage.from('photos-original').upload(`${filePath}-original.${fileExt}`, file, { upsert: true });
-                            }
-                        } catch (e) {}
+                        const origRes = await api.supabase.storage.from('photos-original').upload(`${filePath}-original.${fileExt}`, file, { upsert: true });
+                        if (origRes.error) {
+                            throw new Error(`Falha crítica ao gravar arquivo original no storage: ${origRes.error.message}`);
+                        }
 
                         const { data: prevUrlData } = api.supabase.storage.from('photos-preview').getPublicUrl(`${filePath}-preview.webp`);
                         const { data: thumbUrlData } = api.supabase.storage.from('photos-preview').getPublicUrl(`${filePath}-thumb.webp`);
                         previewUrl = prevUrlData.publicUrl;
                         thumbUrl = thumbUrlData.publicUrl;
                         fileUrl = `${filePath}-original.${fileExt}`;
+                    }
+
+                    if (!fileUrl) {
+                        throw new Error(`Gravação do arquivo original não confirmada no storage.`);
                     }
 
                     const newPhoto = await api.createPhoto({
