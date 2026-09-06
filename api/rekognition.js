@@ -417,10 +417,24 @@ async function handleSearchFaces(req, res, rekognition, COLLECTION_ID, supabase,
     // Ordenar resultados pelo maior score de relevância
     const sortedMatches = Array.from(matchesMap.values()).sort((a, b) => b.similarity - a.similarity);
 
+    let photosData = [];
+    if (sortedMatches.length > 0) {
+        const matchedPhotoIds = sortedMatches.map(m => m.photoId);
+        const { data: dbPhotos, error: photosErr } = await supabase
+            .from('photos')
+            .select('id, photographer_id, category_id, title, description, preview_url, thumb_url, price, resolution, width, height, tags, is_public, created_at, moderation_status, rejection_reason, is_featured, likes_count, quality_analysis, is_face_indexed, event_id, sales_count, media_type, video_uid, video_duration, file_size_bytes, photo_likes(user_id)')
+            .in('id', matchedPhotoIds);
+
+        if (!photosErr && dbPhotos) {
+            photosData = dbPhotos;
+        }
+    }
+
     return res.json({
         success:    true,
         photoIds:   sortedMatches.map(m => m.photoId),
         matches:    sortedMatches,
+        photos:     photosData,
         detectedInQuery: {
             facesFound: faceMatches.length,
             labels: searchLabels,

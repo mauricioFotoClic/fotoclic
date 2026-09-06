@@ -67,7 +67,7 @@ export const faceRecognitionService = {
         return response.json();
     },
 
-    async searchByImage(imageDataUrl: string, eventId?: string): Promise<{ id: string; similarity: number; matchType?: string; matchReasons?: string[] }[]> {
+    async searchByImage(imageDataUrl: string, eventId?: string): Promise<{ id: string; similarity: number; matchType?: string; matchReasons?: string[]; photo?: any }[]> {
         // Convert to JPEG in browser in case user uploaded WebP/HEIC
         const jpegBase64 = await toJpegDataUrl(imageDataUrl);
 
@@ -83,26 +83,17 @@ export const faceRecognitionService = {
         }
 
         const data = await response.json();
+        const matches = (data.matches || []) as any[];
+        const rawPhotos = (data.photos || []) as any[];
+        const photosMap = new Map<string, any>(rawPhotos.map(p => [p.id, p]));
 
-        let photoIds: string[] = data.photoIds ?? [];
-
-        if (eventId && photoIds.length > 0) {
-            const { data: photos } = await supabase
-                .from('photos')
-                .select('id')
-                .in('id', photoIds)
-                .eq('event_id', eventId);
-            photoIds = (photos ?? []).map((p: any) => p.id);
-        }
-
-        return (data.matches as any[])
-            .filter((m: any) => photoIds.includes(m.photoId))
-            .map((m: any) => ({ 
-                id: m.photoId, 
-                similarity: m.similarity,
-                matchType: m.matchType,
-                matchReasons: m.matchReasons,
-            }));
+        return matches.map((m: any) => ({ 
+            id: m.photoId, 
+            similarity: m.similarity,
+            matchType: m.matchType,
+            matchReasons: m.matchReasons,
+            photo: photosMap.get(m.photoId),
+        }));
     },
 
     async deleteFaces(faceIds: string[]): Promise<void> {

@@ -294,9 +294,44 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({
                 setMatchMetadata(metaMap);
 
                 const matchedIds = matches.map(m => m.id);
-                const fetchedPhotos = await api.getPhotosByIds(matchedIds);
-                // Preserve AI relevance ordering
-                photos = matchedIds.map(id => fetchedPhotos.find(p => p.id === id)).filter(Boolean) as Photo[];
+                const directPhotos = matches
+                    .map(m => m.photo)
+                    .filter(Boolean)
+                    .map(p => ({
+                        id: p.id,
+                        photographer_id: p.photographer_id,
+                        category_id: p.category_id,
+                        title: p.title,
+                        description: p.description,
+                        preview_url: p.preview_url,
+                        thumb_url: p.thumb_url,
+                        price: p.price,
+                        resolution: p.resolution,
+                        width: p.width,
+                        height: p.height,
+                        tags: p.tags || [],
+                        is_public: p.is_public,
+                        created_at: p.created_at,
+                        moderation_status: p.moderation_status,
+                        rejection_reason: p.rejection_reason,
+                        is_featured: p.is_featured,
+                        likes_count: p.likes_count,
+                        quality_analysis: p.quality_analysis,
+                        is_face_indexed: p.is_face_indexed,
+                        event_id: p.event_id,
+                        sales_count: p.sales_count,
+                        media_type: p.media_type,
+                        video_uid: p.video_uid,
+                        video_duration: p.video_duration,
+                        file_size_bytes: p.file_size_bytes,
+                    } as Photo));
+
+                if (directPhotos.length > 0) {
+                    photos = matchedIds.map(id => directPhotos.find(p => p.id === id)).filter(Boolean) as Photo[];
+                } else {
+                    const fetchedPhotos = await api.getPhotosByIds(matchedIds);
+                    photos = matchedIds.map(id => fetchedPhotos.find(p => p.id === id)).filter(Boolean) as Photo[];
+                }
             } else {
                 // Fallback visual similarity
                 photos = await api.searchImageContext(selectedImage);
@@ -305,18 +340,14 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({
                 }
             }
 
-            // 2. Filter by City, Date & Specific Event if selected
-            if (selectedCity || selectedDate || selectedEventId) {
+            // 2. Filter by City & Date if selected
+            if (selectedCity || selectedDate) {
                 const eventMap = new Map<string, PhotoEvent>();
                 events.forEach(ev => eventMap.set(ev.id, ev));
 
                 photos = photos.filter(p => {
                     const ev = eventMap.get(p.event_id);
                     if (!ev) return true; // Keep if event data not loaded
-
-                    if (selectedEventId && p.event_id !== selectedEventId) {
-                        return false;
-                    }
 
                     if (selectedCity && ev.location) {
                         if (!includesNormalized(ev.location, selectedCity)) {
