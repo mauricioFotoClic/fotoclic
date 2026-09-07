@@ -7,6 +7,7 @@ import FounderProgramModal from '../components/FounderProgramModal';
 import PhotoCard from '../components/PhotoCard';
 import WatermarkedImage from '../components/WatermarkedImage';
 import SEO from '../components/SEO';
+import OfficialStoreSection from '../components/home/OfficialStoreSection';
 import { getOptimizedImageUrl } from '../utils/imageOptimization';
 import { getAvatarFallbackUrl } from '../utils/stringUtils';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -347,6 +348,9 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
           </div>
         </div>
       </section>
+
+      {/* ── Loja Oficial FotoClic (Segunda Dobra) ─────────────────────────── */}
+      <OfficialStoreSection storeUrl="https://fotoclic.lojaintegrada.com.br/" />
 
       {/* ── Bulk Discount Promotion ──────────────────────────────────────── */}
       <section className="py-6 sm:py-8 bg-white relative overflow-hidden">
