@@ -209,7 +209,18 @@ const AdminProducers: React.FC<AdminProducersProps> = ({ onNavigate, onImpersona
                                                     )}
                                                 </div>
                                                 <div>
-                                                    <div className="font-bold text-gray-900">{producer.name}</div>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="font-bold text-gray-900">{producer.name}</span>
+                                                        {producer.role === 'producer' ? (
+                                                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 uppercase tracking-wider">
+                                                                Produtor
+                                                            </span>
+                                                        ) : (
+                                                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 uppercase tracking-wider">
+                                                                Fotógrafo Produtor
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                     {producer.company_name && (
                                                         <div className="flex items-center gap-1 text-xs text-gray-500 mt-0.5">
                                                             <Building2 size={12} className="text-gray-400" />

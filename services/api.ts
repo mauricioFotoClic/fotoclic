@@ -1728,7 +1728,11 @@ export const api = {
 
       // 6. Clear in-memory caches
       if (event && event.photographer_id) {
-        delete inMemoryCache.photographerEventsCache[event.photographer_id];
+        Object.keys(inMemoryCache.photographerEventsCache).forEach(k => {
+          if (k.startsWith(event.photographer_id)) {
+            delete inMemoryCache.photographerEventsCache[k];
+          }
+        });
         delete inMemoryCache.photographerPhotosCache[event.photographer_id];
       }
       inMemoryCache.allEvents = { data: null, ts: 0 };
@@ -1820,7 +1824,11 @@ export const api = {
     }
 
     if (updatedEvent && updatedEvent.photographer_id) {
-      delete inMemoryCache.photographerEventsCache[updatedEvent.photographer_id];
+      Object.keys(inMemoryCache.photographerEventsCache).forEach(k => {
+        if (k.startsWith(updatedEvent.photographer_id)) {
+          delete inMemoryCache.photographerEventsCache[k];
+        }
+      });
       delete inMemoryCache.photographerPhotosCache[updatedEvent.photographer_id];
       inMemoryCache.allEvents = { data: null, ts: 0 };
       inMemoryCache.featured = { data: null, ts: 0 };
@@ -3742,56 +3750,27 @@ export const api = {
   // --- PRODUCERS & COLLABORATORS ---
   getProducers: async (includeInactive = true): Promise<ProducerWithStats[]> => {
     try {
-      let query = supabase
-        .from("users")
-        .select("*")
-        .eq("role", "producer")
-        .order("created_at", { ascending: false });
-
-      if (!includeInactive) {
-        query = query.eq("is_active", true);
-      }
-
-      const { data, error } = await query;
+      const { data, error } = await supabase.rpc("get_producers_with_stats");
       if (error) throw error;
 
-      const producers = (data || []).map(mapUser);
+      let producers: ProducerWithStats[] = (data || []).map((row: any) => {
+        const user = mapUser(row.user_data);
+        return {
+          ...user,
+          eventsCount: Number(row.events_cnt || 0),
+          collaboratorsCount: Number(row.collab_cnt || 0),
+          totalTeamPhotos: 0,
+          totalSalesCount: Number(row.sales_cnt || 0),
+          totalTeamRevenue: Number(row.team_revenue || 0),
+          producerCommissionTotal: Number(row.comm_total || 0),
+        };
+      });
 
-      // Populate basic metrics for each producer
-      const statsList: ProducerWithStats[] = await Promise.all(
-        producers.map(async (p) => {
-          const { count: eventsCount } = await supabase
-            .from("events")
-            .select("id", { count: "exact", head: true })
-            .eq("producer_id", p.id);
+      if (!includeInactive) {
+        producers = producers.filter(p => p.is_active);
+      }
 
-          const { count: collabCount } = await supabase
-            .from("event_collaborators")
-            .select("id", { count: "exact", head: true })
-            .eq("producer_id", p.id)
-            .eq("status", "accepted");
-
-          const { data: salesData } = await supabase
-            .from("sales")
-            .select("producer_commission, price")
-            .eq("producer_id", p.id);
-
-          const totalCommission = (salesData || []).reduce((acc, s) => acc + Number(s.producer_commission || 0), 0);
-          const totalRevenue = (salesData || []).reduce((acc, s) => acc + Number(s.price || 0), 0);
-
-          return {
-            ...p,
-            eventsCount: eventsCount || 0,
-            collaboratorsCount: collabCount || 0,
-            totalTeamPhotos: 0,
-            totalSalesCount: salesData?.length || 0,
-            totalTeamRevenue: totalRevenue,
-            producerCommissionTotal: totalCommission,
-          };
-        })
-      );
-
-      return statsList;
+      return producers;
     } catch (e) {
       console.error("Failed to fetch producers:", e);
       return [];
@@ -3811,7 +3790,7 @@ export const api = {
     const { data, error } = await supabase
       .from("events")
       .select("*, category:category_id(*)")
-      .eq("producer_id", producerId)
+      .or(`producer_id.eq.${producerId},and(photographer_id.eq.${producerId},producer_commission_percent.gt.0)`)
       .order("created_at", { ascending: false });
 
     if (error) throw error;
