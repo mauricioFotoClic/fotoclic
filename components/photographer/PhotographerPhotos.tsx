@@ -892,17 +892,26 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                                 {view === 'events' ? 'Meus Eventos' : selectedEvent?.name}
                             </h1>
                             {view === 'photos' && selectedEvent && (
-                                selectedEvent.is_photos_private ? (
-                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300 shadow-xs" title="Fotos ocultas: disponíveis somente por busca facial">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-                                        Fotos Ocultas (Apenas Busca Facial)
-                                    </span>
-                                ) : (
-                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-900 border border-emerald-300 shadow-xs" title="Galeria pública: fotos abertas para todos">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
-                                        Galeria Pública
-                                    </span>
-                                )
+                                <>
+                                    {selectedEvent.is_photos_private ? (
+                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300 shadow-xs" title="Fotos ocultas: disponíveis somente por busca facial">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                                            Fotos Ocultas (Apenas Busca Facial)
+                                        </span>
+                                    ) : (
+                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-900 border border-emerald-300 shadow-xs" title="Galeria pública: fotos abertas para todos">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                                            Galeria Pública
+                                        </span>
+                                    )}
+
+                                    {/* Badge de Evento de Produção */}
+                                    {(selectedEvent.producer_id || (selectedEvent as any).is_team_event || (selectedEvent.producer_commission_percent && selectedEvent.producer_commission_percent > 0)) && (
+                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500 text-white shadow-xs" title={`Evento vinculado a Produtor (${selectedEvent.producer_commission_percent || 10}% taxa de coordenação)`}>
+                                            🏢 Evento de Produção ({selectedEvent.producer_commission_percent || 10}% Taxa)
+                                        </span>
+                                    )}
+                                </>
                             )}
                         </div>
                         {view === 'photos' && selectedEvent && (
@@ -1032,8 +1041,8 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                                             )}
                                         </div>
 
-                                        {/* Badge de Visibilidade no Card */}
-                                        <div className="absolute top-2 left-2 z-10 pointer-events-none">
+                                        {/* Badge de Visibilidade e Produção no Card */}
+                                        <div className="absolute top-2 left-2 z-10 pointer-events-none flex flex-col gap-1.5 items-start">
                                             {event.is_photos_private ? (
                                                 <span className="px-2.5 py-1 bg-amber-950/85 backdrop-blur-md text-amber-200 border border-amber-500/50 text-[11px] font-bold rounded-full shadow flex items-center gap-1.5" title="Fotos ocultas: clientes só encontram via Reconhecimento Facial">
                                                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
@@ -1043,6 +1052,13 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                                                 <span className="px-2.5 py-1 bg-neutral-900/80 backdrop-blur-md text-emerald-300 border border-emerald-500/40 text-[11px] font-bold rounded-full shadow flex items-center gap-1.5" title="Galeria pública visível para todos">
                                                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
                                                     Galeria Pública
+                                                </span>
+                                            )}
+
+                                            {/* Badge de Produção no Card */}
+                                            {(event.producer_id || (event as any).is_team_event || (event.producer_commission_percent && event.producer_commission_percent > 0)) && (
+                                                <span className="px-2.5 py-1 bg-amber-500 text-white text-[11px] font-bold rounded-full shadow flex items-center gap-1">
+                                                    🏢 Produção ({event.producer_commission_percent || 10}%)
                                                 </span>
                                             )}
                                         </div>
@@ -1058,9 +1074,9 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                                                     <button
                                                         type="button"
                                                         onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setEditingEvent(event);
-                                                            setIsEditEventModalOpen(true);
+                                                             e.stopPropagation();
+                                                             setEditingEvent(event);
+                                                             setIsEditEventModalOpen(true);
                                                         }}
                                                         className="p-2 bg-white/90 backdrop-blur-sm rounded-full text-primary-dark hover:bg-white shadow-sm transition-all hover:scale-110 active:scale-95"
                                                         title="Editar Evento"
@@ -1070,8 +1086,8 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                                                     <button
                                                         type="button"
                                                         onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            handleDeleteEvent(event, eventPhotoCount);
+                                                             e.stopPropagation();
+                                                             handleDeleteEvent(event, eventPhotoCount);
                                                         }}
                                                         className="p-2 bg-white/90 backdrop-blur-sm rounded-full text-red-600 hover:bg-white shadow-sm transition-all hover:scale-110 active:scale-95"
                                                         title="Excluir Evento"
@@ -1095,10 +1111,15 @@ const PhotographerPhotos: React.FC<PhotographerPhotosProps> = ({ user, onDataCha
                                             </div>
                                             <p className="text-sm text-neutral-500 mb-2">{getCategoryName(event.category_id)}</p>
 
-                                            {(event as any).is_team_event && (
+                                            {/* Bloco Informativo de Produção */}
+                                            {((event as any).is_team_event || event.producer_id || (event.producer_commission_percent && event.producer_commission_percent > 0)) && (
                                                 <div className="mb-2.5 p-2 bg-amber-50/80 border border-amber-200/60 rounded-lg flex items-center justify-between text-[11px]">
-                                                    <span className="text-amber-900 font-medium">🏢 Produtor: <strong>{(event as any).producer_name}</strong></span>
-                                                    <span className="text-amber-700 font-bold">{(event as any).producer_commission_percent}% taxa</span>
+                                                    <span className="text-amber-900 font-medium">
+                                                        🏢 {(event as any).is_team_event ? `Produtor: ${(event as any).producer_name}` : 'Evento de Produtora'}
+                                                    </span>
+                                                    <span className="text-amber-700 font-bold">
+                                                        {event.producer_commission_percent || 10}% comissão
+                                                    </span>
                                                 </div>
                                             )}
                                             <div className="space-y-2 mt-4 pt-3.5 border-t border-neutral-100 text-xs text-neutral-400">
