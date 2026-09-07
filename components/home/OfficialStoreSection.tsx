@@ -39,10 +39,10 @@ const OfficialStoreSection: React.FC<OfficialStoreSectionProps> = ({
             <div className="lg:col-span-7 space-y-6">
               <div>
                 <h2 className="text-3xl sm:text-4xl lg:text-5xl font-display font-black text-white leading-tight tracking-tight">
-                  Vista a Marca Oficial da <span className="text-primary">Fotografia Esportiva</span>
+                  Vista a Camisa Oficial da <span className="text-primary">FotoClic</span>
                 </h2>
                 <p className="mt-4 text-neutral-300 text-base sm:text-lg font-light leading-relaxed">
-                  Eleve seu nível profissional com o uniforme oficial da FotoClic. Desenvolvido para fotógrafos e atletas que buscam <strong>alta performance</strong>, <strong>conforto térmico</strong> e <strong>autoridade visual</strong> em eventos.
+                  Eleve sua presença profissional com a camisa oficial da FotoClic. Desenvolvida para fotógrafos que buscam <strong>alta performance</strong>, <strong>conforto térmico</strong> e <strong>autoridade visual</strong> em coberturas esportivas, sociais, corporativas e eventos em geral.
                 </p>
               </div>
 
@@ -55,7 +55,7 @@ const OfficialStoreSection: React.FC<OfficialStoreSectionProps> = ({
                   <div>
                     <h3 className="text-sm font-bold text-white">QR Code Inteligente</h3>
                     <p className="text-xs text-neutral-400 mt-0.5 leading-snug">
-                      Clientes escaneiam suas costas em campo e acham as fotos na hora!
+                      Clientes escaneiam suas costas no evento e encontram as fotos na hora!
                     </p>
                   </div>
                 </div>
@@ -67,7 +67,7 @@ const OfficialStoreSection: React.FC<OfficialStoreSectionProps> = ({
                   <div>
                     <h3 className="text-sm font-bold text-white">Tecido Dry Fit UV50+</h3>
                     <p className="text-xs text-neutral-400 mt-0.5 leading-snug">
-                      Proteção solar e transpiração ativa para longas jornadas sob o sol.
+                      Proteção solar e transpiração ativa para longas jornadas de trabalho.
                     </p>
                   </div>
                 </div>
@@ -163,8 +163,8 @@ const OfficialStoreSection: React.FC<OfficialStoreSectionProps> = ({
                   {/* Floating Price Tag / Stamp */}
                   <div className="absolute bottom-3 left-3 right-3 bg-neutral-950/90 backdrop-blur-md border border-white/10 rounded-xl p-2.5 flex items-center justify-between">
                     <div>
-                      <p className="text-[10px] text-neutral-400 font-bold uppercase">Uniforme Oficial</p>
-                      <p className="text-xs font-black text-white">Camisa FotoClic Fotografia</p>
+                      <p className="text-[10px] text-neutral-400 font-bold uppercase">Vestuário Oficial</p>
+                      <p className="text-xs font-black text-white">Camisa Oficial FotoClic</p>
                     </div>
                     <span className="text-primary font-bold text-xs flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
                       Comprar <ArrowRight size={14} />
