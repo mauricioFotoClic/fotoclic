@@ -176,16 +176,22 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({
         try {
             stopCamera();
             setIsCameraOpen(true);
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }
-            });
+            let stream: MediaStream;
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }
+                });
+            } catch (strictErr) {
+                // Fallback to basic video constraints if ideal resolution or facingMode fails
+                stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            }
             streamRef.current = stream;
             if (videoRef.current) {
                 videoRef.current.srcObject = stream;
             }
         } catch (err) {
             console.error("Error accessing camera:", err);
-            onShowToast("Não foi possível acessar a webcam. Por favor, verifique as permissões de câmera ou envie um arquivo de foto.", 'error');
+            onShowToast("Não foi possível acessar a câmera. Por favor, verifique as permissões de câmera ou envie um arquivo de foto.", 'error');
             setIsCameraOpen(false);
             setActiveTab('upload');
         }
@@ -476,19 +482,19 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({
                             />
 
                             {/* Capture Frame Container */}
-                            <div className="relative rounded-3xl overflow-hidden bg-neutral-950 border border-neutral-800 aspect-[4/5] max-h-[340px] flex items-center justify-center mx-auto w-full group shadow-inner">
+                            <div className="relative rounded-3xl overflow-hidden bg-neutral-950 border border-neutral-800 aspect-[4/5] max-h-[340px] w-full flex items-center justify-center mx-auto group shadow-inner">
                                 {isCameraOpen ? (
-                                    <div className="relative w-full h-full flex items-center justify-center">
+                                    <div className="relative w-full h-full min-h-[280px] max-h-[340px] flex items-center justify-center overflow-hidden">
                                         <video
                                             ref={videoRef}
                                             autoPlay
                                             playsInline
                                             muted
-                                            className="w-full h-full object-cover transform -scale-x-100"
+                                            className="absolute inset-0 w-full h-full object-cover transform -scale-x-100"
                                         />
                                         {/* Dashed Oval Face Overlay */}
-                                        <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center p-6">
-                                            <div className="w-[190px] h-[250px] sm:w-[220px] sm:h-[280px] border-2 border-dashed border-primary/90 rounded-[50%] shadow-[0_0_0_9999px_rgba(0,0,0,0.45)] relative flex items-center justify-center">
+                                        <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center p-4 z-10">
+                                            <div className="w-[180px] h-[230px] sm:w-[210px] sm:h-[260px] border-2 border-dashed border-primary/90 rounded-[50%] shadow-[0_0_0_9999px_rgba(0,0,0,0.45)] relative flex items-center justify-center">
                                                 <div className="w-full h-[1px] bg-primary/70 absolute top-1/3"></div>
                                                 <span className="text-xs text-white/90 font-medium bg-black/60 px-3 py-1 rounded-full backdrop-blur-sm text-center max-w-[80%]">
                                                     {t('face_search.frame_face_instruction')}
@@ -498,15 +504,16 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({
 
                                         {/* Capture Button */}
                                         <button
+                                            type="button"
                                             onClick={capturePhoto}
-                                            className="absolute bottom-4 bg-primary hover:bg-primary-dark text-white font-extrabold px-6 py-3 rounded-full shadow-2xl transition-all flex items-center gap-2 text-sm active:scale-95 z-10"
+                                            className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-primary hover:bg-primary-dark text-white font-extrabold px-6 py-2.5 sm:py-3 rounded-full shadow-2xl transition-all flex items-center gap-2 text-sm active:scale-95 z-20 cursor-pointer whitespace-nowrap"
                                         >
                                             <Camera size={18} />
                                             {t('face_search.take_photo_button')}
                                         </button>
                                     </div>
                                 ) : selectedImage ? (
-                                    <div className="relative w-full h-full group flex items-center justify-center bg-neutral-950">
+                                    <div className="relative w-full h-full min-h-[280px] max-h-[340px] group flex items-center justify-center bg-neutral-950 overflow-hidden">
                                         <img
                                             src={selectedImage}
                                             alt="Selfie"
@@ -514,13 +521,14 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({
                                         />
                                         {/* Dashed Overlay on preview - Apenas no modo de Selfie */}
                                         {activeTab === 'selfie' && (
-                                            <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                                                <div className="w-[190px] h-[250px] border-2 border-dashed border-primary/80 rounded-[50%]"></div>
+                                            <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-10">
+                                                <div className="w-[180px] h-[230px] sm:w-[210px] sm:h-[260px] border-2 border-dashed border-primary/80 rounded-[50%]"></div>
                                             </div>
                                         )}
 
                                         {/* Change Photo Overlay button */}
                                         <button
+                                            type="button"
                                             onClick={() => {
                                                 if (activeTab === 'selfie') {
                                                     setSelectedImage(null);
@@ -529,7 +537,7 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({
                                                     fileInputRef.current?.click();
                                                 }
                                             }}
-                                            className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/70 hover:bg-black text-white text-xs font-semibold px-4 py-2.5 rounded-full backdrop-blur-md transition-all flex items-center gap-2 border border-white/20 z-10"
+                                            className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/75 hover:bg-black text-white text-xs font-semibold px-4 py-2.5 rounded-full backdrop-blur-md transition-all flex items-center gap-2 border border-white/20 z-20 shadow-lg cursor-pointer whitespace-nowrap"
                                         >
                                             <RotateCcw size={14} />
                                             {t('face_search.retake_photo_button')}
