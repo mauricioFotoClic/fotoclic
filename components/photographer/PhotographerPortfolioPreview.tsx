@@ -268,7 +268,7 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
                     <div className="mt-6 md:mt-28 w-full md:w-auto flex flex-col md:flex-col items-center md:items-end justify-between md:justify-start gap-4">
                         <div className="px-4 py-2 rounded-full text-neutral-700 bg-neutral-100 border border-neutral-200 text-sm font-medium shadow-sm w-full md:w-auto text-center">
                             {(() => {
-                                const visibleCount = editable ? events.length : events.filter(e => (eventPhotoCounts[e.id] || 0) > 0).length;
+                                const visibleCount = events.length;
                                 return selectedEvent
                                     ? `${selectedEventPhotos.length} Foto${selectedEventPhotos.length !== 1 ? 's' : ''} neste Evento`
                                     : `${visibleCount} Evento${visibleCount !== 1 ? 's' : ''}`;
@@ -411,14 +411,11 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
                                 const eventPhotoCount = eventPhotoCounts[event.id] || 0;
                                 const coverPhotoUrl = event.cover_photo_url;
 
-                                // Hide events with 0 photos in the public portfolio page
-                                if (!editable && eventPhotoCount === 0) return null;
-
                                 return (
                                     <div
                                         key={event.id}
-                                        onClick={() => handleSelectEvent(event)}
-                                        className="bg-white rounded-xl shadow-sm border border-neutral-100 overflow-hidden hover:shadow-md hover:-translate-y-1 transition-all duration-300 cursor-pointer group"
+                                        onClick={() => (onNavigate && !editable) ? onNavigate({ name: 'event', id: event.id }) : handleSelectEvent(event)}
+                                        className="bg-white rounded-xl shadow-sm border border-neutral-100 overflow-hidden hover:shadow-md hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col"
                                     >
                                         <div className="h-48 bg-neutral-200 relative overflow-hidden">
                                             {coverPhotoUrl ? (
@@ -434,13 +431,37 @@ const PhotographerPortfolioPreview: React.FC<PhotographerPortfolioPreviewProps> 
                                                 </div>
                                             )}
                                             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>
+
+                                            {/* Badges no Topo do Card */}
+                                            <div className="absolute top-2.5 left-2.5 flex flex-wrap gap-1.5 z-10">
+                                                {event.is_photos_private ? (
+                                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-900/80 text-amber-200 backdrop-blur-md border border-amber-500/30 shadow-sm">
+                                                        <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                                                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                                                            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                                                        </svg>
+                                                        Fotos Ocultas (Facial)
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-neutral-900/70 text-white backdrop-blur-md border border-white/20 shadow-sm">
+                                                        Galeria Pública
+                                                    </span>
+                                                )}
+                                                {Number(event.producer_commission_percent || 0) > 0 && (
+                                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-primary/90 text-white backdrop-blur-md shadow-sm">
+                                                        Produção ({event.producer_commission_percent}%)
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
-                                        <div className="p-5">
-                                            <div className="flex justify-between items-start mb-2">
-                                                <h3 className="font-bold text-lg text-neutral-900 line-clamp-1">{event.name}</h3>
-                                                <span className="bg-neutral-100 text-neutral-600 text-xs px-2 py-1 rounded-full whitespace-nowrap font-medium">
-                                                    {`${eventPhotoCount} fotos`}
-                                                </span>
+                                        <div className="p-5 flex flex-col flex-1 justify-between">
+                                            <div>
+                                                <div className="flex justify-between items-start mb-2 gap-2">
+                                                    <h3 className="font-bold text-lg text-neutral-900 line-clamp-1">{event.name}</h3>
+                                                    <span className="bg-neutral-100 text-neutral-600 text-xs px-2.5 py-1 rounded-full whitespace-nowrap font-semibold shrink-0">
+                                                        {`${eventPhotoCount} foto${eventPhotoCount !== 1 ? 's' : ''}`}
+                                                    </span>
+                                                </div>
                                             </div>
                                             <div className="space-y-2 mt-4 pt-3.5 border-t border-neutral-100 text-xs text-neutral-500">
                                                 <div className="flex items-center gap-2">

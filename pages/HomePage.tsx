@@ -694,11 +694,22 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
                             <span className="text-xs text-neutral-400">{t('home.photos_coming_soon')}</span>
                           </div>
                         )}
-                        {category && (
-                          <span className="absolute top-2 left-2 bg-black/50 text-white text-xs font-medium px-2 py-0.5 rounded-full backdrop-blur-sm">
-                            {tCategory(category.name)}
-                          </span>
-                        )}
+                        <div className="absolute top-2 left-2 flex flex-wrap gap-1 z-10">
+                          {category && (
+                            <span className="bg-black/60 text-white text-[11px] font-medium px-2 py-0.5 rounded-full backdrop-blur-sm shadow-sm">
+                              {tCategory(category.name)}
+                            </span>
+                          )}
+                          {event.is_photos_private && (
+                            <span className="bg-amber-900/80 text-amber-200 text-[11px] font-bold px-2 py-0.5 rounded-full backdrop-blur-sm border border-amber-500/30 shadow-sm flex items-center gap-1">
+                              <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                              </svg>
+                              Busca Facial
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <div className="p-4 flex flex-col flex-1">
                         <h3 className="font-semibold text-neutral-800 text-sm leading-snug line-clamp-2 mb-2">{event.name}</h3>

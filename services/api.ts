@@ -1652,6 +1652,21 @@ export const api = {
     const counts: Record<string, number> = {};
     if (ids.length === 0) return counts;
 
+    try {
+      const { data, error } = await supabase.rpc("get_event_photo_counts", {
+        p_event_ids: ids,
+      });
+      if (!error && data) {
+        (data as any[]).forEach((row) => {
+          counts[row.event_id] = Number(row.photo_count || 0);
+        });
+        return counts;
+      }
+    } catch (e) {
+      console.warn("RPC get_event_photo_counts failed, falling back to direct query:", e);
+    }
+
+    // Fallback: direct query
     await Promise.all(
       ids.map(async (eventId) => {
         let query = supabase
@@ -1660,9 +1675,7 @@ export const api = {
           .eq("event_id", eventId);
         
         if (onlyPublicAndApproved) {
-          query = query
-            .eq("moderation_status", "approved")
-            .eq("is_public", true);
+          query = query.eq("moderation_status", "approved");
         }
 
         const { count, error } = await query;
