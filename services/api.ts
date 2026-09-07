@@ -1397,6 +1397,12 @@ export const api = {
         validEvents = data.filter((e: any) => !e.photographer_id || !inactiveIds.has(e.photographer_id));
       }
 
+      if (validEvents.length > 0) {
+        const eventIds = validEvents.map((e: any) => e.id);
+        const counts = await api.getEventPhotoCounts('', eventIds);
+        validEvents = validEvents.filter((e: any) => (counts[e.id] || 0) > 0);
+      }
+
       const result = validEvents as unknown as PhotoEvent[];
       inMemoryCache.allEvents = { data: result, ts: now };
       return result;
