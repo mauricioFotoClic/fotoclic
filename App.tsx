@@ -11,6 +11,7 @@ import FaceSearchModal from './components/FaceSearchModal';
 // import Toast from './components/Toast'; // Removed, using Context
 import Spinner from './components/Spinner';
 import TopProgressBar from './components/TopProgressBar';
+import AntiPrintShield from './components/AntiPrintShield';
 
 // Contexts
 import { ToastProvider, useToast } from './contexts/ToastContext';
@@ -747,6 +748,7 @@ const MainApp: React.FC = () => {
                 />
             )}
             <CookieBanner onNavigate={handleNavigate} />
+            <AntiPrintShield />
         </div>
     );
 };
