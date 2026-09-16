@@ -18,17 +18,6 @@ const AntiPrintShield: React.FC<AntiPrintShieldProps> = ({ enabled = true }) => 
     setIsOpen(true);
     setCooldown(true);
 
-    // Sobrescrever a área de transferência com aviso de direitos autorais
-    try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(
-          'Conteúdo protegido por Direitos Autorais (Lei nº 9.610/98) - FotoClic (fotoclic.com.br)'
-        ).catch(() => {});
-      }
-    } catch {
-      // Ignora se o navegador não permitir acesso ao clipboard
-    }
-
     // Cooldown de 2.5 segundos para não spammar múltiplos popups se apertar várias vezes
     setTimeout(() => {
       setCooldown(false);
