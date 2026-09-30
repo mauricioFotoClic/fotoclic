@@ -537,27 +537,41 @@ export const api = {
     return result;
   },
 
-  getPhotosByEventId: async (eventId: string, limit: number = 1000, onlyApproved: boolean = true): Promise<Photo[]> => {
-    let query = supabase
-      .from("photos")
-      .select(
-        "id, photographer_id, category_id, title, description, preview_url, thumb_url, price, resolution, width, height, tags, is_public, created_at, moderation_status, rejection_reason, is_featured, likes_count, quality_analysis, is_face_indexed, event_id, sales_count, media_type, video_uid, video_duration, file_size_bytes, photo_likes(user_id)"
-      )
-      .eq("event_id", eventId);
+  getPhotosByEventId: async (eventId: string, limit: number = 5000, onlyApproved: boolean = true): Promise<Photo[]> => {
+    let allData: any[] = [];
+    let page = 0;
+    const pageSize = 1000;
 
-    if (onlyApproved) {
-      query = query.eq("moderation_status", "approved").eq("is_public", true);
+    while (allData.length < limit) {
+      const from = page * pageSize;
+      const to = Math.min(from + pageSize - 1, limit - 1);
+
+      let query = supabase
+        .from("photos")
+        .select(
+          "id, photographer_id, category_id, title, description, preview_url, thumb_url, price, resolution, width, height, tags, is_public, created_at, moderation_status, rejection_reason, is_featured, likes_count, quality_analysis, is_face_indexed, event_id, sales_count, media_type, video_uid, video_duration, file_size_bytes, photo_likes(user_id)"
+        )
+        .eq("event_id", eventId);
+
+      if (onlyApproved) {
+        query = query.eq("moderation_status", "approved").eq("is_public", true);
+      }
+
+      const { data, error } = await query
+        .order("created_at", { ascending: false })
+        .range(from, to);
+
+      if (error) {
+        console.error("Error fetching photos for event:", error);
+        break;
+      }
+      if (!data || data.length === 0) break;
+      allData = allData.concat(data);
+      if (data.length < pageSize) break;
+      page++;
     }
 
-    const { data, error } = await query
-      .order("created_at", { ascending: false })
-      .limit(limit);
-
-    if (error) {
-      console.error("Error fetching photos for event:", error);
-      return [];
-    }
-    return (data || []).map(mapPhoto);
+    return allData.map(mapPhoto);
   },
 
   createPhoto: async (data: any): Promise<Photo> => {
