@@ -5,6 +5,7 @@ import api from '../services/api';
 import Modal from './Modal';
 import LiabilityWaiverModal from './LiabilityWaiverModal';
 import { useLanguage } from '../contexts/LanguageContext';
+import { formatCPF, isValidCPF, formatBirthDate, isValidBirthDate } from '../utils/stringUtils';
 
 interface RegisterModalProps {
     isOpen: boolean;
@@ -40,6 +41,8 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginS
         companyName: '',
         ddi: '+55',
         phone: '',
+        cpf: '',
+        birthDate: '',
         password: '',
         confirmPassword: ''
     });
@@ -82,8 +85,37 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginS
         setFormData(prev => ({ ...prev, phone: masked }));
     };
 
+    const handleCpfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const masked = formatCPF(e.target.value);
+        setFormData(prev => ({ ...prev, cpf: masked }));
+    };
+
+    const handleBirthDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const masked = formatBirthDate(e.target.value);
+        setFormData(prev => ({ ...prev, birthDate: masked }));
+    };
+
     const performRegister = async () => {
         setError('');
+
+        if (selectedRole !== UserRole.PRODUCER) {
+            if (!formData.cpf || formData.cpf.trim() === '') {
+                setError('Por favor, preencha o seu CPF.');
+                return;
+            }
+            if (!isValidCPF(formData.cpf)) {
+                setError(t('auth.invalid_cpf_error') || 'CPF inválido. Por favor, verifique os 11 dígitos digitados.');
+                return;
+            }
+            if (!formData.birthDate || formData.birthDate.trim() === '') {
+                setError('Por favor, preencha a sua data de nascimento.');
+                return;
+            }
+            if (!isValidBirthDate(formData.birthDate)) {
+                setError(t('auth.invalid_birth_date_error') || 'Data de nascimento inválida. Por favor, informe uma data válida (DD/MM/AAAA).');
+                return;
+            }
+        }
 
         if (formData.password !== formData.confirmPassword) {
             setError(t('auth.passwords_dont_match'));
@@ -104,7 +136,12 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginS
                 phone: `${formData.ddi} ${formData.phone}`,
                 role: selectedRole,
                 password: formData.password,
-                ...(selectedRole === UserRole.PRODUCER ? { company_name: formData.companyName } : {})
+                ...(selectedRole === UserRole.PRODUCER
+                    ? { company_name: formData.companyName }
+                    : {
+                        cpf: formData.cpf,
+                        birth_date: formData.birthDate
+                    })
             } as any);
 
             if (newUser && newUser.user) {
@@ -429,6 +466,47 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onLoginS
                             </div>
                         </div>
                     </div>
+
+                    {/* Linha CPF e Data de Nascimento (apenas para Clientes e Fotógrafos) */}
+                    {selectedRole !== UserRole.PRODUCER && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 animate-in fade-in duration-150">
+                            <div className="min-w-0">
+                                <label htmlFor="reg-cpf" className="block text-[11px] font-bold uppercase tracking-wider text-gray-700 mb-0.5 ml-0.5">
+                                    {t('auth.cpf') || 'CPF'}
+                                </label>
+                                <input
+                                    id="reg-cpf"
+                                    name="cpf"
+                                    type="text"
+                                    inputMode="numeric"
+                                    required
+                                    value={formData.cpf}
+                                    onChange={handleCpfChange}
+                                    placeholder="000.000.000-00"
+                                    maxLength={14}
+                                    className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary focus:bg-white focus:border-transparent transition-all outline-none text-gray-900 placeholder-gray-400 text-xs sm:text-sm"
+                                />
+                            </div>
+
+                            <div className="min-w-0">
+                                <label htmlFor="reg-birth-date" className="block text-[11px] font-bold uppercase tracking-wider text-gray-700 mb-0.5 ml-0.5">
+                                    {t('auth.birth_date') || 'Data de Nascimento'}
+                                </label>
+                                <input
+                                    id="reg-birth-date"
+                                    name="birthDate"
+                                    type="text"
+                                    inputMode="numeric"
+                                    required
+                                    value={formData.birthDate}
+                                    onChange={handleBirthDateChange}
+                                    placeholder="DD/MM/AAAA"
+                                    maxLength={10}
+                                    className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary focus:bg-white focus:border-transparent transition-all outline-none text-gray-900 placeholder-gray-400 text-xs sm:text-sm"
+                                />
+                            </div>
+                        </div>
+                    )}
 
                     {/* Linha 3: Senhas */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">

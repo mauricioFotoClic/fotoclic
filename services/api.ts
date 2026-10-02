@@ -2381,6 +2381,9 @@ export const api = {
     role: UserRole;
     password?: string;
     phone?: string;
+    cpf?: string;
+    birth_date?: string;
+    company_name?: string;
   }): Promise<RegisterResponse | undefined> => {
     let authData: any = null;
     const cleanEmail = (data.email || '').trim().toLowerCase();
@@ -2425,14 +2428,33 @@ export const api = {
       // 2. Create Public Profile with SAME ID
       // NOTE: password is managed by Supabase Auth (signUp above).
       // Do NOT insert password into the public users table — the column does not exist.
-      const { password: _pw, ...dataWithoutPassword } = data as any;
+      const { password: _pw, cpf, birth_date, ...dataWithoutPassword } = data as any;
       const isPhotographer = (data.role as any) === UserRole.PHOTOGRAPHER || (data.role as any) === 'photographer';
       const isProducer = (data.role as any) === UserRole.PRODUCER || (data.role as any) === 'producer';
+
+      const cleanCpf = cpf ? String(cpf).replace(/\D/g, '') : undefined;
+      let cleanBirthDate: string | undefined = undefined;
+      if (birth_date) {
+        const rawDate = String(birth_date).trim();
+        if (rawDate.includes('/')) {
+          const parts = rawDate.split('/');
+          if (parts.length === 3 && parts[2].length === 4) {
+            cleanBirthDate = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+          } else {
+            cleanBirthDate = rawDate;
+          }
+        } else {
+          cleanBirthDate = rawDate;
+        }
+      }
+
       const userData: any = {
         id: authData.user.id, // CRITICAL: Sync IDs
         ...dataWithoutPassword,
         email: cleanEmail,
         name: formatNameAsTitleCase(data.name),
+        ...(cleanCpf ? { cpf: cleanCpf, cpf_cnpj: cleanCpf } : {}),
+        ...(cleanBirthDate ? { birth_date: cleanBirthDate } : {}),
         is_active: isProducer ? false : true, // Produtores entram pendentes para moderação do admin
       };
 

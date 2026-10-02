@@ -4,6 +4,7 @@ import { Sparkles, Camera, Trophy, CheckCircle2, ShieldAlert } from 'lucide-reac
 import api from '../services/api';
 import Logo from '../components/Logo';
 import { useLanguage } from '../contexts/LanguageContext';
+import { formatCPF, isValidCPF, formatBirthDate, isValidBirthDate } from '../utils/stringUtils';
 
 interface RegisterPageProps {
     onNavigate: (page: Page) => void;
@@ -36,6 +37,8 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onLoginSuccess 
         companyName: '',
         ddi: '+55',
         phone: '',
+        cpf: '',
+        birthDate: '',
         password: '',
         confirmPassword: ''
     });
@@ -71,9 +74,38 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onLoginSuccess 
         setFormData(prev => ({ ...prev, phone: masked }));
     };
 
+    const handleCpfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const masked = formatCPF(e.target.value);
+        setFormData(prev => ({ ...prev, cpf: masked }));
+    };
+
+    const handleBirthDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const masked = formatBirthDate(e.target.value);
+        setFormData(prev => ({ ...prev, birthDate: masked }));
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
+
+        if (selectedRole !== UserRole.PRODUCER) {
+            if (!formData.cpf || formData.cpf.trim() === '') {
+                setError('Por favor, preencha o seu CPF.');
+                return;
+            }
+            if (!isValidCPF(formData.cpf)) {
+                setError(t('auth.invalid_cpf_error') || 'CPF inválido. Por favor, verifique os 11 dígitos digitados.');
+                return;
+            }
+            if (!formData.birthDate || formData.birthDate.trim() === '') {
+                setError('Por favor, preencha a sua data de nascimento.');
+                return;
+            }
+            if (!isValidBirthDate(formData.birthDate)) {
+                setError(t('auth.invalid_birth_date_error') || 'Data de nascimento inválida. Por favor, informe uma data válida (DD/MM/AAAA).');
+                return;
+            }
+        }
 
         if (formData.password !== formData.confirmPassword) {
             setError(t('auth.passwords_dont_match'));
@@ -94,7 +126,12 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onLoginSuccess 
                 phone: `${formData.ddi} ${formData.phone}`,
                 role: selectedRole,
                 password: formData.password,
-                ...(selectedRole === UserRole.PRODUCER ? { company_name: formData.companyName } : {})
+                ...(selectedRole === UserRole.PRODUCER
+                    ? { company_name: formData.companyName }
+                    : {
+                        cpf: formData.cpf,
+                        birth_date: formData.birthDate
+                    })
             } as any);
 
             if (response?.user) {
@@ -331,6 +368,47 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onLoginSuccess 
                                 />
                             </div>
                         </div>
+
+                        {/* Campos de CPF e Data de Nascimento (Clientes e Fotógrafos) */}
+                        {selectedRole !== UserRole.PRODUCER && (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 animate-in fade-in duration-150">
+                                <div>
+                                    <label htmlFor="reg-cpf" className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1 ml-1">
+                                        {t('auth.cpf') || 'CPF'}
+                                    </label>
+                                    <input
+                                        id="reg-cpf"
+                                        name="cpf"
+                                        type="text"
+                                        inputMode="numeric"
+                                        required
+                                        value={formData.cpf}
+                                        onChange={handleCpfChange}
+                                        placeholder="000.000.000-00"
+                                        maxLength={14}
+                                        className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-primary focus:bg-white focus:border-transparent transition-all outline-none text-gray-900 placeholder-gray-400 text-sm"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label htmlFor="reg-birth-date" className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1 ml-1">
+                                        {t('auth.birth_date') || 'Data de Nascimento'}
+                                    </label>
+                                    <input
+                                        id="reg-birth-date"
+                                        name="birthDate"
+                                        type="text"
+                                        inputMode="numeric"
+                                        required
+                                        value={formData.birthDate}
+                                        onChange={handleBirthDateChange}
+                                        placeholder="DD/MM/AAAA"
+                                        maxLength={10}
+                                        className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-primary focus:bg-white focus:border-transparent transition-all outline-none text-gray-900 placeholder-gray-400 text-sm"
+                                    />
+                                </div>
+                            </div>
+                        )}
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                             <div>

@@ -41,6 +41,8 @@ export interface User {
   liability_waiver_accepted_at?: string;
   sports_policy_accepted_at?: string;
   phone?: string;
+  cpf?: string;
+  birth_date?: string;
   company_name?: string;
   communication_templates?: {
     abandoned_cart?: {
