@@ -6,7 +6,11 @@ interface AntiPrintShieldProps {
   enabled?: boolean;
 }
 
-const AntiPrintShield: React.FC<AntiPrintShieldProps> = ({ enabled = true }) => {
+// ATENÇÃO: Recurso desativado temporariamente a pedido do usuário.
+// Para reativar, altere IS_ANTI_PRINT_ENABLED para true (ou passe enabled={true}).
+const IS_ANTI_PRINT_ENABLED = false;
+
+const AntiPrintShield: React.FC<AntiPrintShieldProps> = ({ enabled = IS_ANTI_PRINT_ENABLED }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [triggerReason, setTriggerReason] = useState<'printscreen' | 'print' | 'shortcut'>('printscreen');
   const [cooldown, setCooldown] = useState(false);
@@ -91,7 +95,7 @@ const AntiPrintShield: React.FC<AntiPrintShieldProps> = ({ enabled = true }) => 
     };
   }, [enabled, triggerWarning]);
 
-  if (!isOpen) return null;
+  if (!enabled || !isOpen) return null;
 
   return (
     <div
