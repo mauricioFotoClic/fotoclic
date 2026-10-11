@@ -20,6 +20,25 @@
         document.head.appendChild(s);
       })();
     </script>
+    <!-- Event snippet for Inscrição conversion page -->
+    <script>
+      function gtag_report_conversion(url) {
+        var callback = function () {
+          if (typeof(url) != 'undefined') {
+            window.location = url;
+          }
+        };
+        if (typeof window.gtag === 'function') {
+          window.gtag('event', 'conversion', {
+              'send_to': 'AW-16960525575/bCMECJSDp5QdEIeqtJc_',
+              'value': 1.0,
+              'currency': 'BRL',
+              'event_callback': callback
+          });
+        }
+        return false;
+      }
+    </script>
     <!-- Meta Pixel Code -->
     <script>
       !function(f,b,e,v,n,t,s)

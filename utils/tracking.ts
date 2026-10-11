@@ -79,7 +79,26 @@ export const trackCompleteRegistration = (params: CompleteRegistrationParams = {
             console.log('✅ [Tracking] Google Ads/GA4: Evento "sign_up" disparado com sucesso!', { role });
         }
 
-        // 6. Dispara a conversão específica do Google Ads (gtag)
+        // 6. Dispara a conversão "Inscrição" no Google Ads (AW-16960525575/bCMECJSDp5QdEIeqtJc_)
+        if (typeof win.gtag === 'function') {
+            win.gtag('event', 'conversion', {
+                'send_to': 'AW-16960525575/bCMECJSDp5QdEIeqtJc_',
+                'value': 1.0,
+                'currency': 'BRL',
+                'transport_type': 'beacon'
+            });
+            console.log('✅ [Tracking] Google Ads: Conversão "Inscrição" disparada com sucesso! (AW-16960525575/bCMECJSDp5QdEIeqtJc_)');
+        } else if (win.dataLayer) {
+            win.dataLayer.push('event', 'conversion', {
+                'send_to': 'AW-16960525575/bCMECJSDp5QdEIeqtJc_',
+                'value': 1.0,
+                'currency': 'BRL',
+                'transport_type': 'beacon'
+            });
+            console.log('✅ [Tracking] Google Ads: Conversão "Inscrição" enviada via dataLayer fallback!');
+        }
+
+        // 7. Se for fotógrafo, dispara também a conversão específica de fotógrafo caso mantida
         if (isPhotographer) {
             if (typeof win.gtag === 'function') {
                 win.gtag('event', 'conversion', {
@@ -92,7 +111,7 @@ export const trackCompleteRegistration = (params: CompleteRegistrationParams = {
                     'send_to': 'AW-16960525575/NqzgCKeRoskcEleqtJc_',
                     'transport_type': 'beacon'
                 });
-                console.log('✅ [Tracking] Google Ads: Conversão enviada via dataLayer fallback!');
+                console.log('✅ [Tracking] Google Ads: Conversão fotógrafo enviada via dataLayer fallback!');
             }
         }
     } catch (err) {

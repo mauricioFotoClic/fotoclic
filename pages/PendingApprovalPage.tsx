@@ -1,13 +1,18 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Page } from '../types';
 import Logo from '../components/Logo';
 import { ShieldCheck, Clock, CheckCircle2, ArrowRight, HelpCircle, Mail } from 'lucide-react';
+import { trackCompleteRegistration } from '../utils/tracking';
 
 interface PendingApprovalPageProps {
     onNavigate: (page: Page) => void;
 }
 
 const PendingApprovalPage: React.FC<PendingApprovalPageProps> = ({ onNavigate }) => {
+    useEffect(() => {
+        // Dispara a conversão de cadastro concluído para organizadores/produtores
+        trackCompleteRegistration({ role: 'producer' });
+    }, []);
     return (
         <div className="min-h-screen bg-neutral-50/70 flex flex-col justify-center items-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
             {/* Background Gradients */}
