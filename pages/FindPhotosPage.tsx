@@ -84,10 +84,27 @@ const FindPhotosPage: React.FC<FindPhotosPageProps> = ({ onNavigate, initialSear
       result = result.filter(e => {
         const category = categories[e.category_id];
         const photographer = photographers[e.photographer_id];
+
+        // Validação flexível com a categoria criada pelo admin:
+        // Verifica nome cadastrado no banco, tradução amigável, slug e variações de plural/singular
+        const matchCategory = category ? (
+          includesNormalized(category.name, cleanSearch) ||
+          includesNormalized(tCategory(category.name), cleanSearch) ||
+          (category.slug && includesNormalized(category.slug, cleanSearch)) ||
+          (cleanSearch.toLowerCase().endsWith('s') && (
+            includesNormalized(category.name, cleanSearch.slice(0, -1)) ||
+            includesNormalized(tCategory(category.name), cleanSearch.slice(0, -1))
+          )) ||
+          (category.name.toLowerCase().endsWith('s') && (
+            includesNormalized(category.name.slice(0, -1), cleanSearch) ||
+            includesNormalized(tCategory(category.name).slice(0, -1), cleanSearch)
+          ))
+        ) : false;
+
         return includesNormalized(e.name, cleanSearch) ||
           (e.location && includesNormalized(e.location, cleanSearch)) ||
           (e.description && includesNormalized(e.description, cleanSearch)) ||
-          (category && includesNormalized(tCategory(category.name), cleanSearch)) ||
+          matchCategory ||
           (photographer && includesNormalized(photographer.name, cleanSearch));
       });
     }

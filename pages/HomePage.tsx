@@ -1,7 +1,7 @@
 
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import type { Photo, User, PhotographerWithStats, Category, PhotoEvent, Page } from '../types';
-import { User as UserIcon, Camera, Gift } from 'lucide-react';
+import { User as UserIcon, Camera, Gift, Tag, ChevronRight } from 'lucide-react';
 import api from '../services/api';
 import FounderProgramModal from '../components/FounderProgramModal';
 import PhotoCard from '../components/PhotoCard';
@@ -9,7 +9,7 @@ import WatermarkedImage from '../components/WatermarkedImage';
 import SEO from '../components/SEO';
 import OfficialStoreSection from '../components/home/OfficialStoreSection';
 import { getOptimizedImageUrl } from '../utils/imageOptimization';
-import { getAvatarFallbackUrl } from '../utils/stringUtils';
+import { getAvatarFallbackUrl, includesNormalized } from '../utils/stringUtils';
 import { useLanguage } from '../contexts/LanguageContext';
 
 // Helper to safely format event dates in local timezone without UTC shift or Invalid Date bugs
@@ -100,7 +100,38 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
   const [loadingCats, setLoadingCats] = useState(true);
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
   const [isFounderModalOpen, setIsFounderModalOpen] = useState(false);
+
+  // Fecha dropdown de sugestões ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const matchingCategories = useMemo(() => {
+    const q = searchQuery.trim();
+    if (!q || q.length < 2) return [];
+    return categories.filter(c => {
+      return includesNormalized(c.name, q) ||
+        includesNormalized(tCategory(c.name), q) ||
+        (c.slug && includesNormalized(c.slug, q)) ||
+        (q.toLowerCase().endsWith('s') && (
+          includesNormalized(c.name, q.slice(0, -1)) ||
+          includesNormalized(tCategory(c.name), q.slice(0, -1))
+        )) ||
+        (c.name.toLowerCase().endsWith('s') && (
+          includesNormalized(c.name.slice(0, -1), q) ||
+          includesNormalized(tCategory(c.name).slice(0, -1), q)
+        ));
+    }).slice(0, 6);
+  }, [categories, searchQuery, tCategory]);
 
   // Carousel refs
   const catsRef = useRef<HTMLDivElement>(null);
@@ -234,30 +265,81 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAddToCart, currentUse
           <p className="text-lg md:text-xl mb-10 max-w-2xl mx-auto text-neutral-200 font-light">
             {t('home.hero_subtitle')}
           </p>
-          <div className="relative w-full max-w-xl mx-auto group">
+          <div ref={searchContainerRef} className="relative w-full max-w-xl mx-auto group">
             <div className="absolute -inset-1 bg-gradient-to-r from-primary to-neutral-900 rounded-full blur opacity-25 group-hover:opacity-50 transition duration-1000" />
             <div className="relative flex">
               <input
                 type="text"
                 name="search"
-                autoComplete="search"
+                autoComplete="off"
                 placeholder={t('home.search_placeholder')}
                 className="w-full pl-6 pr-14 py-4 text-neutral-800 bg-white border-0 rounded-full focus:ring-0 shadow-2xl text-lg"
                 value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleSearch()}
+                onFocus={() => {
+                  if (searchQuery.trim().length >= 2) setShowSuggestions(true);
+                }}
+                onChange={e => {
+                  setSearchQuery(e.target.value);
+                  setShowSuggestions(true);
+                }}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    setShowSuggestions(false);
+                    handleSearch();
+                  }
+                }}
               />
               <button
-                onClick={handleSearch}
+                onClick={() => {
+                  setShowSuggestions(false);
+                  handleSearch();
+                }}
                 aria-label={t('common.search')}
                 title={t('common.search')}
-                className="absolute right-2 top-2 bottom-2 bg-primary w-12 rounded-full text-white flex items-center justify-center hover:bg-primary-dark transition-colors"
+                className="absolute right-2 top-2 bottom-2 bg-primary w-12 rounded-full text-white flex items-center justify-center hover:bg-primary-dark transition-colors cursor-pointer"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
                 </svg>
               </button>
             </div>
+
+            {/* Sugestões dinâmicas baseadas nas categorias criadas pelo admin */}
+            {showSuggestions && matchingCategories.length > 0 && (
+              <div className="absolute left-0 right-0 top-full mt-2 bg-neutral-900/95 backdrop-blur-md border border-neutral-700/80 rounded-2xl p-2 shadow-2xl z-50 text-left animate-fade-in">
+                <div className="px-3 py-1.5 text-[11px] font-semibold text-neutral-400 uppercase tracking-wider flex items-center justify-between">
+                  <span>Categorias</span>
+                  <span className="text-[10px] text-neutral-500 font-normal">Clique para ver todos os eventos</span>
+                </div>
+                <div className="space-y-1">
+                  {matchingCategories.map(cat => (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => {
+                        setShowSuggestions(false);
+                        setSearchQuery(tCategory(cat.name));
+                        onNavigate({ name: 'find-photos', initialSearch: cat.name });
+                      }}
+                      className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-white/10 transition-colors text-white group cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <span className="p-1.5 bg-primary/20 text-primary rounded-lg group-hover:bg-primary group-hover:text-white transition-colors">
+                          <Tag className="w-3.5 h-3.5" />
+                        </span>
+                        <span className="font-semibold text-sm text-neutral-100 group-hover:text-white">
+                          {tCategory(cat.name)}
+                        </span>
+                      </div>
+                      <span className="text-xs text-primary font-medium flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+                        Ver eventos
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">

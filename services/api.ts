@@ -1121,6 +1121,7 @@ export const api = {
       .single();
 
     if (error) throw error;
+    inMemoryCache.categories = { data: null, ts: 0 };
     return newCategory;
   },
   updateCategory: async (
@@ -1144,6 +1145,7 @@ export const api = {
       .single();
 
     if (error) throw error;
+    inMemoryCache.categories = { data: null, ts: 0 };
     return updatedCategory;
   },
   updateCategoriesOrder: async (categories: Category[]): Promise<boolean> => {
@@ -1163,12 +1165,14 @@ export const api = {
       console.error("Error reordering categories:", error);
       throw error;
     }
+    inMemoryCache.categories = { data: null, ts: 0 };
     return true;
   },
   deleteCategory: async (id: string): Promise<boolean> => {
     const { error } = await supabase.from("categories").delete().eq("id", id);
 
     if (error) throw error;
+    inMemoryCache.categories = { data: null, ts: 0 };
     return true;
   },
   getPhotographers: async (forceRefresh = false): Promise<PhotographerWithStats[]> => {
@@ -1367,18 +1371,20 @@ export const api = {
   },
 
   // --- EVENTS ---
-  getAllPublicEvents: async (limit = 24): Promise<PhotoEvent[]> => {
+  getAllPublicEvents: async (limit?: number): Promise<PhotoEvent[]> => {
     const now = Date.now();
     if (inMemoryCache.allEvents.data && (now - inMemoryCache.allEvents.ts < CACHE_TTL)) {
-      return inMemoryCache.allEvents.data;
+      return limit ? inMemoryCache.allEvents.data.slice(0, limit) : inMemoryCache.allEvents.data;
     }
 
     try {
+      // Sempre busca os eventos públicos disponíveis (até 500) para garantir que todas as categorias e buscas encontrem seus eventos
+      const fetchLimit = 500;
       let { data, error } = await supabase
         .from("events")
         .select("id, name, event_date, location, cover_photo_url, photographer_id, category_id, is_featured, is_photos_private, created_at, photographer:users!photographer_id(name, avatar_url, is_active)")
         .order("event_date", { ascending: false })
-        .limit(limit);
+        .limit(fetchLimit);
 
       if (error) {
         console.warn("Retrying getAllPublicEvents without join due to error:", error.message);
@@ -1386,7 +1392,7 @@ export const api = {
           .from("events")
           .select("id, name, event_date, location, cover_photo_url, photographer_id, category_id, is_featured, is_photos_private, created_at")
           .order("event_date", { ascending: false })
-          .limit(limit);
+          .limit(fetchLimit);
 
         data = fallbackRes.data as any;
         error = fallbackRes.error;
@@ -1395,7 +1401,8 @@ export const api = {
       if (error) {
         console.error("Error fetching all events:", error);
         inMemoryCache.allEvents = { data: inMemoryCache.allEvents.data || [], ts: now - CACHE_TTL + 15000 };
-        return inMemoryCache.allEvents.data || [];
+        const fallback = inMemoryCache.allEvents.data || [];
+        return limit ? fallback.slice(0, limit) : fallback;
       }
 
       if (!data || data.length === 0) {
@@ -1419,10 +1426,11 @@ export const api = {
 
       const result = validEvents as unknown as PhotoEvent[];
       inMemoryCache.allEvents = { data: result, ts: now };
-      return result;
+      return limit ? result.slice(0, limit) : result;
     } catch (err) {
       console.error("Exception in getAllPublicEvents:", err);
-      return inMemoryCache.allEvents.data || [];
+      const fallback = inMemoryCache.allEvents.data || [];
+      return limit ? fallback.slice(0, limit) : fallback;
     }
   },
 
