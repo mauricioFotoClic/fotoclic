@@ -167,6 +167,30 @@ const inMemoryCache: {
   photographerEventsCache: {}
 };
 
+// Deduplicação de requisições em voo (in-flight promise pooling)
+let inflightAllEventsPromise: Promise<PhotoEvent[]> | null = null;
+let inflightCategoriesPromise: Promise<Category[]> | null = null;
+const SESSION_CACHE_EVENTS_KEY = 'fotoclic_public_events_v2';
+const SESSION_CACHE_CATS_KEY = 'fotoclic_categories_v2';
+
+const clearEventsCache = () => {
+  inMemoryCache.allEvents = { data: null, ts: 0 };
+  if (typeof window !== 'undefined') {
+    try {
+      sessionStorage.removeItem(SESSION_CACHE_EVENTS_KEY);
+    } catch (e) {}
+  }
+};
+
+const clearCategoriesCache = () => {
+  inMemoryCache.categories = { data: null, ts: 0 };
+  if (typeof window !== 'undefined') {
+    try {
+      sessionStorage.removeItem(SESSION_CACHE_CATS_KEY);
+    } catch (e) {}
+  }
+};
+
 export const api = {
   getInactivePhotographerIds: async (): Promise<Set<string>> => {
     const now = Date.now();
@@ -1079,19 +1103,49 @@ export const api = {
     if (inMemoryCache.categories.data && (now - inMemoryCache.categories.ts < CACHE_TTL)) {
       return inMemoryCache.categories.data;
     }
-    // Trazendo image_url de volta. Recomendamos remover qualquer Base64 gigante do banco de dados e usar URLs (ex: webhooks, unsplash, supabase storage) para não sobrecarregar a api.
-    const { data, error } = await supabase
-      .from("categories")
-      .select("id, name, slug, sort_order, image_url")
-      .order("sort_order", { ascending: true });
-    if (error) {
-      console.warn("Could not fetch categories", error);
-      return [];
+
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = sessionStorage.getItem(SESSION_CACHE_CATS_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && Array.isArray(parsed.data) && (now - parsed.ts < CACHE_TTL)) {
+            inMemoryCache.categories = { data: parsed.data, ts: parsed.ts };
+            return parsed.data;
+          }
+        }
+      } catch (e) {}
     }
 
-    const result = data || [];
-    inMemoryCache.categories = { data: result, ts: now };
-    return result;
+    if (inflightCategoriesPromise) {
+      return inflightCategoriesPromise;
+    }
+
+    inflightCategoriesPromise = (async () => {
+      try {
+        const { data, error } = await supabase
+          .from("categories")
+          .select("id, name, slug, sort_order, image_url")
+          .order("sort_order", { ascending: true });
+        if (error) {
+          console.warn("Could not fetch categories", error);
+          return inMemoryCache.categories.data || [];
+        }
+
+        const result = data || [];
+        inMemoryCache.categories = { data: result, ts: now };
+        if (typeof window !== 'undefined') {
+          try {
+            sessionStorage.setItem(SESSION_CACHE_CATS_KEY, JSON.stringify({ data: result, ts: now }));
+          } catch (e) {}
+        }
+        return result;
+      } finally {
+        inflightCategoriesPromise = null;
+      }
+    })();
+
+    return inflightCategoriesPromise;
   },
   getCategoryById: async (id: string): Promise<Category | undefined> => {
     const { data, error } = await supabase
@@ -1121,7 +1175,7 @@ export const api = {
       .single();
 
     if (error) throw error;
-    inMemoryCache.categories = { data: null, ts: 0 };
+    clearCategoriesCache();
     return newCategory;
   },
   updateCategory: async (
@@ -1145,7 +1199,7 @@ export const api = {
       .single();
 
     if (error) throw error;
-    inMemoryCache.categories = { data: null, ts: 0 };
+    clearCategoriesCache();
     return updatedCategory;
   },
   updateCategoriesOrder: async (categories: Category[]): Promise<boolean> => {
@@ -1165,14 +1219,14 @@ export const api = {
       console.error("Error reordering categories:", error);
       throw error;
     }
-    inMemoryCache.categories = { data: null, ts: 0 };
+    clearCategoriesCache();
     return true;
   },
   deleteCategory: async (id: string): Promise<boolean> => {
     const { error } = await supabase.from("categories").delete().eq("id", id);
 
     if (error) throw error;
-    inMemoryCache.categories = { data: null, ts: 0 };
+    clearCategoriesCache();
     return true;
   },
   getPhotographers: async (forceRefresh = false): Promise<PhotographerWithStats[]> => {
@@ -1373,65 +1427,97 @@ export const api = {
   // --- EVENTS ---
   getAllPublicEvents: async (limit?: number): Promise<PhotoEvent[]> => {
     const now = Date.now();
+
+    // 1. Cache em memória imediato (0ms)
     if (inMemoryCache.allEvents.data && (now - inMemoryCache.allEvents.ts < CACHE_TTL)) {
       return limit ? inMemoryCache.allEvents.data.slice(0, limit) : inMemoryCache.allEvents.data;
     }
 
-    try {
-      // Sempre busca os eventos públicos disponíveis (até 500) para garantir que todas as categorias e buscas encontrem seus eventos
-      const fetchLimit = 500;
-      let { data, error } = await supabase
-        .from("events")
-        .select("id, name, event_date, location, cover_photo_url, photographer_id, category_id, is_featured, is_photos_private, created_at, photographer:users!photographer_id(name, avatar_url, is_active)")
-        .order("event_date", { ascending: false })
-        .limit(fetchLimit);
+    // 2. Cache em sessionStorage (persiste durante a sessão / refresh do usuário) (< 10ms)
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = sessionStorage.getItem(SESSION_CACHE_EVENTS_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && Array.isArray(parsed.data) && (now - parsed.ts < CACHE_TTL)) {
+            inMemoryCache.allEvents = { data: parsed.data, ts: parsed.ts };
+            return limit ? parsed.data.slice(0, limit) : parsed.data;
+          }
+        }
+      } catch (e) {}
+    }
 
-      if (error) {
-        console.warn("Retrying getAllPublicEvents without join due to error:", error.message);
-        const fallbackRes = await supabase
+    // 3. Reutilização de requisição em andamento (evita requisições concorrentes duplicadas)
+    if (inflightAllEventsPromise) {
+      const all = await inflightAllEventsPromise;
+      return limit ? all.slice(0, limit) : all;
+    }
+
+    inflightAllEventsPromise = (async () => {
+      try {
+        // Busca os eventos públicos da plataforma com limite otimizado
+        const fetchLimit = 250;
+        let { data, error } = await supabase
           .from("events")
-          .select("id, name, event_date, location, cover_photo_url, photographer_id, category_id, is_featured, is_photos_private, created_at")
+          .select("id, name, event_date, location, cover_photo_url, photographer_id, category_id, is_featured, is_photos_private, created_at, photographer:users!photographer_id(name, avatar_url, is_active)")
           .order("event_date", { ascending: false })
           .limit(fetchLimit);
 
-        data = fallbackRes.data as any;
-        error = fallbackRes.error;
-      }
+        if (error) {
+          console.warn("Retrying getAllPublicEvents without join due to error:", error.message);
+          const fallbackRes = await supabase
+            .from("events")
+            .select("id, name, event_date, location, cover_photo_url, photographer_id, category_id, is_featured, is_photos_private, created_at")
+            .order("event_date", { ascending: false })
+            .limit(fetchLimit);
 
-      if (error) {
-        console.error("Error fetching all events:", error);
-        inMemoryCache.allEvents = { data: inMemoryCache.allEvents.data || [], ts: now - CACHE_TTL + 15000 };
-        const fallback = inMemoryCache.allEvents.data || [];
-        return limit ? fallback.slice(0, limit) : fallback;
-      }
+          data = fallbackRes.data as any;
+          error = fallbackRes.error;
+        }
 
-      if (!data || data.length === 0) {
-        inMemoryCache.allEvents = { data: [], ts: now };
-        return [];
-      }
+        if (error) {
+          console.error("Error fetching all events:", error);
+          inMemoryCache.allEvents = { data: inMemoryCache.allEvents.data || [], ts: now - CACHE_TTL + 15000 };
+          return inMemoryCache.allEvents.data || [];
+        }
 
-      let validEvents: any[] = [];
-      if (data[0]?.photographer !== undefined) {
-        validEvents = data.filter((e: any) => !e.photographer || e.photographer.is_active !== false);
-      } else {
-        const inactiveIds = await api.getInactivePhotographerIds();
-        validEvents = data.filter((e: any) => !e.photographer_id || !inactiveIds.has(e.photographer_id));
-      }
+        if (!data || data.length === 0) {
+          inMemoryCache.allEvents = { data: [], ts: now };
+          return [];
+        }
 
-      if (validEvents.length > 0) {
-        const eventIds = validEvents.map((e: any) => e.id);
-        const counts = await api.getEventPhotoCounts('', eventIds);
-        validEvents = validEvents.filter((e: any) => (counts[e.id] || 0) > 0);
-      }
+        let validEvents: any[] = [];
+        if (data[0]?.photographer !== undefined) {
+          validEvents = data.filter((e: any) => !e.photographer || e.photographer.is_active !== false);
+        } else {
+          const inactiveIds = await api.getInactivePhotographerIds();
+          validEvents = data.filter((e: any) => !e.photographer_id || !inactiveIds.has(e.photographer_id));
+        }
 
-      const result = validEvents as unknown as PhotoEvent[];
-      inMemoryCache.allEvents = { data: result, ts: now };
-      return limit ? result.slice(0, limit) : result;
-    } catch (err) {
-      console.error("Exception in getAllPublicEvents:", err);
-      const fallback = inMemoryCache.allEvents.data || [];
-      return limit ? fallback.slice(0, limit) : fallback;
-    }
+        if (validEvents.length > 0) {
+          const eventIds = validEvents.map((e: any) => e.id);
+          const counts = await api.getEventPhotoCounts('', eventIds);
+          validEvents = validEvents.filter((e: any) => (counts[e.id] || 0) > 0);
+        }
+
+        const result = validEvents as unknown as PhotoEvent[];
+        inMemoryCache.allEvents = { data: result, ts: now };
+        if (typeof window !== 'undefined') {
+          try {
+            sessionStorage.setItem(SESSION_CACHE_EVENTS_KEY, JSON.stringify({ data: result, ts: now }));
+          } catch (e) {}
+        }
+        return result;
+      } catch (err) {
+        console.error("Exception in getAllPublicEvents:", err);
+        return inMemoryCache.allEvents.data || [];
+      } finally {
+        inflightAllEventsPromise = null;
+      }
+    })();
+
+    const finalResult = await inflightAllEventsPromise;
+    return limit ? finalResult.slice(0, limit) : finalResult;
   },
 
   getEventById: async (eventId: string): Promise<PhotoEvent | null> => {
@@ -1776,7 +1862,7 @@ export const api = {
         });
         delete inMemoryCache.photographerPhotosCache[event.photographer_id];
       }
-      inMemoryCache.allEvents = { data: null, ts: 0 };
+      clearEventsCache();
       return true;
     } catch (err) {
       console.error("Failed to delete event:", err);
@@ -1871,7 +1957,7 @@ export const api = {
         }
       });
       delete inMemoryCache.photographerPhotosCache[updatedEvent.photographer_id];
-      inMemoryCache.allEvents = { data: null, ts: 0 };
+      clearEventsCache();
       inMemoryCache.featured = { data: null, ts: 0 };
       inMemoryCache.recent = { data: null, ts: 0 };
       inMemoryCache.privateEvents = { data: null, ts: 0 };
