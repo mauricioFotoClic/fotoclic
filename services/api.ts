@@ -27,6 +27,7 @@ import {
 } from "../types";
 import { supabase } from "./supabaseClient";
 import bcrypt from "bcryptjs";
+import { translateAuthError } from "../utils/authErrors";
 
 const API_URL = '/api';
 
@@ -2349,12 +2350,7 @@ export const api = {
 
     if (authError) {
       console.error("Auth Login Failed:", authError);
-
-      if (authError.message === "Invalid login credentials") {
-        throw new Error("Email ou senha incorretos.");
-      }
-
-      throw new Error(`Erro de autenticação: ${authError.message}`);
+      throw new Error(translateAuthError(authError, "E-mail ou senha incorretos."));
     }
 
     if (!authData.user) return undefined;
@@ -2386,30 +2382,35 @@ export const api = {
   },
 
   requestPasswordReset: async (email: string): Promise<boolean> => {
+    const cleanEmail = (email || "").trim().toLowerCase();
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+      const response = await fetch(`${API_URL}/send-email`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          action: "password-reset",
+          email: cleanEmail,
+          redirectTo: `${window.location.origin}/reset-password`,
+        }),
       });
 
-      if (error) {
-        console.error("Supabase Reset Error (Technical Details):", {
-          message: error.message,
-          status: error.status,
-          name: error.name,
-          details: (error as any).details,
-        });
-        throw error;
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        const translated = translateAuthError(
+          { message: data?.error, status: response.status },
+          "Não foi possível enviar o e-mail de recuperação. Tente novamente em instantes.",
+        );
+        throw new Error(translated);
       }
 
       return true;
     } catch (error: any) {
       console.error("Error in requestPasswordReset:", error);
-      // Construct a more helpful error message including the status if available
-      const statusSuffix = error.status ? ` (Status: ${error.status})` : "";
       throw new Error(
-        error.message
-          ? `${error.message}${statusSuffix}`
-          : "Falha ao enviar e-mail de recuperação.",
+        translateAuthError(error, "Não foi possível enviar o e-mail de recuperação. Tente novamente em instantes."),
       );
     }
   },
@@ -2713,7 +2714,7 @@ export const api = {
         throw friendlyError;
       }
 
-      throw err;
+      throw new Error(translateAuthError(err, "Erro ao concluir cadastro. Tente novamente."));
     }
   },
 

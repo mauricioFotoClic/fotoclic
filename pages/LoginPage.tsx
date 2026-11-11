@@ -3,6 +3,7 @@ import { Page, User } from '../types';
 import api from '../services/api';
 import Logo from '../components/Logo';
 import { useLanguage } from '../contexts/LanguageContext';
+import { translateAuthError } from '../utils/authErrors';
 
 interface LoginPageProps {
     onNavigate: (page: Page) => void;
@@ -28,7 +29,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onLoginSuccess }) => 
                 setError(t('auth.invalid_login_error'));
             }
         } catch (err) {
-            setError(t('auth.generic_error'));
+            setError(translateAuthError(err, t('auth.generic_error')));
         } finally {
             setLoading(false);
         }

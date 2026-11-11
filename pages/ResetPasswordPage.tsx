@@ -3,6 +3,7 @@ import { api } from '../services/api';
 import { supabase } from '../services/supabaseClient';
 import { Eye, EyeOff, Lock, CheckCircle, AlertCircle } from 'lucide-react';
 import { PageRoute } from '../types';
+import { translateAuthError } from '../utils/authErrors';
 
 interface ResetPasswordPageProps {
     token: string | undefined;
@@ -80,7 +81,7 @@ export function ResetPasswordPage({ token, onNavigate }: ResetPasswordPageProps)
             }
         } catch (err: any) {
             setStatus('error');
-            setErrorDetails(err.message || 'Falha ao redefinir a senha.');
+            setErrorDetails(translateAuthError(err, 'Falha ao redefinir a senha.'));
         }
     };
 
