@@ -72,9 +72,13 @@ const AdminRemarketing: React.FC = () => {
 
                 const mappedCustomers: CustomerWithStats[] = dbCustomers.map(cust => {
                     // Mapear eventos comprados
-                    const purchasedEventIds = salesData
-                        ?.filter(s => s.buyer_id === cust.id && s.photo?.event_id)
-                        ?.map(s => s.photo!.event_id!) || [];
+                    const purchasedEventIds = (salesData || [])
+                        .filter(s => s.buyer_id === cust.id)
+                        .map(s => {
+                            const photoData = s.photo as { event_id?: string } | { event_id?: string }[] | null;
+                            return Array.isArray(photoData) ? photoData[0]?.event_id : photoData?.event_id;
+                        })
+                        .filter((id): id is string => Boolean(id));
 
                     // Mapear carrinho abandonado (carrinho com itens)
                     const userCart = cartsData?.find(c => c.user_id === cust.id);

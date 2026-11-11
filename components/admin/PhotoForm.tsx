@@ -29,6 +29,7 @@ const PhotoForm: React.FC<PhotoFormProps> = ({ onSubmit, onCancel, initialData, 
         is_featured: false,
         likes: 0,
         liked_by_users: [],
+        sales_count: 0,
     });
     const [previewImage, setPreviewImage] = useState<string | null>(null);
 
@@ -49,6 +50,7 @@ const PhotoForm: React.FC<PhotoFormProps> = ({ onSubmit, onCancel, initialData, 
                 is_featured: false,
                 likes: 0,
                 liked_by_users: [],
+                sales_count: 0,
             });
             setPreviewImage(null);
         }

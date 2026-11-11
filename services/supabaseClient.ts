@@ -22,9 +22,36 @@ if (!finalUrl || !finalKey) {
     console.error('Supabase URL e Key não encontradas. O cliente pode falhar.');
 }
 
+if (typeof window !== 'undefined') {
+    const hash = window.location.hash || '';
+    const search = window.location.search || '';
+    if (
+        hash.includes('type=recovery') ||
+        (window.location.pathname.startsWith('/reset-password') && (hash.includes('access_token') || search.includes('code=')))
+    ) {
+        try {
+            window.sessionStorage.setItem('fotoclic_password_recovery', 'true');
+        } catch {
+            // ignore storage errors
+        }
+    }
+}
+
 export const supabase = createClient(finalUrl, finalKey, {
     auth: {
         persistSession: true,
         autoRefreshToken: true,
     }
 });
+
+if (typeof window !== 'undefined') {
+    supabase.auth.onAuthStateChange((event) => {
+        if (event === 'PASSWORD_RECOVERY') {
+            try {
+                window.sessionStorage.setItem('fotoclic_password_recovery', 'true');
+            } catch {
+                // ignore storage errors
+            }
+        }
+    });
+}

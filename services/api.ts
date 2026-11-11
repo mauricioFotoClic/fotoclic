@@ -1705,8 +1705,7 @@ export const api = {
             .from("event_collaborators")
             .update({ photographer_id: photographerId })
             .in("id", unlinkedCollabs.map((c: any) => c.id))
-            .then(() => {})
-            .catch(() => {});
+            .then(() => {}, () => {});
         }
 
         const eventIds = collabs

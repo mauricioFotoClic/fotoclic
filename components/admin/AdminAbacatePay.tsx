@@ -479,7 +479,7 @@ const AdminAbacatePay: React.FC = () => {
             }));
             
             if (json.apiRefundFailed) {
-                showToast('Estorno registrado no FotoClic. Lembre-se de realizar o reembolso manual no painel do Abacate Pay!', 'warning');
+                showToast('Estorno registrado no FotoClic. Lembre-se de realizar o reembolso manual no painel do Abacate Pay!', 'info');
             } else {
                 showToast('Estorno registrado com sucesso.', 'success');
             }

@@ -18,7 +18,7 @@ const CheckCircle = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" hei
 const XCircle = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>;
 const ChevronDown = () => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>;
 
-type CartStatus = 'pending' | 'contacted' | 'converted' | 'lost';
+type CartStatus = 'pending' | 'recovered' | 'contacted' | 'converted' | 'lost';
 
 const PhotographerAbandonedCarts: React.FC<PhotographerAbandonedCartsProps> = ({ user, setView }) => {
     const [carts, setCarts] = useState<AbandonedCart[]>([]);
@@ -150,6 +150,7 @@ const PhotographerAbandonedCarts: React.FC<PhotographerAbandonedCartsProps> = ({
     const getStatusColor = (status: CartStatus) => {
         switch (status) {
             case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+            case 'recovered': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
             case 'contacted': return 'bg-blue-100 text-blue-800 border-blue-200';
             case 'converted': return 'bg-green-100 text-green-800 border-green-200';
             case 'lost': return 'bg-neutral-100 text-neutral-600 border-neutral-200';
@@ -160,6 +161,7 @@ const PhotographerAbandonedCarts: React.FC<PhotographerAbandonedCartsProps> = ({
     const getStatusName = (status: CartStatus) => {
         switch (status) {
             case 'pending': return '⏳ Pendente';
+            case 'recovered': return '✅ Recuperado';
             case 'contacted': return '💬 Contactado';
             case 'converted': return '🎉 Convertido';
             case 'lost': return '❌ Perdido';

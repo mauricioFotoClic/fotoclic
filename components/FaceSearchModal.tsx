@@ -303,13 +303,14 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({
                 const directPhotos = matches
                     .map(m => m.photo)
                     .filter(Boolean)
-                    .map(p => ({
+                    .map((p): Photo => ({
                         id: p.id,
                         photographer_id: p.photographer_id,
                         category_id: p.category_id,
                         title: p.title,
-                        description: p.description,
+                        description: p.description || '',
                         preview_url: p.preview_url,
+                        file_url: p.file_url || p.preview_url || '',
                         thumb_url: p.thumb_url,
                         price: p.price,
                         resolution: p.resolution,
@@ -317,20 +318,21 @@ const FaceSearchModal: React.FC<FaceSearchModalProps> = ({
                         height: p.height,
                         tags: p.tags || [],
                         is_public: p.is_public,
-                        created_at: p.created_at,
+                        upload_date: p.upload_date || p.created_at || '',
                         moderation_status: p.moderation_status,
                         rejection_reason: p.rejection_reason,
                         is_featured: p.is_featured,
-                        likes_count: p.likes_count,
+                        likes: p.likes ?? p.likes_count ?? 0,
+                        liked_by_users: p.liked_by_users || [],
                         quality_analysis: p.quality_analysis,
                         is_face_indexed: p.is_face_indexed,
                         event_id: p.event_id,
-                        sales_count: p.sales_count,
+                        sales_count: p.sales_count ?? 0,
                         media_type: p.media_type,
                         video_uid: p.video_uid,
                         video_duration: p.video_duration,
                         file_size_bytes: p.file_size_bytes,
-                    } as Photo));
+                    }));
 
                 if (directPhotos.length > 0) {
                     photos = matchedIds.map(id => directPhotos.find(p => p.id === id)).filter(Boolean) as Photo[];

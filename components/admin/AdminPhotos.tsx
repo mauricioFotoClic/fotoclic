@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { Photo, User, Category, EmailTemplates } from '../../types';
+import { Photo, User, Category, EmailTemplates, PhotographerWithStats } from '../../types';
 import api from '../../services/api';
 import Spinner from '../Spinner';
 import Modal from '../Modal';
@@ -12,14 +12,6 @@ import { getOptimizedImageUrl } from '../../utils/imageOptimization';
 interface AdminPhotosProps {
     context: any;
     setContext: (context: any) => void;
-}
-
-interface PhotographerWithStats extends User {
-    totalPhotos: number;
-    pendingCount: number;
-    approvedCount: number;
-    rejectedCount: number;
-    hasPhotos: boolean;
 }
 
 
@@ -396,7 +388,7 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
     }, [photographers]);
 
     // Group filtered photos by event (Moved to top level)
-    const photosByEvent = useMemo(() => {
+    const photosByEvent = useMemo<Array<{ id: string; title: string; subtitle: string; photos: Photo[]; isEvent: boolean; eventObj?: any }>>(() => {
         const noEventPhotos = filteredPhotos.filter(p => !p.event_id || !photographerEvents.find(e => e.id === p.event_id));
 
         // Apply Event Filter
@@ -428,7 +420,7 @@ const AdminPhotos: React.FC<AdminPhotosProps> = ({ context, setContext }) => {
 
         const hasActiveSubFilters = Boolean(searchTerm || filters.category || filters.status || filters.moderation || filters.featured);
 
-        const groups = photographerEvents.map(event => {
+        const groups: Array<{ id: string; title: string; subtitle: string; photos: Photo[]; isEvent: boolean; eventObj?: any }> = photographerEvents.map(event => {
             const photos = filteredPhotos.filter(p => p.event_id === event.id);
             return {
                 id: event.id,

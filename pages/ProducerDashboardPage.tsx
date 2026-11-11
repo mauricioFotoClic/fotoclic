@@ -197,7 +197,7 @@ const ProducerDashboardPage: React.FC<ProducerDashboardPageProps> = ({ currentUs
             message: `Tem certeza que deseja excluir o evento "${event.name}"? Todos os convites e vínculos de equipe deste evento também serão excluídos.`,
             confirmText: "Sim, Excluir",
             cancelText: "Cancelar",
-            type: "danger"
+            variant: "danger"
         });
 
         if (!confirmed) return;

@@ -84,6 +84,7 @@ const AUTH_ERROR_RULES: Array<{ test: (msg: string, code: string, status?: numbe
       msg.includes('jwt expired') ||
       msg.includes('token has expired') ||
       msg.includes('otp expired') ||
+      msg.includes('email link is invalid or has expired') ||
       code === 'otp_expired' ||
       code === 'session_expired',
     ptBr: 'Sua sessão ou link de verificação expirou. Solicite um novo link ou faça login novamente.',

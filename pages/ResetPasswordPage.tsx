@@ -21,9 +21,35 @@ export function ResetPasswordPage({ token, onNavigate }: ResetPasswordPageProps)
     useEffect(() => {
         const hash = window.location.hash;
         const search = window.location.search;
-        const hasRecoveryToken = hash.includes('type=recovery') || hash.includes('access_token') || search.includes('code');
+        const hashParams = new URLSearchParams(hash.startsWith('#') ? hash.slice(1) : hash);
+        const searchParams = new URLSearchParams(search);
+        const urlError = hashParams.get('error_description') || hashParams.get('error') || searchParams.get('error_description') || searchParams.get('error');
 
-        let isRecoveryFlow = hasRecoveryToken;
+        if (urlError) {
+            try {
+                window.sessionStorage.removeItem('fotoclic_password_recovery');
+            } catch {
+                // ignore
+            }
+            setStatus('invalid');
+            setErrorDetails(
+                translateAuthError(
+                    { message: urlError, code: hashParams.get('error_code') || searchParams.get('error_code') || undefined },
+                    'Link de recuperação inválido ou expirado. Por favor, solicite um novo link.'
+                )
+            );
+            return;
+        }
+
+        const hasRecoveryToken = hash.includes('type=recovery') || hash.includes('access_token') || search.includes('code=');
+        let hasStoredRecovery = false;
+        try {
+            hasStoredRecovery = window.sessionStorage.getItem('fotoclic_password_recovery') === 'true';
+        } catch {
+            hasStoredRecovery = false;
+        }
+
+        let isRecoveryFlow = hasRecoveryToken || hasStoredRecovery;
 
         // Listen specifically for auth state changes with PASSWORD_RECOVERY
         const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
@@ -46,6 +72,11 @@ export function ResetPasswordPage({ token, onNavigate }: ResetPasswordPageProps)
             if (session && isRecoveryFlow) {
                 setStatus('valid');
             } else {
+                try {
+                    window.sessionStorage.removeItem('fotoclic_password_recovery');
+                } catch {
+                    // ignore
+                }
                 // If not explicitly in recovery flow, mark as invalid link
                 setStatus('invalid');
                 setErrorDetails('Link de recuperação inválido ou expirado. Por favor, solicite um novo link.');
@@ -60,19 +91,24 @@ export function ResetPasswordPage({ token, onNavigate }: ResetPasswordPageProps)
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (password !== confirmPassword) {
-            alert('As senhas não coincidem');
+            setStatus('error');
+            setErrorDetails('As senhas não coincidem.');
             return;
         }
 
+        setErrorDetails('');
         setStatus('submitting');
 
         try {
             const { error } = await supabase.auth.updateUser({ password: password });
 
             if (!error) {
+                try {
+                    window.sessionStorage.removeItem('fotoclic_password_recovery');
+                } catch {
+                    // ignore
+                }
                 setStatus('success');
-                // Also update public.users just in case we kept the password column?
-                // No, we don't store it anymore.
                 setTimeout(() => {
                     onNavigate({ name: 'home' });
                 }, 3000);
@@ -105,7 +141,7 @@ export function ResetPasswordPage({ token, onNavigate }: ResetPasswordPageProps)
                     </div>
                     <h2 className="text-2xl font-bold text-gray-900 mb-2">Link Inválido ou Expirado</h2>
                     <p className="text-gray-600 mb-8">
-                        Este link de redefinição de senha não é mais válido. Por favor, solicite uma nova recuperação de senha.
+                        {errorDetails || 'Este link de redefinição de senha não é mais válido. Por favor, solicite uma nova recuperação de senha.'}
                     </p>
                     <button
                         onClick={() => onNavigate({ name: 'home' })}
