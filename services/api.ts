@@ -2355,15 +2355,45 @@ export const api = {
     if (!authData.user) return undefined;
 
     // 2. Fetch User Profile
-    const { data: userProfile, error: profileError } = await supabase
+    const { data: fetchedProfile, error: profileError } = await supabase
       .from("users")
       .select("*")
       .eq("id", authData.user.id)
       .single();
 
-    if (profileError) {
-      console.error("Profile Fetch Error:", profileError);
-      throw new Error("Usuário autenticado, mas perfil não encontrado.");
+    let userProfile = fetchedProfile;
+
+    if (profileError || !userProfile) {
+      // Auto-recovery if auth user was created without a matching public.users row
+      const meta = authData.user.user_metadata || {};
+      const fallbackName = formatNameAsTitleCase(
+        meta.name || (authData.user.email || email).split("@")[0] || "Usuário"
+      );
+      const recoveredRole = meta.role || UserRole.CUSTOMER;
+      const recoveredPayload: Record<string, any> = {
+        id: authData.user.id,
+        email: (authData.user.email || email).trim().toLowerCase(),
+        name: fallbackName,
+        role: recoveredRole,
+        is_active: recoveredRole === UserRole.PRODUCER ? false : true,
+        ...(meta.phone ? { phone: meta.phone } : {}),
+        ...(meta.cpf ? { cpf: meta.cpf } : {}),
+        ...(meta.birth_date ? { birth_date: meta.birth_date } : {}),
+        ...(meta.company_name ? { company_name: meta.company_name } : {}),
+      };
+
+      const { data: recoveredProfile, error: recoverError } = await supabase
+        .from("users")
+        .insert(recoveredPayload)
+        .select()
+        .single();
+
+      if (recoverError || !recoveredProfile) {
+        console.error("Profile Fetch & Recovery Error:", profileError, recoverError);
+        throw new Error("Usuário autenticado, mas perfil não encontrado.");
+      }
+
+      userProfile = recoveredProfile;
     }
 
     // Check if user is active
@@ -2482,11 +2512,37 @@ export const api = {
     let authData: any = null;
     const cleanEmail = (data.email || '').trim().toLowerCase();
 
+    const cleanCpf = data.cpf ? String(data.cpf).replace(/\D/g, '') : undefined;
+    let cleanBirthDate: string | undefined = undefined;
+    if (data.birth_date) {
+      const rawDate = String(data.birth_date).trim();
+      if (rawDate.includes('/')) {
+        const parts = rawDate.split('/');
+        if (parts.length === 3 && parts[2].length === 4) {
+          cleanBirthDate = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+        } else {
+          cleanBirthDate = rawDate;
+        }
+      } else {
+        cleanBirthDate = rawDate;
+      }
+    }
+
     try {
-      // 1. Create Auth User
+      // 1. Create Auth User (store metadata for automatic profile recovery if needed)
       const resAuth = await supabase.auth.signUp({
         email: cleanEmail,
         password: data.password || "temp-pass-123", // Handle nullable password edge case
+        options: {
+          data: {
+            name: formatNameAsTitleCase(data.name),
+            role: data.role,
+            ...(data.phone ? { phone: data.phone } : {}),
+            ...(cleanCpf ? { cpf: cleanCpf } : {}),
+            ...(cleanBirthDate ? { birth_date: cleanBirthDate } : {}),
+            ...(data.company_name ? { company_name: data.company_name } : {}),
+          },
+        },
       });
 
       if (resAuth.error) {
@@ -2522,32 +2578,16 @@ export const api = {
       // 2. Create Public Profile with SAME ID
       // NOTE: password is managed by Supabase Auth (signUp above).
       // Do NOT insert password into the public users table — the column does not exist.
-      const { password: _pw, cpf, birth_date, ...dataWithoutPassword } = data as any;
+      const { password: _pw, cpf: _cpf, birth_date: _birthDate, ...dataWithoutPassword } = data as any;
       const isPhotographer = (data.role as any) === UserRole.PHOTOGRAPHER || (data.role as any) === 'photographer';
       const isProducer = (data.role as any) === UserRole.PRODUCER || (data.role as any) === 'producer';
-
-      const cleanCpf = cpf ? String(cpf).replace(/\D/g, '') : undefined;
-      let cleanBirthDate: string | undefined = undefined;
-      if (birth_date) {
-        const rawDate = String(birth_date).trim();
-        if (rawDate.includes('/')) {
-          const parts = rawDate.split('/');
-          if (parts.length === 3 && parts[2].length === 4) {
-            cleanBirthDate = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-          } else {
-            cleanBirthDate = rawDate;
-          }
-        } else {
-          cleanBirthDate = rawDate;
-        }
-      }
 
       const userData: any = {
         id: authData.user.id, // CRITICAL: Sync IDs
         ...dataWithoutPassword,
         email: cleanEmail,
         name: formatNameAsTitleCase(data.name),
-        ...(cleanCpf ? { cpf: cleanCpf, cpf_cnpj: cleanCpf } : {}),
+        ...(cleanCpf ? { cpf: cleanCpf } : {}),
         ...(cleanBirthDate ? { birth_date: cleanBirthDate } : {}),
         is_active: isProducer ? false : true, // Produtores entram pendentes para moderação do admin
       };

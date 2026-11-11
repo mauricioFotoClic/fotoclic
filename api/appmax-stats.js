@@ -49,7 +49,7 @@ export default async function handler(req, res) {
           recipientResult = await appmax.createRecipient({
             name: profile?.name || 'Fotógrafo',
             email: profile?.email || user.email,
-            document: document || profile?.cpf_cnpj || profile?.appmax_document,
+            document: document || profile?.cpf || profile?.cpf_cnpj || profile?.appmax_document,
             bank_code,
             bank_agency,
             bank_account,
@@ -127,7 +127,7 @@ export default async function handler(req, res) {
       if (allUserIds.length > 0) {
         const { data: usersData } = await supabase
           .from('users')
-          .select('id, name, email, role, pix_key, pix_key_type, cpf_cnpj, is_active, appmax_recipient_id, appmax_status')
+          .select('id, name, email, role, pix_key, pix_key_type, cpf, is_active')
           .in('id', allUserIds);
 
         (usersData || []).forEach(u => usersMap.set(u.id, u));
@@ -177,7 +177,7 @@ export default async function handler(req, res) {
           name: photographer?.name || 'Fotógrafo',
           email: photographer?.email || '',
           pix_key: photographer?.pix_key || '',
-          cpf_cnpj: photographer?.cpf_cnpj || ''
+          cpf_cnpj: photographer?.cpf || photographer?.cpf_cnpj || ''
         },
         photos: {
           id: s.photo_id,
@@ -258,8 +258,8 @@ export default async function handler(req, res) {
       console.warn('[Appmax Stats Photogs Warning]', e);
     }
 
-    const recipientsActive = photogList.filter(p => p.is_active !== false && (p.appmax_status === 'active' || p.pix_key || p.cpf_cnpj)).length;
-    const recipientsPending = photogList.filter(p => !p.pix_key && !p.cpf_cnpj && p.appmax_status !== 'active').length;
+    const recipientsActive = photogList.filter(p => p.is_active !== false && (p.appmax_status === 'active' || p.pix_key || p.cpf || p.cpf_cnpj)).length;
+    const recipientsPending = photogList.filter(p => !p.pix_key && !p.cpf && !p.cpf_cnpj && p.appmax_status !== 'active').length;
 
     // Buscar saques registrados (tabela payouts)
     let payouts = [];

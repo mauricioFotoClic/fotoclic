@@ -74,7 +74,7 @@ const AdminAppmax: React.FC = () => {
         setSyncSuccess(null);
         try {
             await api.syncAppmaxRecipient({
-                document: photog.cpf_cnpj || '00000000000',
+                document: photog.cpf_cnpj || photog.cpf || '00000000000',
                 pix_key: photog.pix_key
             });
             setSyncSuccess(`Recebedor ${photog.name} sincronizado com sucesso na Appmax!`);
