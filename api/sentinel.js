@@ -11,11 +11,10 @@ const getSupabase = () => {
 
 // Send Markdown Formatted Alert to Telegram
 async function sendTelegramAlert({ botToken, chatId, title, severity, eventType, ipAddress, endpoint, diagnosis, remediation, actionTaken, logId }) {
-    const finalToken = (botToken || process.env.TELEGRAM_BOT_TOKEN || '8854659202:AAHOiJHH5rjJ1PJPjuDx26UAYcyafm3BEzY').trim();
-    const finalChatId = (chatId || process.env.TELEGRAM_CHAT_ID || '5525056555').trim();
-    const groupId = (process.env.TELEGRAM_GROUP_ID || '-5372484924').trim();
+    const finalToken = (botToken || process.env.TELEGRAM_BOT_TOKEN || '').trim();
+    const finalChatId = (chatId || process.env.TELEGRAM_CHAT_ID || '').trim();
 
-    if (!finalToken) return false;
+    if (!finalToken || !finalChatId) return false;
 
     const severityEmojis = {
         low: '🟡 [BAIXO]',

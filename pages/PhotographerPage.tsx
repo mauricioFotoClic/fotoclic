@@ -109,12 +109,10 @@ const PhotographerPage: React.FC<PhotographerPageProps> = ({ user: initialUser, 
         }
     }, [isTransitioning]);
 
-    if (!initialUser) {
-        return null;
-    }
-
     useEffect(() => {
-        setCurrentUser(initialUser);
+        if (initialUser) {
+            setCurrentUser(initialUser);
+        }
     }, [initialUser]);
 
     const handleRefreshUser = async () => {
@@ -251,6 +249,10 @@ const PhotographerPage: React.FC<PhotographerPageProps> = ({ user: initialUser, 
     }
 
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+    if (!initialUser || !currentUser) {
+        return null;
+    }
 
     // ... (effects and other functions)
 

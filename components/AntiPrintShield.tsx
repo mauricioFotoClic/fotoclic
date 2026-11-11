@@ -6,8 +6,9 @@ interface AntiPrintShieldProps {
   enabled?: boolean;
 }
 
-// Proteção de captura de tela ativa
-const IS_ANTI_PRINT_ENABLED = true;
+// ATENÇÃO: Recurso desativado temporariamente a pedido do usuário.
+// Para reativar, altere IS_ANTI_PRINT_ENABLED para true (ou passe enabled={true}).
+const IS_ANTI_PRINT_ENABLED = false;
 
 const AntiPrintShield: React.FC<AntiPrintShieldProps> = ({ enabled = IS_ANTI_PRINT_ENABLED }) => {
   const [isOpen, setIsOpen] = useState(false);

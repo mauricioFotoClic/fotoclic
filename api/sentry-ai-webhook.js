@@ -20,13 +20,14 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8854659202:AAHOiJHH5rjJ1PJPjuDx26UAYcyafm3BEzY';
+  const TELEGRAM_BOT_TOKEN = (process.env.TELEGRAM_BOT_TOKEN || '').trim();
   const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const supabase = createClient(supabaseUrl, serviceKey);
 
   // Helper para enviar mensagens ao Telegram
   const replyTelegram = async (chatId, text, buttons = []) => {
+    if (!TELEGRAM_BOT_TOKEN) return { ok: false };
     try {
       const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
         method: 'POST',
@@ -47,6 +48,7 @@ export default async function handler(req, res) {
 
   // Helper para responder Callback Query
   const answerCallback = async (callbackId, text = '', showAlert = false) => {
+    if (!TELEGRAM_BOT_TOKEN) return { ok: false };
     try {
       const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, {
         method: 'POST',

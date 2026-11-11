@@ -29,12 +29,13 @@
   --color-secondary-light: #1A1A1A;
 }
 
-/* 🛡️ Proteção Anti-Print e Anti-Captura */
+/* 🛡️ Proteção Anti-Print e Anti-Captura (desativada temporariamente)
 @media print {
   body {
     display: none !important;
   }
 }
+*/
 
 body.screen-capture-blur img {
   filter: blur(12px) !important;

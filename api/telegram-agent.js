@@ -7,7 +7,7 @@ import {
 } from '../lib/github-agent-service.js';
 
 const TELEGRAM_BOT_TOKEN = (process.env.TELEGRAM_BOT_TOKEN || '').trim();
-const AUTHORIZED_CHAT_ID = String(process.env.TELEGRAM_CHAT_ID || '5525056555').trim();
+const AUTHORIZED_CHAT_ID = String(process.env.TELEGRAM_CHAT_ID || '').trim();
 const GEMINI_API_KEY = (process.env.GEMINI_API_KEY || '').trim().replace(/^["']|["']$/g, '');
 
 // Função auxiliar para enviar mensagens no Telegram
@@ -242,7 +242,7 @@ export default async function handler(req, res) {
   const text = message.text || message.caption || '';
 
   // 🔒 Gate de Segurança: Apenas o Chat ID autorizado pode executar comandos
-  if (chatId !== AUTHORIZED_CHAT_ID && senderId !== AUTHORIZED_CHAT_ID) {
+  if (!AUTHORIZED_CHAT_ID || (chatId !== AUTHORIZED_CHAT_ID && senderId !== AUTHORIZED_CHAT_ID)) {
     console.warn(`[Security Alert] Acesso não autorizado do Chat ID: ${chatId} (${message.from?.username || 'Desconhecido'})`);
     await sendTelegramMessage(
       chatId,
